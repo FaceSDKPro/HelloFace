@@ -1,4 +1,21 @@
-# Keep distributable SDK/runtime binaries and large search fixtures in Git LFS.
+# Keep text consistent across macOS, Linux and Windows; do not rewrite binary bytes.
+* text=auto eol=lf
+
+# Documentation and repository graphics are ordinary Git objects.
+*.md text eol=lf
+*.txt text eol=lf
+# Preserve shipped PowerShell bytes already bound by package checksum tables.
+*.ps1 -text
+*.svg text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+
+# Binary SDKs, native dependencies and distributable archives use Git LFS.
+# New formats still require the private content/resource/publication review.
 *.a filter=lfs diff=lfs merge=lfs -text
 *.aar filter=lfs diff=lfs merge=lfs -text
 *.bphfm filter=lfs diff=lfs merge=lfs -text
@@ -7,9 +24,17 @@
 *.exe filter=lfs diff=lfs merge=lfs -text
 *.har filter=lfs diff=lfs merge=lfs -text
 *.jar filter=lfs diff=lfs merge=lfs -text
+*.lib filter=lfs diff=lfs merge=lfs -text
 *.so filter=lfs diff=lfs merge=lfs -text
 *.so.* filter=lfs diff=lfs merge=lfs -text
 *.zip filter=lfs diff=lfs merge=lfs -text
+*.tar.gz filter=lfs diff=lfs merge=lfs -text
+*.tgz filter=lfs diff=lfs merge=lfs -text
+
+# Approved large fixtures and extensionless native SDK/Demo executables.
 **/features_10000.json filter=lfs diff=lfs merge=lfs -text
 platforms/iOS/SDK/HiFaceNative.xcframework/**/HiFaceNative filter=lfs diff=lfs merge=lfs -text
+platforms/iOS/SDK/HiFace.xcframework/**/HiFace filter=lfs diff=lfs merge=lfs -text
 platforms/Linux/runtimes/**/bin/hiface_desktop filter=lfs diff=lfs merge=lfs -text
+platforms/Linux/runtimes/**/bin/hiface_demo filter=lfs diff=lfs merge=lfs -text
+platforms/Linux/runtimes/**/bin/hiface_startup filter=lfs diff=lfs merge=lfs -text
