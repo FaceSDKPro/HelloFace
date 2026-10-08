@@ -1,4 +1,6 @@
-
+# 完成Beta 版本验证，准备发布正式版本，正式版本和Beta版本数据不兼容
+  正式版本发布时间10月中旬
+  
 # [关于「HiFaceSDK」](https://github.com/FaceSDKPro/HiFaceSDK_Android)
 
 人脸识别、活体检测、人脸录入检测以及[1：N以及M：N](https://github.com/HiFaceSDK/HiFaceSDK_Android/blob/main/Introduce_11_1N_MN.md) 人脸搜索Android SDK，可完全离线实现端侧人脸识别，人脸搜索等功能  
@@ -28,11 +30,11 @@ on_device Offline Face Detection 、Recognition 、Liveness Detection Anti Spoof
 
 **顺手帮忙点个🌟Star吧，谢谢**  
 
-##  V0.3.0
+##  V0.6.1
 - 解决模型在某些设备兼容性问题
 - 提高人脸搜索精度（阈值0.75-0.85） 
 - 人脸搜索识别处理tag,group字段以便分组 
-
+- 完成Beta 版本验证，准备发布正式版本，正式版本和Beta版本数据不兼容
 
 ## 如何使用
   HiFaceSDK 托管在mavenCentral,确保在repositories中添加mavenCentral()配置
