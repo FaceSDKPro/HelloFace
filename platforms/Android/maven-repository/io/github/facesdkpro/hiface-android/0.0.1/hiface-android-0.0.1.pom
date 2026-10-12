@@ -13,12 +13,12 @@
   <packaging>aar</packaging>
   <name>HiFace Android SDK</name>
   <description>Android face detection, capture, liveness, 1:1 verification, and 1:N/M:N face search SDK.</description>
-  <url>https://github.com/FaceAISDK/HiFace</url>
+  <url>https://github.com/FaceSDKPro/HelloFace</url>
   <inceptionYear>2026</inceptionYear>
   <licenses>
     <license>
       <name>Proprietary</name>
-      <url>https://github.com/FaceAISDK/HiFace/blob/6da6e72282bbe17930ac030d2ad9bd357216a5e3/platforms/android/sdk/publication/LICENSE</url>
+      <url>https://github.com/FaceSDKPro/HelloFace/blob/main/platforms/Android/LICENSE</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
@@ -26,13 +26,13 @@
     <developer>
       <id>hiface</id>
       <name>HiFace</name>
-      <url>https://github.com/FaceAISDK</url>
+      <url>https://github.com/FaceSDKPro</url>
     </developer>
   </developers>
   <scm>
-    <connection>scm:git:https://github.com/FaceAISDK/HiFace.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/FaceAISDK/HiFace.git</developerConnection>
-    <url>https://github.com/FaceAISDK/HiFace</url>
+    <connection>scm:git:https://github.com/FaceSDKPro/HelloFace.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/FaceSDKPro/HelloFace.git</developerConnection>
+    <url>https://github.com/FaceSDKPro/HelloFace</url>
   </scm>
   <dependencies>
     <dependency>

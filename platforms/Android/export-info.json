@@ -10,7 +10,5 @@
     "timeZone": "Asia/Shanghai",
     "expiresAtUnixSeconds": 1798214400,
     "replacementRequiredFromVersion": "0.1.0"
-  },
-  "sourceRevision": "6f70fdc876fa8111821b50d69eadffb0bacf0ea6",
-  "sourceDirty": true
+  }
 }

@@ -141,6 +141,7 @@ Debug APK 位于 `demo/build/outputs/apk/debug/`，由本机调试证书签名�
 
 Release APK 默认未签名，分发前使用自己的发布证书。`demo/build.gradle.kts` 支持读取本机
 `demo/signing.properties`；发布私钥和密码文件不进入 Git，也不随 Demo 分发。
+请使用自行生成并妥善保管的签名。签名文件与密码一旦公开，应更换密钥与证书；修改文件密码不能撤销已泄露的副本。
 
 当前版本为 Beta 测试版，可使用至**北京时间 2026-12-25 全天**；从 **2026-12-26 00:00** 起
 停止初始化和工作，日志提示“请升级SDK，详情见https://github.com/FaceSDKPro/”。请在到期前升级 SDK。
