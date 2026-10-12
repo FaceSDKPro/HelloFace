@@ -1,0 +1,68 @@
+<resources>
+    <style name="Theme.HiFace" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@color/api_background</item>
+        <item name="android:statusBarColor">@color/api_background</item>
+        <item name="android:navigationBarColor">@color/api_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="Theme.HiFace.Content" parent="Theme.HiFace">
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:statusBarColor">@android:color/white</item>
+        <item name="android:navigationBarColor">@android:color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <style name="Theme.HiFace.Content.Soft" parent="Theme.HiFace.Content">
+        <item name="android:windowBackground">@color/content_background</item>
+        <item name="android:statusBarColor">@color/content_background</item>
+        <item name="android:navigationBarColor">@color/content_background</item>
+        <item name="colorAccent">@color/content_accent</item>
+        <item name="colorControlHighlight">@color/ripple_on_light</item>
+    </style>
+
+    <!-- 默认采集、活体、录入与验证页面隐藏状态栏；白色背景绘制到原状态栏区域。 -->
+    <style name="Theme.HiFace.MainTheme" parent="Theme.HiFace.Content">
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
+    <style name="Theme.HiFace.Camera" parent="Theme.HiFace.Content">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="Theme.HiFace.Search" parent="Theme.HiFace.Search.Base" />
+
+    <style name="Theme.HiFace.Search.Base" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/search_background</item>
+        <item name="android:statusBarColor">@color/search_background</item>
+        <item name="android:navigationBarColor">@color/search_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:colorBackground">@color/search_background</item>
+        <item name="colorSurface">@color/search_surface</item>
+        <item name="colorOnSurface">@android:color/white</item>
+        <item name="colorPrimary">@color/search_accent</item>
+        <item name="colorPrimaryVariant">@color/search_background</item>
+        <item name="colorOnPrimary">@color/search_background</item>
+        <item name="colorSecondary">@color/search_accent</item>
+        <item name="colorOnSecondary">@color/search_background</item>
+        <item name="colorError">@color/search_error_color</item>
+        <item name="android:textColorPrimary">@android:color/white</item>
+        <item name="android:textColorSecondary">@color/text_on_dark_secondary</item>
+        <item name="android:textColorHint">@color/text_on_dark_secondary</item>
+        <item name="colorControlNormal">@color/text_on_dark_secondary</item>
+        <item name="textInputStyle">@style/Widget.HiFace.Search.Field</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.HiFace.Search.Dialog</item>
+    </style>
+
+    <style name="ThemeOverlay.HiFace.Search.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.HiFace.Search.Dialog</item>
+        <item name="colorSurface">@color/search_surface</item>
+        <item name="colorOnSurface">@android:color/white</item>
+        <item name="android:textColorPrimary">@android:color/white</item>
+        <item name="android:textColorSecondary">@color/text_on_dark_secondary</item>
+        <item name="colorPrimary">@color/search_accent</item>
+    </style>
+</resources>

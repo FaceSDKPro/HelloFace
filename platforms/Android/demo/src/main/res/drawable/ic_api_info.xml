@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- 细圆环，避免系统 info 图标在小尺寸下显得厚重。 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M12,2.75 A9.25,9.25 0,1 1,12,21.25 A9.25,9.25 0,1 1,12,2.75"
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.35" />
+
+    <!-- 独立圆点与圆角竖杆，留出明显间距，使字形稳定识别为小写 i。 -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,5.2 A1.2,1.2 0,1 1,12,7.6 A1.2,1.2 0,1 1,12,5.2" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,9.4 C12.58,9.4 13.05,9.87 13.05,10.45 L13.05,17.05 C13.05,17.63 12.58,18.1 12,18.1 C11.42,18.1 10.95,17.63 10.95,17.05 L10.95,10.45 C10.95,9.87 11.42,9.4 12,9.4 Z" />
+</vector>

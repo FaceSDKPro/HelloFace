@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <!-- This module was also published with a richer model, Gradle metadata,  -->
+  <!-- which should be used instead. Do not delete the following line which  -->
+  <!-- is to indicate to Gradle or any Gradle module metadata file consumer  -->
+  <!-- that they should prefer consuming it instead. -->
+  <!-- do_not_remove: published-with-gradle-metadata -->
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>io.github.facesdkpro</groupId>
+  <artifactId>hiface-android</artifactId>
+  <version>0.0.1</version>
+  <packaging>aar</packaging>
+  <name>HiFace Android SDK</name>
+  <description>Android face detection, capture, liveness, 1:1 verification, and 1:N/M:N face search SDK.</description>
+  <url>https://github.com/FaceAISDK/HiFace</url>
+  <inceptionYear>2026</inceptionYear>
+  <licenses>
+    <license>
+      <name>Proprietary</name>
+      <url>https://github.com/FaceAISDK/HiFace/blob/6da6e72282bbe17930ac030d2ad9bd357216a5e3/platforms/android/sdk/publication/LICENSE</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <developers>
+    <developer>
+      <id>hiface</id>
+      <name>HiFace</name>
+      <url>https://github.com/FaceAISDK</url>
+    </developer>
+  </developers>
+  <scm>
+    <connection>scm:git:https://github.com/FaceAISDK/HiFace.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/FaceAISDK/HiFace.git</developerConnection>
+    <url>https://github.com/FaceAISDK/HiFace</url>
+  </scm>
+  <dependencies>
+    <dependency>
+      <groupId>androidx.lifecycle</groupId>
+      <artifactId>lifecycle-common</artifactId>
+      <version>2.6.2</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>androidx.annotation</groupId>
+      <artifactId>annotation</artifactId>
+      <version>1.10.0</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
+</project>

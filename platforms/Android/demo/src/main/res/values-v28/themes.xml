@@ -1,0 +1,7 @@
+<resources>
+    <!-- 允许白色内容进入刘海/挖孔区域，防止隐藏状态栏后由系统留下黑色安全区。 -->
+    <style name="Theme.HiFace.MainTheme" parent="Theme.HiFace.Content">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+</resources>

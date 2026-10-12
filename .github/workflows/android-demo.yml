@@ -1,0 +1,43 @@
+name: Android Demo
+
+on:
+  push:
+    branches: [main]
+    paths: ["platforms/Android/**", ".github/workflows/android-demo.yml"]
+  pull_request:
+    paths: ["platforms/Android/**", ".github/workflows/android-demo.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-demo-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platforms/Android
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exported files
+        run: sha256sum --check SHA256SUMS
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/wrapper-validation@v4
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Test, lint and build independent Demo
+        run: ./gradlew --no-daemon :demo:testDebugUnitTest :demo:lintDebug :demo:assembleDebug :demo:assembleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HelloFace-Android-test-apk
+          path: platforms/Android/demo/build/outputs/apk/debug/*.apk
+          retention-days: 30

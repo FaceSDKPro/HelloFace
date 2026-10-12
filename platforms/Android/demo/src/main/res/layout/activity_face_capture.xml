@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".verification.FaceEnrollmentActivity">
+
+    <!-- 相机保持高性能全屏 Surface，圆形效果由上层不透明遮罩提供。 -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/cameraPreview"
+        android:name="com.hiface.sdk.demo.camera.CameraPreviewFragment"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:layout="@layout/fragment_camera_preview" />
+
+    <!-- 背景遮罩只露出圆形预览孔，同时绘制状态文字和轻量倒计时进度环。 -->
+    <com.hiface.sdk.demo.ui.FaceCaptureOverlayView
+        android:id="@+id/captureOverlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageButton
+        android:id="@+id/backButton"
+        style="@style/Widget.HiFace.NavigationButton.OnLight"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="12dp"
+        android:contentDescription="@string/cd_back"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- 共用布局默认隐藏；当前只由 FaceLivenessActivity 启用。 -->
+    <ImageButton
+        android:id="@+id/switchCameraButton"
+        style="@style/Widget.HiFace.CameraSwitchButton.OnLight"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="12dp"
+        android:contentDescription="@string/switch_camera"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

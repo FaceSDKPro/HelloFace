@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Flyme 6 的 USB 安装拦截器会把旧系统应用图标强制转换为 BitmapDrawable。
+    根节点必须直接是 bitmap；用 layer-list 包裹会得到 LayerDrawable，并导致
+    PackageInstaller 所在的 system_server 崩溃。Android 8+ 仍使用 v26 自适应图标。
+-->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/hello_face_logo"
+    android:gravity="fill"
+    android:filter="true" />

@@ -1,0 +1,90 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.facesdkpro",
+    "module": "hiface-android",
+    "version": "0.0.1",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.14.3"
+    }
+  },
+  "variants": [
+    {
+      "name": "releaseVariantReleaseApiPublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "androidx.lifecycle",
+          "module": "lifecycle-common",
+          "version": {
+            "requires": "2.6.2"
+          }
+        },
+        {
+          "group": "androidx.annotation",
+          "module": "annotation",
+          "version": {
+            "requires": "1.10.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "hiface-android-0.0.1.aar",
+          "url": "hiface-android-0.0.1.aar",
+          "size": 11242585,
+          "sha512": "06e1e4735a6d8f5a33e41fb427516ded15204a70470d01077c62fed9fb278247ecd26d3d340aec6a1100ee571a92579b4cece4a35e1f1b214b73fb8ba254af8d",
+          "sha256": "24ad87ed3b6f038c252bec09b1b5f0d8edffdcd2b29b7755acfea6d43de5a129",
+          "sha1": "ec2be26f14d96072636602b31640a14bd70cd886",
+          "md5": "ee0e43461bcf24858889e829bf9bf98f"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseRuntimePublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "androidx.lifecycle",
+          "module": "lifecycle-common",
+          "version": {
+            "requires": "2.6.2"
+          }
+        },
+        {
+          "group": "androidx.annotation",
+          "module": "annotation",
+          "version": {
+            "requires": "1.10.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "hiface-android-0.0.1.aar",
+          "url": "hiface-android-0.0.1.aar",
+          "size": 11242585,
+          "sha512": "06e1e4735a6d8f5a33e41fb427516ded15204a70470d01077c62fed9fb278247ecd26d3d340aec6a1100ee571a92579b4cece4a35e1f1b214b73fb8ba254af8d",
+          "sha256": "24ad87ed3b6f038c252bec09b1b5f0d8edffdcd2b29b7755acfea6d43de5a129",
+          "sha1": "ec2be26f14d96072636602b31640a14bd70cd886",
+          "md5": "ee0e43461bcf24858889e829bf9bf98f"
+        }
+      ]
+    }
+  ]
+}

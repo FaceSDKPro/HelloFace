@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_api_card"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:minHeight="68dp"
+    android:orientation="horizontal"
+    android:paddingStart="11dp"
+    android:paddingTop="9dp"
+    android:paddingEnd="11dp"
+    android:paddingBottom="9dp">
+
+    <ImageView
+        android:id="@+id/featureIcon"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:background="@drawable/bg_api_icon"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        android:padding="9dp"
+        android:scaleType="fitCenter"
+        app:tint="@color/api_feature_icon" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="11dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/featureTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="@android:color/white"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/featureDescription"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/text_on_dark_secondary"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <ImageView
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_marginStart="10dp"
+        android:background="@drawable/bg_api_feature_arrow"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        android:padding="6dp"
+        android:src="@drawable/ic_api_chevron_right"
+        app:tint="@color/api_feature_icon"
+        android:alpha="0.6" />
+</LinearLayout>

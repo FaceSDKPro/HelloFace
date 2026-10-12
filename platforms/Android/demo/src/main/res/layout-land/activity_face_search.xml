@@ -1,0 +1,14 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:baselineAligned="false" android:orientation="horizontal">
+    <include layout="@layout/view_search_camera"
+        android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
+    <LinearLayout android:layout_width="280dp" android:layout_height="match_parent"
+        android:orientation="vertical" android:padding="12dp">
+        <ScrollView android:layout_width="match_parent" android:layout_height="0dp"
+            android:layout_weight="1" android:scrollbars="vertical">
+            <include layout="@layout/view_search_status"/>
+        </ScrollView>
+        <include layout="@layout/view_search_actions"/>
+    </LinearLayout>
+</LinearLayout>

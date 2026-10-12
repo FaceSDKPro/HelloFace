@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 完整 logo 含底部文字，留白保证圆形等自适应蒙版不会裁掉内容。 -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:inset="22.222222%">
+    <bitmap
+        android:src="@drawable/hello_face_logo"
+        android:gravity="fill"
+        android:filter="true" />
+</inset>

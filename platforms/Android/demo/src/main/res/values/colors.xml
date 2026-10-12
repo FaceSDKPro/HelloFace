@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 首页品牌色。 -->
+    <color name="api_background">#3C0740</color>
+    <color name="api_primary">#67AD5B</color>
+    <color name="api_feature_icon">#FFFFFF</color>
+
+    <!-- 共用表面、文字和交互色；纯白、纯黑、透明直接使用 Android 资源。 -->
+    <color name="surface_on_dark">#26FFFFFF</color>
+    <color name="border_on_dark">#3DFFFFFF</color>
+    <color name="text_on_dark_secondary">#BFFFFFFF</color>
+    <color name="ripple_on_light">#26000000</color>
+    <color name="overlay_light">#DDEEEEEE</color>
+    <color name="overlay_dark">#D9172233</color>
+    <color name="surface_muted">#EEEEEE</color>
+
+    <!-- 浅色内容页；强调色兼顾按钮、文字和图标在浅灰背景上的对比度。 -->
+    <color name="content_background">#F5F5F7</color>
+    <color name="content_text">#242029</color>
+    <color name="content_text_secondary">#69636F</color>
+    <color name="content_accent">#077A63</color>
+    <color name="content_error">#B33D37</color>
+
+    <!-- 深色搜索页。 -->
+    <color name="search_background">#0C1320</color>
+    <color name="search_surface">#172233</color>
+    <color name="search_border">#2D3C51</color>
+    <color name="search_accent">#79E3C0</color>
+    <color name="search_error_color">#FF9696</color>
+</resources>

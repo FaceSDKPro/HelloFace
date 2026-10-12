@@ -1,0 +1,15 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:paddingTop="10dp">
+    <com.google.android.material.button.MaterialButton android:id="@+id/searchEnroll"
+        style="@style/Widget.HiFace.Search.Primary" android:layout_width="0dp"
+        android:layout_height="48dp" android:minHeight="48dp" android:layout_weight="1"
+        android:layout_marginEnd="5dp" android:text="@string/search_ui_enroll"
+        android:textSize="13sp" app:icon="@drawable/ic_search_add"/>
+    <com.google.android.material.button.MaterialButton android:id="@+id/searchManage"
+        style="@style/Widget.HiFace.Search.Secondary" android:layout_width="0dp"
+        android:layout_height="48dp" android:minHeight="48dp" android:layout_weight="1"
+        android:layout_marginStart="5dp" android:text="@string/search_manage"
+        android:textSize="13sp" app:icon="@drawable/ic_search_library"/>
+</LinearLayout>

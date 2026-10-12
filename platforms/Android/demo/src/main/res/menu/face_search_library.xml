@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/libraryMenuRefresh"
+        android:title="@string/search_refresh" />
+    <item
+        android:id="@+id/libraryMenuImportFeatures"
+        android:title="@string/search_ui_import_features" />
+    <item
+        android:id="@+id/libraryMenuImportImages"
+        android:title="@string/search_ui_import_images" />
+</menu>

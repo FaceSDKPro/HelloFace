@@ -1,0 +1,21 @@
+<resources>
+    <style name="Theme.HiFace.Search" parent="Theme.HiFace.Search.Base">
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+
+    <style name="Theme.HiFace.Content" parent="Theme.HiFace">
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:statusBarColor">@android:color/white</item>
+        <item name="android:navigationBarColor">@android:color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+
+    <style name="Theme.HiFace.Camera" parent="Theme.HiFace.Content">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

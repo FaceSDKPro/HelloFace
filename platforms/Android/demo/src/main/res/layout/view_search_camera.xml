@@ -1,0 +1,34 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical">
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:background="@android:color/black">
+        <androidx.fragment.app.FragmentContainerView android:id="@+id/searchCamera"
+            android:name="com.hiface.sdk.demo.camera.CameraPreviewFragment"
+            android:layout_width="match_parent" android:layout_height="match_parent"/>
+        <com.hiface.sdk.demo.search.FaceSearchOverlayView android:id="@+id/searchOverlay"
+            android:layout_width="match_parent" android:layout_height="match_parent"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="48dp"
+            android:layout_margin="6dp" android:gravity="center_vertical">
+            <ImageButton android:id="@+id/searchBack" style="@style/Widget.HiFace.Search.CameraIcon"
+                android:src="@drawable/ic_navigation_back" android:contentDescription="@string/search_back"/>
+            <Space android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
+            <ImageButton android:id="@+id/searchSettings" style="@style/Widget.HiFace.Search.CameraIcon"
+                android:src="@drawable/ic_search_settings" android:contentDescription="@string/search_settings"/>
+            <ImageButton android:id="@+id/searchSwitch" style="@style/Widget.HiFace.Search.CameraIcon"
+                android:src="@drawable/ic_camera_switch" android:contentDescription="@string/switch_camera"/>
+        </LinearLayout>
+        <TextView android:id="@+id/searchPeopleHint" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:layout_gravity="bottom|start"
+            android:layout_margin="12dp" android:paddingStart="10dp" android:paddingEnd="10dp"
+            android:paddingTop="8dp" android:paddingBottom="8dp"
+            android:background="@drawable/bg_search_pill" android:textColor="@android:color/white"
+            android:textSize="11sp" android:maxLines="2" android:visibility="gone"/>
+    </FrameLayout>
+    <TextView android:id="@+id/searchOptions" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:gravity="center"
+        android:paddingStart="16dp" android:paddingEnd="16dp"
+        android:paddingTop="6dp" android:paddingBottom="6dp"
+        android:textColor="@color/text_on_dark_secondary" android:textSize="11sp"
+        android:maxLines="1" android:ellipsize="end"/>
+</LinearLayout>

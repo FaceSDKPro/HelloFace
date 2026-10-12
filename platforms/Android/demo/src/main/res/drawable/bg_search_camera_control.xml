@@ -1,0 +1,9 @@
+<inset xmlns:android="http://schemas.android.com/apk/res/android" android:inset="6dp">
+    <ripple android:color="@color/surface_on_dark">
+        <item>
+            <shape android:shape="oval">
+                <solid android:color="@color/overlay_dark"/>
+            </shape>
+        </item>
+    </ripple>
+</inset>
