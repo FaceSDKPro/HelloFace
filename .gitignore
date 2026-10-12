@@ -37,6 +37,7 @@ credentials
 *.aab
 *.hap
 *.har
+!platforms/Harmony/libs/*.har
 *.hsp
 *.dSYM/
 mapping.txt

@@ -1,0 +1,11 @@
+{
+  "modelVersion": "5.0.0",
+  "name": "hiface-harmony-workspace",
+  "version": "0.0.1",
+  "description": "HiFace HarmonyOS SDK and demo workspace",
+  "author": "HiFace",
+  "license": "LicenseRef-HiFace-Commercial",
+  "dependencies": {},
+  "devDependencies": {},
+  "dynamicDependencies": {}
+}

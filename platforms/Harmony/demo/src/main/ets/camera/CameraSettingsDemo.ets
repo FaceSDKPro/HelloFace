@@ -1,0 +1,208 @@
+import { DemoTheme } from '../ui/DemoTheme';
+import { DemoPageHeader } from '../ui/DemoPageHeader';
+import { common } from '@kit.AbilityKit';
+import { CameraDemoSettings, CameraDemoSettingsStore } from './CameraDemoSettings';
+
+/** 所有实时 Demo 共用的分辨率与坐标镜像校正设置。 */
+@Component
+export struct CameraSettingsDemo {
+  onExit: () => void = () => {};
+  @State private highResolution: boolean = false;
+  @State private mirrorCoordinates: boolean = false;
+  @State private loading: boolean = true;
+  @State private saveState: string = '正在读取设置…';
+  private visible: boolean = false;
+  private lifecycleGeneration: number = 0;
+  private savePending: boolean = false;
+  private saving: boolean = false;
+  private saveTask: Promise<void> | undefined = undefined;
+
+  aboutToAppear(): void {
+    this.visible = true;
+    this.loading = true;
+    this.saveState = '正在读取设置…';
+    const generation: number = ++this.lifecycleGeneration;
+    this.loadSettings(generation);
+  }
+
+  aboutToDisappear(): void {
+    this.visible = false;
+    this.lifecycleGeneration += 1;
+  }
+
+  build() {
+    Column() {
+      DemoPageHeader({ title: '摄像头参数设置', onBack: (): void => this.onExit() })
+
+      Scroll() {
+        Column({ space: 18 }) {
+          Column({ space: 12 }) {
+            Text('分析分辨率')
+              .fontSize(17)
+              .fontColor(DemoTheme.contentText)
+              .fontWeight(FontWeight.Bold)
+              .width('100%')
+            Text('标准档更省电，高清档保留更多远距离人脸细节。设备不支持目标规格时自动选择最接近且不超过 1080p 的 YUV420 规格。')
+              .fontSize(13)
+              .lineHeight(20)
+              .fontColor(DemoTheme.contentSecondary)
+              .width('100%')
+            this.ResolutionOption('standard', '标准 · 接近 640×480', false)
+            this.ResolutionOption('high', '高清 · 接近 1280×720', true)
+          }
+          .padding(20)
+          .backgroundColor('#FFFFFF')
+          .borderRadius(16)
+          .width('100%')
+
+          Row({ space: 14 }) {
+            Column({ space: 5 }) {
+              Text('坐标镜像校正')
+                .fontSize(17)
+                .fontColor(DemoTheme.contentText)
+                .fontWeight(FontWeight.Bold)
+              Text('校正人脸标记和采集确认图的显示镜像，不改变识别结果。用于预览镜像方向相反的设备。')
+                .fontSize(13)
+                .lineHeight(20)
+                .fontColor(DemoTheme.contentSecondary)
+            }
+            .alignItems(HorizontalAlign.Start)
+            .layoutWeight(1)
+            Toggle({ type: ToggleType.Switch, isOn: this.mirrorCoordinates })
+              .enabled(!this.loading)
+              .selectedColor(DemoTheme.contentAccent)
+              .onChange((enabled: boolean) => this.setMirrorCoordinates(enabled))
+          }
+          .padding(20)
+          .backgroundColor('#FFFFFF')
+          .borderRadius(16)
+          .width('100%')
+
+          Text(this.saveState)
+            .fontSize(13)
+            .fontColor(this.saveState.includes('失败') ? DemoTheme.contentError : DemoTheme.contentAccent)
+            .textAlign(TextAlign.Center)
+            .width('100%')
+        }
+        .padding(20)
+        .width('100%')
+      }
+      .layoutWeight(1)
+      .width('100%')
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(DemoTheme.contentBackground)
+  }
+
+  @Builder
+  private ResolutionOption(value: string, label: string, high: boolean) {
+    Row({ space: 8 }) {
+      Radio({ value: value, group: 'camera-resolution' })
+        .checked(this.highResolution === high)
+        .enabled(!this.loading)
+        .radioStyle({ checkedBackgroundColor: DemoTheme.contentAccent })
+        .accessibilityText(label)
+        .onChange((checked: boolean): void => { if (checked) this.setHighResolution(high); })
+      Text(label).fontSize(15).fontColor(DemoTheme.contentText).layoutWeight(1)
+    }.width('100%').constraintSize({ minHeight: 56 }).padding({ left: 8, right: 8 })
+      .enabled(!this.loading).onClick(() => this.setHighResolution(high))
+  }
+
+  private async loadSettings(generation: number): Promise<void> {
+    try {
+      const pendingSave: Promise<void> | undefined = this.saveTask;
+      if (pendingSave !== undefined) {
+        await pendingSave;
+      }
+      if (!this.visible || generation !== this.lifecycleGeneration) {
+        return;
+      }
+      const context: common.UIAbilityContext =
+        this.getUIContext().getHostContext() as common.UIAbilityContext;
+      const settings: CameraDemoSettings = await CameraDemoSettingsStore.load(context);
+      if (!this.visible || generation !== this.lifecycleGeneration) {
+        return;
+      }
+      this.highResolution = settings.highResolution;
+      this.mirrorCoordinates = settings.mirrorCoordinates;
+      this.saveState = `已加载 · ${settings.resolutionLabel()} · 坐标校正${settings.mirrorCoordinates ? '开' : '关'}`;
+    } catch (error) {
+      if (this.visible && generation === this.lifecycleGeneration) {
+        this.saveState = `读取失败，使用默认设置：${error}`;
+      }
+    } finally {
+      if (this.visible && generation === this.lifecycleGeneration) {
+        this.loading = false;
+      }
+    }
+  }
+
+  private setHighResolution(enabled: boolean): void {
+    if (this.loading || this.highResolution === enabled) {
+      return;
+    }
+    this.highResolution = enabled;
+    this.requestSave();
+  }
+
+  private setMirrorCoordinates(enabled: boolean): void {
+    if (this.loading || this.mirrorCoordinates === enabled) {
+      return;
+    }
+    this.mirrorCoordinates = enabled;
+    this.requestSave();
+  }
+
+  private requestSave(): void {
+    this.savePending = true;
+    this.saveState = '正在保存…';
+    if (!this.saving) {
+      const task: Promise<void> = this.persistPendingSettings();
+      this.saveTask = task;
+      task.then((): void => this.clearSaveTask(task), (error: Error): void => {
+        this.saving = false;
+        this.clearSaveTask(task);
+        if (this.visible) {
+          this.saveState = `保存失败：${error}`;
+        }
+      });
+    }
+  }
+
+  private clearSaveTask(task: Promise<void>): void {
+    if (this.saveTask === task) {
+      this.saveTask = undefined;
+    }
+  }
+
+  private async persistPendingSettings(): Promise<void> {
+    this.saving = true;
+    let context: common.UIAbilityContext;
+    try {
+      context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    } catch (error) {
+      this.savePending = false;
+      this.saving = false;
+      if (this.visible) {
+        this.saveState = `保存失败：${error}`;
+      }
+      return;
+    }
+    while (this.savePending) {
+      this.savePending = false;
+      const settings = new CameraDemoSettings(this.highResolution, this.mirrorCoordinates);
+      try {
+        await CameraDemoSettingsStore.save(context, settings);
+        if (this.visible) {
+          this.saveState = `已保存 · ${settings.resolutionLabel()} · 坐标校正${settings.mirrorCoordinates ? '开' : '关'}`;
+        }
+      } catch (error) {
+        if (this.visible) {
+          this.saveState = `保存失败：${error}`;
+        }
+      }
+    }
+    this.saving = false;
+  }
+}

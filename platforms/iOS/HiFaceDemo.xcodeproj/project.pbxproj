@@ -1,0 +1,642 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		F50000000000000000000002 /* ModelResourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000001 /* ModelResourceTests.swift */; };
+		F50000000000000000000015 /* HiFace in Frameworks */ = {isa = PBXBuildFile; productRef = 300000000000000000000001 /* HiFace */; };
+		D20000000000000000000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000001 /* PrivacyInfo.xcprivacy */; };
+		F20000000000000000000010 /* FaceSearchDemoImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000010 /* FaceSearchDemoImporter.swift */; };
+		F20000000000000000000011 /* features_10000.json in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000011 /* features_10000.json */; };
+		F20000000000000000000012 /* images_1000.json in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000012 /* images_1000.json */; };
+		F20000000000000000000013 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000013 /* Localizable.xcstrings */; };
+		B20000000000000000000001 /* CameraDemoMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* CameraDemoMode.swift */; };
+		100000000000000000000003 /* CameraDemoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000003 /* CameraDemoView.swift */; };
+		100000000000000000000002 /* DemoHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000002 /* DemoHomeView.swift */; };
+		100000000000000000000001 /* HiFaceDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000001 /* HiFaceDemoApp.swift */; };
+		B20000000000000000000005 /* CameraDemoModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* CameraDemoModel.swift */; };
+		100000000000000000000004 /* CameraPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000004 /* CameraPipeline.swift */; };
+		100000000000000000000005 /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000005 /* CameraPreview.swift */; };
+		10000000000000000000000C /* CameraResolutionPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000D /* CameraResolutionPolicy.swift */; };
+		100000000000000000000008 /* CameraSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000009 /* CameraSettings.swift */; };
+		B2000000000000000000000A /* FaceCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* FaceCaptureView.swift */; };
+		C2000000000000000000000B /* FacePhotoPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000B /* FacePhotoPicker.swift */; };
+		C2000000000000000000000C /* StaticFaceComparisonModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000C /* StaticFaceComparisonModel.swift */; };
+		100000000000000000000009 /* StaticFaceComparisonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000A /* StaticFaceComparisonView.swift */; };
+		B2000000000000000000000C /* FaceDetectionOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000C /* FaceDetectionOverlayView.swift */; };
+		B2000000000000000000000D /* FaceDetectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000D /* FaceDetectionView.swift */; };
+		B2000000000000000000000E /* FaceLivenessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000E /* FaceLivenessView.swift */; };
+		10000000000000000000000B /* FaceSearchOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000C /* FaceSearchOverlayView.swift */; };
+		B20000000000000000000010 /* FaceSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* FaceSearchView.swift */; };
+		C20000000000000000000013 /* SearchLibraryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000013 /* SearchLibraryModel.swift */; };
+		100000000000000000000006 /* SearchLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000006 /* SearchLibraryView.swift */; };
+		B20000000000000000000012 /* SearchSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* SearchSettingsView.swift */; };
+		B20000000000000000000013 /* CameraDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* CameraDialog.swift */; };
+		B20000000000000000000014 /* DemoCameraButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* DemoCameraButton.swift */; };
+		B20000000000000000000015 /* DemoCameraControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000015 /* DemoCameraControls.swift */; };
+		B20000000000000000000016 /* DemoTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* DemoTheme.swift */; };
+		B20000000000000000000017 /* FaceActionCountdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* FaceActionCountdown.swift */; };
+		B20000000000000000000018 /* FaceCaptureCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018 /* FaceCaptureCameraView.swift */; };
+		B20000000000000000000019 /* FaceCaptureOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* FaceCaptureOverlayView.swift */; };
+		10000000000000000000000A /* DemoFaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000B /* DemoFaceStore.swift */; };
+		B2000000000000000000001B /* FaceVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001B /* FaceVerificationView.swift */; };
+		E20000000000000000000001 /* DemoErrorPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000001 /* DemoErrorPresentation.swift */; };
+		E20000000000000000000002 /* FaceFlowPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000002 /* FaceFlowPresentation.swift */; };
+		E20000000000000000000003 /* FaceSearchPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000003 /* FaceSearchPresentation.swift */; };
+		E20000000000000000000004 /* FaceSearchOverlayState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000004 /* FaceSearchOverlayState.swift */; };
+		E20000000000000000000005 /* FaceOverlayLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000005 /* FaceOverlayLayout.swift */; };
+		100000000000000000000007 /* HiFace in Frameworks */ = {isa = PBXBuildFile; productRef = 300000000000000000000001 /* HiFace */; };
+		B6B577A7EFE7A17E24D8E13B /* CameraLifecycleUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CE866BF04047EA93589FB41 /* CameraLifecycleUITests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F50000000000000000000011 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 900000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = 600000000000000000000001; remoteInfo = HiFaceDemo; };
+		54EEB655B0CF1BA133648DBD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 900000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 600000000000000000000001;
+			remoteInfo = HiFaceDemo;
+		};
+/* End PBXContainerItemProxy section */
+
+
+/* Begin PBXFileReference section */
+		F50000000000000000000001 /* ModelResourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelResourceTests.swift; sourceTree = "<group>"; };
+		F50000000000000000000003 /* HiFaceDemoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HiFaceDemoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D10000000000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		F10000000000000000000010 /* FaceSearchDemoImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceSearchDemoImporter.swift; sourceTree = "<group>"; };
+		F10000000000000000000011 /* features_10000.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = features_10000.json; sourceTree = "<group>"; };
+		F10000000000000000000012 /* images_1000.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = images_1000.json; sourceTree = "<group>"; };
+		F10000000000000000000013 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		B10000000000000000000001 /* CameraDemoMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraDemoMode.swift; sourceTree = "<group>"; };
+		200000000000000000000003 /* CameraDemoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraDemoView.swift; sourceTree = "<group>"; };
+		200000000000000000000002 /* DemoHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoHomeView.swift; sourceTree = "<group>"; };
+		200000000000000000000001 /* HiFaceDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiFaceDemoApp.swift; sourceTree = "<group>"; };
+		B10000000000000000000005 /* CameraDemoModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraDemoModel.swift; sourceTree = "<group>"; };
+		200000000000000000000004 /* CameraPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPipeline.swift; sourceTree = "<group>"; };
+		200000000000000000000005 /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
+		20000000000000000000000D /* CameraResolutionPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraResolutionPolicy.swift; sourceTree = "<group>"; };
+		200000000000000000000009 /* CameraSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraSettings.swift; sourceTree = "<group>"; };
+		B1000000000000000000000A /* FaceCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceCaptureView.swift; sourceTree = "<group>"; };
+		C1000000000000000000000B /* FacePhotoPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FacePhotoPicker.swift; sourceTree = "<group>"; };
+		C1000000000000000000000C /* StaticFaceComparisonModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticFaceComparisonModel.swift; sourceTree = "<group>"; };
+		20000000000000000000000A /* StaticFaceComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StaticFaceComparisonView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000C /* FaceDetectionOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceDetectionOverlayView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000D /* FaceDetectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceDetectionView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000E /* FaceLivenessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceLivenessView.swift; sourceTree = "<group>"; };
+		20000000000000000000000C /* FaceSearchOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceSearchOverlayView.swift; sourceTree = "<group>"; };
+		B10000000000000000000010 /* FaceSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceSearchView.swift; sourceTree = "<group>"; };
+		C10000000000000000000013 /* SearchLibraryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchLibraryModel.swift; sourceTree = "<group>"; };
+		200000000000000000000006 /* SearchLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchLibraryView.swift; sourceTree = "<group>"; };
+		B10000000000000000000012 /* SearchSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSettingsView.swift; sourceTree = "<group>"; };
+		B10000000000000000000013 /* CameraDialog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraDialog.swift; sourceTree = "<group>"; };
+		B10000000000000000000014 /* DemoCameraButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoCameraButton.swift; sourceTree = "<group>"; };
+		B10000000000000000000015 /* DemoCameraControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoCameraControls.swift; sourceTree = "<group>"; };
+		B10000000000000000000016 /* DemoTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoTheme.swift; sourceTree = "<group>"; };
+		B10000000000000000000017 /* FaceActionCountdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceActionCountdown.swift; sourceTree = "<group>"; };
+		B10000000000000000000018 /* FaceCaptureCameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceCaptureCameraView.swift; sourceTree = "<group>"; };
+		B10000000000000000000019 /* FaceCaptureOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceCaptureOverlayView.swift; sourceTree = "<group>"; };
+		20000000000000000000000B /* DemoFaceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoFaceStore.swift; sourceTree = "<group>"; };
+		B1000000000000000000001B /* FaceVerificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceVerificationView.swift; sourceTree = "<group>"; };
+		E10000000000000000000001 /* DemoErrorPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoErrorPresentation.swift; sourceTree = "<group>"; };
+		E10000000000000000000002 /* FaceFlowPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceFlowPresentation.swift; sourceTree = "<group>"; };
+		E10000000000000000000003 /* FaceSearchPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceSearchPresentation.swift; sourceTree = "<group>"; };
+		E10000000000000000000004 /* FaceSearchOverlayState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceSearchOverlayState.swift; sourceTree = "<group>"; };
+		E10000000000000000000005 /* FaceOverlayLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceOverlayLayout.swift; sourceTree = "<group>"; };
+		200000000000000000000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		200000000000000000000008 /* HiFaceDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HiFaceDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9CE866BF04047EA93589FB41 /* CameraLifecycleUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraLifecycleUITests.swift; sourceTree = "<group>"; };
+		FFE33567AE18525B35793793 /* HiFaceDemoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HiFaceDemoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F50000000000000000000007 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (F50000000000000000000015 /* HiFace in Frameworks */,); runOnlyForDeploymentPostprocessing = 0; };
+		400000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000007 /* HiFace in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D9EBCD06F79B3EF91B443144 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		F50000000000000000000010 /* RuntimeTests */ = {isa = PBXGroup; children = (F50000000000000000000001 /* ModelResourceTests.swift */,); path = RuntimeTests; sourceTree = "<group>"; };
+		500000000000000000000001 /* Root */ = {
+			isa = PBXGroup;
+			children = (
+				F50000000000000000000010 /* RuntimeTests */,
+				500000000000000000000002 /* HiFaceDemo */,
+				500000000000000000000003 /* Products */,
+				B5E89A5504118324889BB205 /* UITests */,
+			);
+			sourceTree = "<group>";
+		};
+		500000000000000000000002 /* HiFaceDemo */ = {
+			isa = PBXGroup;
+			children = (
+				B30000000000000000000001 /* App */,
+				B30000000000000000000002 /* Camera */,
+				B30000000000000000000003 /* Detection */,
+				B30000000000000000000004 /* Capture */,
+				B30000000000000000000005 /* Liveness */,
+				B30000000000000000000006 /* Verification */,
+				B30000000000000000000007 /* Search */,
+				B30000000000000000000008 /* Comparison */,
+				B30000000000000000000009 /* UI */,
+				F30000000000000000000010 /* Resources */,
+				200000000000000000000007 /* Info.plist */,
+				D10000000000000000000001 /* PrivacyInfo.xcprivacy */,
+			);
+			path = HiFaceDemo;
+			sourceTree = "<group>";
+		};
+		F30000000000000000000010 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000013 /* Localizable.xcstrings */,
+				F30000000000000000000011 /* FaceSearch */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		F30000000000000000000011 /* FaceSearch */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000011 /* features_10000.json */,
+				F10000000000000000000012 /* images_1000.json */,
+			);
+			path = FaceSearch;
+			sourceTree = "<group>";
+		};
+		500000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000008 /* HiFaceDemo.app */,
+				FFE33567AE18525B35793793 /* HiFaceDemoUITests.xctest */,
+				F50000000000000000000003 /* HiFaceDemoTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B30000000000000000000001 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000001 /* CameraDemoMode.swift */,
+				200000000000000000000003 /* CameraDemoView.swift */,
+				200000000000000000000002 /* DemoHomeView.swift */,
+				200000000000000000000001 /* HiFaceDemoApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		B30000000000000000000002 /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000005 /* CameraDemoModel.swift */,
+				200000000000000000000004 /* CameraPipeline.swift */,
+				200000000000000000000005 /* CameraPreview.swift */,
+				20000000000000000000000D /* CameraResolutionPolicy.swift */,
+				200000000000000000000009 /* CameraSettings.swift */,
+			);
+			path = Camera;
+			sourceTree = "<group>";
+		};
+		B30000000000000000000003 /* Detection */ = {
+			isa = PBXGroup;
+			children = (
+				B1000000000000000000000C /* FaceDetectionOverlayView.swift */,
+				B1000000000000000000000D /* FaceDetectionView.swift */,
+			);
+			path = Detection;
+			sourceTree = "<group>";
+		};
+		B30000000000000000000004 /* Capture */ = {
+			isa = PBXGroup;
+			children = (
+				B1000000000000000000000A /* FaceCaptureView.swift */,
+			);
+			path = Capture;
+			sourceTree = "<group>";
+		};
+		B30000000000000000000005 /* Liveness */ = {
+			isa = PBXGroup;
+			children = (
+				B1000000000000000000000E /* FaceLivenessView.swift */,
+			);
+			path = Liveness;
+			sourceTree = "<group>";
+		};
+		B30000000000000000000006 /* Verification */ = {
+			isa = PBXGroup;
+			children = (
+				20000000000000000000000B /* DemoFaceStore.swift */,
+				B1000000000000000000001B /* FaceVerificationView.swift */,
+			);
+			path = Verification;
+			sourceTree = "<group>";
+		};
+		B30000000000000000000007 /* Search */ = {
+			isa = PBXGroup;
+			children = (
+				20000000000000000000000C /* FaceSearchOverlayView.swift */,
+				E10000000000000000000004 /* FaceSearchOverlayState.swift */,
+				E10000000000000000000003 /* FaceSearchPresentation.swift */,
+				F10000000000000000000010 /* FaceSearchDemoImporter.swift */,
+				B10000000000000000000010 /* FaceSearchView.swift */,
+				C10000000000000000000013 /* SearchLibraryModel.swift */,
+				200000000000000000000006 /* SearchLibraryView.swift */,
+				B10000000000000000000012 /* SearchSettingsView.swift */,
+			);
+			path = Search;
+			sourceTree = "<group>";
+		};
+		B30000000000000000000008 /* Comparison */ = {
+			isa = PBXGroup;
+			children = (
+				C1000000000000000000000B /* FacePhotoPicker.swift */,
+				C1000000000000000000000C /* StaticFaceComparisonModel.swift */,
+				20000000000000000000000A /* StaticFaceComparisonView.swift */,
+			);
+			path = Comparison;
+			sourceTree = "<group>";
+		};
+		B30000000000000000000009 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000013 /* CameraDialog.swift */,
+				E10000000000000000000001 /* DemoErrorPresentation.swift */,
+				B10000000000000000000014 /* DemoCameraButton.swift */,
+				B10000000000000000000015 /* DemoCameraControls.swift */,
+				B10000000000000000000016 /* DemoTheme.swift */,
+				B10000000000000000000017 /* FaceActionCountdown.swift */,
+				E10000000000000000000002 /* FaceFlowPresentation.swift */,
+				E10000000000000000000005 /* FaceOverlayLayout.swift */,
+				B10000000000000000000018 /* FaceCaptureCameraView.swift */,
+				B10000000000000000000019 /* FaceCaptureOverlayView.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		B5E89A5504118324889BB205 /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				9CE866BF04047EA93589FB41 /* CameraLifecycleUITests.swift */,
+			);
+			name = UITests;
+			path = UITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F50000000000000000000004 /* HiFaceDemoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F50000000000000000000005 /* Build configuration list for HiFaceDemoTests */;
+			buildPhases = (F50000000000000000000006 /* Sources */, F50000000000000000000007 /* Frameworks */, F50000000000000000000008 /* Resources */,);
+			buildRules = ();
+			dependencies = (F50000000000000000000009 /* PBXTargetDependency */,);
+			name = HiFaceDemoTests;
+			packageProductDependencies = (300000000000000000000001 /* HiFace */,);
+			productName = HiFaceDemoTests;
+			productReference = F50000000000000000000003 /* HiFaceDemoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		600000000000000000000001 /* HiFaceDemo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 700000000000000000000002 /* Build configuration list for PBXNativeTarget "HiFaceDemo" */;
+			buildPhases = (
+				800000000000000000000001 /* Sources */,
+				400000000000000000000001 /* Frameworks */,
+				800000000000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HiFaceDemo;
+			packageProductDependencies = (
+				300000000000000000000001 /* HiFace */,
+			);
+			productName = HiFaceDemo;
+			productReference = 200000000000000000000008 /* HiFaceDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
+		FA00587041BD413CB0A26E36 /* HiFaceDemoUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 38B7EF44895AE65B8DB25F75 /* Build configuration list for PBXNativeTarget "HiFaceDemoUITests" */;
+			buildPhases = (
+				2271ACDFB0E21E872B42E37D /* Sources */,
+				D9EBCD06F79B3EF91B443144 /* Frameworks */,
+				C8E1FE2D06C5213752493291 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3C94B5BF57762FABA8872B40 /* PBXTargetDependency */,
+			);
+			name = HiFaceDemoUITests;
+			productName = HiFaceDemoUITests;
+			productReference = FFE33567AE18525B35793793 /* HiFaceDemoUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		900000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1640;
+				LastUpgradeCheck = 1640;
+				TargetAttributes = {
+					F50000000000000000000004 = {CreatedOnToolsVersion = 26.6; TestTargetID = 600000000000000000000001; };
+					600000000000000000000001 = {
+						CreatedOnToolsVersion = 16.4;
+					};
+					FA00587041BD413CB0A26E36 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = 600000000000000000000001;
+					};
+				};
+			};
+			buildConfigurationList = 700000000000000000000001 /* Build configuration list for PBXProject "HiFaceDemo" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				"zh-Hans",
+				Base,
+			);
+			mainGroup = 500000000000000000000001;
+			packageReferences = (
+				A00000000000000000000001 /* XCLocalSwiftPackageReference ".." */,
+			);
+			productRefGroup = 500000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+				targets = (
+					600000000000000000000001 /* HiFaceDemo */,
+					FA00587041BD413CB0A26E36 /* HiFaceDemoUITests */,
+					F50000000000000000000004 /* HiFaceDemoTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F50000000000000000000008 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		800000000000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D20000000000000000000001 /* PrivacyInfo.xcprivacy in Resources */,
+				F20000000000000000000011 /* features_10000.json in Resources */,
+				F20000000000000000000012 /* images_1000.json in Resources */,
+				F20000000000000000000013 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C8E1FE2D06C5213752493291 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+
+/* Begin PBXSourcesBuildPhase section */
+		F50000000000000000000006 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (F50000000000000000000002 /* ModelResourceTests.swift in Sources */,); runOnlyForDeploymentPostprocessing = 0; };
+		2271ACDFB0E21E872B42E37D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B6B577A7EFE7A17E24D8E13B /* CameraLifecycleUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		800000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B20000000000000000000001 /* CameraDemoMode.swift in Sources */,
+				100000000000000000000003 /* CameraDemoView.swift in Sources */,
+				100000000000000000000002 /* DemoHomeView.swift in Sources */,
+				100000000000000000000001 /* HiFaceDemoApp.swift in Sources */,
+				B20000000000000000000005 /* CameraDemoModel.swift in Sources */,
+				100000000000000000000004 /* CameraPipeline.swift in Sources */,
+				100000000000000000000005 /* CameraPreview.swift in Sources */,
+				10000000000000000000000C /* CameraResolutionPolicy.swift in Sources */,
+				100000000000000000000008 /* CameraSettings.swift in Sources */,
+				B2000000000000000000000A /* FaceCaptureView.swift in Sources */,
+				C2000000000000000000000B /* FacePhotoPicker.swift in Sources */,
+				C2000000000000000000000C /* StaticFaceComparisonModel.swift in Sources */,
+				100000000000000000000009 /* StaticFaceComparisonView.swift in Sources */,
+				B2000000000000000000000C /* FaceDetectionOverlayView.swift in Sources */,
+				B2000000000000000000000D /* FaceDetectionView.swift in Sources */,
+				B2000000000000000000000E /* FaceLivenessView.swift in Sources */,
+				10000000000000000000000B /* FaceSearchOverlayView.swift in Sources */,
+				B20000000000000000000010 /* FaceSearchView.swift in Sources */,
+				F20000000000000000000010 /* FaceSearchDemoImporter.swift in Sources */,
+				C20000000000000000000013 /* SearchLibraryModel.swift in Sources */,
+				100000000000000000000006 /* SearchLibraryView.swift in Sources */,
+				B20000000000000000000012 /* SearchSettingsView.swift in Sources */,
+				B20000000000000000000013 /* CameraDialog.swift in Sources */,
+				B20000000000000000000014 /* DemoCameraButton.swift in Sources */,
+				B20000000000000000000015 /* DemoCameraControls.swift in Sources */,
+				B20000000000000000000016 /* DemoTheme.swift in Sources */,
+				B20000000000000000000017 /* FaceActionCountdown.swift in Sources */,
+				B20000000000000000000018 /* FaceCaptureCameraView.swift in Sources */,
+				B20000000000000000000019 /* FaceCaptureOverlayView.swift in Sources */,
+				E20000000000000000000001 /* DemoErrorPresentation.swift in Sources */,
+				E20000000000000000000002 /* FaceFlowPresentation.swift in Sources */,
+				E20000000000000000000003 /* FaceSearchPresentation.swift in Sources */,
+				E20000000000000000000004 /* FaceSearchOverlayState.swift in Sources */,
+				E20000000000000000000005 /* FaceOverlayLayout.swift in Sources */,
+				10000000000000000000000A /* DemoFaceStore.swift in Sources */,
+				B2000000000000000000001B /* FaceVerificationView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F50000000000000000000009 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 600000000000000000000001 /* HiFaceDemo */; targetProxy = F50000000000000000000011 /* PBXContainerItemProxy */; };
+		3C94B5BF57762FABA8872B40 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = HiFaceDemo;
+			target = 600000000000000000000001 /* HiFaceDemo */;
+			targetProxy = 54EEB655B0CF1BA133648DBD /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		F50000000000000000000012 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 15.0; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"; PRODUCT_BUNDLE_IDENTIFIER = com.hiface.demo.tests; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 1; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HiFaceDemo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HiFaceDemo"; }; name = Debug; };
+		F50000000000000000000013 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 15.0; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"; PRODUCT_BUNDLE_IDENTIFIER = com.hiface.demo.tests; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 1; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HiFaceDemo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HiFaceDemo"; }; name = Release; };
+		2EF12A751B1A396F719C2F28 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hiface.demo.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = HiFaceDemo;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		75F8A64283966C323A4C547C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hiface.demo.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = HiFaceDemo;
+			};
+			name = Debug;
+		};
+		B00000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		B00000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		B00000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HiFaceDemo/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 0.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hiface.demo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		B00000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HiFaceDemo/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 0.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hiface.demo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F50000000000000000000005 /* Build configuration list for HiFaceDemoTests */ = {isa = XCConfigurationList; buildConfigurations = (F50000000000000000000012 /* Debug */, F50000000000000000000013 /* Release */,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		38B7EF44895AE65B8DB25F75 /* Build configuration list for PBXNativeTarget "HiFaceDemoUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2EF12A751B1A396F719C2F28 /* Release */,
+				75F8A64283966C323A4C547C /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		700000000000000000000001 /* Build configuration list for PBXProject "HiFaceDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B00000000000000000000001 /* Debug */,
+				B00000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		700000000000000000000002 /* Build configuration list for PBXNativeTarget "HiFaceDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B00000000000000000000003 /* Debug */,
+				B00000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		A00000000000000000000001 /* XCLocalSwiftPackageReference ".." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = SDK;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		300000000000000000000001 /* HiFace */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A00000000000000000000001 /* XCLocalSwiftPackageReference ".." */;
+			productName = HiFace;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 900000000000000000000001 /* Project object */;
+}

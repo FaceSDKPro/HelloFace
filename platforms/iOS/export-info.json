@@ -1,0 +1,22 @@
+{
+  "sdkVersion": "0.0.1",
+  "dependency": "binary-spm",
+  "demoVersion": "0.0.1",
+  "technicalLicenseEnforcement": true,
+  "runtimeExpiry": {
+    "lastUsableDate": "2026-12-25",
+    "expiresAt": "2026-12-26T00:00:00+08:00",
+    "timeZone": "Asia/Shanghai",
+    "expiresAtUnixSeconds": 1798214400,
+    "replacementRequiredFromVersion": "0.1.0"
+  },
+  "sourceRevision": "6f70fdc876fa8111821b50d69eadffb0bacf0ea6",
+  "sourceDirty": true,
+  "deliveryStatus": "beta-demo",
+  "verification": {
+    "sdkStructure": "passed",
+    "independentReleaseBuild": "passed",
+    "deviceAcceptance": "pending",
+    "applicationSigning": "configure-your-own"
+  }
+}

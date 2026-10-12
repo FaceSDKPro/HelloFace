@@ -1,0 +1,17 @@
+# Exercise the same SDK consumer rules in the Release Demo.
+-enable-toplevel-obfuscation
+-enable-property-obfuscation
+-enable-export-obfuscation
+-compact
+-remove-log
+
+-keep-global-name
+EntryAbility
+
+-keep-property-name
+onCreate
+onDestroy
+onWindowStageCreate
+onWindowStageDestroy
+onForeground
+onBackground

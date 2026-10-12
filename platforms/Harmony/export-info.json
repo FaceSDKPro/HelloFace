@@ -1,0 +1,46 @@
+{
+  "sdkVersion": "0.0.1",
+  "dependency": "libs/hiface-0.0.1.har",
+  "sha256": "a451187f46ebc4bc9f86422b1ab9e30751e11e5f0874f3c6cbdf8eb363c36df7",
+  "embeddedModels": {
+    "kcehc.bphfm": {
+      "size": 1273257,
+      "sha256": "de78a0fc762b85773bac90a5dd6441cc5a219fcc6711ab645d8698483762873a"
+    },
+    "erutaef.bphfm": {
+      "size": 2426264,
+      "sha256": "81bb7caa4e7566bdcf6ce5a5c18fbfdf5c100cb3186e07f486c9030d20654af3"
+    },
+    "skramdnal.bphfm": {
+      "size": 1233455,
+      "sha256": "2a34c8a278cad6a81ad97211fcc94b4da8633f99390d00897d3f84bce89efe47"
+    },
+    "s_tnelis.bphfm": {
+      "size": 885053,
+      "sha256": "a686515c38a8cd77cc037dc9134b15b3af1064bcf3951d7d9961e2d97d9ca938"
+    },
+    "m_tnelis.bphfm": {
+      "size": 884478,
+      "sha256": "33bc25702d61f15c92005a055a5a2fdaf3117b40575f3651ba1f51705d08b0cc"
+    }
+  },
+  "releaseVerified": true,
+  "demoVersion": "0.0.1",
+  "technicalLicenseEnforcement": true,
+  "runtimeExpiry": {
+    "lastUsableDate": "2026-12-25",
+    "expiresAt": "2026-12-26T00:00:00+08:00",
+    "timeZone": "Asia/Shanghai",
+    "expiresAtUnixSeconds": 1798214400,
+    "replacementRequiredFromVersion": "0.1.0"
+  },
+  "sourceRevision": "6f70fdc876fa8111821b50d69eadffb0bacf0ea6",
+  "sourceDirty": true,
+  "deliveryStatus": "beta-demo",
+  "verification": {
+    "sdkStructure": "passed",
+    "independentReleaseBuild": "passed",
+    "deviceAcceptance": "pending",
+    "applicationSigning": "configure-your-own"
+  }
+}

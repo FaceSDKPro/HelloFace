@@ -27,7 +27,7 @@ android {
 ```
 
 最后一项配置应写在宿主 App 模块，使密文模型可直接 mmap 读取。保留 AAR 的 consumer R8 规则和
-[SDK 许可](../LICENSE)、[第三方声明](../THIRD_PARTY_NOTICES.txt)。
+[SDK 许可](../LICENSE)、[第三方声明](../LICENSE)。
 
 ## 公开 API
 

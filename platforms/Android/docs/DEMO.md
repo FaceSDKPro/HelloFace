@@ -3,7 +3,7 @@
 <!-- SDK-USER-GUIDE:BEGIN -->
 ## 支持与安装
 
-当前为内测 Beta 版；北京时间 2026-12-26 零点起停止初始化和工作。
+当前为内测 Beta 版；北京时间 2026-12-26 零点起停止初始化和工作，请在到期前升级 SDK。
 到期日志为“请升级SDK，详情见https://github.com/FaceSDKPro/”。
 
 | 项目 | 当前范围 |
@@ -28,7 +28,7 @@ android {
 ```
 
 最后一项配置应写在宿主 App 模块，使密文模型可直接 mmap 读取。保留 AAR 的 consumer R8 规则和
-[SDK 许可](../LICENSE)、[第三方声明](../THIRD_PARTY_NOTICES.txt)。
+[SDK 许可](../LICENSE)、[第三方声明](../LICENSE)。
 
 ## 公开 API
 

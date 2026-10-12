@@ -1,0 +1,12 @@
+{
+  "string": [
+    {
+      "name": "search_import_features",
+      "value": "Import 10,000 face features"
+    },
+    {
+      "name": "search_import_images",
+      "value": "Import 1,000 face images"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+.DS_Store
+.idea/
+**/build/
+DerivedData/
+.build/
+xcuserdata/
+oh_modules/
+.hvigor/
+.local/
+*.log
+*.p12
+*.pfx
+*.cer
+*.mobileprovision
+*.p7b
+*.key
+*.pem

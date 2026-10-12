@@ -1,0 +1,28 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "HiFace HarmonyOS Demo"
+    },
+    {
+      "name": "entryability_desc",
+      "value": "HiFace demo entry ability"
+    },
+    {
+      "name": "entryability_label",
+      "value": "HiFace Demo"
+    },
+    {
+      "name": "camera_permission_reason",
+      "value": "用于演示宿主通过 CameraKit 采集人脸分析帧"
+    },
+    {
+      "name": "search_import_features",
+      "value": "导入1万条人脸特征"
+    },
+    {
+      "name": "search_import_images",
+      "value": "导入1千张人脸图片"
+    }
+  ]
+}

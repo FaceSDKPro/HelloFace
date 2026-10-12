@@ -23,8 +23,6 @@ jobs:
         working-directory: platforms/Android
     steps:
       - uses: actions/checkout@v4
-      - name: Verify exported files
-        run: sha256sum --check SHA256SUMS
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

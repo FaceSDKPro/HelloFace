@@ -1,0 +1,84 @@
+{
+  "comment": [
+    "BPHFM1 加密模型的平台中立清单。三端和后续平台共用同一种单文件容器。",
+    "每个 .bphfm 固定包含 param、bin 两份 HFM2 分块认证密文；容器只消除重复文件项，",
+    "不会减少模型权重数据，也不会把明文落盘或扩大运行时明文驻留。",
+    "文件名保留历史反写（kcehc = check）；安全性来自 HFM2 的 XChaCha20-Poly1305 认证加密。"
+  ],
+  "format": "BPHFM1",
+  "payload_format": "HFM2",
+  "chunk_size": 262144,
+  "models": [
+    {
+      "model_id": "check",
+      "purpose": "SCRFD 人脸检测",
+      "input_size": 256,
+      "bundle": {
+        "file": "kcehc.bphfm",
+        "bytes": 1273257,
+        "param_bytes": 9541,
+        "bin_bytes": 1263692,
+        "sha256": "de78a0fc762b85773bac90a5dd6441cc5a219fcc6711ab645d8698483762873a"
+      }
+    },
+    {
+      "model_id": "feature",
+      "purpose": "FaceX-Zoo MobileFaceNet Epoch_17，512 维特征提取",
+      "input_size": 112,
+      "bundle": {
+        "file": "erutaef.bphfm",
+        "bytes": 2426264,
+        "param_bytes": 9700,
+        "bin_bytes": 2416540,
+        "sha256": "81bb7caa4e7566bdcf6ce5a5c18fbfdf5c100cb3186e07f486c9030d20654af3"
+      },
+      "source": {
+        "file": "tools/model/recognize/feature.onnx",
+        "original_name": "FaceXZoo_MobileFaceNet_Epoch_17.onnx",
+        "sha256": "f3321b8de8bdbc1b7a0f2c488be7e92311ed5c1a4b207bf7133d1c3363794010"
+      },
+      "preprocessing": {
+        "color_order": "BGR",
+        "mean": 127.5,
+        "scale": 128.0,
+        "output_normalization": "L2"
+      }
+    },
+    {
+      "model_id": "landmarks",
+      "purpose": "Face Mesh v1 468 点、EAR/MAR、PnP 头姿",
+      "input_size": 192,
+      "bundle": {
+        "file": "skramdnal.bphfm",
+        "bytes": 1233455,
+        "param_bytes": 10859,
+        "bin_bytes": 1222572,
+        "sha256": "2a34c8a278cad6a81ad97211fcc94b4da8633f99390d00897d3f84bce89efe47"
+      }
+    },
+    {
+      "model_id": "silent_s",
+      "purpose": "MiniFASNet-S 静默活体",
+      "input_size": 80,
+      "bundle": {
+        "file": "s_tnelis.bphfm",
+        "bytes": 885053,
+        "param_bytes": 9685,
+        "bin_bytes": 875344,
+        "sha256": "a686515c38a8cd77cc037dc9134b15b3af1064bcf3951d7d9961e2d97d9ca938"
+      }
+    },
+    {
+      "model_id": "silent_m",
+      "purpose": "MiniFASNet-M 静默活体",
+      "input_size": 80,
+      "bundle": {
+        "file": "m_tnelis.bphfm",
+        "bytes": 884478,
+        "param_bytes": 11242,
+        "bin_bytes": 873212,
+        "sha256": "33bc25702d61f15c92005a055a5a2fdaf3117b40575f3651ba1f51705d08b0cc"
+      }
+    }
+  ]
+}

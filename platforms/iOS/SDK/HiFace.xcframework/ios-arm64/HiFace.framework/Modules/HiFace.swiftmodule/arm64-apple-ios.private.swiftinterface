@@ -1,0 +1,503 @@
+// swift-interface-format-version: 1.0
+// swift-compiler-version: Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)
+// swift-module-flags: -target arm64-apple-ios15.0 -enable-objc-interop -enable-library-evolution -swift-version 6 -O -enable-experimental-feature DebugDescriptionMacro -module-name HiFace -package-name sdk
+// swift-module-flags-ignorable:  -formal-cxx-interoperability-mode=off -interface-compiler-version 6.3.3
+import CoreGraphics
+import CoreVideo
+import Dispatch
+import Foundation
+import Swift
+import _Concurrency
+import _StringProcessing
+import _SwiftConcurrencyShims
+public struct FaceCaptureCallbacks : Swift.Sendable {
+  public let onProgress: @_Concurrency.MainActor @Sendable (HiFace.FaceFlowProgress) -> Swift.Void
+  public let onResult: @_Concurrency.MainActor @Sendable (HiFace.FaceCaptureResult) -> Swift.Void
+  public let onError: @_Concurrency.MainActor @Sendable (HiFace.HiFaceError) -> Swift.Void
+  public init(onProgress: @escaping @_Concurrency.MainActor @Sendable (HiFace.FaceFlowProgress) -> Swift.Void, onResult: @escaping @_Concurrency.MainActor @Sendable (HiFace.FaceCaptureResult) -> Swift.Void, onError: @escaping @_Concurrency.MainActor @Sendable (HiFace.HiFaceError) -> Swift.Void)
+}
+public struct FaceCaptureResult : Swift.Sendable, Swift.Equatable {
+  public let feature: Swift.String
+  public let alignedFace: HiFace.HiFaceAlignedImage?
+  public init(feature: Swift.String, alignedFace: HiFace.HiFaceAlignedImage?)
+  public static func == (a: HiFace.FaceCaptureResult, b: HiFace.FaceCaptureResult) -> Swift.Bool
+}
+@_hasMissingDesignatedInitializers final public class FaceRequest : @unchecked Swift.Sendable {
+  final public func cancel()
+  @objc deinit
+}
+public struct HiFaceError : Swift.Error, Swift.Sendable, Swift.Equatable, Swift.CustomStringConvertible {
+  public let code: HiFace.HiFaceErrorCode
+  public let message: Swift.String
+  public init(code: HiFace.HiFaceErrorCode, message: Swift.String)
+  public var description: Swift.String {
+    get
+  }
+  public static func == (a: HiFace.HiFaceError, b: HiFace.HiFaceError) -> Swift.Bool
+}
+public enum HiFaceErrorCode : Swift.Int, Swift.Sendable, Swift.CaseIterable {
+  case notReady
+  case closed
+  case invalidArgument
+  case unsupportedFormat
+  case modelLoadFailed
+  case imageNoFace
+  case imageFaceTooSmall
+  case busy
+  case processingFailed
+  case notFound
+  case databaseError
+  case resourceExhausted
+  case alreadyExists
+  case internalError
+  public init?(rawValue: Swift.Int)
+  public typealias AllCases = [HiFace.HiFaceErrorCode]
+  public typealias RawValue = Swift.Int
+  nonisolated public static var allCases: [HiFace.HiFaceErrorCode] {
+    get
+  }
+  public var rawValue: Swift.Int {
+    get
+  }
+}
+public struct DetectedFace : Swift.Sendable, Swift.Equatable {
+  public let bounds: HiFace.FaceBounds
+  public let confidence: Swift.Float
+  public let landmarks: [HiFace.HiFacePoint]
+  public let headPose: HiFace.HeadPose?
+  public let mesh: HiFace.FaceMesh?
+  public init(bounds: HiFace.FaceBounds, confidence: Swift.Float, landmarks: [HiFace.HiFacePoint], headPose: HiFace.HeadPose? = nil, mesh: HiFace.FaceMesh? = nil)
+  public static func == (a: HiFace.DetectedFace, b: HiFace.DetectedFace) -> Swift.Bool
+}
+public struct FaceBounds : Swift.Sendable, Swift.Equatable {
+  public let x: Swift.Float
+  public let y: Swift.Float
+  public let width: Swift.Float
+  public let height: Swift.Float
+  public init(x: Swift.Float, y: Swift.Float, width: Swift.Float, height: Swift.Float)
+  public static func == (a: HiFace.FaceBounds, b: HiFace.FaceBounds) -> Swift.Bool
+}
+public struct FaceDetectionConfiguration : Swift.Sendable, Swift.Equatable {
+  public static let `default`: HiFace.FaceDetectionConfiguration
+  public let maxFaces: Swift.Int
+  public let includesDetailedLandmarks: Swift.Bool
+  public init(maxFaces: Swift.Int = 1, includesDetailedLandmarks: Swift.Bool = false) throws
+  public static func == (a: HiFace.FaceDetectionConfiguration, b: HiFace.FaceDetectionConfiguration) -> Swift.Bool
+}
+public struct FaceDetectionResult : Swift.Sendable, Swift.Equatable {
+  public let faces: [HiFace.DetectedFace]
+  public let imageWidth: Swift.Int
+  public let imageHeight: Swift.Int
+  public static func == (lhs: HiFace.FaceDetectionResult, rhs: HiFace.FaceDetectionResult) -> Swift.Bool
+}
+public struct FaceMesh : Swift.Sendable, Swift.Equatable {
+  public static var maximumPointCount: Swift.Int {
+    get
+  }
+  public let points: [HiFace.HiFacePoint]
+  public init(points: [HiFace.HiFacePoint]) throws
+  public static func == (a: HiFace.FaceMesh, b: HiFace.FaceMesh) -> Swift.Bool
+}
+public struct HeadPose : Swift.Sendable, Swift.Equatable {
+  public let pitch: Swift.Float
+  public let yaw: Swift.Float
+  public let roll: Swift.Float
+  public init(pitch: Swift.Float, yaw: Swift.Float, roll: Swift.Float)
+  public static func == (a: HiFace.HeadPose, b: HiFace.HeadPose) -> Swift.Bool
+}
+public struct HiFacePoint : Swift.Sendable, Swift.Equatable {
+  public let x: Swift.Float
+  public let y: Swift.Float
+  public init(x: Swift.Float, y: Swift.Float)
+  public static func == (a: HiFace.HiFacePoint, b: HiFace.HiFacePoint) -> Swift.Bool
+}
+public enum FaceAction : Swift.Sendable, Swift.CaseIterable, Swift.Equatable {
+  case shakeHead
+  case nodHead
+  case blink
+  case openMouth
+  public static func == (a: HiFace.FaceAction, b: HiFace.FaceAction) -> Swift.Bool
+  public typealias AllCases = [HiFace.FaceAction]
+  nonisolated public static var allCases: [HiFace.FaceAction] {
+    get
+  }
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public struct FaceFlowCallbacks : Swift.Sendable {
+  public let onProgress: @_Concurrency.MainActor @Sendable (HiFace.FaceFlowProgress) -> Swift.Void
+  public let onResult: @_Concurrency.MainActor @Sendable (HiFace.FaceFlowResult) -> Swift.Void
+  public let onError: @_Concurrency.MainActor @Sendable (HiFace.HiFaceError) -> Swift.Void
+  public init(onProgress: @escaping @_Concurrency.MainActor @Sendable (HiFace.FaceFlowProgress) -> Swift.Void, onResult: @escaping @_Concurrency.MainActor @Sendable (HiFace.FaceFlowResult) -> Swift.Void, onError: @escaping @_Concurrency.MainActor @Sendable (HiFace.HiFaceError) -> Swift.Void)
+}
+public enum FaceFlowOutcome : Swift.Sendable, Swift.Equatable {
+  case passed
+  case notMatched
+  case spoofDetected
+  case noFaceTimeout
+  case faceLost
+  case multipleFaces
+  case actionTimeout
+  case finalCaptureTimeout
+  public static func == (a: HiFace.FaceFlowOutcome, b: HiFace.FaceFlowOutcome) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public struct FaceFlowProgress : Swift.Sendable, Swift.Equatable {
+  public let stage: HiFace.FaceFlowStage
+  public let action: HiFace.FaceAction?
+  public let stepNumber: Swift.Int
+  public let stepCount: Swift.Int
+  public static func == (a: HiFace.FaceFlowProgress, b: HiFace.FaceFlowProgress) -> Swift.Bool
+}
+public struct FaceFlowResult : Swift.Sendable, Swift.Equatable {
+  public let outcome: HiFace.FaceFlowOutcome
+  public let alignedFace: HiFace.HiFaceAlignedImage?
+  public let feature: Swift.String?
+  public let livenessScore: Swift.Float?
+  public let similarity: Swift.Float?
+  public var passed: Swift.Bool {
+    get
+  }
+  public static func == (a: HiFace.FaceFlowResult, b: HiFace.FaceFlowResult) -> Swift.Bool
+}
+public enum FaceFlowStage : Swift.Sendable, Swift.Equatable {
+  case waitingForFace
+  case multipleFaces
+  case faceTooSmall
+  case performAction
+  case faceNotFrontal
+  case holdStill
+  case faceForward
+  case faceUnstable
+  public static func == (a: HiFace.FaceFlowStage, b: HiFace.FaceFlowStage) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public struct HiFaceCameraFrame : @unchecked Swift.Sendable {
+  public static var maximumLongSidePixels: Swift.Int {
+    get
+  }
+  public static var maximumShortSidePixels: Swift.Int {
+    get
+  }
+  public let pixelBuffer: CoreVideo.CVPixelBuffer
+  public let width: Swift.Int
+  public let height: Swift.Int
+  public let yRowStride: Swift.Int
+  public let uvRowStride: Swift.Int
+  public let uvPixelStride: Swift.Int
+  public let colorRange: HiFace.HiFaceYUVColorRange
+  public let colorMatrix: HiFace.HiFaceYUVColorMatrix
+  public let rotation: HiFace.HiFaceImageRotation
+  public let isMirrored: Swift.Bool
+  public init(pixelBuffer: CoreVideo.CVPixelBuffer, rotation: HiFace.HiFaceImageRotation, isMirrored: Swift.Bool) throws
+}
+public enum HiFaceImageRotation : Swift.Int32, Swift.Sendable, Swift.CaseIterable {
+  case degrees0
+  case degrees90
+  case degrees180
+  case degrees270
+  public init?(rawValue: Swift.Int32)
+  public typealias AllCases = [HiFace.HiFaceImageRotation]
+  public typealias RawValue = Swift.Int32
+  nonisolated public static var allCases: [HiFace.HiFaceImageRotation] {
+    get
+  }
+  public var rawValue: Swift.Int32 {
+    get
+  }
+}
+public enum HiFaceYUVColorMatrix : Swift.Sendable {
+  case bt601
+  case bt709
+  public static func == (a: HiFace.HiFaceYUVColorMatrix, b: HiFace.HiFaceYUVColorMatrix) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public enum HiFaceYUVColorRange : Swift.Sendable {
+  case video
+  case full
+  public static func == (a: HiFace.HiFaceYUVColorRange, b: HiFace.HiFaceYUVColorRange) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public enum HiFaceCPUThreadPolicy : Swift.Int32, Swift.Sendable, Swift.CaseIterable {
+  case automatic
+  case two
+  case four
+  public init?(rawValue: Swift.Int32)
+  public typealias AllCases = [HiFace.HiFaceCPUThreadPolicy]
+  public typealias RawValue = Swift.Int32
+  nonisolated public static var allCases: [HiFace.HiFaceCPUThreadPolicy] {
+    get
+  }
+  public var rawValue: Swift.Int32 {
+    get
+  }
+}
+public struct HiFaceConfiguration : Swift.Sendable, Swift.Equatable {
+  public let cpuThreads: HiFace.HiFaceCPUThreadPolicy
+  public let modelDirectoryURL: Foundation.URL?
+  public init(cpuThreads: HiFace.HiFaceCPUThreadPolicy = .automatic, modelDirectoryURL: Foundation.URL? = nil)
+  public static func == (a: HiFace.HiFaceConfiguration, b: HiFace.HiFaceConfiguration) -> Swift.Bool
+}
+@_hasMissingDesignatedInitializers final public class HiFaceSDK : @unchecked Swift.Sendable {
+  convenience public init(configuration: HiFace.HiFaceConfiguration = HiFaceConfiguration())
+  final public func processFrame(_ frame: HiFace.HiFaceCameraFrame, configuration: HiFace.FaceDetectionConfiguration = .default) -> Swift.Result<HiFace.FaceDetectionResult, HiFace.HiFaceError>
+  final public func capture(_ image: HiFace.HiFaceRGBAImage) async -> Swift.Result<HiFace.FaceCaptureResult, HiFace.HiFaceError>
+  final public func capture(_ image: CoreGraphics.CGImage) async -> Swift.Result<HiFace.FaceCaptureResult, HiFace.HiFaceError>
+  final public func extractFeature(from image: HiFace.HiFaceRGBAImage) async -> Swift.Result<Swift.String, HiFace.HiFaceError>
+  final public func extractFeature(from image: CoreGraphics.CGImage) async -> Swift.Result<Swift.String, HiFace.HiFaceError>
+  final public func compare(feature left: Swift.String, with right: Swift.String) async -> Swift.Result<Swift.Float, HiFace.HiFaceError>
+  final public func compare(_ left: HiFace.HiFaceRGBAImage, with right: HiFace.HiFaceRGBAImage) async -> Swift.Result<Swift.Float, HiFace.HiFaceError>
+  final public func compare(_ left: CoreGraphics.CGImage, with right: CoreGraphics.CGImage) async -> Swift.Result<Swift.Float, HiFace.HiFaceError>
+  @discardableResult
+  final public func startCameraCapture(callbacks: HiFace.FaceCaptureCallbacks) -> HiFace.FaceRequest
+  @discardableResult
+  final public func startCameraCapture(callbacks: HiFace.FaceFlowCallbacks) -> HiFace.FaceRequest
+  @discardableResult
+  final public func startCameraLiveness(configuration: HiFace.FaceLivenessConfiguration = .default, callbacks: HiFace.FaceFlowCallbacks) -> HiFace.FaceRequest
+  @discardableResult
+  final public func startCameraVerification(configuration: HiFace.FaceVerificationConfiguration, callbacks: HiFace.FaceFlowCallbacks) -> HiFace.FaceRequest
+  public static func openSearchDatabase() throws -> HiFace.FaceSearchDatabase
+  @discardableResult
+  final public func startCameraSearch(configuration: HiFace.FaceSearchSessionConfiguration = .default, callbacks: HiFace.FaceSearchCallbacks) -> HiFace.FaceSearchSession
+  final public func close()
+  @objc deinit
+}
+public struct HiFaceAlignedImage : Swift.Sendable, Swift.Equatable {
+  public static var side: Swift.Int {
+    get
+  }
+  public let rgba: Foundation.Data
+  public init(rgba: Foundation.Data) throws
+  public func makeCGImage() -> CoreGraphics.CGImage?
+  public static func == (a: HiFace.HiFaceAlignedImage, b: HiFace.HiFaceAlignedImage) -> Swift.Bool
+}
+public struct HiFaceRGBAImage : Swift.Sendable, Swift.Equatable {
+  public let rgba: Foundation.Data
+  public let width: Swift.Int
+  public let height: Swift.Int
+  public init(rgba: Foundation.Data, width: Swift.Int, height: Swift.Int) throws
+  public init(cgImage: CoreGraphics.CGImage) throws
+  public func makeCGImage() -> CoreGraphics.CGImage?
+  public static func == (a: HiFace.HiFaceRGBAImage, b: HiFace.HiFaceRGBAImage) -> Swift.Bool
+}
+public struct FaceLivenessConfiguration : Swift.Sendable, Swift.Equatable {
+  public static let defaultActionTimeoutMilliseconds: Swift.Int64
+  public static let defaultFaceAcquisitionTimeoutMilliseconds: Swift.Int64
+  public static let defaultFrontalHoldMilliseconds: Swift.Int64
+  public static let defaultFinalCaptureTimeoutMilliseconds: Swift.Int64
+  public static let maximumActionCount: Swift.Int
+  public let actions: [HiFace.FaceAction]
+  public let actionTimeoutMilliseconds: Swift.Int64
+  public let faceAcquisitionTimeoutMilliseconds: Swift.Int64
+  public let allowsMultipleFaces: Swift.Bool
+  public var hasActions: Swift.Bool {
+    get
+  }
+  public init(actions: [HiFace.FaceAction] = [], actionTimeoutMilliseconds: Swift.Int64? = nil, faceAcquisitionTimeoutMilliseconds: Swift.Int64? = nil, allowsMultipleFaces: Swift.Bool = false) throws
+  public static let `default`: HiFace.FaceLivenessConfiguration
+  public static func == (a: HiFace.FaceLivenessConfiguration, b: HiFace.FaceLivenessConfiguration) -> Swift.Bool
+}
+public enum FaceFeatureFormat {
+  public static let featureSpaceID: Swift.String
+  public static let prefix: Swift.String
+  public static let textLength: Swift.Int
+  public static let dimension: Swift.Int
+}
+public struct FaceSearchCallbacks : Swift.Sendable {
+  public let onFrame: @_Concurrency.MainActor @Sendable (HiFace.FaceSearchFrame) -> Swift.Void
+  public let onProgress: @_Concurrency.MainActor @Sendable (HiFace.FaceSearchProgress) -> Swift.Void
+  public let onResult: @_Concurrency.MainActor @Sendable (HiFace.FaceSearchResult) -> Swift.Void
+  public let onError: @_Concurrency.MainActor @Sendable (HiFace.HiFaceError) -> Swift.Void
+  public init(onFrame: @escaping @_Concurrency.MainActor @Sendable (HiFace.FaceSearchFrame) -> Swift.Void, onProgress: @escaping @_Concurrency.MainActor @Sendable (HiFace.FaceSearchProgress) -> Swift.Void, onResult: @escaping @_Concurrency.MainActor @Sendable (HiFace.FaceSearchResult) -> Swift.Void, onError: @escaping @_Concurrency.MainActor @Sendable (HiFace.HiFaceError) -> Swift.Void)
+}
+public struct FaceSearchConfiguration : Swift.Sendable, Swift.Equatable {
+  public let group: Swift.String?
+  public let tag: Swift.String?
+  public let topK: Swift.Int
+  public let threshold: Swift.Float
+  public init(group: Swift.String? = nil, tag: Swift.String? = nil, topK: Swift.Int = 1, threshold: Swift.Float? = nil) throws
+  public static let `default`: HiFace.FaceSearchConfiguration
+  public static func == (a: HiFace.FaceSearchConfiguration, b: HiFace.FaceSearchConfiguration) -> Swift.Bool
+}
+@_hasMissingDesignatedInitializers public actor FaceSearchDatabase {
+  public func saveFeature(faceID: Swift.String, feature: Swift.String, updateTimeMilliseconds: Swift.Int64 = 0, tag: Swift.String = "", group: Swift.String = "") throws
+  public func saveFeatures(_ entries: [HiFace.FaceSearchFeatureEntry]) throws
+  public func contains(faceID: Swift.String) throws -> Swift.Bool
+  public func updateMetadata(faceID: Swift.String, group: Swift.String? = nil, tag: Swift.String? = nil, updateTimeMilliseconds: Swift.Int64 = 0) throws
+  public func entry(faceID: Swift.String) throws -> HiFace.FaceSearchEntry
+  public func entries(group: Swift.String? = nil, tag: Swift.String? = nil, offset: Swift.Int = 0, limit: Swift.Int = 100) throws -> [HiFace.FaceSearchMetadata]
+  public func recentEntries(group: Swift.String? = nil, tag: Swift.String? = nil, offset: Swift.Int = 0, limit: Swift.Int = 100) throws -> [HiFace.FaceSearchMetadata]
+  public func featureEntries(group: Swift.String? = nil, tag: Swift.String? = nil, offset: Swift.Int = 0, limit: Swift.Int = 100) throws -> [HiFace.FaceSearchEntry]
+  public func delete(faceID: Swift.String) throws -> Swift.Bool
+  public func count(group: Swift.String? = nil, tag: Swift.String? = nil) throws -> Swift.UInt64
+  public func warmUp(group: Swift.String? = nil, tag: Swift.String? = nil) throws
+  public func releaseMemory() throws
+  public func search(feature: Swift.String, configuration: HiFace.FaceSearchConfiguration = .default) throws -> [HiFace.FaceSearchMatch]
+  public func close()
+  @objc deinit
+  @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
+  @_semantics("defaultActor") nonisolated final public var unownedExecutor: _Concurrency.UnownedSerialExecutor {
+    get
+  }
+}
+public enum FaceSearchEndReason : Swift.Sendable, Swift.Equatable {
+  case matchFound
+  case timeout
+  case noFace
+  case spoofDetected
+  public static func == (a: HiFace.FaceSearchEndReason, b: HiFace.FaceSearchEndReason) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public struct FaceSearchEntry : Swift.Sendable, Swift.Equatable {
+  public let faceID: Swift.String
+  public let tag: Swift.String
+  public let group: Swift.String
+  public let feature: Swift.String
+  public let featureSpaceID: Swift.String
+  public let metadata: HiFace.FaceSearchMetadata
+  public let updateTimeMilliseconds: Swift.Int64
+  public init(faceID: Swift.String, feature: Swift.String, updateTimeMilliseconds: Swift.Int64 = 0, tag: Swift.String = "", group: Swift.String = "", featureSpaceID: Swift.String = FaceFeatureFormat.featureSpaceID) throws
+  public static func == (a: HiFace.FaceSearchEntry, b: HiFace.FaceSearchEntry) -> Swift.Bool
+}
+public struct FaceSearchFace : Swift.Sendable, Swift.Equatable {
+  public let bounds: HiFace.FaceBounds
+  public let thresholdPassed: Swift.Bool
+  public let similarity: Swift.Float?
+  public let faceID: Swift.String?
+  public let group: Swift.String
+  public let tag: Swift.String
+  public static func == (a: HiFace.FaceSearchFace, b: HiFace.FaceSearchFace) -> Swift.Bool
+}
+public struct FaceSearchFeatureEntry : Swift.Sendable, Swift.Equatable {
+  public let faceID: Swift.String
+  public let feature: Swift.String
+  public let featureSpaceID: Swift.String
+  public let tag: Swift.String
+  public let group: Swift.String
+  public let updateTimeMilliseconds: Swift.Int64
+  public init(faceID: Swift.String, feature: Swift.String, updateTimeMilliseconds: Swift.Int64 = 0, tag: Swift.String = "", group: Swift.String = "", featureSpaceID: Swift.String = FaceFeatureFormat.featureSpaceID) throws
+  public static func == (a: HiFace.FaceSearchFeatureEntry, b: HiFace.FaceSearchFeatureEntry) -> Swift.Bool
+}
+public struct FaceSearchFrame : Swift.Sendable, Swift.Equatable {
+  public let frameID: Swift.UInt64
+  public let imageWidth: Swift.Int
+  public let imageHeight: Swift.Int
+  public let faces: [HiFace.FaceSearchFace]
+  public static func == (a: HiFace.FaceSearchFrame, b: HiFace.FaceSearchFrame) -> Swift.Bool
+}
+public struct FaceSearchMatch : Swift.Sendable, Swift.Equatable {
+  public let entry: HiFace.FaceSearchEntry
+  public let score: Swift.Float
+  public static func == (a: HiFace.FaceSearchMatch, b: HiFace.FaceSearchMatch) -> Swift.Bool
+}
+public struct FaceSearchMetadata : Swift.Sendable, Swift.Equatable {
+  public let faceID: Swift.String
+  public let tag: Swift.String
+  public let group: Swift.String
+  public let updateTimeMilliseconds: Swift.Int64
+  public init(faceID: Swift.String, updateTimeMilliseconds: Swift.Int64 = 0, tag: Swift.String = "", group: Swift.String = "") throws
+  public static func == (a: HiFace.FaceSearchMetadata, b: HiFace.FaceSearchMetadata) -> Swift.Bool
+}
+public enum FaceSearchMode : Swift.Sendable, Swift.Equatable, Swift.Hashable {
+  case singleFace
+  case multipleFaces
+  public static func == (a: HiFace.FaceSearchMode, b: HiFace.FaceSearchMode) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public struct FaceSearchProgress : Swift.Sendable, Swift.Equatable {
+  public let stage: HiFace.FaceSearchStage
+  public let detectedCount: Swift.Int
+  public let selectedCount: Swift.Int
+  public static func == (a: HiFace.FaceSearchProgress, b: HiFace.FaceSearchProgress) -> Swift.Bool
+}
+public struct FaceSearchResult : Swift.Sendable, Swift.Equatable {
+  public let endReason: HiFace.FaceSearchEndReason
+  public let livenessScore: Swift.Float?
+  public let frame: HiFace.FaceSearchFrame
+  public static func == (a: HiFace.FaceSearchResult, b: HiFace.FaceSearchResult) -> Swift.Bool
+}
+@_hasMissingDesignatedInitializers final public class FaceSearchSession : @unchecked Swift.Sendable {
+  final public func pause()
+  final public func resume()
+  final public func update(configuration: HiFace.FaceSearchSessionConfiguration)
+  final public func close()
+  @objc deinit
+}
+public struct FaceSearchSessionConfiguration : Swift.Sendable, Swift.Equatable {
+  public let mode: HiFace.FaceSearchMode
+  public let group: Swift.String?
+  public let tag: Swift.String?
+  public let needsLiveness: Swift.Bool
+  public let threshold: Swift.Float
+  public let searchIntervalMilliseconds: Swift.Int
+  public let searchTimeoutMilliseconds: Swift.Int
+  public let maxFacesPerFrame: Swift.Int
+  public init(mode: HiFace.FaceSearchMode = .singleFace, group: Swift.String? = nil, tag: Swift.String? = nil, needsLiveness: Swift.Bool? = nil, threshold: Swift.Float = 0.80, searchIntervalMilliseconds: Swift.Int = 0, searchTimeoutMilliseconds: Swift.Int = 3_000, maxFacesPerFrame: Swift.Int = 3) throws
+  public static let `default`: HiFace.FaceSearchSessionConfiguration
+  public static func == (a: HiFace.FaceSearchSessionConfiguration, b: HiFace.FaceSearchSessionConfiguration) -> Swift.Bool
+}
+public enum FaceSearchStage : Swift.Sendable, Swift.Equatable {
+  case waitingForFace
+  case faceTooSmall
+  case searching
+  case emptyGallery
+  case successInterval
+  public static func == (a: HiFace.FaceSearchStage, b: HiFace.FaceSearchStage) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public struct FaceVerificationConfiguration : Swift.Sendable, Swift.Equatable {
+  public static let defaultThreshold: Swift.Float
+  public static let defaultActionTimeoutMilliseconds: Swift.Int64
+  public static let defaultFaceAcquisitionTimeoutMilliseconds: Swift.Int64
+  public static let maximumActionCount: Swift.Int
+  public let referenceFeature: Swift.String
+  public let threshold: Swift.Float
+  public let requiresSilentLiveness: Swift.Bool
+  public let actions: [HiFace.FaceAction]
+  public let actionTimeoutMilliseconds: Swift.Int64
+  public let faceAcquisitionTimeoutMilliseconds: Swift.Int64
+  public let allowsMultipleFaces: Swift.Bool
+  public init(referenceFeature: Swift.String, threshold: Swift.Float? = nil, requiresSilentLiveness: Swift.Bool = false, actions: [HiFace.FaceAction] = [], actionTimeoutMilliseconds: Swift.Int64? = nil, faceAcquisitionTimeoutMilliseconds: Swift.Int64? = nil, allowsMultipleFaces: Swift.Bool = false) throws
+  public static func == (a: HiFace.FaceVerificationConfiguration, b: HiFace.FaceVerificationConfiguration) -> Swift.Bool
+}
+extension HiFace.HiFaceErrorCode : Swift.Equatable {}
+extension HiFace.HiFaceErrorCode : Swift.Hashable {}
+extension HiFace.HiFaceErrorCode : Swift.RawRepresentable {}
+extension HiFace.FaceAction : Swift.Hashable {}
+extension HiFace.FaceFlowOutcome : Swift.Hashable {}
+extension HiFace.FaceFlowStage : Swift.Hashable {}
+extension HiFace.HiFaceYUVColorRange : Swift.Equatable {}
+extension HiFace.HiFaceYUVColorRange : Swift.Hashable {}
+extension HiFace.HiFaceYUVColorMatrix : Swift.Equatable {}
+extension HiFace.HiFaceYUVColorMatrix : Swift.Hashable {}
+extension HiFace.HiFaceImageRotation : Swift.Equatable {}
+extension HiFace.HiFaceImageRotation : Swift.Hashable {}
+extension HiFace.HiFaceImageRotation : Swift.RawRepresentable {}
+extension HiFace.HiFaceCPUThreadPolicy : Swift.Equatable {}
+extension HiFace.HiFaceCPUThreadPolicy : Swift.Hashable {}
+extension HiFace.HiFaceCPUThreadPolicy : Swift.RawRepresentable {}
+extension HiFace.FaceSearchEndReason : Swift.Hashable {}
+extension HiFace.FaceSearchStage : Swift.Hashable {}
