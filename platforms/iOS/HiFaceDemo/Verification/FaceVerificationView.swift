@@ -17,8 +17,8 @@ struct FaceVerificationView: View {
     private var referenceSelection: some View {
         CameraDialog {
             CameraDialogTitle(
-                title: "选择参考人脸",
-                subtitle: "选择已录入的 Face ID，开始身份验证。",
+                title: DemoL10n.text("选择参考人脸"),
+                subtitle: DemoL10n.text("选择已录入的 Face ID，开始身份验证。"),
                 symbol: "person.crop.circle"
             )
             ForEach(model.referenceFaceIDs, id: \.self) { faceID in
@@ -43,12 +43,12 @@ struct FaceVerificationView: View {
                     .contentShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("验证 \(faceID)")
+                .accessibilityLabel(DemoL10n.text("验证 {0}", [String(describing: faceID)]))
             }
-            if model.status == "选择参考身份失败" {
+            if model.status == DemoL10n.text("选择参考身份失败") {
                 Text(model.detail ?? model.status).font(.footnote).foregroundStyle(.red)
             }
-            Button("取消", role: .cancel) { onClose() }
+            Button(DemoL10n.text("取消"), role: .cancel) { onClose() }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
                 .frame(maxWidth: .infinity, alignment: .trailing)

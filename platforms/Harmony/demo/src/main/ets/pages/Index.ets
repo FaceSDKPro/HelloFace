@@ -1,3 +1,4 @@
+import { DemoL10n } from '../ui/DemoL10n';
 import { FaceReference, FaceFeatureStore } from '../verification/FaceFeatureStore';
 import { DemoTheme } from '../ui/DemoTheme';
 import { DemoSdkSession } from '../ui/DemoSdkSession';
@@ -10,6 +11,7 @@ import { StaticFaceComparisonDemo } from '../comparison/StaticFaceComparisonDemo
 import { FaceSearchLibraryDemo } from '../search/FaceSearchLibraryDemo';
 import { createDemoFaceSearchConfig } from '../search/DemoFaceSearchConfig';
 import { common } from '@kit.AbilityKit';
+import { deviceInfo } from '@kit.BasicServicesKit';
 
 // 与 Android DemoHomeActivity 的七个入口及搜索子页面一一对应。
 enum DemoPage {
@@ -23,7 +25,7 @@ enum DemoPage {
 struct Index {
   @State private activePage: DemoPage = DemoPage.HOME;
   @State private cameraPageKey: number = 0;
-  @State private sdkState: string = '正在准备识别模型…';
+  @State private sdkState: string = DemoL10n.text("正在准备识别模型…");
   @State private sdkInitializing: boolean = true;
   @State private sdkFailed: boolean = false;
   @State private references: FaceReference[] = [];
@@ -39,6 +41,9 @@ struct Index {
   private referenceStoreToken: number = 0;
   private savingReference: boolean = false;
   private readonly cameraLifecycle: CameraPageLifecycle = new CameraPageLifecycle();
+  private readonly deviceSummary: string = DemoL10n.text('Release：{0}｜Model：{1}｜Board：{2}',
+    [`${deviceInfo.majorVersion}.${deviceInfo.seniorVersion}.${deviceInfo.featureVersion}`,
+      deviceInfo.productModel || '-', deviceInfo.hardwareModel || '-']);
 
   aboutToAppear(): void {
     this.initializeSdk();
@@ -65,16 +70,16 @@ struct Index {
   private showReferenceStoreRecovery(): void {
     try {
       this.getUIContext().showAlertDialog({
-        title: '1:1 人脸基准读取失败',
-        message: '加密数据或设备密钥不可用。可保留现状退出，或清除旧基准后重新录入。',
+        title: DemoL10n.text("1:1 人脸基准读取失败"),
+        message: DemoL10n.text("数据或密钥不可用。可保留退出，或清除基准后重新录入。"),
         primaryButton: {
-          value: '清除并重新录入',
+          value: DemoL10n.text("清除并重新录入"),
           action: (): void => { this.resetReferenceStore(); }
         },
-        secondaryButton: { value: '暂不处理', action: (): void => {} }
+        secondaryButton: { value: DemoL10n.text("暂不处理"), action: (): void => {} }
       });
     } catch (_) {
-      this.showToast('1:1 人脸基准无法安全读取');
+      this.showToast(DemoL10n.text("1:1 人脸基准无法安全读取"));
     }
   }
 
@@ -88,9 +93,9 @@ struct Index {
       this.references = [];
       this.selectedFaceId = '';
       this.selectedFeature = '';
-      this.showToast('旧的 1:1 人脸基准已清除，请重新录入');
+      this.showToast(DemoL10n.text("旧的 1:1 人脸基准已清除，请重新录入"));
     } catch (_) {
-      if (token === this.referenceStoreToken) this.showToast('清除旧人脸基准失败');
+      if (token === this.referenceStoreToken) this.showToast(DemoL10n.text("清除旧人脸基准失败"));
     }
   }
 
@@ -100,7 +105,7 @@ struct Index {
     this.sdkInitializing = true;
     this.sdkFailed = false;
     this.sdk = undefined;
-    this.sdkState = '正在准备识别模型…';
+    this.sdkState = DemoL10n.text("正在准备识别模型…");
     const context: common.UIAbilityContext =
       this.getUIContext().getHostContext() as common.UIAbilityContext;
     const ready: HiFaceResult<HiFaceSdk> = await this.sdkSession.initialize(context);
@@ -108,7 +113,7 @@ struct Index {
     this.sdkInitializing = false;
     this.sdkFailed = ready.isFailure();
     this.sdk = ready.isSuccess() ? ready.requireValue() : undefined;
-    this.sdkState = ready.isSuccess() ? '识别引擎已就绪' : '识别引擎初始化失败，请点击重试';
+    this.sdkState = ready.isSuccess() ? DemoL10n.text("识别引擎已就绪") : DemoL10n.text("识别引擎初始化失败，请点击重试");
   }
 
   aboutToDisappear(): void {
@@ -167,7 +172,7 @@ struct Index {
 
   private chooseReference(): void {
     if (this.references.length === 0) {
-      this.showToast('请先完成人脸采集');
+      this.showToast(DemoL10n.text("请先完成人脸采集"));
       return;
     }
     this.selectingReference = true;
@@ -232,35 +237,35 @@ struct Index {
         Row() {
           Column({ space: 2 }) {
             Text('HelloFace SDK').fontSize(18).fontWeight(FontWeight.Medium).fontColor('#FFFFFF')
-            Text('离线｜数据安全｜高效').fontSize(11).fontColor(DemoTheme.textOnDarkSecondary)
+            Text(DemoL10n.text("离线｜数据安全｜高效")).fontSize(11).fontColor(DemoTheme.textOnDarkSecondary)
           }.alignItems(HorizontalAlign.Start).layoutWeight(1)
           Button({ type: ButtonType.Normal }) {
             Image($r('app.media.ic_api_info')).width(20).height(20)
           }.width(40).height(40).borderRadius(20).backgroundColor(DemoTheme.surfaceOnDark)
-          .accessibilityText('关于').onClick(() => this.showAbout())
+          .accessibilityText(DemoL10n.text("关于")).onClick(() => this.showAbout())
         }.width('100%')
-        Text('选择一项能力开始体验').fontSize(10).fontColor(DemoTheme.textOnDarkSecondary)
+        Text(this.deviceSummary).fontSize(10).fontColor(DemoTheme.textOnDarkSecondary)
           .width('100%').margin({ top: 22, bottom: 12 })
         if (this.sdkFailed) {
           Button(this.sdkState).fontSize(13).fontColor('#FFFFFF')
             .width('100%').backgroundColor(DemoTheme.surfaceOnDark).margin({ bottom: 12 })
             .enabled(!this.sdkInitializing).onClick(() => this.initializeSdk())
         }
-        this.FeatureCard($r('app.media.ic_api_camera_small'), '实时人脸检测',
-          '实时展示人脸框、五点、轮廓和头姿', (): void => this.navigate(DemoPage.DETECTION))
-        this.FeatureCard($r('app.media.ic_home_enroll'), '人脸采集',
-          '采集清晰正脸，并保存人脸特征', (): void => this.navigate(DemoPage.ENROLLMENT))
-        this.FeatureCard($r('app.media.ic_home_verify'), '1:1 人脸验证',
-          '选择 Face ID，完成动作活体后进行动态 1:1 验证', (): void => this.chooseReference())
-        this.FeatureCard($r('app.media.ic_home_liveness'), '活体检测',
-          '随机动作挑战与双模型静默检测', (): void => this.navigate(DemoPage.LIVENESS))
-        this.FeatureCard($r('app.media.ic_search_search'), '人脸搜索识别',
-          '从人脸库中检索匹配结果', (): void => this.navigate(DemoPage.SEARCH))
-        this.FeatureCard($r('app.media.ic_home_compare'), '静态人脸 1:1 对比',
-          '比较两张静态图片中的人脸', (): void => this.navigate(DemoPage.COMPARISON))
-        this.FeatureCard($r('app.media.ic_search_settings'), '摄像头参数设置',
-          '设置分析分辨率与坐标镜像', (): void => this.navigate(DemoPage.CAMERA_SETTINGS))
-        Text('关于 HiFace SDK Demo').height(42).fontSize(12).fontColor(DemoTheme.textOnDarkSecondary)
+        this.FeatureCard($r('app.media.ic_api_camera_small'), DemoL10n.text("实时人脸检测"),
+          DemoL10n.text("查看人脸框、关键点、轮廓和头姿"), (): void => this.navigate(DemoPage.DETECTION))
+        this.FeatureCard($r('app.media.ic_home_enroll'), DemoL10n.text("人脸采集"),
+          DemoL10n.text("采集正脸并保存特征"), (): void => this.navigate(DemoPage.ENROLLMENT))
+        this.FeatureCard($r('app.media.ic_home_verify'), DemoL10n.text("1:1 人脸验证"),
+          DemoL10n.text("选择 Face ID，活体通过后验证"), (): void => this.chooseReference())
+        this.FeatureCard($r('app.media.ic_home_liveness'), DemoL10n.text("活体检测"),
+          DemoL10n.text("随机动作挑战与双模型静默检测"), (): void => this.navigate(DemoPage.LIVENESS))
+        this.FeatureCard($r('app.media.ic_search_search'), DemoL10n.text("人脸搜索识别"),
+          DemoL10n.text("识别人脸库中的身份"), (): void => this.navigate(DemoPage.SEARCH))
+        this.FeatureCard($r('app.media.ic_home_compare'), DemoL10n.text("静态人脸 1:1 对比"),
+          DemoL10n.text("比对两张图片中的人脸"), (): void => this.navigate(DemoPage.COMPARISON))
+        this.FeatureCard($r('app.media.ic_search_settings'), DemoL10n.text("摄像头参数设置"),
+          DemoL10n.text("设置分析分辨率与坐标镜像"), (): void => this.navigate(DemoPage.CAMERA_SETTINGS))
+        Text(DemoL10n.text("关于 HiFace SDK Demo")).height(42).fontSize(12).fontColor(DemoTheme.textOnDarkSecondary)
           .width('100%').textAlign(TextAlign.Center).margin({ top: 3 })
           .onClick(() => this.showAbout())
       }.padding({ left: 20, right: 20, top: 16, bottom: 20 }).width('100%')
@@ -288,7 +293,7 @@ struct Index {
       Column().width('100%').height('100%').backgroundColor('#99000000')
         .onClick(() => { this.selectingReference = false; })
       Column({ space: 12 }) {
-        Text('选择要验证的 Face ID').fontSize(20).fontColor(DemoTheme.contentText).width('100%')
+        Text(DemoL10n.text("选择要验证的 Face ID")).fontSize(20).fontColor(DemoTheme.contentText).width('100%')
         Scroll() {
           Column() {
             ForEach(this.references, (entry: FaceReference) => {
@@ -302,7 +307,7 @@ struct Index {
             }, (entry: FaceReference): string => entry.faceId)
           }.width('100%')
         }.constraintSize({ maxHeight: 360 }).width('100%')
-        Button('取消').fontColor(DemoTheme.brand).backgroundColor(Color.Transparent)
+        Button(DemoL10n.text("取消")).fontColor(DemoTheme.brand).backgroundColor(Color.Transparent)
           .alignSelf(ItemAlign.End).onClick(() => { this.selectingReference = false; })
       }.width('86%').padding(24).backgroundColor('#FFFFFF').borderRadius(24)
     }.width('100%').height('100%')
@@ -313,6 +318,6 @@ struct Index {
   }
 
   private showAbout(): void {
-    this.showToast('更新以及更多说明：https://github.com/FaceSDKPro/');
+    this.showToast(DemoL10n.text("更新以及更多说明：https://github.com/FaceSDKPro/"));
   }
 }

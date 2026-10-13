@@ -171,37 +171,37 @@ struct CameraDemoView: View {
         .onChange(of: shouldPresentResult) { presentsResultAlert = $0 }
         .demoDialog(isPresented: presentsResultAlert, onDismiss: closePage) {
             CameraDialogTitle(
-                title: model.phase == .needsReference ? "请先完成人脸采集" : model.status,
+                title: model.phase == .needsReference ? DemoL10n.text("请先完成人脸采集") : model.status,
                 subtitle: model.detail ?? "",
                 symbol: model.phase == .completed ? "checkmark.circle" : "exclamationmark.circle"
             )
             if model.needsCameraSettings, let url = URL(string: UIApplication.openSettingsURLString) {
-                Button("打开设置") {
+                Button(DemoL10n.text("打开设置")) {
                     presentsResultAlert = false
                     openURL(url)
                 }
             } else if model.phase == .needsReference {
-                Button("录入参考人脸") {
+                Button(DemoL10n.text("录入参考人脸")) {
                     presentsResultAlert = false
                     showsReferenceCapture = true
                 }
             } else if model.failureAllowsRetry {
-                Button("再试一次", action: retryFlow)
+                Button(DemoL10n.text("再试一次"), action: retryFlow)
             }
-            Button("关闭", role: .cancel, action: closePage)
+            Button(DemoL10n.text("关闭"), role: .cancel, action: closePage)
         }
         .demoDialog(isPresented: model.confirmsSearchOverwrite,
                     onDismiss: { model.confirmsSearchOverwrite = false }) {
             CameraDialogTitle(
-                title: "该 ID 已存在",
-                subtitle: "确认覆盖 \(model.enrollmentFaceID) 的人脸特征和分组？",
+                title: DemoL10n.text("该 ID 已存在"),
+                subtitle: DemoL10n.text("确认覆盖 {0} 的人脸特征和分组？", [String(describing: model.enrollmentFaceID)]),
                 symbol: "exclamationmark.triangle"
             )
-            Button("确认覆盖", role: .destructive) {
+            Button(DemoL10n.text("确认覆盖"), role: .destructive) {
                 model.confirmsSearchOverwrite = false
                 model.saveSearchCapture(replace: true)
             }
-            Button("取消", role: .cancel) { model.confirmsSearchOverwrite = false }
+            Button(DemoL10n.text("取消"), role: .cancel) { model.confirmsSearchOverwrite = false }
         }
     }
 

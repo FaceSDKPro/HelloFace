@@ -8,13 +8,13 @@ enum ComparisonSide: String, Identifiable {
     case right
 
     var id: String { rawValue }
-    var title: String { self == .left ? "照片 1" : "照片 2" }
+    var title: String { self == .left ? DemoL10n.text("照片 1") : DemoL10n.text("照片 2") }
 }
 
 struct ComparisonPhotoState {
     var preview: CGImage?
     var feature: String?
-    var status = "选择照片"
+    var status = DemoL10n.text("选择照片")
     var isProcessing = false
     var hasError = false
 }
@@ -51,7 +51,7 @@ final class StaticFaceComparisonModel: ObservableObject {
         update(side) {
             $0.preview = image.makeCGImage()
             $0.feature = nil
-            $0.status = "正在提取人脸…"
+            $0.status = DemoL10n.text("正在提取人脸…")
             $0.isProcessing = true
             $0.hasError = false
         }
@@ -69,7 +69,7 @@ final class StaticFaceComparisonModel: ObservableObject {
                 update(side) {
                     $0.preview = result.alignedFace?.makeCGImage() ?? image.makeCGImage()
                     $0.feature = result.feature
-                    $0.status = "已就绪，点击可更换"
+                    $0.status = DemoL10n.text("已就绪，点击可更换")
                     $0.isProcessing = false
                     $0.hasError = false
                 }

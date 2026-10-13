@@ -73,18 +73,23 @@ final class HiFaceSDK: @unchecked Sendable {
         return sdk
     }
 }
-enum DemoErrorPresentation { static func message(for error: HiFaceError) -> String { error.message } }
+enum DemoErrorPresentation { static func message(for error: Error) -> String { (error as? HiFaceError)?.message ?? error.localizedDescription } }
 enum FaceSearchDemoImportKind { case features, images; var title: String { "import" } }
-struct FaceSearchDemoImportSummary { let imported: Int; let failed: Int }
+struct FaceSearchDemoImportSummary { let imported: Int; let failed: Int; var stopped = false }
+struct FaceSearchDemoImportProgress { let processed: Int; let total: Int; let imported: Int; let failed: Int }
 @MainActor enum FaceSearchDemoImporter {
     static var pending: [CheckedContinuation<FaceSearchDemoImportSummary, Error>] = []
     static var finished = 0
+    static var controls: [FaceSearchImportControl] = []
     static func importFeatures(database: FaceSearchDatabase,
-        progress: @escaping @MainActor @Sendable (Int, Int) -> Void) async throws -> FaceSearchDemoImportSummary {
+        control: FaceSearchImportControl,
+        progress: @escaping @MainActor @Sendable (FaceSearchDemoImportProgress) -> Void) async throws -> FaceSearchDemoImportSummary {
         FaceSearchDemoImportSummary(imported: 0, failed: 0)
     }
     static func importImages(sdk: HiFaceSDK, database: FaceSearchDatabase,
-        progress: @escaping @MainActor @Sendable (Int, Int) -> Void) async throws -> FaceSearchDemoImportSummary {
+        control: FaceSearchImportControl,
+        progress: @escaping @MainActor @Sendable (FaceSearchDemoImportProgress) -> Void) async throws -> FaceSearchDemoImportSummary {
+        controls.append(control)
         defer { finished += 1 }
         return try await withCheckedThrowingContinuation { pending.append($0) }
     }
@@ -106,10 +111,11 @@ struct FaceSearchDemoImportSummary { let imported: Int; let failed: Int }
     @MainActor static func main() async throws {
         try await retriesFailedOpen()
         try await staleOpeningCannotClearNewConnection()
-        try await staleImportCannotClearNewSDK()
+        try await stopWaitsForImportBeforeClosingAndReopening()
+        try await requestedStopPublishesSavedCount()
         try await paginationUsesTailIdentitiesAndReusesConnection()
         try await stopClearsConfirmations()
-        print("SearchLibraryModelTests passed (5 lifecycle/pagination regressions)")
+        print("SearchLibraryModelTests passed (6 lifecycle/pagination/import regressions)")
     }
 
     @MainActor static func paginationUsesTailIdentitiesAndReusesConnection() async throws {
@@ -129,7 +135,7 @@ struct FaceSearchDemoImportSummary { let imported: Int; let failed: Int }
         model.loadMoreIfNeeded(current: SearchLibraryPerson(staleEntry))
         try await waitUntil { !model.isWorking }
         precondition(model.people.count == 101 && model.people.last?.id == "ID-100")
-        precondition(model.status == "共 101 条人脸记录")
+        precondition(model.status == "101 face records")
         let loadedOffsets = await database.offsets
         precondition(loadedOffsets == [0, 100])
         precondition(HiFaceSDK.opener.opens == 1)
@@ -184,29 +190,63 @@ struct FaceSearchDemoImportSummary { let imported: Int; let failed: Int }
         model.stop()
     }
 
-    @MainActor static func staleImportCannotClearNewSDK() async throws {
-        HiFaceSDK.opener.configure([{ FaceSearchDatabase() }, { FaceSearchDatabase() }])
+    @MainActor static func resetImporter() {
         DemoEnvironment.instances = []
         FaceSearchDemoImporter.pending = []
+        FaceSearchDemoImporter.controls = []
         FaceSearchDemoImporter.finished = 0
+    }
+
+    @MainActor static func stopWaitsForImportBeforeClosingAndReopening() async throws {
+        let oldDatabase = FaceSearchDatabase()
+        HiFaceSDK.opener.configure([{ oldDatabase }, { FaceSearchDatabase() }])
+        resetImporter()
         let model = SearchLibraryModel()
         model.requestImport(.images)
         model.confirmImport()
         try await waitUntil { FaceSearchDemoImporter.pending.count == 1 }
         model.stop()
+        assert(FaceSearchDemoImporter.controls[0].isStopped)
+        assert(!DemoEnvironment.instances[0].isClosed, "In-flight extraction still needs its SDK")
+        let beforeClose = await oldDatabase.closes
+        assert(beforeClose == 0, "Tail batch still needs its database")
+        model.refresh()
         model.requestImport(.images)
         model.confirmImport()
-        try await waitUntil { FaceSearchDemoImporter.pending.count == 2 }
-        assert(DemoEnvironment.instances[0].isClosed)
-        assert(!DemoEnvironment.instances[1].isClosed)
-        FaceSearchDemoImporter.pending[0].resume(throwing: CancellationError())
-        try await waitUntil { FaceSearchDemoImporter.finished == 1 }
         await flush()
-        assert(model.isWorking, "Old completion changed the new import status")
+        assert(HiFaceSDK.opener.opens == 1 && FaceSearchDemoImporter.pending.count == 1)
+        FaceSearchDemoImporter.pending[0].resume(returning: .init(imported: 37, failed: 2, stopped: true))
+        try await waitUntil { HiFaceSDK.opener.opens == 2 && !model.isWorking }
+        assert(DemoEnvironment.instances[0].isClosed)
+        let afterClose = await oldDatabase.closes
+        assert(afterClose == 1)
+        assert(model.importNotice?.contains("saved 37") == true)
         model.stop()
-        assert(DemoEnvironment.instances[1].isClosed, "New SDK was lost before page cleanup")
-        FaceSearchDemoImporter.pending[1].resume(throwing: CancellationError())
-        try await waitUntil { FaceSearchDemoImporter.finished == 2 }
+        await flush()
+    }
+
+    @MainActor static func requestedStopPublishesSavedCount() async throws {
+        let database = FaceSearchDatabase()
+        HiFaceSDK.opener.configure([{ database }])
+        resetImporter()
+        let model = SearchLibraryModel()
+        model.requestImport(.images)
+        model.confirmImport()
+        try await waitUntil { FaceSearchDemoImporter.pending.count == 1 }
+        model.requestStopImport()
+        assert(model.isImporting && model.isStoppingImport)
+        assert(FaceSearchDemoImporter.controls[0].isStopped)
+        assert(!DemoEnvironment.instances[0].isClosed)
+        FaceSearchDemoImporter.pending[0].resume(returning: .init(imported: 99, failed: 1, stopped: true))
+        try await waitUntil { !model.isImporting }
+        assert(model.status.contains("Stopped: saved 99, failed 1"))
+        assert(model.importNotice == model.status)
+        assert(DemoEnvironment.instances[0].isClosed)
+        let closes = await database.closes
+        assert(closes == 0, "A stopped import keeps the library available")
+        model.dismissImportNotice()
+        assert(model.importNotice == nil)
+        model.stop()
         await flush()
     }
 

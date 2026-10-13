@@ -24,10 +24,10 @@ final class CameraDemoModel: ObservableObject {
     @Published var detection: FaceDetectionResult?
     @Published var previewMirrored = true
     @Published var overlayMirrored = true
-    @Published var cameraResolution = "等待相机画面"
-    @Published var cameraZoom = "等待倍率"
+    @Published var cameraResolution = DemoL10n.text("等待相机画面")
+    @Published var cameraZoom = DemoL10n.text("等待倍率")
     @Published var cameraNotice: String?
-    @Published var status = "正在启动…"
+    @Published var status = DemoL10n.text("正在启动…")
     @Published var detail: String?
     @Published var alignedFace: CGImage?
     @Published var enrollmentFaceID = ""
@@ -105,8 +105,8 @@ final class CameraDemoModel: ObservableObject {
             if self.mode == .detection {
                 phase = .running
                 status = result.faces.isEmpty
-                    ? "未检测到人脸"
-                    : "检测到 \(result.faces.count) 张人脸"
+                    ? DemoL10n.text("未检测到人脸")
+                    : DemoL10n.text("检测到 {0} 张人脸", [String(describing: result.faces.count)])
                 detail = result.faces.first.map(Self.detectionDetail)
             }
         }
@@ -117,12 +117,12 @@ final class CameraDemoModel: ObservableObject {
         }
         pipeline.onAnalysisResolutionChanged = { [weak self] width, height, fallback in
             guard let self, self.started else { return }
-            cameraResolution = "\(width) × \(height)" + (fallback ? " · 已适配" : "")
+            cameraResolution = "\(width) × \(height)" + (fallback ? DemoL10n.text(" · 已适配") : "")
         }
         pipeline.onZoomFactorChanged = { [weak self] factor, constrained in
             guard let self, self.started else { return }
             let value = String(format: "%.1f×", factor)
-            cameraZoom = constrained ? "\(value) · 镜头限制" : value
+            cameraZoom = constrained ? DemoL10n.text("{0} · 镜头限制", [String(describing: value)]) : value
         }
         pipeline.onNotice = { [weak self] message in
             guard let self, self.started else { return }
@@ -170,8 +170,8 @@ final class CameraDemoModel: ObservableObject {
             if mode == .search, let searchSession {
                 searchSession.resume()
                 phase = .running
-                status = "正在准备"
-                detail = "准备完成后自动开始"
+                status = DemoL10n.text("正在准备")
+                detail = DemoL10n.text("准备完成后自动开始")
             } else {
                 startFlowIfNeeded()
             }
@@ -199,10 +199,10 @@ final class CameraDemoModel: ObservableObject {
         searchSession?.pause()
         if shouldRestart {
             phase = .preparing
-            status = "返回前台后恢复相机"
+            status = DemoL10n.text("返回前台后恢复相机")
             detail = mode == .search
                 ? FaceSearchPresentation.configurationText(searchConfiguration)
-                : "当前流程将在相机恢复后重新开始"
+                : DemoL10n.text("当前流程将在相机恢复后重新开始")
         }
         pipeline.stop()
     }
@@ -267,12 +267,12 @@ final class CameraDemoModel: ObservableObject {
             self.pendingReferenceFeature = nil
             enrollmentFaceID = faceID
             refreshReferenceFaces()
-            status = "已保存 1:1 参考人脸"
-            detail = "Face ID：\(faceID)；同名录入会安全更新原样本"
+            status = DemoL10n.text("已保存 1:1 参考人脸")
+            detail = DemoL10n.text("Face ID：{0}；同名录入会更新原样本", [String(describing: faceID)])
             return true
         } catch {
-            status = "保存失败"
-            detail = error.localizedDescription
+            status = DemoL10n.text("保存失败")
+            detail = DemoErrorPresentation.message(for: error)
             return false
         }
     }
@@ -297,7 +297,7 @@ final class CameraDemoModel: ObservableObject {
                 enrollmentTask = nil
                 pendingReferenceFeature = nil
                 alignedFace = nil
-                status = "人脸已保存"
+                status = DemoL10n.text("人脸已保存")
                 detail = "Face ID：\(faceID)"
                 enrollmentCompleted = true
             } catch {
@@ -307,8 +307,8 @@ final class CameraDemoModel: ObservableObject {
                 if (error as? HiFaceError)?.code == .alreadyExists {
                     confirmsSearchOverwrite = true
                 } else {
-                    status = "保存失败"
-                    detail = "保存失败：\(error.localizedDescription)"
+                    status = DemoL10n.text("保存失败")
+                    detail = DemoL10n.text("保存失败：{0}", [String(describing: DemoErrorPresentation.message(for: error))])
                 }
             }
         }
@@ -353,12 +353,12 @@ final class CameraDemoModel: ObservableObject {
         do {
             try DemoFaceStore.select(faceID: faceID)
             selectedReferenceID = faceID
-            status = "已选择 \(faceID)"
-            detail = "点击开始后执行动作挑战、静默活体和动态 1:1 比对"
+            status = DemoL10n.text("已选择 {0}", [String(describing: faceID)])
+            detail = DemoL10n.text("点击开始，完成动作、活体和 1:1 验证")
             return true
         } catch {
-            status = "选择参考身份失败"
-            detail = error.localizedDescription
+            status = DemoL10n.text("选择参考身份失败")
+            detail = DemoErrorPresentation.message(for: error)
             return false
         }
     }
@@ -371,15 +371,15 @@ final class CameraDemoModel: ObservableObject {
                 guard refreshReferenceFaces() else { return }
                 pipeline.pauseAnalysis()
                 phase = referenceFaceIDs.isEmpty ? .needsReference : .selectingReference
-                status = "参考身份已不存在"
-                detail = "Face ID：\(faceID)；请重新录入或选择其他身份"
+                status = DemoL10n.text("参考身份已不存在")
+                detail = DemoL10n.text("Face ID：{0}；请重新录入或选择其他身份", [String(describing: faceID)])
                 return
             }
             let actions = FaceFlowPresentation.randomChallenge(count: 2)
             phase = .running
             resetActionProgress()
             pipeline.resumeAnalysis()
-            status = "准备验证 \(faceID)"
+            status = DemoL10n.text("准备验证 {0}", [String(describing: faceID)])
             let configuration = try FaceVerificationConfiguration(
                 referenceFeature: reference,
                 requiresSilentLiveness: true,
@@ -388,7 +388,7 @@ final class CameraDemoModel: ObservableObject {
             )
             actionTimeoutMilliseconds = configuration.actionTimeoutMilliseconds
             detail = String(
-                format: "动作挑战：%@；随后进行七帧静默活体与 1:1 比对（门限 %.2f%%）",
+                format: DemoL10n.text("动作：%@；随后检测活体并验证（阈值 %.2f%%）"),
                 FaceFlowPresentation.actionList(actions),
                 configuration.threshold * 100
             )
@@ -419,8 +419,8 @@ final class CameraDemoModel: ObservableObject {
         lastSearchError = nil
         clearSearchDisplay()
         phase = .preparing
-        status = "正在准备"
-        detail = "准备完成后自动开始"
+        status = DemoL10n.text("正在准备")
+        detail = DemoL10n.text("准备完成后自动开始")
         guard started else { return }
         pipeline.start(analysisEnabled: false)
     }
@@ -435,8 +435,8 @@ final class CameraDemoModel: ObservableObject {
         }
         clearSearchDisplay()
         phase = .preparing
-        status = "正在准备"
-        detail = "准备完成后自动开始"
+        status = DemoL10n.text("正在准备")
+        detail = DemoL10n.text("准备完成后自动开始")
         // 恢复时重新检查相机权限。
         pipeline.start(analysisEnabled: false)
     }
@@ -461,7 +461,7 @@ final class CameraDemoModel: ObservableObject {
         if !preservesLivenessRequest { resetActionProgress() }
         if wasRunning && !preservesLivenessRequest {
             phase = .preparing
-            status = "正在切换摄像头"
+            status = DemoL10n.text("正在切换摄像头")
         }
         pipeline.switchCamera { [weak self] usable in
             guard let self, started else { return }
@@ -487,12 +487,12 @@ final class CameraDemoModel: ObservableObject {
         switch mode {
         case .detection:
             phase = .running
-            status = "将人脸置于取景框内"
-            detail = "显示最多 10 张脸、五点、468 点轮廓与头姿"
+            status = DemoL10n.text("将人脸置于取景框内")
+            detail = DemoL10n.text("显示最多 10 张脸、五点、468 点轮廓与头姿")
         case .capture:
             phase = .running
-            status = "保持正脸稳定"
-            detail = "正脸稳定后生成 HF1 特征与对齐预览"
+            status = DemoL10n.text("保持正脸稳定")
+            detail = DemoL10n.text("保持正脸稳定，生成特征与预览")
             // Core 要求采集时正脸连续稳定 700 ms；这里只同步可视圆环，不参与业务判定。
             actionTimeoutMilliseconds = Self.captureStableCountdownMilliseconds
             request = sdk.startCameraCapture(callbacks: FaceCaptureCallbacks(
@@ -509,8 +509,8 @@ final class CameraDemoModel: ObservableObject {
                     allowsMultipleFaces: true
                 )
                 actionTimeoutMilliseconds = configuration.actionTimeoutMilliseconds
-                status = "准备活体检测"
-                detail = "动作挑战：\(FaceFlowPresentation.actionList(actions))；随后进行七帧静默活体"
+                status = DemoL10n.text("准备活体检测")
+                detail = DemoL10n.text("动作：{0}；随后检测静默活体", [String(describing: FaceFlowPresentation.actionList(actions))])
                 request = sdk.startCameraLiveness(
                     configuration: configuration,
                     callbacks: flowCallbacks()
@@ -522,8 +522,8 @@ final class CameraDemoModel: ObservableObject {
             prepareReferenceSelection()
         case .search:
             phase = .running
-            status = "正在准备"
-            detail = "准备完成后自动开始"
+            status = DemoL10n.text("正在准备")
+            detail = DemoL10n.text("准备完成后自动开始")
             searchSession = sdk.startCameraSearch(
                 configuration: searchConfiguration,
                 callbacks: FaceSearchCallbacks(
@@ -560,13 +560,13 @@ final class CameraDemoModel: ObservableObject {
             return
         }
         if mode != .capture, progress.stage == .holdStill || progress.stage == .faceForward {
-            status = "请正对镜头"
+            status = DemoL10n.text("请正对镜头")
         }
         if progress.stage == .performAction, progress.stepCount > 0 {
             let nextStep = min(max(progress.stepNumber, 1), progress.stepCount)
             actionStepCount = progress.stepCount
             startActionCountdownIfNeeded()
-            detail = "动作挑战 \(nextStep)/\(actionStepCount)；完成后自动进行静默活体"
+            detail = DemoL10n.text("动作 {0}/{1}，完成后检测静默活体", [String(describing: nextStep), String(describing: actionStepCount)])
         } else if progress.action != nil,
                   progress.stage == .waitingForFace || progress.stage == .multipleFaces || progress.stage == .faceTooSmall {
             // 短暂丢脸或距离变化不会暂停 Core 的动作总时限，也不能重置显示圆环。
@@ -591,8 +591,8 @@ final class CameraDemoModel: ObservableObject {
         phase = .completed
         pendingReferenceFeature = result.feature
         self.alignedFace = alignedFace
-        status = "人脸采集完成"
-        detail = enrollsInSearchLibrary ? "请确认照片与录入信息" : "请确认照片，再保存为 1:1 验证样本"
+        status = DemoL10n.text("人脸采集完成")
+        detail = enrollsInSearchLibrary ? DemoL10n.text("请确认照片与录入信息") : DemoL10n.text("请确认照片，再保存为 1:1 验证样本")
     }
 
     private func handle(_ result: FaceFlowResult) {
@@ -604,28 +604,28 @@ final class CameraDemoModel: ObservableObject {
         alignedFace = result.alignedFace?.makeCGImage()
         switch mode {
         case .liveness:
-            let outcomeMessage = result.passed ? "活体检测通过" : FaceFlowPresentation.outcomeText(result.outcome)
+            let outcomeMessage = result.passed ? DemoL10n.text("活体检测通过") : FaceFlowPresentation.outcomeText(result.outcome)
             status = outcomeMessage
             // 通过或检测到非真人时已产生分数；动作超时、丢脸等提前结束时只展示结果原因。
             // nil 表示未产生静默活体分数，不能当作 0 分展示；map 在 nil 时保留 nil。
             let livenessScore = result.livenessScore
-            detail = livenessScore.map { String(format: "活体分数 %.3f", $0) }
+            detail = livenessScore.map { String(format: DemoL10n.text("活体分数 %.3f"), $0) }
         case .verification:
-            let outcomeMessage = result.passed ? "1:1 验证通过" : FaceFlowPresentation.outcomeText(result.outcome)
+            let outcomeMessage = result.passed ? DemoL10n.text("1:1 验证通过") : FaceFlowPresentation.outcomeText(result.outcome)
             status = outcomeMessage
             var resultDetails: [String] = []
             if let selectedReferenceID { resultDetails.append("Face ID \(selectedReferenceID)") }
             // 未完成身份比对时没有相似度，省略该项，不能当作 0% 展示。
             if let similarity = result.similarity {
-                resultDetails.append(String(format: "相似度 %.2f%%", similarity * 100))
+                resultDetails.append(String(format: DemoL10n.text("相似度 %.2f%%"), similarity * 100))
             }
             // 静默活体分数与相似度分别展示；未产生的分数不补零。
             if let livenessScore = result.livenessScore {
-                resultDetails.append(String(format: "活体分数 %.3f", livenessScore))
+                resultDetails.append(String(format: DemoL10n.text("活体分数 %.3f"), livenessScore))
             }
             detail = resultDetails.isEmpty ? nil : resultDetails.joined(separator: " · ")
         default:
-            status = result.passed ? "流程通过" : FaceFlowPresentation.outcomeText(result.outcome)
+            status = result.passed ? DemoL10n.text("流程通过") : FaceFlowPresentation.outcomeText(result.outcome)
         }
     }
 
@@ -692,7 +692,7 @@ final class CameraDemoModel: ObservableObject {
             resetActionProgress()
             phase = .preparing
             startFlowIfNeeded()
-            detail = "上一帧处理失败，已自动继续"
+            detail = DemoL10n.text("上一帧处理失败，已自动继续")
             pipeline.resumeAnalysis()
             return
         }
@@ -702,7 +702,7 @@ final class CameraDemoModel: ObservableObject {
         resetActionProgress()
         failureAllowsRetry = DemoErrorPresentation.isRetryable(error)
         phase = .failed
-        status = "处理失败"
+        status = DemoL10n.text("处理失败")
         detail = DemoErrorPresentation.message(for: error)
     }
 
@@ -713,9 +713,9 @@ final class CameraDemoModel: ObservableObject {
         clearSearchDisplay()
         failureAllowsRetry = FaceSearchPresentation.canResumeSearch(error)
         phase = .failed
-        status = "人脸搜索已暂停"
+        status = DemoL10n.text("人脸搜索已暂停")
         detail = failureAllowsRetry ? DemoErrorPresentation.message(for: error)
-            : "搜索无法恢复，请检查任务占用、配置或模型状态，解决后返回并重新进入。"
+            : DemoL10n.text("搜索恢复失败，请检查配置并重新进入。")
     }
 
     private func handleCameraError(_ message: String) {
@@ -730,7 +730,7 @@ final class CameraDemoModel: ObservableObject {
         resetActionProgress()
         failureAllowsRetry = true
         phase = .failed
-        status = "相机或帧处理失败"
+        status = DemoL10n.text("相机或帧处理失败")
         detail = message
     }
 
@@ -748,22 +748,22 @@ final class CameraDemoModel: ObservableObject {
             clearSearchDisplay()
             resetActionProgress()
             phase = .preparing
-            status = "正在恢复相机流程"
-            detail = "系统相机恢复后重新开始本轮检测"
+            status = DemoL10n.text("正在恢复相机流程")
+            detail = DemoL10n.text("系统相机恢复后重新开始本轮检测")
             return
         }
         if phase == .running || phase == .preparing {
-            status = "相机暂时不可用"
-            detail = "当前流程已暂停，系统释放相机后会自动重新开始"
+            status = DemoL10n.text("相机暂时不可用")
+            detail = DemoL10n.text("当前流程已暂停，系统释放相机后会自动重新开始")
         }
     }
 
     private func handleConfigurationError(_ error: Error) {
         failureAllowsRetry = false
         phase = .failed
-        status = "配置无效"
+        status = DemoL10n.text("配置无效")
         detail = (error as? HiFaceError).map { DemoErrorPresentation.message(for: $0) }
-            ?? error.localizedDescription
+            ?? DemoErrorPresentation.message(for: error)
         pipeline.pauseAnalysis()
         resetActionProgress()
     }
@@ -775,13 +775,13 @@ final class CameraDemoModel: ObservableObject {
         guard refreshReferenceFaces() else { return }
         guard !referenceFaceIDs.isEmpty, let selectedReferenceID else {
             phase = .needsReference
-            status = "请先录入参考人脸"
-            detail = "1:1 验证需要一份已确认的 Face ID 与 HF1 特征"
+            status = DemoL10n.text("请先录入参考人脸")
+            detail = DemoL10n.text("1:1 验证需要一份已确认的 Face ID 与 HF1 特征")
             return
         }
         phase = .selectingReference
-        status = "选择要验证的身份"
-        detail = "当前选择：\(selectedReferenceID)"
+        status = DemoL10n.text("选择要验证的身份")
+        detail = DemoL10n.text("当前选择：{0}", [String(describing: selectedReferenceID)])
     }
 
     @discardableResult
@@ -796,8 +796,8 @@ final class CameraDemoModel: ObservableObject {
             referenceFaceIDs = []
             selectedReferenceID = nil
             phase = .failed
-            status = "读取参考人脸失败"
-            detail = error.localizedDescription
+            status = DemoL10n.text("读取参考人脸失败")
+            detail = DemoErrorPresentation.message(for: error)
             return false
         }
     }
@@ -841,7 +841,7 @@ final class CameraDemoModel: ObservableObject {
     // MARK: - Detection presentation
 
     private static func detectionDetail(_ face: DetectedFace) -> String {
-        var values = [String(format: "置信度 %.1f%%", face.confidence * 100)]
+        var values = [String(format: DemoL10n.text("置信度 %.1f%%"), face.confidence * 100)]
         if let pose = face.headPose {
             values.append(String(
                 format: "Pitch %.1f° · Yaw %.1f° · Roll %.1f°",

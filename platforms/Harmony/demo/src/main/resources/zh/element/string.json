@@ -1,0 +1,2284 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "HiFace HarmonyOS Demo"
+    },
+    {
+      "name": "entryability_desc",
+      "value": "HiFace demo entry ability"
+    },
+    {
+      "name": "entryability_label",
+      "value": "HiFace演示"
+    },
+    {
+      "name": "camera_permission_reason",
+      "value": "用于演示宿主通过 CameraKit 采集人脸分析帧"
+    },
+    {
+      "name": "search_import_features",
+      "value": "导入1万条人脸特征"
+    },
+    {
+      "name": "search_import_images",
+      "value": "导入1千张人脸图片"
+    },
+    {
+      "name": "demo_6f37f7ed24d4",
+      "value": " · 已适配"
+    },
+    {
+      "name": "demo_1d6425701d13",
+      "value": " · 标签：{0}"
+    },
+    {
+      "name": "demo_5f2fb6aac903",
+      "value": "0.75–0.85，数值越高，匹配要求越严格。"
+    },
+    {
+      "name": "demo_c7b8865d54b9",
+      "value": "0–3000 ms，默认 0；匹配成功后等待，不控制帧率。"
+    },
+    {
+      "name": "demo_77fd2a70b71d",
+      "value": "0–3000 毫秒，默认 0；匹配成功后等待的时间。"
+    },
+    {
+      "name": "demo_630560291d37",
+      "value": "0–3000 毫秒，默认 0；匹配成功后等待，不控制帧率。"
+    },
+    {
+      "name": "demo_3dd59e6d18b6",
+      "value": "1000–3000 毫秒；超时后开始下一轮。"
+    },
+    {
+      "name": "demo_49e355644373",
+      "value": "1:1 人脸基准无法安全读取"
+    },
+    {
+      "name": "demo_e76b9b49e78e",
+      "value": "1:1 人脸基准读取失败"
+    },
+    {
+      "name": "demo_52e17a2295ba",
+      "value": "1:1 人脸验证"
+    },
+    {
+      "name": "demo_528a56438987",
+      "value": "1:1 验证未通过"
+    },
+    {
+      "name": "demo_70ce5d8c9fe8",
+      "value": "1:1 验证通过"
+    },
+    {
+      "name": "demo_5cfee59ff67f",
+      "value": "1:1 验证需要一份已确认的 Face ID 与 HF1 特征"
+    },
+    {
+      "name": "demo_2636c6bccd0c",
+      "value": "1:N"
+    },
+    {
+      "name": "demo_4d7a3fa2ca97",
+      "value": "1:N · 活体{0}"
+    },
+    {
+      "name": "demo_1104e5657ffe",
+      "value": "1:N 人脸搜索"
+    },
+    {
+      "name": "demo_9fc3461d0ab7",
+      "value": "1:N 默认开启，可手动关闭。"
+    },
+    {
+      "name": "demo_6336734c2eea",
+      "value": "1–5 人，默认 3 人。"
+    },
+    {
+      "name": "demo_33811c75989f",
+      "value": "Face ID"
+    },
+    {
+      "name": "demo_36082d31ac5a",
+      "value": "Face ID “{0}” 已存在，替换为本次采集？"
+    },
+    {
+      "name": "demo_6dd1d3afec05",
+      "value": "Face ID 与特征保存失败"
+    },
+    {
+      "name": "demo_79bd68d72b42",
+      "value": "Face ID 与特征安全保存失败，请重试"
+    },
+    {
+      "name": "demo_1ac4df78590a",
+      "value": "Face ID 与特征已保存到 Demo"
+    },
+    {
+      "name": "demo_3f85ac882046",
+      "value": "Face ID 已存在"
+    },
+    {
+      "name": "demo_5c04a6f0e7b3",
+      "value": "Face ID 必填，最多 255 UTF-8 字节"
+    },
+    {
+      "name": "demo_eef21fcaab02",
+      "value": "Face ID：{0}\n\n删除后需重新录入。"
+    },
+    {
+      "name": "demo_043d1ba11585",
+      "value": "Face ID：{0}；同名录入会更新原样本"
+    },
+    {
+      "name": "demo_b8252130d65e",
+      "value": "Face ID：{0}；请重新录入或选择其他身份"
+    },
+    {
+      "name": "demo_1bb2e33b2fbb",
+      "value": "HelloFace SDK"
+    },
+    {
+      "name": "demo_21eea5e67ded",
+      "value": "HiFace调试"
+    },
+    {
+      "name": "demo_cf98a5cf529c",
+      "value": "Keychain 返回了无法识别的数据"
+    },
+    {
+      "name": "demo_e9b2b93ab4be",
+      "value": "Keychain 错误（{0}）"
+    },
+    {
+      "name": "demo_f3649c99ac3b",
+      "value": "M:N · 不检测姿态与活体"
+    },
+    {
+      "name": "demo_73532851ab98",
+      "value": "M:N 人脸搜索"
+    },
+    {
+      "name": "demo_42b67d1be938",
+      "value": "Release：{0}｜Model：{1}｜Board：{2}"
+    },
+    {
+      "name": "demo_c8fd51aa9075",
+      "value": "SDK 内部错误"
+    },
+    {
+      "name": "demo_a9f9e2f512a8",
+      "value": "SDK 尚未准备完成，请稍后重试"
+    },
+    {
+      "name": "demo_6dd5ec72c66e",
+      "value": "SDK 已关闭，请重新进入页面"
+    },
+    {
+      "name": "demo_386a9e2243da",
+      "value": "SDK 正在处理上一帧，请稍后重试"
+    },
+    {
+      "name": "demo_1c6706c089ce",
+      "value": "SDK 返回未知错误，请更新 Demo"
+    },
+    {
+      "name": "demo_ea9e51859681",
+      "value": "{0}\n相似度：{1}"
+    },
+    {
+      "name": "demo_fff8b2a15f98",
+      "value": "{0}\n静默活体分数：%2$.4f"
+    },
+    {
+      "name": "demo_a507bd8cd528",
+      "value": "{0}\n静默活体分数：{1}"
+    },
+    {
+      "name": "demo_cd55a9d95751",
+      "value": "{0} · {1}"
+    },
+    {
+      "name": "demo_44211e6d3b55",
+      "value": "{0} · 活体未通过"
+    },
+    {
+      "name": "demo_38cb763e801d",
+      "value": "{0} · 镜头限制"
+    },
+    {
+      "name": "demo_451c0c29bd17",
+      "value": "{0}：已保存 {1} 条，失败 {2} 条"
+    },
+    {
+      "name": "demo_70ada34aa56b",
+      "value": "{0}：已处理 {1} / {2}，已保存 {3} 条"
+    },
+    {
+      "name": "demo_92bc17611d26",
+      "value": "上一帧处理失败，已自动继续"
+    },
+    {
+      "name": "demo_1e01311f167b",
+      "value": "不支持的图片或相机帧格式"
+    },
+    {
+      "name": "demo_a567bdaa1136",
+      "value": "中"
+    },
+    {
+      "name": "demo_34d4527d9349",
+      "value": "临时抓拍的人脸照片"
+    },
+    {
+      "name": "demo_fafa8149885a",
+      "value": "人脸不匹配"
+    },
+    {
+      "name": "demo_e8d811157ae1",
+      "value": "人脸区域过小"
+    },
+    {
+      "name": "demo_2d3100dfffd8",
+      "value": "人脸区域过小，请靠近镜头后保持完整面部可见"
+    },
+    {
+      "name": "demo_e752b65b562b",
+      "value": "人脸处理失败，请重试"
+    },
+    {
+      "name": "demo_34b415ee8a48",
+      "value": "人脸处理未能完成，请重试"
+    },
+    {
+      "name": "demo_68a8b84fcbf1",
+      "value": "人脸太小，请靠近一些"
+    },
+    {
+      "name": "demo_9d091167affd",
+      "value": "人脸尺寸过小，请靠近后重试"
+    },
+    {
+      "name": "demo_b61e1b52a7b7",
+      "value": "人脸已保存"
+    },
+    {
+      "name": "demo_c8d5a742fa73",
+      "value": "人脸已保存，可继续录入"
+    },
+    {
+      "name": "demo_773355c1fdbd",
+      "value": "人脸库"
+    },
+    {
+      "name": "demo_28a6a445ab68",
+      "value": "人脸库功能菜单"
+    },
+    {
+      "name": "demo_8cfe69d1fd90",
+      "value": "人脸库操作失败"
+    },
+    {
+      "name": "demo_38ecfdaca4cc",
+      "value": "人脸库还是空的"
+    },
+    {
+      "name": "demo_f76153afe53e",
+      "value": "人脸引擎尚未就绪，请稍后重试"
+    },
+    {
+      "name": "demo_18f99291dec5",
+      "value": "人脸抓拍失败，请重试"
+    },
+    {
+      "name": "demo_58fc383c5b54",
+      "value": "人脸提取失败，请重试"
+    },
+    {
+      "name": "demo_54d85a1f98e4",
+      "value": "人脸搜索已暂停"
+    },
+    {
+      "name": "demo_14194ab043f2",
+      "value": "人脸搜索设置"
+    },
+    {
+      "name": "demo_4373f0a2fbca",
+      "value": "人脸搜索识别"
+    },
+    {
+      "name": "demo_62cc4a5b0e0c",
+      "value": "人脸服务发生内部错误"
+    },
+    {
+      "name": "demo_1f8a8917cb81",
+      "value": "人脸框、关键点与预览左右相反时开启。"
+    },
+    {
+      "name": "demo_432a7c297740",
+      "value": "人脸模型加载失败，请检查安装包和设备环境"
+    },
+    {
+      "name": "demo_104972dbbae5",
+      "value": "人脸比对"
+    },
+    {
+      "name": "demo_80bd15f3c54b",
+      "value": "人脸相似度"
+    },
+    {
+      "name": "demo_79d1a03c56c4",
+      "value": "人脸相似度 {0} 百分比"
+    },
+    {
+      "name": "demo_b88f535d7986",
+      "value": "人脸离开画面"
+    },
+    {
+      "name": "demo_9356bd33c025",
+      "value": "人脸离开画面时间过长"
+    },
+    {
+      "name": "demo_904c929894b4",
+      "value": "人脸采集"
+    },
+    {
+      "name": "demo_f62b51ac7009",
+      "value": "人脸采集完成"
+    },
+    {
+      "name": "demo_77d014fb55e4",
+      "value": "从右上角菜单导入演示数据。"
+    },
+    {
+      "name": "demo_248dce76fd31",
+      "value": "任务正在执行"
+    },
+    {
+      "name": "demo_f749854b5f0b",
+      "value": "优先使用 0.8×；普通广角可能最低为 1.0×。实际倍率见相机页。"
+    },
+    {
+      "name": "demo_c7c66f114710",
+      "value": "优先识别最大脸"
+    },
+    {
+      "name": "demo_aa9e366f68d3",
+      "value": "低"
+    },
+    {
+      "name": "demo_6d54e951ed53",
+      "value": "例如 1A"
+    },
+    {
+      "name": "demo_a3030bf8f16d",
+      "value": "保存"
+    },
+    {
+      "name": "demo_ff509c9ba052",
+      "value": "保存中…"
+    },
+    {
+      "name": "demo_8aacf7fed9a4",
+      "value": "保存人脸"
+    },
+    {
+      "name": "demo_6309a3bb5ba4",
+      "value": "保存失败"
+    },
+    {
+      "name": "demo_c1f9e9fc4b0a",
+      "value": "保存失败：{0}"
+    },
+    {
+      "name": "demo_4353650ff7e6",
+      "value": "保持不动"
+    },
+    {
+      "name": "demo_5658d20963cf",
+      "value": "保持正脸稳定"
+    },
+    {
+      "name": "demo_ccb8d61cc265",
+      "value": "保持正脸稳定，生成特征与预览"
+    },
+    {
+      "name": "demo_92c198f865c0",
+      "value": "保持稳定，随后倒计时 0.7 秒抓拍"
+    },
+    {
+      "name": "demo_a507db7c3db8",
+      "value": "停止并退出"
+    },
+    {
+      "name": "demo_ae9616e6f2c4",
+      "value": "偶发处理失败，已自动开始下一次采集"
+    },
+    {
+      "name": "demo_cf45625df1c3",
+      "value": "共 {0} 条人脸记录"
+    },
+    {
+      "name": "demo_5d0ae622f61f",
+      "value": "关"
+    },
+    {
+      "name": "demo_52d25a9e30ba",
+      "value": "关于"
+    },
+    {
+      "name": "demo_07744edec8d4",
+      "value": "关于 HiFace SDK Demo"
+    },
+    {
+      "name": "demo_3fd47edce45b",
+      "value": "关闭"
+    },
+    {
+      "name": "demo_aee8644e08e8",
+      "value": "其他动作"
+    },
+    {
+      "name": "demo_4cc167a8c40b",
+      "value": "再试一次"
+    },
+    {
+      "name": "demo_577df4a20b88",
+      "value": "准备 1:1 验证"
+    },
+    {
+      "name": "demo_267924aaa4c3",
+      "value": "准备{0}…"
+    },
+    {
+      "name": "demo_0cf92679066c",
+      "value": "准备人脸采集"
+    },
+    {
+      "name": "demo_6a444312eef7",
+      "value": "准备完成后自动开始"
+    },
+    {
+      "name": "demo_c1615caae299",
+      "value": "准备活体检测"
+    },
+    {
+      "name": "demo_9128eb6fb363",
+      "value": "准备验证 {0}"
+    },
+    {
+      "name": "demo_87dca615dfac",
+      "value": "出现多张人脸"
+    },
+    {
+      "name": "demo_68d49655f9b7",
+      "value": "分析分辨率"
+    },
+    {
+      "name": "demo_399ee6934772",
+      "value": "分组"
+    },
+    {
+      "name": "demo_07b54f43fc3e",
+      "value": "分组选填，留空为未分组。"
+    },
+    {
+      "name": "demo_649beb8b3ebc",
+      "value": "分组（留空表示不限）"
+    },
+    {
+      "name": "demo_cde915babc94",
+      "value": "分组（选填）"
+    },
+    {
+      "name": "demo_376ab8dc197c",
+      "value": "分组，选填"
+    },
+    {
+      "name": "demo_ced19727af66",
+      "value": "分组：{0}"
+    },
+    {
+      "name": "demo_4989df741c92",
+      "value": "切换摄像头"
+    },
+    {
+      "name": "demo_9dd38c6db578",
+      "value": "切换摄像头失败，且无法恢复原摄像头"
+    },
+    {
+      "name": "demo_0ddf84807b6a",
+      "value": "切换相机"
+    },
+    {
+      "name": "demo_2f9daa828907",
+      "value": "删除"
+    },
+    {
+      "name": "demo_dd554fadc3bc",
+      "value": "删除人脸"
+    },
+    {
+      "name": "demo_b6b9452bb7cd",
+      "value": "删除人脸 {0}"
+    },
+    {
+      "name": "demo_c228558cf257",
+      "value": "删除失败"
+    },
+    {
+      "name": "demo_2de7dc4fed67",
+      "value": "删除失败：{0}"
+    },
+    {
+      "name": "demo_3fbe3ec332db",
+      "value": "删除这条人脸？"
+    },
+    {
+      "name": "demo_aee887434131",
+      "value": "刷新"
+    },
+    {
+      "name": "demo_df081a165c70",
+      "value": "功能菜单"
+    },
+    {
+      "name": "demo_a9707d8212a6",
+      "value": "动作 {0}/{1}，完成后检测静默活体"
+    },
+    {
+      "name": "demo_3aa7940a8037",
+      "value": "动作完成，请保持正脸稳定"
+    },
+    {
+      "name": "demo_16cd0cbc2a15",
+      "value": "动作挑战超时"
+    },
+    {
+      "name": "demo_dba7c4ab38a2",
+      "value": "动作超时"
+    },
+    {
+      "name": "demo_34a10181138e",
+      "value": "动作：%@；随后检测活体并验证（阈值 %.2f%%）"
+    },
+    {
+      "name": "demo_4195d5d7058d",
+      "value": "动作：{0}；随后检测静默活体"
+    },
+    {
+      "name": "demo_0aaaf4016710",
+      "value": "单人 1:N"
+    },
+    {
+      "name": "demo_dbae173e2a7b",
+      "value": "单帧最多处理 {0} 张脸"
+    },
+    {
+      "name": "demo_e0970ba86628",
+      "value": "单帧活体"
+    },
+    {
+      "name": "demo_1b31eda51552",
+      "value": "单帧静默活体"
+    },
+    {
+      "name": "demo_52a2b0f6fc21",
+      "value": "单轮超时 {0} ms"
+    },
+    {
+      "name": "demo_02b122936e56",
+      "value": "参考人脸特征无效"
+    },
+    {
+      "name": "demo_4bd07c7a8f53",
+      "value": "参考身份已不存在"
+    },
+    {
+      "name": "demo_2cd0f3be8738",
+      "value": "取消"
+    },
+    {
+      "name": "demo_885dcef651a2",
+      "value": "右上角菜单可导入演示数据。"
+    },
+    {
+      "name": "demo_48dfeb83f6f4",
+      "value": "启动流程异常：{0}"
+    },
+    {
+      "name": "demo_0c15d19c46a5",
+      "value": "启动相机后将持续检测人脸"
+    },
+    {
+      "name": "demo_176d7fb2b579",
+      "value": "启动连续搜索异常：{0}"
+    },
+    {
+      "name": "demo_d7605bad63f4",
+      "value": "图片中未检测到人脸"
+    },
+    {
+      "name": "demo_6bb03216104a",
+      "value": "图片中没有检测到人脸"
+    },
+    {
+      "name": "demo_915ee6e64f0e",
+      "value": "图片中的人脸过小，请选择更清晰的照片"
+    },
+    {
+      "name": "demo_66c7c38c1b99",
+      "value": "图片或帧格式不受支持"
+    },
+    {
+      "name": "demo_46c7007cc001",
+      "value": "图片读取失败，请重新选择"
+    },
+    {
+      "name": "demo_8934800cfe2e",
+      "value": "坐标镜像校正"
+    },
+    {
+      "name": "demo_694b71bc8013",
+      "value": "处理中"
+    },
+    {
+      "name": "demo_ae173945fb80",
+      "value": "处理失败"
+    },
+    {
+      "name": "demo_6791997d3ad5",
+      "value": "处理相机分析帧失败：{0}"
+    },
+    {
+      "name": "demo_50899b854c4d",
+      "value": "多人 M:N"
+    },
+    {
+      "name": "demo_09d1b96f9481",
+      "value": "多人模式不检测活体；仅处理选中人脸。"
+    },
+    {
+      "name": "demo_4b1ee8be9207",
+      "value": "多人照片会自动选取画面中最大的人脸。"
+    },
+    {
+      "name": "demo_28384d7afd2e",
+      "value": "失败"
+    },
+    {
+      "name": "demo_fe62e55c6af6",
+      "value": "安全挑战生成失败"
+    },
+    {
+      "name": "demo_3c555f351270",
+      "value": "安全随机动作 {0}/{1} · "
+    },
+    {
+      "name": "demo_c0b3fbff51cc",
+      "value": "完成"
+    },
+    {
+      "name": "demo_9c49a16dfae0",
+      "value": "实时人脸检测"
+    },
+    {
+      "name": "demo_b531833b8a59",
+      "value": "实时推理异常：{0}"
+    },
+    {
+      "name": "demo_c5defe90963e",
+      "value": "实时检测"
+    },
+    {
+      "name": "demo_eefd0ad1e827",
+      "value": "实时检测已开启"
+    },
+    {
+      "name": "demo_e105ecdf5b50",
+      "value": "导入 1 万条内置 HF1 特征，覆盖同 Face ID 记录。"
+    },
+    {
+      "name": "demo_f5a636d3f4fe",
+      "value": "导入1万条人脸特征"
+    },
+    {
+      "name": "demo_93c1002c4c3c",
+      "value": "导入1千张人脸图片"
+    },
+    {
+      "name": "demo_5d549419fa57",
+      "value": "导入内置的 1 万条 HF1 特征，覆盖同 Face ID 记录。"
+    },
+    {
+      "name": "demo_d613fefae300",
+      "value": "导入完成"
+    },
+    {
+      "name": "demo_1d933103db81",
+      "value": "导入完成：已保存 {0} 条，失败 {1} 条"
+    },
+    {
+      "name": "demo_a42777c12f0f",
+      "value": "导入未完成，已保存 {0} 条。\n{1}"
+    },
+    {
+      "name": "demo_410d5ec490a6",
+      "value": "导入未完成，已保存 {0} 条：{1}"
+    },
+    {
+      "name": "demo_e4039a1684cb",
+      "value": "导入结果"
+    },
+    {
+      "name": "demo_e3600efd307c",
+      "value": "将人脸置于取景框内"
+    },
+    {
+      "name": "demo_acd6e0c8c926",
+      "value": "已保存 1:1 参考人脸"
+    },
+    {
+      "name": "demo_49071c610d99",
+      "value": "已保存 {0} 条，请重试剩余项"
+    },
+    {
+      "name": "demo_4343a5e46a6e",
+      "value": "已保存 · {0} · 坐标校正{1}"
+    },
+    {
+      "name": "demo_b14c5ee3cbe4",
+      "value": "已保留原样本，可确认或重试"
+    },
+    {
+      "name": "demo_f006455e3baf",
+      "value": "已停止"
+    },
+    {
+      "name": "demo_70be0cd5acc6",
+      "value": "已停止：已保存 {0} 条，失败 {1} 条"
+    },
+    {
+      "name": "demo_11cf70bba26c",
+      "value": "已删除 {0}"
+    },
+    {
+      "name": "demo_8c2808528338",
+      "value": "已加载 · {0} · 坐标校正{1}"
+    },
+    {
+      "name": "demo_caeed4cdc7de",
+      "value": "已取消覆盖"
+    },
+    {
+      "name": "demo_56fb72a36eda",
+      "value": "已处理 0 / {0}，已保存 0 条"
+    },
+    {
+      "name": "demo_706566893b1e",
+      "value": "已处理 {0} / {1}，已保存 {2} 条"
+    },
+    {
+      "name": "demo_ab27f80d046f",
+      "value": "已就绪"
+    },
+    {
+      "name": "demo_9eecca4d5f44",
+      "value": "已就绪 · 点击更换"
+    },
+    {
+      "name": "demo_3e35add09ce9",
+      "value": "已就绪，点击可更换"
+    },
+    {
+      "name": "demo_8a4ef3e48e4e",
+      "value": "已开启"
+    },
+    {
+      "name": "demo_669092a1321b",
+      "value": "已录入 {0}"
+    },
+    {
+      "name": "demo_4bc79a2c9dc9",
+      "value": "已有一个人脸请求正在处理，请稍后重试"
+    },
+    {
+      "name": "demo_fd18a7d98d19",
+      "value": "已选择 {0}"
+    },
+    {
+      "name": "demo_30cb6a9fea7a",
+      "value": "平视正对摄像头"
+    },
+    {
+      "name": "demo_63c73c4730f4",
+      "value": "应用"
+    },
+    {
+      "name": "demo_39eae64cfc41",
+      "value": "开"
+    },
+    {
+      "name": "demo_bb8aa0ddaaf3",
+      "value": "开始导入"
+    },
+    {
+      "name": "demo_c094b197a689",
+      "value": "开始比对"
+    },
+    {
+      "name": "demo_03de1d313956",
+      "value": "张嘴"
+    },
+    {
+      "name": "demo_8f5e7b70fe3e",
+      "value": "当前人脸会话已关闭"
+    },
+    {
+      "name": "demo_b8469d0042fa",
+      "value": "当前人脸会话已关闭，请返回后重新进入"
+    },
+    {
+      "name": "demo_b90453bd5fce",
+      "value": "当前任务忙，请稍后重试。"
+    },
+    {
+      "name": "demo_2e453ae95814",
+      "value": "当前分辨率不可用，正在尝试兼容尺寸"
+    },
+    {
+      "name": "demo_fd33b11455f9",
+      "value": "当前图片或相机帧格式不受支持"
+    },
+    {
+      "name": "demo_def369b46749",
+      "value": "当前流程将在相机恢复后重新开始"
+    },
+    {
+      "name": "demo_ec9b4ee8665b",
+      "value": "当前流程已暂停，系统释放相机后会自动重新开始"
+    },
+    {
+      "name": "demo_535c94c17513",
+      "value": "当前相机不支持可用的分析分辨率"
+    },
+    {
+      "name": "demo_0830dbd257b6",
+      "value": "当前相机参数：{0}"
+    },
+    {
+      "name": "demo_0d326b0ac6a9",
+      "value": "当前范围内暂无已录入人脸"
+    },
+    {
+      "name": "demo_d256e77173da",
+      "value": "当前设备不允许添加选定相机输入"
+    },
+    {
+      "name": "demo_9434fa3727d2",
+      "value": "当前设备不支持可见预览输出"
+    },
+    {
+      "name": "demo_a8f41bbd7e97",
+      "value": "当前设备不支持预览与分析双路输出"
+    },
+    {
+      "name": "demo_9bf0769dd1dd",
+      "value": "当前设备没有可切换的摄像头"
+    },
+    {
+      "name": "demo_e3cd6f1a24c0",
+      "value": "当前选择：{0}"
+    },
+    {
+      "name": "demo_862a7662bce0",
+      "value": "录入人脸"
+    },
+    {
+      "name": "demo_1e5757c890f4",
+      "value": "录入参考人脸"
+    },
+    {
+      "name": "demo_2450862d6026",
+      "value": "录入预览生成失败"
+    },
+    {
+      "name": "demo_04fbe1f84206",
+      "value": "待选择"
+    },
+    {
+      "name": "demo_f21cda20d5bd",
+      "value": "必填且唯一，如员工编号。"
+    },
+    {
+      "name": "demo_e151fa29aaa2",
+      "value": "恢复默认参数"
+    },
+    {
+      "name": "demo_7ba45d8ff666",
+      "value": "成功后的间隔"
+    },
+    {
+      "name": "demo_29a80829f157",
+      "value": "成功间隔 {0} ms"
+    },
+    {
+      "name": "demo_7feafea5a88b",
+      "value": "打开右上角菜单选择刷新，再试一次。"
+    },
+    {
+      "name": "demo_ab1a23440b70",
+      "value": "打开失败：{0}"
+    },
+    {
+      "name": "demo_9f10386f483d",
+      "value": "打开系统照片选择器"
+    },
+    {
+      "name": "demo_37aa6ad6a36d",
+      "value": "打开设置"
+    },
+    {
+      "name": "demo_fd7719273970",
+      "value": "批量导入"
+    },
+    {
+      "name": "demo_d607a66a3dbb",
+      "value": "批量导入人脸图片"
+    },
+    {
+      "name": "demo_aa4e5afaed94",
+      "value": "批量导入人脸特征"
+    },
+    {
+      "name": "demo_e82f73f09dfa",
+      "value": "批量导入失败，请稍后重试"
+    },
+    {
+      "name": "demo_d1222a855607",
+      "value": "找不到参考身份 {0}"
+    },
+    {
+      "name": "demo_ae6874a9e0fd",
+      "value": "找到 1 条记录"
+    },
+    {
+      "name": "demo_1881d6c0757b",
+      "value": "指定分组；留空搜索全部。"
+    },
+    {
+      "name": "demo_1452deafc6d9",
+      "value": "推荐"
+    },
+    {
+      "name": "demo_db03a0ab495f",
+      "value": "搜索启动失败"
+    },
+    {
+      "name": "demo_37be40381591",
+      "value": "搜索多人，不检测头姿与活体。"
+    },
+    {
+      "name": "demo_adb911f767ae",
+      "value": "搜索已暂停"
+    },
+    {
+      "name": "demo_95fa00a4726d",
+      "value": "搜索恢复失败，请检查配置并重新进入。"
+    },
+    {
+      "name": "demo_b4e019b61521",
+      "value": "搜索模式"
+    },
+    {
+      "name": "demo_4e65d015121f",
+      "value": "搜索范围"
+    },
+    {
+      "name": "demo_2874151bd36b",
+      "value": "搜索设置"
+    },
+    {
+      "name": "demo_65c51a856d54",
+      "value": "搜索设置应用失败"
+    },
+    {
+      "name": "demo_b78443a500ed",
+      "value": "搜索配置无效：{0}"
+    },
+    {
+      "name": "demo_f07daa84d0f6",
+      "value": "摄像头分辨率"
+    },
+    {
+      "name": "demo_243c78b3db5c",
+      "value": "摄像头参数设置"
+    },
+    {
+      "name": "demo_8be7156a778f",
+      "value": "摇头"
+    },
+    {
+      "name": "demo_0c3b4cf7aa25",
+      "value": "操作失败"
+    },
+    {
+      "name": "demo_f8af6f45840a",
+      "value": "收起高级参数"
+    },
+    {
+      "name": "demo_6e1b353aec5c",
+      "value": "数据或密钥不可用。可保留退出，或清除基准后重新录入。"
+    },
+    {
+      "name": "demo_f7e7183cbf30",
+      "value": "整组动作总时限 {0} 秒"
+    },
+    {
+      "name": "demo_c6444db4dcb4",
+      "value": "无法切换摄像头，已保留原摄像头"
+    },
+    {
+      "name": "demo_927a32a29679",
+      "value": "无法取得页面上下文，请返回后重新进入"
+    },
+    {
+      "name": "demo_f1e0448c808d",
+      "value": "无法打开所选相机"
+    },
+    {
+      "name": "demo_fc07ee5173a4",
+      "value": "旧的 1:1 人脸基准已清除，请重新录入"
+    },
+    {
+      "name": "demo_f6f2891ba0d8",
+      "value": "显示最多 10 张脸、五点、468 点轮廓与头姿"
+    },
+    {
+      "name": "demo_fb1c97956dae",
+      "value": "暂不处理"
+    },
+    {
+      "name": "demo_15c2aae70c3a",
+      "value": "暂无可切换的前后摄像头"
+    },
+    {
+      "name": "demo_c3cff46d207d",
+      "value": "暂时无法准备活体动作，请重试"
+    },
+    {
+      "name": "demo_05d1c2e7b9e4",
+      "value": "暂时无法完成操作，请重试。"
+    },
+    {
+      "name": "demo_7c4c418e51c7",
+      "value": "暂时无法访问人脸库，请稍后重试。"
+    },
+    {
+      "name": "demo_6feda3da10e6",
+      "value": "暂时无法读取人脸库"
+    },
+    {
+      "name": "demo_2ead765a75b1",
+      "value": "更多参数：间隔与超时"
+    },
+    {
+      "name": "demo_6e523fed0f28",
+      "value": "更新以及更多说明：https://github.com/FaceSDKPro/"
+    },
+    {
+      "name": "demo_46932c18c2e9",
+      "value": "最终采样超时"
+    },
+    {
+      "name": "demo_23fb42b6cccc",
+      "value": "未保存本次样本，请重新录入"
+    },
+    {
+      "name": "demo_e86ea3f280d9",
+      "value": "未分组"
+    },
+    {
+      "name": "demo_1c6022b7f4e7",
+      "value": "未匹配"
+    },
+    {
+      "name": "demo_3cffa9757b69",
+      "value": "未开启"
+    },
+    {
+      "name": "demo_3a97d940180a",
+      "value": "未找到 Face ID：{0}"
+    },
+    {
+      "name": "demo_4a7befb0dfd0",
+      "value": "未找到指定的人脸记录"
+    },
+    {
+      "name": "demo_94bae7c6cbcc",
+      "value": "未找到该 Face ID"
+    },
+    {
+      "name": "demo_f256f918454b",
+      "value": "未检测到人脸"
+    },
+    {
+      "name": "demo_8b1d8fd08e2a",
+      "value": "未知流程结果"
+    },
+    {
+      "name": "demo_02584a80f7a7",
+      "value": "未获得相机权限，请在系统设置中允许访问"
+    },
+    {
+      "name": "demo_43baa224b452",
+      "value": "未采集到合格人脸，请重试"
+    },
+    {
+      "name": "demo_bfca4f9b1c10",
+      "value": "本次处理 {0} 人"
+    },
+    {
+      "name": "demo_f7ef3a772316",
+      "value": "本次采集的人脸预览"
+    },
+    {
+      "name": "demo_3003318e729a",
+      "value": "查找"
+    },
+    {
+      "name": "demo_46d508935588",
+      "value": "查找失败"
+    },
+    {
+      "name": "demo_6a92d53192eb",
+      "value": "查找失败：{0}"
+    },
+    {
+      "name": "demo_5fe03dfa919b",
+      "value": "查找结果"
+    },
+    {
+      "name": "demo_0a0038a2314d",
+      "value": "查看人脸框、关键点、轮廓和头姿"
+    },
+    {
+      "name": "demo_6bea77acefb3",
+      "value": "标准"
+    },
+    {
+      "name": "demo_3ff30052f94d",
+      "value": "标准 · 接近 640×480"
+    },
+    {
+      "name": "demo_81bf8037e2df",
+      "value": "标准更省电；高清保留远处细节，自动选择 1080p 内兼容规格。"
+    },
+    {
+      "name": "demo_7d49dfa02ae6",
+      "value": "标准（接近 640×480）"
+    },
+    {
+      "name": "demo_1c493e374a35",
+      "value": "标签（留空表示不限）"
+    },
+    {
+      "name": "demo_056dd049477f",
+      "value": "标记与预览左右相反时开启，不影响识别。"
+    },
+    {
+      "name": "demo_6e2fc1ff6c5c",
+      "value": "检查失败：{0}"
+    },
+    {
+      "name": "demo_e28096e037ee",
+      "value": "检测到 {0} 人 · "
+    },
+    {
+      "name": "demo_6bd0b5027265",
+      "value": "检测到 {0} 人 · 优先识别最大脸"
+    },
+    {
+      "name": "demo_380ddd6f229f",
+      "value": "检测到 {0} 人 · 本次处理 {1} 人"
+    },
+    {
+      "name": "demo_f79a5a9fda02",
+      "value": "检测到 {0} 张人脸"
+    },
+    {
+      "name": "demo_02bdfdeb6a71",
+      "value": "模型加载失败，请检查模型资源"
+    },
+    {
+      "name": "demo_47a270081ab2",
+      "value": "模式"
+    },
+    {
+      "name": "demo_76a8fc03f2e0",
+      "value": "正在保存 1:1 基准…"
+    },
+    {
+      "name": "demo_6bdb4435095e",
+      "value": "正在保存…"
+    },
+    {
+      "name": "demo_af48159f380f",
+      "value": "正在停止"
+    },
+    {
+      "name": "demo_0b36c1613228",
+      "value": "正在停止并保存，请稍候…"
+    },
+    {
+      "name": "demo_5f2ed701d82c",
+      "value": "正在准备"
+    },
+    {
+      "name": "demo_a0277843a36d",
+      "value": "正在准备活体与验证…"
+    },
+    {
+      "name": "demo_53c967cf010a",
+      "value": "正在准备活体检测…"
+    },
+    {
+      "name": "demo_757c08890e8c",
+      "value": "正在准备相机…"
+    },
+    {
+      "name": "demo_82a715781e3d",
+      "value": "正在准备确认预览"
+    },
+    {
+      "name": "demo_a6bd4a92f82b",
+      "value": "正在准备识别模型…"
+    },
+    {
+      "name": "demo_c2c3f2bfcd2a",
+      "value": "正在切换摄像头"
+    },
+    {
+      "name": "demo_26a724f297e6",
+      "value": "正在切换相机…"
+    },
+    {
+      "name": "demo_1d49dd3c3946",
+      "value": "正在删除 {0}…"
+    },
+    {
+      "name": "demo_53079c85b8b7",
+      "value": "正在加载所需模型…"
+    },
+    {
+      "name": "demo_7d0a6c426462",
+      "value": "正在加载更多…"
+    },
+    {
+      "name": "demo_4b22bd7ab475",
+      "value": "正在匹配人脸库"
+    },
+    {
+      "name": "demo_43f3dc12a607",
+      "value": "正在启动…"
+    },
+    {
+      "name": "demo_3b7e27cb4379",
+      "value": "正在处理"
+    },
+    {
+      "name": "demo_574ec7517de1",
+      "value": "正在处理…"
+    },
+    {
+      "name": "demo_8eda4e7c06a0",
+      "value": "正在处理，请稍候"
+    },
+    {
+      "name": "demo_faa6e323d497",
+      "value": "正在导入。停止后保存已完成结果并退出。"
+    },
+    {
+      "name": "demo_fe7b3d82157e",
+      "value": "正在尝试兼容相机规格…"
+    },
+    {
+      "name": "demo_bb7e493a77b4",
+      "value": "正在恢复人脸采集"
+    },
+    {
+      "name": "demo_5c8e7a3b55c7",
+      "value": "正在恢复相机流程"
+    },
+    {
+      "name": "demo_6443db39c270",
+      "value": "正在打开人脸库…"
+    },
+    {
+      "name": "demo_3706a5ffa936",
+      "value": "正在打开相机…"
+    },
+    {
+      "name": "demo_f26be2478933",
+      "value": "正在提取人脸…"
+    },
+    {
+      "name": "demo_71a704035095",
+      "value": "正在搜索"
+    },
+    {
+      "name": "demo_229a6480ac16",
+      "value": "正在新增搜索库记录…"
+    },
+    {
+      "name": "demo_b86d4ba5f304",
+      "value": "正在查找 {0}…"
+    },
+    {
+      "name": "demo_8bbb38569df1",
+      "value": "正在查询…"
+    },
+    {
+      "name": "demo_7eaf894907ae",
+      "value": "正在检查搜索库中的 faceId…"
+    },
+    {
+      "name": "demo_447601eb2f19",
+      "value": "正在比对…"
+    },
+    {
+      "name": "demo_744f68e32f03",
+      "value": "正在生成预览，完成后确认录入"
+    },
+    {
+      "name": "demo_f5536cc82284",
+      "value": "正在覆盖搜索库记录…"
+    },
+    {
+      "name": "demo_f9374e14ec68",
+      "value": "正在请求相机权限…"
+    },
+    {
+      "name": "demo_86b6d0d63062",
+      "value": "正在读取…"
+    },
+    {
+      "name": "demo_c1ee390718fb",
+      "value": "正在读取人脸库…"
+    },
+    {
+      "name": "demo_9ee695637140",
+      "value": "正在读取设置…"
+    },
+    {
+      "name": "demo_ecbeb5efc69a",
+      "value": "正脸合格，请保持稳定"
+    },
+    {
+      "name": "demo_16019bfa1106",
+      "value": "每次最多处理人数"
+    },
+    {
+      "name": "demo_a28d247ae232",
+      "value": "每轮搜索超时"
+    },
+    {
+      "name": "demo_66227980fcca",
+      "value": "比对两张图片中的人脸"
+    },
+    {
+      "name": "demo_794d29084632",
+      "value": "比对完成"
+    },
+    {
+      "name": "demo_9659733917ec",
+      "value": "毫秒"
+    },
+    {
+      "name": "demo_48b6aed71c10",
+      "value": "没有可用相机"
+    },
+    {
+      "name": "demo_a1922393b634",
+      "value": "没有找到这个 ID"
+    },
+    {
+      "name": "demo_77b933df8d2e",
+      "value": "没有符合 1080p 上限的 YUV_420_SP 预览规格"
+    },
+    {
+      "name": "demo_dc9d959db0a1",
+      "value": "活体"
+    },
+    {
+      "name": "demo_c38ca0284bcd",
+      "value": "活体 %.3f"
+    },
+    {
+      "name": "demo_79967ffce862",
+      "value": "活体 {0}"
+    },
+    {
+      "name": "demo_70c114141508",
+      "value": "活体分数 %.3f"
+    },
+    {
+      "name": "demo_f6e3354c14c4",
+      "value": "活体动作"
+    },
+    {
+      "name": "demo_db6972be8e4d",
+      "value": "活体已开启"
+    },
+    {
+      "name": "demo_71b862e3e5e6",
+      "value": "活体未开启"
+    },
+    {
+      "name": "demo_59645f0fd1b7",
+      "value": "活体未通过"
+    },
+    {
+      "name": "demo_f95a833c21ef",
+      "value": "活体检测"
+    },
+    {
+      "name": "demo_b133729acd1d",
+      "value": "活体检测仅适用于 1:N 模式。"
+    },
+    {
+      "name": "demo_975ce5bdf06b",
+      "value": "活体检测发生错误"
+    },
+    {
+      "name": "demo_cf5dbf062af9",
+      "value": "活体检测执行失败"
+    },
+    {
+      "name": "demo_98f9a5971b04",
+      "value": "活体检测未通过"
+    },
+    {
+      "name": "demo_24df5fb74071",
+      "value": "活体检测未通过：{0}"
+    },
+    {
+      "name": "demo_94bdcf888464",
+      "value": "活体检测未通过：指定动作超时"
+    },
+    {
+      "name": "demo_45d82c35475a",
+      "value": "活体检测未通过：最终采样未完成，请保持正脸并重试"
+    },
+    {
+      "name": "demo_75634f3494ac",
+      "value": "活体检测未通过：画面中出现多张人脸"
+    },
+    {
+      "name": "demo_d09b0a66bb37",
+      "value": "活体检测未通过：疑似非真人"
+    },
+    {
+      "name": "demo_4844c744e39f",
+      "value": "活体检测未通过：目标人脸已离开画面"
+    },
+    {
+      "name": "demo_fb634b312cd1",
+      "value": "活体检测未通过：等待人脸超时"
+    },
+    {
+      "name": "demo_92268139bebf",
+      "value": "活体检测通过"
+    },
+    {
+      "name": "demo_879a8cc02926",
+      "value": "流程启动失败"
+    },
+    {
+      "name": "demo_572139cf32fc",
+      "value": "流程已启动"
+    },
+    {
+      "name": "demo_b10b8c2aa711",
+      "value": "流程执行失败"
+    },
+    {
+      "name": "demo_ed1a39eae022",
+      "value": "流程通过"
+    },
+    {
+      "name": "demo_f96807d6731c",
+      "value": "清除并重新录入"
+    },
+    {
+      "name": "demo_937fd1ff3c2a",
+      "value": "清除旧人脸基准失败"
+    },
+    {
+      "name": "demo_ada5e42a5eff",
+      "value": "清除查询"
+    },
+    {
+      "name": "demo_058345525f07",
+      "value": "点击卡片选择照片"
+    },
+    {
+      "name": "demo_376b1c43d6b7",
+      "value": "点击开始，完成动作、活体和 1:1 验证"
+    },
+    {
+      "name": "demo_d9545ce1e182",
+      "value": "点击更换"
+    },
+    {
+      "name": "demo_68f824952381",
+      "value": "点头"
+    },
+    {
+      "name": "demo_84832da4b831",
+      "value": "照片 1"
+    },
+    {
+      "name": "demo_82f3129a6089",
+      "value": "照片 2"
+    },
+    {
+      "name": "demo_49a44a338518",
+      "value": "画面中存在多张人脸"
+    },
+    {
+      "name": "demo_6f9d20916dd5",
+      "value": "画面校正"
+    },
+    {
+      "name": "demo_e98002493e3a",
+      "value": "疑似非真人"
+    },
+    {
+      "name": "demo_dfb0432abcef",
+      "value": "目标倍率"
+    },
+    {
+      "name": "demo_747391190bc7",
+      "value": "相似度"
+    },
+    {
+      "name": "demo_e19e75d6da1e",
+      "value": "相似度 %.2f%%"
+    },
+    {
+      "name": "demo_610a58dc7297",
+      "value": "相似度 %.3f"
+    },
+    {
+      "name": "demo_457d0bb07225",
+      "value": "相似度 %1$.2f%%"
+    },
+    {
+      "name": "demo_5587dc6d9747",
+      "value": "相似度 {0}"
+    },
+    {
+      "name": "demo_8296d878602a",
+      "value": "相似度 {0}%"
+    },
+    {
+      "name": "demo_3a519221e806",
+      "value": "相似度阈值"
+    },
+    {
+      "name": "demo_622a487f722c",
+      "value": "相似度阈值 %.2f"
+    },
+    {
+      "name": "demo_af9354105039",
+      "value": "相机不支持 NV12 分析输出"
+    },
+    {
+      "name": "demo_e9b2752accb8",
+      "value": "相机会话 {0} fps{1} · "
+    },
+    {
+      "name": "demo_e1a53ec26c8c",
+      "value": "相机会话异常"
+    },
+    {
+      "name": "demo_5661512aff4f",
+      "value": "相机分析帧不可用，请重试"
+    },
+    {
+      "name": "demo_f78b63f052f4",
+      "value": "相机启动失败"
+    },
+    {
+      "name": "demo_30877f823005",
+      "value": "相机启动失败，请重试"
+    },
+    {
+      "name": "demo_23937608403c",
+      "value": "相机启动失败：{0}"
+    },
+    {
+      "name": "demo_b20053dab66c",
+      "value": "相机坐标镜像"
+    },
+    {
+      "name": "demo_ca8e1b6a679f",
+      "value": "相机坐标镜像校正"
+    },
+    {
+      "name": "demo_33e159367e48",
+      "value": "相机已恢复"
+    },
+    {
+      "name": "demo_b9956f5aba76",
+      "value": "相机恢复失败，请重试"
+    },
+    {
+      "name": "demo_c54d504df7cb",
+      "value": "相机或帧处理失败"
+    },
+    {
+      "name": "demo_515087323b48",
+      "value": "相机暂时不可用"
+    },
+    {
+      "name": "demo_c719f94b65ec",
+      "value": "相机暂被占用，可用后自动继续"
+    },
+    {
+      "name": "demo_e5e055b6aed8",
+      "value": "相机服务已恢复"
+    },
+    {
+      "name": "demo_1d9f14e46392",
+      "value": "相机服务已重置，正在自动恢复"
+    },
+    {
+      "name": "demo_54bff34cef8d",
+      "value": "相机未收到分析帧，请重试"
+    },
+    {
+      "name": "demo_4d0bda1423aa",
+      "value": "相机访问受限，请检查屏幕使用时间或联系管理员"
+    },
+    {
+      "name": "demo_bc9a1a72ffc8",
+      "value": "相机输入中断"
+    },
+    {
+      "name": "demo_cf6437126c38",
+      "value": "相机运行中"
+    },
+    {
+      "name": "demo_4dcb3d20bdcc",
+      "value": "相机运行失败，请重试"
+    },
+    {
+      "name": "demo_48a7d8756c5f",
+      "value": "相机预览异常"
+    },
+    {
+      "name": "demo_580df4b9aed1",
+      "value": "眨眼"
+    },
+    {
+      "name": "demo_de32e20193ad",
+      "value": "知道了"
+    },
+    {
+      "name": "demo_9700af891649",
+      "value": "确认为清晰无遮挡正脸"
+    },
+    {
+      "name": "demo_33d53b21d9c4",
+      "value": "确认人脸照片"
+    },
+    {
+      "name": "demo_fe5f2c9b9f46",
+      "value": "确认录入信息"
+    },
+    {
+      "name": "demo_d788c6261163",
+      "value": "确认覆盖"
+    },
+    {
+      "name": "demo_c0f5c23fc133",
+      "value": "确认覆盖 {0} 的人脸特征和分组？"
+    },
+    {
+      "name": "demo_848c0ff5c1a0",
+      "value": "确认这张人脸照片？"
+    },
+    {
+      "name": "demo_cf365f844a6c",
+      "value": "离线导入内置的 1 万条 HF1 特征，更新同 Face ID 记录。"
+    },
+    {
+      "name": "demo_9cb4f4bddc67",
+      "value": "离线｜数据安全｜高效"
+    },
+    {
+      "name": "demo_c1e79c106b1f",
+      "value": "等待下一次搜索"
+    },
+    {
+      "name": "demo_38532433b960",
+      "value": "等待人脸入镜"
+    },
+    {
+      "name": "demo_e6ae87dff6d6",
+      "value": "等待人脸超时"
+    },
+    {
+      "name": "demo_b3d8764e86c3",
+      "value": "等待倍率"
+    },
+    {
+      "name": "demo_f522cd48e4b5",
+      "value": "等待合格人脸，首次取脸最长 {0} 秒"
+    },
+    {
+      "name": "demo_21b43262175f",
+      "value": "等待相机画面"
+    },
+    {
+      "name": "demo_88305115b5be",
+      "value": "系统相机恢复后重新开始本轮检测"
+    },
+    {
+      "name": "demo_78491c2e0c2b",
+      "value": "约 1280 × 720 · 兼顾清晰度与性能"
+    },
+    {
+      "name": "demo_ba2145905971",
+      "value": "约 1920 × 1080 · 细节更多，耗电更高"
+    },
+    {
+      "name": "demo_8bbde16ac8f1",
+      "value": "约 640 × 480 · 性能优先"
+    },
+    {
+      "name": "demo_e292c6bbf148",
+      "value": "继续导入"
+    },
+    {
+      "name": "demo_57c5765fa02c",
+      "value": "置信度 %.1f%%"
+    },
+    {
+      "name": "demo_61b3c566c5da",
+      "value": "联网导入 1 千张图片，每张提取最大人脸，更新同 Face ID 记录。失败图片跳过；停止时保存已完成的尾批，保留已保存数据。"
+    },
+    {
+      "name": "demo_57782c6b829a",
+      "value": "联网导入 1 千张图片，覆盖同 Face ID 记录。跳过失败图片，保留已保存批次。"
+    },
+    {
+      "name": "demo_be2bd874af40",
+      "value": "联网导入 1 千张图片，覆盖同 Face ID 记录；已保存批次保留。"
+    },
+    {
+      "name": "demo_6a1215198c3b",
+      "value": "自动适配镜头；低档适合近距离，中档适合日常检测与活体。实际尺寸见相机页。"
+    },
+    {
+      "name": "demo_4ce4c98eb27e",
+      "value": "覆盖"
+    },
+    {
+      "name": "demo_86938b578cad",
+      "value": "覆盖搜索库记录？"
+    },
+    {
+      "name": "demo_087669f2ca47",
+      "value": "计数失败"
+    },
+    {
+      "name": "demo_b2f74ec00ab4",
+      "value": "计时继续，请将同一人脸移回画面"
+    },
+    {
+      "name": "demo_5376dbab75f1",
+      "value": "设备资源不足，暂时无法完成人脸处理"
+    },
+    {
+      "name": "demo_8babf4927c20",
+      "value": "设备资源不足，请关闭其他任务后重试"
+    },
+    {
+      "name": "demo_ba7b2d354a0e",
+      "value": "设置分析分辨率与坐标镜像"
+    },
+    {
+      "name": "demo_9b9078444eac",
+      "value": "设置唯一 Face ID。"
+    },
+    {
+      "name": "demo_26e2962952e2",
+      "value": "设置自动保存，重新进入相机页面后生效。"
+    },
+    {
+      "name": "demo_9c51dd7276c4",
+      "value": "设置读取失败，已恢复默认相机参数"
+    },
+    {
+      "name": "demo_a9d3ae030658",
+      "value": "识别人脸库中的身份"
+    },
+    {
+      "name": "demo_f881633852d8",
+      "value": "识别参数"
+    },
+    {
+      "name": "demo_10ba9d3eb67f",
+      "value": "识别失败"
+    },
+    {
+      "name": "demo_e8b8d819d559",
+      "value": "识别引擎初始化失败，请点击重试"
+    },
+    {
+      "name": "demo_c3424d2b14eb",
+      "value": "识别引擎已就绪"
+    },
+    {
+      "name": "demo_c04f6585ff15",
+      "value": "识别最大的人脸；默认开启静默活体。"
+    },
+    {
+      "name": "demo_b23f79c10ec5",
+      "value": "识别模型准备失败，请点击重试。"
+    },
+    {
+      "name": "demo_83562a5ab678",
+      "value": "该 Face ID 的特征不存在"
+    },
+    {
+      "name": "demo_1d97d232d504",
+      "value": "该 ID 已存在"
+    },
+    {
+      "name": "demo_a1765df14aa3",
+      "value": "请{0}（{1}/{2}）"
+    },
+    {
+      "name": "demo_9aa081aa380f",
+      "value": "请保持不动"
+    },
+    {
+      "name": "demo_f65a13c32cbc",
+      "value": "请保持人脸稳定"
+    },
+    {
+      "name": "demo_20935edd1545",
+      "value": "请先完成人脸采集"
+    },
+    {
+      "name": "demo_9ab891b851c5",
+      "value": "请先录入参考人脸"
+    },
+    {
+      "name": "demo_ee6d2997be1a",
+      "value": "请回正并保持稳定，等待验证完成"
+    },
+    {
+      "name": "demo_0bdca7a459e6",
+      "value": "请完成动作{0}"
+    },
+    {
+      "name": "demo_5950015f8fcf",
+      "value": "请将人脸移入圆框"
+    },
+    {
+      "name": "demo_4aa318103bae",
+      "value": "请张嘴{0}"
+    },
+    {
+      "name": "demo_ea59e9de371c",
+      "value": "请张嘴（{0}/{1}）"
+    },
+    {
+      "name": "demo_4a053ce87ef7",
+      "value": "请录入人脸或调整搜索设置"
+    },
+    {
+      "name": "demo_c3f6b7f71fd2",
+      "value": "请按提示完成动作"
+    },
+    {
+      "name": "demo_e6d0fed24b2c",
+      "value": "请摆正人脸"
+    },
+    {
+      "name": "demo_8ccbb63c7949",
+      "value": "请摇头{0}"
+    },
+    {
+      "name": "demo_1e699111403a",
+      "value": "请摇头（{0}/{1}）"
+    },
+    {
+      "name": "demo_e7c87ed4da0d",
+      "value": "请检查 Face ID，或清空输入返回全部记录。"
+    },
+    {
+      "name": "demo_53ebeaff6575",
+      "value": "请检查输入，或清空后查看全部人脸。"
+    },
+    {
+      "name": "demo_6481823d172c",
+      "value": "请正对屏幕"
+    },
+    {
+      "name": "demo_f24220459f5a",
+      "value": "请正对镜头"
+    },
+    {
+      "name": "demo_19587ac6ce9a",
+      "value": "请点头{0}"
+    },
+    {
+      "name": "demo_0524aca8d737",
+      "value": "请点头（{0}/{1}）"
+    },
+    {
+      "name": "demo_9f7fd3901748",
+      "value": "请眨眼{0}"
+    },
+    {
+      "name": "demo_5eb14bc12826",
+      "value": "请眨眼（{0}/{1}）"
+    },
+    {
+      "name": "demo_346a45be9521",
+      "value": "请确保仅一人入镜"
+    },
+    {
+      "name": "demo_72c657d389d5",
+      "value": "请确保画面中只有一人"
+    },
+    {
+      "name": "demo_d2ce75de7bcb",
+      "value": "请确保画面中只有一张人脸"
+    },
+    {
+      "name": "demo_11468e44ae66",
+      "value": "请确认人脸清晰，设置唯一 Face ID"
+    },
+    {
+      "name": "demo_69e470dd61f8",
+      "value": "请确认录入样本"
+    },
+    {
+      "name": "demo_42645088260a",
+      "value": "请确认正脸清晰、无遮挡"
+    },
+    {
+      "name": "demo_6f2840fca4fb",
+      "value": "请确认照片与录入信息"
+    },
+    {
+      "name": "demo_46a6ac545e1b",
+      "value": "请确认照片，再保存为 1:1 验证样本"
+    },
+    {
+      "name": "demo_20cfd1c3b4c8",
+      "value": "请稍候"
+    },
+    {
+      "name": "demo_21fd63b5ba5b",
+      "value": "请等待相机预览与分析链路就绪"
+    },
+    {
+      "name": "demo_c5be29e6f6fa",
+      "value": "请输入 0.75–0.85 之间的数值"
+    },
+    {
+      "name": "demo_c8c131de25ab",
+      "value": "请输入 0–3000 之间的整数"
+    },
+    {
+      "name": "demo_cb8865f30008",
+      "value": "请输入 1000–3000 之间的整数"
+    },
+    {
+      "name": "demo_f4d50d0a4d9b",
+      "value": "请输入 1–5 之间的整数"
+    },
+    {
+      "name": "demo_170cf2406bb2",
+      "value": "请输入 Face ID"
+    },
+    {
+      "name": "demo_d1e6c6f01819",
+      "value": "请输入有效数字"
+    },
+    {
+      "name": "demo_5c591f8a53f9",
+      "value": "请重试搜索"
+    },
+    {
+      "name": "demo_30030d182b5b",
+      "value": "请重试，或使用右上角菜单刷新。"
+    },
+    {
+      "name": "demo_a060c4c6bf8f",
+      "value": "请重试，或在右上角菜单刷新。"
+    },
+    {
+      "name": "demo_3ef5363fb4d1",
+      "value": "请靠近一点"
+    },
+    {
+      "name": "demo_a115a67e5a10",
+      "value": "请靠近摄像头"
+    },
+    {
+      "name": "demo_346ff60e6c7c",
+      "value": "读取中…"
+    },
+    {
+      "name": "demo_fb127aea6b52",
+      "value": "读取参考人脸失败"
+    },
+    {
+      "name": "demo_6aa27f14bff1",
+      "value": "读取失败"
+    },
+    {
+      "name": "demo_0a38fd01cf7e",
+      "value": "读取失败，使用默认设置：{0}"
+    },
+    {
+      "name": "demo_d7ff7e3b9fa6",
+      "value": "读取失败：{0}"
+    },
+    {
+      "name": "demo_2aa62479011e",
+      "value": "调用参数无效，请检查 Demo 配置"
+    },
+    {
+      "name": "demo_81ccc80c4d9c",
+      "value": "轻点更换"
+    },
+    {
+      "name": "demo_1973cc6d7f75",
+      "value": "输入 Face ID"
+    },
+    {
+      "name": "demo_e9ba332505e2",
+      "value": "输入 Face ID 查找"
+    },
+    {
+      "name": "demo_6621657b142d",
+      "value": "输入分组名称"
+    },
+    {
+      "name": "demo_d4957236ff76",
+      "value": "输入唯一的人脸 ID"
+    },
+    {
+      "name": "demo_eccb7e928783",
+      "value": "输入数据无效，请检查后重试"
+    },
+    {
+      "name": "demo_572cf45ba436",
+      "value": "返回"
+    },
+    {
+      "name": "demo_7c44d171acc6",
+      "value": "返回前台后恢复相机"
+    },
+    {
+      "name": "demo_a9da430aab20",
+      "value": "返回前台后自动恢复"
+    },
+    {
+      "name": "demo_f68be37e56cf",
+      "value": "连续搜索已暂停"
+    },
+    {
+      "name": "demo_892f7b96ea1d",
+      "value": "选择 Face ID，活体通过后验证"
+    },
+    {
+      "name": "demo_3f4b0e1e40ff",
+      "value": "选择两张清晰正脸照片"
+    },
+    {
+      "name": "demo_72b817947a86",
+      "value": "选择参考人脸"
+    },
+    {
+      "name": "demo_bf2ac8cbf96a",
+      "value": "选择参考身份失败"
+    },
+    {
+      "name": "demo_d1f9e105a986",
+      "value": "选择已录入的 Face ID，开始身份验证。"
+    },
+    {
+      "name": "demo_2126d44a4879",
+      "value": "选择清晰正脸照片，多人时自动选取最大人脸"
+    },
+    {
+      "name": "demo_cae3ab4bfdb2",
+      "value": "选择照片"
+    },
+    {
+      "name": "demo_2d1911c6a83f",
+      "value": "选择要验证的 Face ID"
+    },
+    {
+      "name": "demo_ea57d6f93b17",
+      "value": "选择要验证的身份"
+    },
+    {
+      "name": "demo_1e9f2561b7cf",
+      "value": "通过"
+    },
+    {
+      "name": "demo_95e301a7eeb0",
+      "value": "配置无效"
+    },
+    {
+      "name": "demo_e70cc1b879db",
+      "value": "采集正脸并保存特征"
+    },
+    {
+      "name": "demo_d8d9ff6c9367",
+      "value": "重拍"
+    },
+    {
+      "name": "demo_e99e632a128c",
+      "value": "重新采集"
+    },
+    {
+      "name": "demo_cb5d682bac3d",
+      "value": "重置"
+    },
+    {
+      "name": "demo_b8784c8dd563",
+      "value": "重试"
+    },
+    {
+      "name": "demo_c41c08b5ed5b",
+      "value": "镜头视野"
+    },
+    {
+      "name": "demo_f9c90077a853",
+      "value": "门限 %.2f"
+    },
+    {
+      "name": "demo_7964bd7d5499",
+      "value": "间隔结束后自动继续"
+    },
+    {
+      "name": "demo_f5b737d94ec9",
+      "value": "随机动作挑战与双模型静默检测"
+    },
+    {
+      "name": "demo_5236dff12b76",
+      "value": "需要正脸才能生成可复用的验证基准"
+    },
+    {
+      "name": "demo_9e32f6415f22",
+      "value": "需要相机权限才能使用人脸检测"
+    },
+    {
+      "name": "demo_c63b22318b0c",
+      "value": "需要相机权限才能运行实时人脸 Demo"
+    },
+    {
+      "name": "demo_0d403e37bcbe",
+      "value": "需重选"
+    },
+    {
+      "name": "demo_fdc5f5e2a510",
+      "value": "静态人脸 1:1 对比"
+    },
+    {
+      "name": "demo_21e29039e257",
+      "value": "静态人脸比对"
+    },
+    {
+      "name": "demo_e61fd71a19f7",
+      "value": "非同一人"
+    },
+    {
+      "name": "demo_dff28256e05f",
+      "value": "面向镜头，入镜后自动识别"
+    },
+    {
+      "name": "demo_c9856fa210d5",
+      "value": "页面已停止工作，请返回后重新进入。"
+    },
+    {
+      "name": "demo_a7591e153055",
+      "value": "预览 Surface 尚未就绪"
+    },
+    {
+      "name": "demo_ed067adebdbb",
+      "value": "预览 {0}×{1}；确认后替换基准"
+    },
+    {
+      "name": "demo_50eb4641d268",
+      "value": "验证 {0}"
+    },
+    {
+      "name": "demo_7393dc3eb9b9",
+      "value": "验证未通过：{0}，相似度 {1}"
+    },
+    {
+      "name": "demo_df8104b0d97b",
+      "value": "验证未通过：不是同一个人"
+    },
+    {
+      "name": "demo_9abe4b065045",
+      "value": "验证通过：{0}，相似度 {1}"
+    },
+    {
+      "name": "demo_b1c27820fec2",
+      "value": "高"
+    },
+    {
+      "name": "demo_fdd558317870",
+      "value": "高分辨率 · 约 1280 × 720"
+    },
+    {
+      "name": "demo_40ab0013082f",
+      "value": "高清"
+    },
+    {
+      "name": "demo_7b5404e5d5f6",
+      "value": "高清 · 接近 1280×720"
+    },
+    {
+      "name": "demo_52d3d4e94ad3",
+      "value": "高清自动选择兼容尺寸，失败时回退默认档位。"
+    },
+    {
+      "name": "demo_e626c694c55c",
+      "value": "高清（接近 1280×720）"
+    },
+    {
+      "name": "demo_dfbb25e818e3",
+      "value": "默认 · 640 × 480"
+    },
+    {
+      "name": "demo_9159e93924f3",
+      "value": "默认关闭；标记与预览左右相反时开启，不改变画面。"
+    },
+    {
+      "name": "demo_e6c4ca7b86f3",
+      "value": "默认更省性能；高清适合较远人脸。"
+    },
+    {
+      "name": "demo_bb0aa5fa3e4f",
+      "value": "（应用节流）"
+    }
+  ]
+}

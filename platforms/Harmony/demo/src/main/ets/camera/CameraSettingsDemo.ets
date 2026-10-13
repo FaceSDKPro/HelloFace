@@ -1,3 +1,4 @@
+import { DemoL10n } from '../ui/DemoL10n';
 import { DemoTheme } from '../ui/DemoTheme';
 import { DemoPageHeader } from '../ui/DemoPageHeader';
 import { common } from '@kit.AbilityKit';
@@ -10,7 +11,7 @@ export struct CameraSettingsDemo {
   @State private highResolution: boolean = false;
   @State private mirrorCoordinates: boolean = false;
   @State private loading: boolean = true;
-  @State private saveState: string = '正在读取设置…';
+  @State private saveState: string = DemoL10n.text("正在读取设置…");
   private visible: boolean = false;
   private lifecycleGeneration: number = 0;
   private savePending: boolean = false;
@@ -20,7 +21,7 @@ export struct CameraSettingsDemo {
   aboutToAppear(): void {
     this.visible = true;
     this.loading = true;
-    this.saveState = '正在读取设置…';
+    this.saveState = DemoL10n.text("正在读取设置…");
     const generation: number = ++this.lifecycleGeneration;
     this.loadSettings(generation);
   }
@@ -32,23 +33,23 @@ export struct CameraSettingsDemo {
 
   build() {
     Column() {
-      DemoPageHeader({ title: '摄像头参数设置', onBack: (): void => this.onExit() })
+      DemoPageHeader({ title: DemoL10n.text("摄像头参数设置"), onBack: (): void => this.onExit() })
 
       Scroll() {
         Column({ space: 18 }) {
           Column({ space: 12 }) {
-            Text('分析分辨率')
+            Text(DemoL10n.text("分析分辨率"))
               .fontSize(17)
               .fontColor(DemoTheme.contentText)
               .fontWeight(FontWeight.Bold)
               .width('100%')
-            Text('标准档更省电，高清档保留更多远距离人脸细节。设备不支持目标规格时自动选择最接近且不超过 1080p 的 YUV420 规格。')
+            Text(DemoL10n.text("标准更省电；高清保留远处细节，自动选择 1080p 内兼容规格。"))
               .fontSize(13)
               .lineHeight(20)
               .fontColor(DemoTheme.contentSecondary)
               .width('100%')
-            this.ResolutionOption('standard', '标准 · 接近 640×480', false)
-            this.ResolutionOption('high', '高清 · 接近 1280×720', true)
+            this.ResolutionOption('standard', DemoL10n.text("标准 · 接近 640×480"), false)
+            this.ResolutionOption('high', DemoL10n.text("高清 · 接近 1280×720"), true)
           }
           .padding(20)
           .backgroundColor('#FFFFFF')
@@ -57,11 +58,11 @@ export struct CameraSettingsDemo {
 
           Row({ space: 14 }) {
             Column({ space: 5 }) {
-              Text('坐标镜像校正')
+              Text(DemoL10n.text("坐标镜像校正"))
                 .fontSize(17)
                 .fontColor(DemoTheme.contentText)
                 .fontWeight(FontWeight.Bold)
-              Text('校正人脸标记和采集确认图的显示镜像，不改变识别结果。用于预览镜像方向相反的设备。')
+              Text(DemoL10n.text("标记与预览左右相反时开启，不影响识别。"))
                 .fontSize(13)
                 .lineHeight(20)
                 .fontColor(DemoTheme.contentSecondary)
@@ -80,7 +81,7 @@ export struct CameraSettingsDemo {
 
           Text(this.saveState)
             .fontSize(13)
-            .fontColor(this.saveState.includes('失败') ? DemoTheme.contentError : DemoTheme.contentAccent)
+            .fontColor(this.saveState.includes(DemoL10n.text("失败")) ? DemoTheme.contentError : DemoTheme.contentAccent)
             .textAlign(TextAlign.Center)
             .width('100%')
         }
@@ -126,10 +127,10 @@ export struct CameraSettingsDemo {
       }
       this.highResolution = settings.highResolution;
       this.mirrorCoordinates = settings.mirrorCoordinates;
-      this.saveState = `已加载 · ${settings.resolutionLabel()} · 坐标校正${settings.mirrorCoordinates ? '开' : '关'}`;
+      this.saveState = DemoL10n.text("已加载 · {0} · 坐标校正{1}", [String(settings.resolutionLabel()), String(settings.mirrorCoordinates ? DemoL10n.text("开") : DemoL10n.text("关"))]);
     } catch (error) {
       if (this.visible && generation === this.lifecycleGeneration) {
-        this.saveState = `读取失败，使用默认设置：${error}`;
+        this.saveState = DemoL10n.text("读取失败，使用默认设置：{0}", [String(error)]);
       }
     } finally {
       if (this.visible && generation === this.lifecycleGeneration) {
@@ -156,7 +157,7 @@ export struct CameraSettingsDemo {
 
   private requestSave(): void {
     this.savePending = true;
-    this.saveState = '正在保存…';
+    this.saveState = DemoL10n.text("正在保存…");
     if (!this.saving) {
       const task: Promise<void> = this.persistPendingSettings();
       this.saveTask = task;
@@ -164,7 +165,7 @@ export struct CameraSettingsDemo {
         this.saving = false;
         this.clearSaveTask(task);
         if (this.visible) {
-          this.saveState = `保存失败：${error}`;
+          this.saveState = DemoL10n.text("保存失败：{0}", [String(error)]);
         }
       });
     }
@@ -185,7 +186,7 @@ export struct CameraSettingsDemo {
       this.savePending = false;
       this.saving = false;
       if (this.visible) {
-        this.saveState = `保存失败：${error}`;
+        this.saveState = DemoL10n.text("保存失败：{0}", [String(error)]);
       }
       return;
     }
@@ -195,11 +196,11 @@ export struct CameraSettingsDemo {
       try {
         await CameraDemoSettingsStore.save(context, settings);
         if (this.visible) {
-          this.saveState = `已保存 · ${settings.resolutionLabel()} · 坐标校正${settings.mirrorCoordinates ? '开' : '关'}`;
+          this.saveState = DemoL10n.text("已保存 · {0} · 坐标校正{1}", [String(settings.resolutionLabel()), String(settings.mirrorCoordinates ? DemoL10n.text("开") : DemoL10n.text("关"))]);
         }
       } catch (error) {
         if (this.visible) {
-          this.saveState = `保存失败：${error}`;
+          this.saveState = DemoL10n.text("保存失败：{0}", [String(error)]);
         }
       }
     }

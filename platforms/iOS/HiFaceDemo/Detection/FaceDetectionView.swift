@@ -24,7 +24,7 @@ struct FaceDetectionView: View {
                         if model.needsCameraSettings {
                             CameraSettingsLink()
                         } else {
-                            Button("重试") { model.restartFlow() }
+                            Button(DemoL10n.text("重试")) { model.restartFlow() }
                                 .buttonStyle(.borderedProminent)
                         }
                     }

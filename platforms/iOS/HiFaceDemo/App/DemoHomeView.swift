@@ -1,4 +1,6 @@
 import SwiftUI
+import UIKit
+import Darwin
 
 struct DemoHomeView: View {
     @State private var showsAbout = false
@@ -10,7 +12,7 @@ struct DemoHomeView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("HiFace SDK").font(.title2.weight(.bold))
-                            Text("离线｜数据安全｜高效")
+                            Text(DemoL10n.text("离线｜数据安全｜高效"))
                                 .font(.caption)
                                 .foregroundStyle(.white.opacity(0.75))
                         }
@@ -21,28 +23,31 @@ struct DemoHomeView: View {
                                 .frame(width: 44, height: 44)
                                 .background(.white.opacity(0.15), in: Circle())
                         }
-                        .accessibilityLabel("关于 HiFace SDK Demo")
+                        .accessibilityLabel(DemoL10n.text("关于 HiFace SDK Demo"))
                     }
-                    Text("选择一项能力开始体验")
+                    Text(DemoDeviceInfo.summary)
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.75))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 22)
                         .padding(.bottom, 12)
                     VStack(spacing: 11) {
                         ForEach(CameraDemoMode.allCases) { mode in
                             NavigationLink(destination: LazyDestination { CameraDemoView(mode: mode) }) {
-                                DemoCard(title: mode.rawValue, subtitle: mode.subtitle, icon: mode.icon)
+                                DemoCard(title: mode.title, subtitle: mode.subtitle, icon: mode.icon)
+                                    .accessibilityIdentifier("demo.feature.\(mode.id)")
                             }
                         }
                         NavigationLink(destination: LazyDestination { StaticFaceComparisonView() }) {
-                            DemoCard(title: "静态人脸 1:1 对比", subtitle: "比较两张静态图片中的人脸", icon: "photo.on.rectangle.angled")
+                            DemoCard(title: DemoL10n.text("静态人脸 1:1 对比"), subtitle: DemoL10n.text("比对两张图片中的人脸"), icon: "photo.on.rectangle.angled")
                         }
                         NavigationLink(destination: LazyDestination { CameraSettingsView() }) {
-                            DemoCard(title: "摄像头参数设置", subtitle: "设置分析分辨率与坐标镜像", icon: "slider.horizontal.3")
+                            DemoCard(title: DemoL10n.text("摄像头参数设置"), subtitle: DemoL10n.text("设置分析分辨率与坐标镜像"), icon: "slider.horizontal.3")
                         }
                     }
                     .buttonStyle(HomeFeatureButtonStyle())
-                    Button("关于 HiFace SDK Demo") { showsAbout = true }
+                    Button(DemoL10n.text("关于 HiFace SDK Demo")) { showsAbout = true }
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.75))
                         .frame(maxWidth: .infinity, minHeight: 44)
@@ -58,15 +63,43 @@ struct DemoHomeView: View {
             .navigationBarHidden(true)
             .demoDialog(isPresented: showsAbout, onDismiss: { showsAbout = false }) {
                 CameraDialogTitle(
-                    title: "关于 HiFace SDK Demo",
-                    subtitle: "更新以及更多说明：https://github.com/FaceSDKPro/",
+                    title: DemoL10n.text("关于 HiFace SDK Demo"),
+                    subtitle: DemoL10n.text("更新以及更多说明：https://github.com/FaceSDKPro/"),
                     symbol: "info.circle"
                 )
-                Button("知道了") { showsAbout = false }
+                Button(DemoL10n.text("知道了")) { showsAbout = false }
             }
             .preferredColorScheme(.dark)
         }
         .navigationViewStyle(.stack)
+    }
+}
+
+/// 设备诊断信息仅用于 Demo 主页；硬件型号是 Android Board 的近似字段。
+@MainActor
+private enum DemoDeviceInfo {
+    static let summary: String = {
+        #if targetEnvironment(simulator)
+        let model = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"]
+            ?? hardwareValue("hw.machine", fallback: UIDevice.current.model)
+        #else
+        let model = hardwareValue("hw.machine", fallback: UIDevice.current.model)
+        #endif
+        return DemoL10n.text("Release：{0}｜Model：{1}｜Board：{2}", [
+            UIDevice.current.systemVersion, model, hardwareValue("hw.model", fallback: "-")
+        ])
+    }()
+
+    private static func hardwareValue(_ name: String, fallback: String) -> String {
+        var size = 0
+        guard sysctlbyname(name, nil, &size, nil, 0) == 0, size > 0 else { return fallback }
+        var buffer = [CChar](repeating: 0, count: size)
+        let result = buffer.withUnsafeMutableBufferPointer {
+            sysctlbyname(name, $0.baseAddress, &size, nil, 0)
+        }
+        guard result == 0, let end = buffer.firstIndex(of: 0) else { return fallback }
+        let value = String(decoding: buffer[..<end].map { UInt8(bitPattern: $0) }, as: UTF8.self)
+        return value.isEmpty ? fallback : value
     }
 }
 

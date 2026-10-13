@@ -11,7 +11,7 @@ struct FaceCaptureResult: Sendable {
     let alignedFace: HiFaceRGBAImage?
 }
 struct HiFaceError: Error { let message: String }
-enum DemoErrorPresentation { static func message(for error: HiFaceError) -> String { error.message } }
+enum DemoErrorPresentation { static func message(for error: Error) -> String { (error as? HiFaceError)?.message ?? error.localizedDescription } }
 
 actor ComparisonWork {
     private var captures: [String: CheckedContinuation<Result<FaceCaptureResult, HiFaceError>, Never>] = [:]

@@ -1,3 +1,4 @@
+import { DemoL10n } from '../ui/DemoL10n';
 import { FaceSearchBounds, FaceSearchEndReason, FaceSearchFace, FaceSearchFrame,
   FaceSearchResult } from 'hiface';
 
@@ -55,13 +56,13 @@ class HeldSearchScore {
       '#A4B4C9' : matched ? '#28DC64' : this.face.similarity === undefined ? '#A4B4C9' : '#FF3C3C';
     // 只有实际查库评分才能判定未匹配，低分仍保留在 SDK 结果中。
     const identity: string = matched ? this.face.faceId! :
-      this.face.similarity !== undefined ? '未匹配' : '';
+      this.face.similarity !== undefined ? DemoL10n.text("未匹配") : '';
     const label: string = this.spoofRejected ?
-      (identity.length === 0 ? '活体未通过' : `${identity} · 活体未通过`) : identity;
+      (identity.length === 0 ? DemoL10n.text("活体未通过") : DemoL10n.text("{0} · 活体未通过", [String(identity)])) : identity;
     const similarity: string = matched && this.face.similarity !== undefined ?
-      `相似度 ${this.face.similarity.toFixed(3)}` : '';
+      DemoL10n.text("相似度 {0}", [String(this.face.similarity.toFixed(3))]) : '';
     const liveness: string = this.livenessScore !== undefined ?
-      `活体 ${this.livenessScore.toFixed(3)}` : '';
+      DemoL10n.text("活体 {0}", [String(this.livenessScore.toFixed(3))]) : '';
     const details: string = similarity.length === 0 ? liveness : liveness.length === 0 ?
       similarity : `${similarity} · ${liveness}`;
     return new FaceSearchOverlayVisual(color, label, details);

@@ -1,3 +1,4 @@
+import { DemoL10n } from '../ui/DemoL10n';
 import { camera } from '@kit.CameraKit';
 import { Yuv420Frame } from 'hiface';
 
@@ -23,7 +24,7 @@ export class CameraProfileSelector {
       if (!valid.some((item: camera.Profile): boolean =>
         item.size.width === width && item.size.height === height)) valid.push(profile);
     }
-    if (valid.length === 0) throw new Error('没有符合 1080p 上限的 YUV_420_SP 预览规格');
+    if (valid.length === 0) throw new Error(DemoL10n.text("没有符合 1080p 上限的 YUV_420_SP 预览规格"));
     const score = (profile: camera.Profile, width: number, height: number): number =>
       Math.abs(profile.size.width * profile.size.height - width * height) +
         Math.abs(profile.size.width / profile.size.height - width / height) * 100000;

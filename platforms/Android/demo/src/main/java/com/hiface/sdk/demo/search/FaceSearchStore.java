@@ -90,6 +90,9 @@ final class FaceSearchStore implements AutoCloseable {
     /** 使旧任务失效：跳过尚未开始的工作并抑制结果回调；已提交的数据库批次保持有效。 */
     static final class Request<T> {
         private volatile boolean cancelled;
+        private volatile boolean stopRequested;
+        private volatile int savedCount;
+        private final boolean importOperation;
         private boolean finished;
         private Task<T> task;
         private Callback<T> callback;
@@ -102,16 +105,31 @@ final class FaceSearchStore implements AutoCloseable {
         private boolean downloadsStopped;
         private final List<HttpURLConnection> connections = new ArrayList<>();
 
-        Request() { main = null; }
+        Request() { main = null; importOperation = false; }
 
         private Request(Task<T> task, Callback<T> callback, ProgressCallback progress,
-                Dispatcher main, Set<Request<?>> owner) {
+                Dispatcher main, Set<Request<?>> owner, boolean importOperation) {
             this.task = task;
             this.callback = callback;
             this.progress = progress;
             this.main = main;
             this.owner = owner;
+            this.importOperation = importOperation;
         }
+
+        /** 停止新输入但保留完成回调，让导入线程保存已提取的尾批。 */
+        @MainThread
+        void stop() {
+            stopRequested = true;
+            synchronized (this) {
+                if (connections.isEmpty()) { downloadsStopped = true; return; }
+                if (downloadsStopped) return;
+                downloadsStopped = true;
+            }
+            new Thread(this::stopDownloads, "HiFaceDemo-StopDownload").start();
+        }
+
+        int savedCount() { return savedCount; }
 
         /** 取消后续工作及待交付回调；已经执行的 SQL 或图片推理自然结束。 */
         @MainThread
@@ -147,8 +165,13 @@ final class FaceSearchStore implements AutoCloseable {
 
         /** 主线程慢时只保留最新进度，不把 1000 张图片的 UI 回调逐条积压。 */
         synchronized void postProgress(int processed, int total) {
+            postProgress(processed, total, savedCount, 0);
+        }
+
+        synchronized void postProgress(int processed, int total, int imported, int failed) {
+            savedCount = imported;
             if (cancelled || finished || progress == null) return;
-            pendingProgress = new ImportProgress(processed, total);
+            pendingProgress = new ImportProgress(processed, total, imported, failed);
             if (progressPosted) return;
             progressPosted = true;
             if (!main.post(this, this::deliverProgress)) cancel();
@@ -183,7 +206,7 @@ final class FaceSearchStore implements AutoCloseable {
         }
 
         synchronized boolean trackDownload(HttpURLConnection connection) {
-            if (cancelled || downloadsStopped) return false;
+            if (cancelled || stopRequested || downloadsStopped) return false;
             connections.add(connection);
             return true;
         }
@@ -231,10 +254,14 @@ final class FaceSearchStore implements AutoCloseable {
     static final class ImportProgress {
         final int processed;
         final int total;
+        final int imported;
+        final int failed;
 
-        ImportProgress(int processed, int total) {
+        ImportProgress(int processed, int total, int imported, int failed) {
             this.processed = processed;
             this.total = total;
+            this.imported = imported;
+            this.failed = failed;
         }
     }
 
@@ -242,10 +269,16 @@ final class FaceSearchStore implements AutoCloseable {
     static final class ImportSummary {
         final int imported;
         final int failed;
+        final boolean stopped;
 
         ImportSummary(int imported, int failed) {
+            this(imported, failed, false);
+        }
+
+        ImportSummary(int imported, int failed, boolean stopped) {
             this.imported = imported;
             this.failed = failed;
+            this.stopped = stopped;
         }
     }
 
@@ -351,14 +384,14 @@ final class FaceSearchStore implements AutoCloseable {
     /** 从 APK 内置 JSON 流式读取 HF1 文本，每 1000 条原子写入一次。 */
     @MainThread
     Request<ImportSummary> importFeatureDemo(ProgressCallback progress, Callback<ImportSummary> callback) {
-        return execute(this::importFeatureJson, callback, progress);
+        return execute(this::importFeatureJson, callback, progress, true);
     }
 
     /** 按内置清单逐张下载图片并同步提取特征，任何时刻只持有一张 Bitmap。 */
     @MainThread
     Request<ImportSummary> importImageDemo(FaceCaptureApi capture, ProgressCallback progress,
             Callback<ImportSummary> callback) {
-        return execute((db, request) -> importImageJson(db, capture, request), callback, progress);
+        return execute((db, request) -> importImageJson(db, capture, request), callback, progress, true);
     }
 
     /** 将本次采集的 HF1 文本排入数据库线程；布尔值只表示页面是否已经确认覆盖重复 ID。 */
@@ -416,6 +449,7 @@ final class FaceSearchStore implements AutoCloseable {
 
     private HiFaceResult<ImportSummary> importFeatureJson(FaceSearchDatabase db,
             Request<?> request) {
+        if (request.stopRequested) return HiFaceResult.success(new ImportSummary(0, 0, true));
         if (assets == null) {
             return HiFaceResult.failure(HiFaceErrorCode.INTERNAL_ERROR, "Demo assets unavailable");
         }
@@ -452,6 +486,7 @@ final class FaceSearchStore implements AutoCloseable {
                     if (request.cancelled) {
                         return cancelledImport();
                     }
+                    if (request.stopRequested) return finishImport(db, request, batch, imported, 0, imported + batch.size(), FEATURE_DEMO_COUNT, true);
                     batch.add(readFeatureEntry(reader));
                     if (batch.size() == WRITE_BATCH_SIZE) {
                         if (request.cancelled) {
@@ -463,7 +498,7 @@ final class FaceSearchStore implements AutoCloseable {
                         }
                         imported += batch.size();
                         batch.clear();
-                        request.postProgress(imported, FEATURE_DEMO_COUNT);
+                        request.postProgress(imported, FEATURE_DEMO_COUNT, imported, 0);
                     }
                 }
                 reader.endArray();
@@ -481,12 +516,12 @@ final class FaceSearchStore implements AutoCloseable {
                     return HiFaceResult.failure(saved.requireError());
                 }
                 imported += batch.size();
-                request.postProgress(imported, FEATURE_DEMO_COUNT);
+                request.postProgress(imported, FEATURE_DEMO_COUNT, imported, 0);
             }
             if (imported != FEATURE_DEMO_COUNT) {
                 return invalidImport("Feature JSON entry count does not match its header");
             }
-            return HiFaceResult.success(new ImportSummary(imported, 0));
+            return HiFaceResult.success(new ImportSummary(imported, 0, request.stopRequested && imported < FEATURE_DEMO_COUNT));
         } catch (IOException | IllegalStateException | IllegalArgumentException error) {
             return HiFaceResult.failure(HiFaceErrorCode.INVALID_ARGUMENT,
                     "Invalid bundled feature JSON", error);
@@ -495,6 +530,7 @@ final class FaceSearchStore implements AutoCloseable {
 
     private HiFaceResult<ImportSummary> importImageJson(FaceSearchDatabase db,
             FaceCaptureApi capture, Request<?> request) {
+        if (request.stopRequested) return HiFaceResult.success(new ImportSummary(0, 0, true));
         if (assets == null) {
             return HiFaceResult.failure(HiFaceErrorCode.INTERNAL_ERROR, "Demo assets unavailable");
         }
@@ -535,6 +571,7 @@ final class FaceSearchStore implements AutoCloseable {
                     if (request.cancelled) {
                         return cancelledImport();
                     }
+                    if (request.stopRequested) return finishImport(db, request, batch, imported, failed, processed, IMAGE_DEMO_COUNT, true);
                     DownloadedImage downloaded;
                     try {
                         // 定时检查取消，不能等慢下载超时后才允许页面重新读库。
@@ -551,6 +588,7 @@ final class FaceSearchStore implements AutoCloseable {
                     if (request.cancelled) {
                         return cancelledImport();
                     }
+                    if (request.stopRequested) return finishImport(db, request, batch, imported, failed, processed, IMAGE_DEMO_COUNT, true);
                     // 按完成顺序消费，并在解码前补位，避免慢请求阻塞后续图片。
                     pending = prefetchImages(reader, completed, pending - 1, request);
                     ImageEntry entry = downloaded.entry;
@@ -560,7 +598,7 @@ final class FaceSearchStore implements AutoCloseable {
                         Log.w(TAG, "Unable to download " + entry.faceId, downloaded.error);
                         // 每张结束立即更新；最后一张在尾批写库完成后报告，避免重复终值。
                         if (processed < IMAGE_DEMO_COUNT) {
-                            request.postProgress(processed, IMAGE_DEMO_COUNT);
+                            request.postProgress(processed, IMAGE_DEMO_COUNT, imported, failed);
                         }
                         continue;
                     }
@@ -570,6 +608,7 @@ final class FaceSearchStore implements AutoCloseable {
                     Bitmap bitmap = null;
                     try {
                         bitmap = decodeBitmap(downloaded.encoded);
+                        if (request.stopRequested) return finishImport(db, request, batch, imported, failed, processed, IMAGE_DEMO_COUNT, true);
                         HiFaceResult<String> feature = capture.extractFeatureBlocking(bitmap);
                         if (request.cancelled) {
                             return cancelledImport();
@@ -591,6 +630,8 @@ final class FaceSearchStore implements AutoCloseable {
                         }
                     }
                     processed++;
+                    if (request.stopRequested) return finishImport(db, request, batch,
+                            imported, failed, processed, IMAGE_DEMO_COUNT, true);
                     if (batch.size() >= IMAGE_WRITE_BATCH_SIZE) {
                         if (request.cancelled) {
                             return cancelledImport();
@@ -603,7 +644,7 @@ final class FaceSearchStore implements AutoCloseable {
                         batch.clear();
                     }
                     if (processed < IMAGE_DEMO_COUNT) {
-                        request.postProgress(processed, IMAGE_DEMO_COUNT);
+                        request.postProgress(processed, IMAGE_DEMO_COUNT, imported, failed);
                     }
                 }
                 reader.endArray();
@@ -625,8 +666,8 @@ final class FaceSearchStore implements AutoCloseable {
             if (processed != IMAGE_DEMO_COUNT) {
                 return invalidImport("Image JSON entry count does not match its header");
             }
-            request.postProgress(processed, IMAGE_DEMO_COUNT);
-            return HiFaceResult.success(new ImportSummary(imported, failed));
+            request.postProgress(processed, IMAGE_DEMO_COUNT, imported, failed);
+            return HiFaceResult.success(new ImportSummary(imported, failed, request.stopRequested && processed < IMAGE_DEMO_COUNT));
         } catch (IOException | IllegalStateException | IllegalArgumentException error) {
             return HiFaceResult.failure(HiFaceErrorCode.INVALID_ARGUMENT,
                     "Invalid bundled image JSON", error);
@@ -636,10 +677,25 @@ final class FaceSearchStore implements AutoCloseable {
         }
     }
 
+    /** 保存停止前已完成的结果；写库失败仍报告原有已提交数量。 */
+    static HiFaceResult<ImportSummary> finishImport(FaceSearchDatabase db, Request<?> request,
+            List<FaceSearchFeatureEntry> batch, int imported, int failed, int processed,
+            int total, boolean stopped) {
+        if (request.cancelled) return cancelledImport();
+        if (!batch.isEmpty()) {
+            HiFaceResult<Boolean> saved = db.saveFeatures(batch);
+            if (saved.isFailure()) return HiFaceResult.failure(saved.requireError());
+            imported += batch.size();
+            batch.clear();
+        }
+        request.postProgress(processed, total, imported, failed);
+        return HiFaceResult.success(new ImportSummary(imported, failed, stopped && processed < total));
+    }
+
     private static int prefetchImages(JsonReader reader,
             CompletionService<DownloadedImage> downloads, int pending,
             Request<?> request) throws IOException {
-        while (!request.cancelled && pending < IMAGE_PREFETCH_COUNT && reader.hasNext()) {
+        while (!request.cancelled && !request.stopRequested && pending < IMAGE_PREFETCH_COUNT && reader.hasNext()) {
             ImageEntry entry = readImageEntry(reader);
             downloads.submit(() -> {
                 try {
@@ -805,7 +861,12 @@ final class FaceSearchStore implements AutoCloseable {
 
     @MainThread
     private <T> Request<T> execute(Task<T> task, Callback<T> callback, ProgressCallback progress) {
-        Request<T> request = new Request<>(task, callback, progress, main, requests);
+        return execute(task, callback, progress, false);
+    }
+
+    private <T> Request<T> execute(Task<T> task, Callback<T> callback, ProgressCallback progress,
+            boolean importOperation) {
+        Request<T> request = new Request<>(task, callback, progress, main, requests, importOperation);
         if (closed) {
             request.cancel();
             return request;
@@ -813,7 +874,18 @@ final class FaceSearchStore implements AutoCloseable {
         requests.add(request);
         worker.execute(() -> {
             Task<T> work = request.takeTask();
-            if (work == null || closed || request.cancelled) {
+            if (work != null && request.importOperation && request.stopRequested) {
+                request.complete(work.run(null, request));
+                return;
+            }
+            if (work == null || request.cancelled) {
+                return;
+            }
+            if (closed) {
+                if (request.importOperation) {
+                    request.stop();
+                    request.complete(work.run(null, request));
+                }
                 return;
             }
             HiFaceError error = null;
@@ -823,7 +895,14 @@ final class FaceSearchStore implements AutoCloseable {
                 else error = opened.requireError();
             }
             // 开库也可能耗时，返回后再次校验，避免离开页面后执行排队的删除。
-            if (closed || request.cancelled) return;
+            if (request.cancelled) return;
+            if (closed || request.stopRequested) {
+                if (request.importOperation) {
+                    request.stop();
+                    request.complete(work.run(null, request));
+                }
+                return;
+            }
             HiFaceResult<T> result = error == null
                     ? work.run(database, request) : HiFaceResult.failure(error);
             request.complete(result);
@@ -831,7 +910,7 @@ final class FaceSearchStore implements AutoCloseable {
         return request;
     }
 
-    /** 已进入数据库的操作先结束；尚未开始的任务和已排队的界面回调失效。 */
+    /** 导入停止新输入并保存尾批，再关库；其他未开始的任务及界面回调失效。 */
     @MainThread
     @Override
     public void close() {
@@ -841,7 +920,9 @@ final class FaceSearchStore implements AutoCloseable {
         closed = true;
         List<Request<?>> pending;
         synchronized (requests) { pending = new ArrayList<>(requests); }
-        for (Request<?> request : pending) request.cancel();
+        for (Request<?> request : pending) {
+            if (request.importOperation) request.stop(); else request.cancel();
+        }
         worker.execute(() -> {
             if (database != null) {
                 try { database.close(); }

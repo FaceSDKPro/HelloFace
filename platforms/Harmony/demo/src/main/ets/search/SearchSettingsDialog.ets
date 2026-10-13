@@ -1,3 +1,4 @@
+import { DemoL10n } from '../ui/DemoL10n';
 import { FaceSearchSessionConfig, FaceSearchMode } from 'hiface';
 import { DemoTheme } from '../ui/DemoTheme';
 import { createDemoFaceSearchConfig, DEMO_SUCCESS_INTERVAL_MILLIS } from './DemoFaceSearchConfig';
@@ -28,51 +29,51 @@ export struct SearchSettingsDialog {
     Stack() {
       Column().width('100%').height('100%').backgroundColor('#99000000').onClick(() => {})
       Column({ space: 16 }) {
-        Text('搜索设置').fontSize(20).fontWeight(FontWeight.Medium).fontColor('#FFFFFF').width('100%')
+        Text(DemoL10n.text("搜索设置")).fontSize(20).fontWeight(FontWeight.Medium).fontColor('#FFFFFF').width('100%')
           .padding({ left: 24, right: 24, top: 24 })
         Scroll() {
           Column({ space: 12 }) {
-            this.SectionTitle('搜索模式')
+            this.SectionTitle(DemoL10n.text("搜索模式"))
             Row() {
-              this.SearchModeButton('单人 1:N', FaceSearchMode.SINGLE_FACE)
-              this.SearchModeButton('多人 M:N', FaceSearchMode.MULTI_FACE)
+              this.SearchModeButton(DemoL10n.text("单人 1:N"), FaceSearchMode.SINGLE_FACE)
+              this.SearchModeButton(DemoL10n.text("多人 M:N"), FaceSearchMode.MULTI_FACE)
             }.width('100%')
             Text(this.draftSearchMode === FaceSearchMode.SINGLE_FACE ?
-              '识别最大的人脸；默认开启静默活体。' : '同时搜索多张人脸，不检测头部姿态与活体。')
+              DemoL10n.text("识别最大的人脸；默认开启静默活体。") : DemoL10n.text("搜索多人，不检测头姿与活体。"))
               .fontSize(12).fontColor(DemoTheme.textOnDarkSecondary).width('100%')
             Row() {
-              Text('活体检测').fontSize(14).fontColor('#FFFFFF').layoutWeight(1)
+              Text(DemoL10n.text("活体检测")).fontSize(14).fontColor('#FFFFFF').layoutWeight(1)
               Toggle({ type: ToggleType.Switch, isOn: this.draftSearchLiveness })
                 .enabled(this.draftSearchMode === FaceSearchMode.SINGLE_FACE).selectedColor(DemoTheme.searchAccent)
                 .onChange((value: boolean) => { this.draftSearchLiveness = value; })
             }.width('100%').height(48)
               .opacity(this.draftSearchMode === FaceSearchMode.SINGLE_FACE ? 1 : 0.45)
             Text(this.draftSearchMode === FaceSearchMode.SINGLE_FACE ?
-              '1:N 默认开启，可手动关闭。' : '活体检测仅适用于 1:N 模式。')
+              DemoL10n.text("1:N 默认开启，可手动关闭。") : DemoL10n.text("活体检测仅适用于 1:N 模式。"))
               .fontSize(12).fontColor(DemoTheme.textOnDarkSecondary).width('100%')
             if (this.draftSearchMode === FaceSearchMode.MULTI_FACE) {
-              this.SearchField('每次最多处理人数', this.draftMaxFacesText, '1–5 人，默认 3 人。',
+              this.SearchField(DemoL10n.text("每次最多处理人数"), this.draftMaxFacesText, DemoL10n.text("1–5 人，默认 3 人。"),
                 (value: string): void => { this.draftMaxFacesText = value; })
             }
-            this.SectionTitle('搜索范围')
-            Text('填写分组只搜索该组，留空搜索全部。').fontSize(12)
+            this.SectionTitle(DemoL10n.text("搜索范围"))
+            Text(DemoL10n.text("指定分组；留空搜索全部。")).fontSize(12)
               .fontColor(DemoTheme.textOnDarkSecondary).width('100%')
-            TextInput({ text: this.draftSearchGroup, placeholder: '例如 1A' })
+            TextInput({ text: this.draftSearchGroup, placeholder: DemoL10n.text("例如 1A") })
               .height(52).fontSize(14).fontColor('#FFFFFF').backgroundColor('#243247').borderRadius(12)
               .placeholderColor(DemoTheme.textOnDarkSecondary)
               .onChange((value: string) => { this.draftSearchGroup = value; })
-            this.SectionTitle('识别参数')
-            this.SearchField('相似度阈值', this.draftThresholdText,
-              '0.75–0.85，数值越高，匹配要求越严格。',
+            this.SectionTitle(DemoL10n.text("识别参数"))
+            this.SearchField(DemoL10n.text("相似度阈值"), this.draftThresholdText,
+              DemoL10n.text("0.75–0.85，数值越高，匹配要求越严格。"),
               (value: string): void => { this.draftThresholdText = value; })
-            Button(this.searchAdvancedVisible ? '收起高级参数' : '更多参数：间隔与超时').height(48).fontSize(12)
+            Button(this.searchAdvancedVisible ? DemoL10n.text("收起高级参数") : DemoL10n.text("更多参数：间隔与超时")).height(48).fontSize(12)
               .fontColor(DemoTheme.searchAccent).backgroundColor(Color.Transparent)
               .onClick(() => { this.searchAdvancedVisible = !this.searchAdvancedVisible; })
             if (this.searchAdvancedVisible) {
-              this.SearchField('成功后的间隔', this.draftIntervalText,
-                '0–3000 毫秒，默认 0；0 表示匹配成功后立即继续；不控制相机帧率。',
+              this.SearchField(DemoL10n.text("成功后的间隔"), this.draftIntervalText,
+                DemoL10n.text("0–3000 毫秒，默认 0；匹配成功后等待，不控制帧率。"),
                 (value: string): void => { this.draftIntervalText = value; })
-              this.SearchField('每轮搜索超时', this.draftTimeoutText, '1000–3000 毫秒；到期后自动开始下一轮。',
+              this.SearchField(DemoL10n.text("每轮搜索超时"), this.draftTimeoutText, DemoL10n.text("1000–3000 毫秒；超时后开始下一轮。"),
                 (value: string): void => { this.draftTimeoutText = value; })
             }
             if (this.searchSettingsError.length > 0) {
@@ -81,12 +82,12 @@ export struct SearchSettingsDialog {
           }.width('100%').padding({ left: 24, right: 24 })
         }.constraintSize({ maxHeight: '65%' }).width('100%').scrollBar(BarState.Auto)
         Row({ space: 8 }) {
-          Button('重置').height(48).fontSize(14).fontColor(DemoTheme.searchAccent).backgroundColor(Color.Transparent)
+          Button(DemoL10n.text("重置")).height(48).fontSize(14).fontColor(DemoTheme.searchAccent).backgroundColor(Color.Transparent)
             .onClick(() => this.resetSearchSettingsDraft())
           Blank()
-          Button('取消').height(48).fontSize(14).fontColor('#FFFFFF').backgroundColor(Color.Transparent)
+          Button(DemoL10n.text("取消")).height(48).fontSize(14).fontColor('#FFFFFF').backgroundColor(Color.Transparent)
             .onClick(() => this.onCancel())
-          Button('应用').height(48).fontSize(14).fontColor(DemoTheme.searchBackground).backgroundColor(DemoTheme.searchAccent)
+          Button(DemoL10n.text("应用")).height(48).fontSize(14).fontColor(DemoTheme.searchBackground).backgroundColor(DemoTheme.searchAccent)
             .onClick(() => this.commitSearchSettingsDraft())
         }.width('100%').padding({ left: 24, right: 24, bottom: 24 })
       }.width('90%').backgroundColor(DemoTheme.searchSurface).borderRadius(24).clip(true)
@@ -130,7 +131,7 @@ export struct SearchSettingsDialog {
   private commitSearchSettingsDraft(): void {
     if (![this.draftThresholdText, this.draftIntervalText, this.draftTimeoutText,
       this.draftMaxFacesText].every((value: string): boolean => /^\d+(\.\d+)?$/.test(value.trim()))) {
-      this.searchSettingsError = '请输入有效数字';
+      this.searchSettingsError = DemoL10n.text("请输入有效数字");
       return;
     }
     let config: FaceSearchSessionConfig;
@@ -142,7 +143,7 @@ export struct SearchSettingsDialog {
         Number(this.draftThresholdText), Number(this.draftIntervalText),
         Number(this.draftTimeoutText), Number(this.draftMaxFacesText));
     } catch (error) {
-      this.searchSettingsError = `搜索配置无效：${error}`;
+      this.searchSettingsError = DemoL10n.text("搜索配置无效：{0}", [String(error)]);
       return;
     }
     this.onApply(config);

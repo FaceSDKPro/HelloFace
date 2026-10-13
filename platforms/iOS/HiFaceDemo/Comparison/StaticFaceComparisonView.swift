@@ -37,7 +37,7 @@ struct StaticFaceComparisonView: View {
                 Button(action: model.compare) {
                     HStack(spacing: 10) {
                         if model.isComparing { ProgressView().tint(.white) }
-                        Text(model.isComparing ? "正在比对…" : "开始比对")
+                        Text(model.isComparing ? DemoL10n.text("正在比对…") : DemoL10n.text("开始比对"))
                             .font(.body.weight(.semibold))
                     }
                     .foregroundStyle(model.canCompare ? Color.white : Color(uiColor: .secondaryLabel))
@@ -85,7 +85,7 @@ struct StaticFaceComparisonView: View {
 
     private var navigationHeader: some View {
         ZStack {
-            Text("静态人脸比对")
+            Text(DemoL10n.text("静态人脸比对"))
                 .font(.headline)
                 .foregroundStyle(.white)
             HStack {
@@ -93,13 +93,13 @@ struct StaticFaceComparisonView: View {
                     HStack(spacing: 5) {
                         Image(systemName: "chevron.left")
                             .font(.body.weight(.semibold))
-                        Text("返回")
+                        Text(DemoL10n.text("返回"))
                     }
                     .foregroundStyle(.white)
                     .frame(minWidth: 60, minHeight: 44, alignment: .leading)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("返回")
+                .accessibilityLabel(DemoL10n.text("返回"))
                 Spacer()
             }
         }
@@ -118,10 +118,10 @@ struct StaticFaceComparisonView: View {
                 .background(DemoTheme.contentAccent.opacity(0.11), in: RoundedRectangle(cornerRadius: 12))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 5) {
-                Text("选择两张清晰正脸照片")
+                Text(DemoL10n.text("选择两张清晰正脸照片"))
                     .font(.headline)
                     .foregroundStyle(Color(uiColor: .label))
-                Text("多人照片会自动选取画面中最大的人脸。")
+                Text(DemoL10n.text("多人照片会自动选取画面中最大的人脸。"))
                     .font(.subheadline)
                     .foregroundStyle(Color(uiColor: .label).opacity(0.72))
                     .fixedSize(horizontal: false, vertical: true)
@@ -159,7 +159,7 @@ struct StaticFaceComparisonView: View {
                             startPoint: .center,
                             endPoint: .bottom
                         )
-                        Text("轻点更换")
+                        Text(DemoL10n.text("轻点更换"))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 9)
@@ -173,7 +173,7 @@ struct StaticFaceComparisonView: View {
                                 .font(.system(size: 26, weight: .medium))
                                 .frame(width: 52, height: 52)
                                 .background(DemoTheme.contentAccent.opacity(0.11), in: Circle())
-                            Text("选择照片")
+                            Text(DemoL10n.text("选择照片"))
                                 .font(.subheadline.weight(.semibold))
                         }
                         .foregroundStyle(DemoTheme.contentAccent)
@@ -182,7 +182,7 @@ struct StaticFaceComparisonView: View {
                         Color.white.opacity(0.82)
                         VStack(spacing: 10) {
                             ProgressView().tint(DemoTheme.contentAccent)
-                            Text("正在处理")
+                            Text(DemoL10n.text("正在处理"))
                                 .font(.caption.weight(.medium))
                                 .foregroundStyle(Color(uiColor: .label))
                         }
@@ -217,7 +217,7 @@ struct StaticFaceComparisonView: View {
         .buttonStyle(ComparisonPhotoButtonStyle())
         .frame(maxWidth: .infinity)
         .accessibilityLabel("\(side.title)，\(state.status)")
-        .accessibilityHint("打开系统照片选择器")
+        .accessibilityHint(DemoL10n.text("打开系统照片选择器"))
     }
 
     private func stateBadge(_ state: ComparisonPhotoState) -> some View {
@@ -231,13 +231,13 @@ struct StaticFaceComparisonView: View {
 
     private func resultCard(similarity: Float) -> some View {
         VStack(spacing: 8) {
-            Label("比对完成", systemImage: "checkmark.circle.fill")
+            Label(DemoL10n.text("比对完成"), systemImage: "checkmark.circle.fill")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(DemoTheme.contentAccent)
             Text(String(format: "%.2f%%", similarity * 100))
                 .font(.system(.largeTitle, design: .rounded).monospacedDigit().bold())
                 .foregroundStyle(Color(uiColor: .label))
-            Text("人脸相似度")
+            Text(DemoL10n.text("人脸相似度"))
                 .font(.caption)
                 .foregroundStyle(Color(uiColor: .secondaryLabel))
         }
@@ -249,7 +249,7 @@ struct StaticFaceComparisonView: View {
                 .stroke(DemoTheme.contentAccent.opacity(0.22), lineWidth: 1)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("人脸相似度 \(similarity * 100) 百分比")
+        .accessibilityLabel(DemoL10n.text("人脸相似度 {0} 百分比", [String(describing: similarity * 100)]))
     }
 
     private func errorCard(_ message: String) -> some View {
@@ -272,15 +272,15 @@ struct StaticFaceComparisonView: View {
     }
 
     private func stateBadgeText(_ state: ComparisonPhotoState) -> String {
-        if state.hasError { return "需重选" }
-        if state.isProcessing { return "处理中" }
-        if state.feature != nil { return "已就绪" }
-        return "待选择"
+        if state.hasError { return DemoL10n.text("需重选") }
+        if state.isProcessing { return DemoL10n.text("处理中") }
+        if state.feature != nil { return DemoL10n.text("已就绪") }
+        return DemoL10n.text("待选择")
     }
 
     private func statusText(_ state: ComparisonPhotoState) -> String {
         if state.preview == nil && !state.isProcessing && !state.hasError {
-            return "点击卡片选择照片"
+            return DemoL10n.text("点击卡片选择照片")
         }
         return state.status
     }

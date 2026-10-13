@@ -62,20 +62,26 @@ interface PendingDownload {
 export class FaceSearchImportProgress {
   readonly processed: number;
   readonly total: number;
+  readonly imported: number;
+  readonly failed: number;
 
-  constructor(processed: number, total: number) {
+  constructor(processed: number, total: number, imported: number = 0, failed: number = 0) {
     this.processed = processed;
     this.total = total;
+    this.imported = imported;
+    this.failed = failed;
   }
 }
 
 export class FaceSearchImportSummary {
   readonly imported: number;
   readonly failed: number;
+  readonly stopped: boolean;
 
-  constructor(imported: number, failed: number) {
+  constructor(imported: number, failed: number, stopped: boolean = false) {
     this.imported = imported;
     this.failed = failed;
+    this.stopped = stopped;
   }
 }
 
@@ -92,6 +98,9 @@ export class FaceSearchDemoImporter {
   private readonly database: FaceSearchDatabase;
   private readonly active: () => boolean;
   private stopped: boolean = false;
+  private stopRequested: boolean = false;
+  private wakeStop: () => void = () => {};
+  private readonly stopSignal: Promise<DownloadedImage | undefined>;
   private readonly requests: http.HttpRequest[] = [];
 
   constructor(context: common.UIAbilityContext, sdk: HiFaceSdk, database: FaceSearchDatabase,
@@ -100,11 +109,21 @@ export class FaceSearchDemoImporter {
     this.sdk = sdk;
     this.database = database;
     this.active = active;
+    this.stopSignal = new Promise<DownloadedImage | undefined>((resolve): void => {
+      this.wakeStop = (): void => resolve(undefined);
+    });
   }
 
   /** 页面取消时主动销毁 HTTP 请求，不等 20 秒超时；不能取消已提交的数据库批次。 */
   cancel(): void {
     this.stopped = true;
+    this.requestStop();
+  }
+
+  /** 停止新输入；在途提取结束后，导入循环仍可保存尾批并返回统计。 */
+  requestStop(): void {
+    this.stopRequested = true;
+    this.wakeStop();
     const requests: http.HttpRequest[] = this.requests.splice(0);
     requests.forEach((request: http.HttpRequest): void => request.destroy());
   }
@@ -117,18 +136,21 @@ export class FaceSearchDemoImporter {
       const reader: JsonEntryReader = await this.reader(FEATURE_ASSET, FEATURE_COUNT, 'HF1', true);
       let imported: number = 0;
       let batch: FaceSearchFeatureEntry[] = [];
+      let processed: number = 0;
       let encoded: string | undefined = reader.next();
       while (encoded !== undefined) {
         if (!this.isActive()) return this.cancelled();
+        if (this.stopRequested) break;
         const value: FeatureJsonEntry = JSON.parse(encoded) as FeatureJsonEntry;
         batch.push(new FaceSearchFeatureEntry(value.faceId, value.feature, value.updateTimeMillis,
           value.tag ?? '', value.group ?? ''));
+        processed += 1;
         if (batch.length === FEATURE_BATCH_SIZE) {
           const saved: HiFaceResult<boolean> = await this.database.saveFeatures(batch);
           if (saved.isFailure()) return this.failure(saved.requireError());
           imported += batch.length;
           batch = [];
-          progress(new FaceSearchImportProgress(imported, FEATURE_COUNT));
+          progress(new FaceSearchImportProgress(processed, FEATURE_COUNT, imported));
         }
         if ((imported + batch.length) % PARSE_YIELD_SIZE === 0) await this.yieldToUi();
         encoded = reader.next();
@@ -138,10 +160,12 @@ export class FaceSearchDemoImporter {
         const saved: HiFaceResult<boolean> = await this.database.saveFeatures(batch);
         if (saved.isFailure()) return this.failure(saved.requireError());
         imported += batch.length;
-        progress(new FaceSearchImportProgress(imported, FEATURE_COUNT));
+        progress(new FaceSearchImportProgress(processed, FEATURE_COUNT, imported));
       }
-      if (imported !== FEATURE_COUNT) return this.invalid('Feature JSON entry count is invalid');
-      return HiFaceResult.success(new FaceSearchImportSummary(imported, 0));
+      if (!this.stopRequested && imported !== FEATURE_COUNT) return this.invalid('Feature JSON entry count is invalid');
+      progress(new FaceSearchImportProgress(processed, FEATURE_COUNT, imported));
+      return HiFaceResult.success(new FaceSearchImportSummary(imported, 0,
+        this.stopRequested && processed < FEATURE_COUNT));
     } catch (error) {
       return this.invalid(`Invalid bundled feature JSON: ${error}`);
     }
@@ -159,7 +183,7 @@ export class FaceSearchDemoImporter {
       let nextToken: number = 0;
       let encoded: string | undefined = reader.next();
       const prefetch = (): void => {
-        while (encoded !== undefined && pending.length < IMAGE_PREFETCH_COUNT && this.isActive()) {
+        while (encoded !== undefined && pending.length < IMAGE_PREFETCH_COUNT && this.isActive() && !this.stopRequested) {
           const value: ImageJsonEntry = JSON.parse(encoded) as ImageJsonEntry;
           const token: number = nextToken++;
           pending.push({ token: token, task: this.downloadImage(value, token) });
@@ -169,10 +193,12 @@ export class FaceSearchDemoImporter {
       prefetch();
       while (pending.length > 0) {
         if (!this.isActive()) return this.cancelled();
+        if (this.stopRequested) break;
         const tasks: Promise<DownloadedImage>[] = pending.map(
           (value: PendingDownload): Promise<DownloadedImage> => value.task);
-        const downloaded: DownloadedImage = await Promise.race(tasks);
+        const downloaded: DownloadedImage | undefined = await Promise.race([...tasks, this.stopSignal]);
         if (!this.isActive()) return this.cancelled();
+        if (this.stopRequested || downloaded === undefined) break;
         const completedIndex: number = pending.findIndex(
           (value: PendingDownload): boolean => value.token === downloaded.token);
         if (completedIndex < 0) throw new Error('Completed image download is not pending');
@@ -183,12 +209,13 @@ export class FaceSearchDemoImporter {
           failed += 1;
           processed += 1;
           // 每张结束立即更新；最后一张在尾批写库完成后报告，避免重复终值。
-          if (processed < IMAGE_COUNT) progress(new FaceSearchImportProgress(processed, IMAGE_COUNT));
+          if (processed < IMAGE_COUNT) progress(new FaceSearchImportProgress(processed, IMAGE_COUNT, imported, failed));
           continue;
         }
         try {
           const rgba: RgbaImage = await FacePhotoPicker.decode(downloaded.bytes);
           if (!this.isActive()) return this.cancelled();
+          if (this.stopRequested) break;
           const feature: HiFaceResult<string> = await this.sdk.capture().extractFeature(rgba);
           if (!this.isActive()) return this.cancelled();
           if (feature.isSuccess()) {
@@ -203,13 +230,14 @@ export class FaceSearchDemoImporter {
         }
         processed += 1;
         if (!this.isActive()) return this.cancelled();
+        if (this.stopRequested) break;
         if (batch.length >= IMAGE_BATCH_SIZE) {
           const saved: HiFaceResult<boolean> = await this.database.saveFeatures(batch);
           if (saved.isFailure()) return this.failure(saved.requireError());
           imported += batch.length;
           batch = [];
         }
-        if (processed < IMAGE_COUNT) progress(new FaceSearchImportProgress(processed, IMAGE_COUNT));
+        if (processed < IMAGE_COUNT) progress(new FaceSearchImportProgress(processed, IMAGE_COUNT, imported, failed));
       }
       if (batch.length > 0) {
         if (!this.isActive()) return this.cancelled();
@@ -217,9 +245,10 @@ export class FaceSearchDemoImporter {
         if (saved.isFailure()) return this.failure(saved.requireError());
         imported += batch.length;
       }
-      if (processed !== IMAGE_COUNT) return this.invalid('Image JSON entry count is invalid');
-      progress(new FaceSearchImportProgress(processed, IMAGE_COUNT));
-      return HiFaceResult.success(new FaceSearchImportSummary(imported, failed));
+      if (!this.stopRequested && processed !== IMAGE_COUNT) return this.invalid('Image JSON entry count is invalid');
+      progress(new FaceSearchImportProgress(processed, IMAGE_COUNT, imported, failed));
+      return HiFaceResult.success(new FaceSearchImportSummary(imported, failed,
+        this.stopRequested && processed < IMAGE_COUNT));
     } catch (error) {
       return this.invalid(`Invalid bundled image JSON: ${error}`);
     } finally {
@@ -280,7 +309,7 @@ export class FaceSearchDemoImporter {
     try {
       return { token: token, entry: entry, bytes: await this.download(entry.imageUrl) };
     } catch (error) {
-      if (!this.isActive()) return { token: token, entry: entry };
+      if (!this.isActive() || this.stopRequested) return { token: token, entry: entry };
       hilog.warn(0xFF00, 'HiFaceImport', 'Image download failed: error=%{private}s', String(error));
       return { token: token, entry: entry };
     }

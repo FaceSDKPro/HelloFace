@@ -18,8 +18,8 @@ struct FaceSearchView: View {
                     Spacer()
                     if model.searchDetectedCount > 1 {
                         Text(model.searchConfiguration.mode == .singleFace
-                             ? "检测到 \(model.searchDetectedCount) 人 · 优先识别最大脸"
-                             : "检测到 \(model.searchDetectedCount) 人 · 本次处理 \(model.searchSelectedCount) 人")
+                             ? DemoL10n.text("检测到 {0} 人 · 优先识别最大脸", [String(describing: model.searchDetectedCount)])
+                             : DemoL10n.text("检测到 {0} 人 · 本次处理 {1} 人", [String(describing: model.searchDetectedCount), String(describing: model.searchSelectedCount)]))
                             .font(.caption2)
                             .padding(10)
                             .background(DemoTheme.searchSurface.opacity(0.85), in: Capsule())
@@ -42,7 +42,7 @@ struct FaceSearchView: View {
                         Text(model.status).font(.subheadline.weight(.semibold))
                             .lineLimit(2)
                     }
-                    Text(model.cameraNotice ?? model.detail ?? "面向镜头，入镜后自动识别")
+                    Text(model.cameraNotice ?? model.detail ?? DemoL10n.text("面向镜头，入镜后自动识别"))
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.75))
                         .lineLimit(2)
@@ -51,7 +51,7 @@ struct FaceSearchView: View {
                         if model.needsCameraSettings {
                             CameraSettingsLink()
                         } else if model.failureAllowsRetry {
-                            Button("重试") { model.resumeSearch() }
+                            Button(DemoL10n.text("重试")) { model.resumeSearch() }
                                 .foregroundStyle(DemoTheme.searchAccent)
                                 .frame(maxWidth: .infinity, alignment: .trailing)
                         }
@@ -66,13 +66,13 @@ struct FaceSearchView: View {
                     NavigationLink(destination: LazyDestination {
                         CameraDemoView(mode: .capture, enrollsInSearchLibrary: true)
                     }) {
-                        Label("录入人脸", systemImage: "plus")
+                        Label(DemoL10n.text("录入人脸"), systemImage: "plus")
                             .frame(maxWidth: .infinity, minHeight: 48)
                             .foregroundStyle(DemoTheme.search)
                             .background(DemoTheme.searchAccent, in: RoundedRectangle(cornerRadius: 10))
                     }
                     NavigationLink(destination: LazyDestination { SearchLibraryView() }) {
-                        Label("人脸库", systemImage: "person.3")
+                        Label(DemoL10n.text("人脸库"), systemImage: "person.3")
                             .frame(maxWidth: .infinity, minHeight: 48)
                             .foregroundStyle(DemoTheme.searchAccent)
                             .background(DemoTheme.searchSurface, in: RoundedRectangle(cornerRadius: 10))

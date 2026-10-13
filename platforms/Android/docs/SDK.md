@@ -1,17 +1,16 @@
-# HiFace Android SDK 接入指南
+# HiFace Android SDK Integration Guide
 
-## 支持与安装
+## Installation
 
-当前为内测 Beta 版；北京时间 2026-12-26 零点起停止初始化和工作。
-到期日志为“请升级SDK，详情见https://github.com/FaceSDKPro/”。
+Beta expires at **2026-12-26 00:00 (UTC+08:00)**. Upgrade before expiry. [Updates](https://github.com/FaceSDKPro/).
 
-| 项目 | 当前范围 |
+| Requirement | Supported |
 |---|---|
-| 最低系统 | Android 6.0 / API 23 |
-| ABI | `arm64-v8a`、`armeabi-v7a` |
-| 入口 | Java `com.hiface.sdk.HiFaceSdk` |
+| Android | 6.0 / API 23 and later |
+| ABI | `arm64-v8a`, `armeabi-v7a` |
+| Entry point | Java `com.hiface.sdk.HiFaceSdk` |
 
-候选版本为 `0.0.1`，正式上线状态以发布记录为准：
+Version `0.0.1` is a release candidate; use the published release record to confirm availability.
 
 ```kotlin
 repositories {
@@ -26,183 +25,81 @@ android {
 }
 ```
 
-最后一项配置应写在宿主 App 模块，使密文模型可直接 mmap 读取。保留 AAR 的 consumer R8 规则和
-[SDK 许可](../LICENSE)、[第三方声明](../LICENSE)。
+Set `noCompress` in the host App module so the encrypted models can be read with mmap. Retain the AAR consumer R8 rules, [SDK license](../LICENSE), and [third-party notices](../LICENSE).
 
-## 公开 API
-
-```text
-HiFaceSdk
-├── builder(Context)
-├── processFrame(Yuv420Frame)
-├── processFrame(Yuv420Frame, FaceDetectionConfig)
-├── capture()
-│   ├── extractFeature(Bitmap, callback)
-│   ├── extractFeatureBlocking(Bitmap)
-│   ├── fromBitmap(Bitmap, callback)
-│   ├── fromBitmapBlocking(Bitmap)
-│   └── startCameraCapture(FaceCaptureListener)
-├── liveness()
-│   └── startCameraLiveness(config, FaceFlowListener)
-├── verification()
-│   ├── compareBlocking(Bitmap, Bitmap)
-│   ├── compare(String, String)
-│   └── startCameraVerification(config, FaceFlowListener)
-├── search()
-│   └── startCameraSearch(config, FaceSearchListener)
-├── openSearchDatabase(Context)
-└── close()
-```
-
-公开类型按 `frame`、`detection`、`capture`、`liveness`、`verification`、`search`、`flow`、`common`
-分包。`internal` 和 `RestrictTo(LIBRARY_GROUP)` 成员不属于公开契约；算法与流程共用 Core C ABI v1。
-
-## 创建、检测与关闭
+## Initialization and live detection
 
 ```java
-HiFaceSdk sdk = HiFaceSdk.builder(this)
-        .lifecycleOwner(this)
-        .build();
-
-// 在单一相机分析线程调用。
-HiFaceResult<FaceDetectionResult> result = sdk.processFrame(frame);
+HiFaceSdk sdk = HiFaceSdk.builder(this).lifecycleOwner(this).build();
+FaceDetectionConfig config = FaceDetectionConfig.builder()
+        .maxFaces(10).detailedLandmarks(true).build();
+HiFaceResult<FaceDetectionResult> result = sdk.processFrame(frame, config);
 ```
 
-推荐页面级实例。`build()` 异步加载检测模型；能力模型按需准备，实时帧未就绪时返回 `NOT_READY`。
-绑定 `LifecycleOwner` 后销毁时自动关闭，未绑定时手工调用 `sdk.close()`。
-关闭和 `FaceRequest.cancel()` 会禁止旧回调，在途 Native 推理完成后释放资源，不阻塞页面销毁。
+Use a page-scoped instance and a single analysis thread. Models initialize asynchronously; `NOT_READY` means the current frame was not processed. Release it and keep sending the latest frames. Without a lifecycle owner, close the SDK explicitly.
 
-默认检测返回最多一张脸的框、置信度和五点；需要多人或轮廓/头姿时按帧配置：
+Default detection returns one face with a box, confidence, and five landmarks. `maxFaces` accepts 1–10. Detailed landmarks and pose are optional and disabled by default. Capture, liveness, and verification prepare their own required models.
 
-```java
-FaceDetectionConfig detection = FaceDetectionConfig.builder()
-        .maxFaces(10)
-        .detailedLandmarks(true)
-        .build();
-HiFaceResult<FaceDetectionResult> result = sdk.processFrame(frame, detection);
-```
+`Yuv420Frame` uses three direct Y/U/V buffers. Supply actual row and pixel strides, color range and matrix, rotation, and mirroring. Dimensions must be positive and even, with long side at most 1920 and short side at most 1080; rotation is 0/90/180/270 degrees. Buffers are borrowed only during `processFrame`. Use `KEEP_ONLY_LATEST` or equivalent backpressure. Coordinates are in the rotated, unmirrored image; the host maps preview crop, scaling, and front-camera mirroring.
 
-`maxFaces` 为 1..10，详细检测默认关闭；关闭时 mesh/pose 为空。检测配置仅控制公开检测结果，
-采集、活体和验证自动准备所需能力。搜索运行时返回选中脸的框和五点，身份及评分由搜索监听器交付。
-
-## 特征与采集
+## Static images, capture, liveness, and verification
 
 ```java
 sdk.capture().extractFeature(bitmap, result -> {
     if (result.isSuccess()) {
         String feature = result.requireValue();
-        // 保存特征，或用于 1:1 / 人脸库查询。
     } else {
         HiFaceError error = result.requireError();
     }
 });
 ```
 
-需要对齐图时调用 `fromBitmap(bitmap, callback)`：结果提供 `getFeature()` 和 `getAlignedFace()`。
-预览为独立的 333×333 Bitmap，每次 getter 都新建图片，应只取一次并及时释放。
-静态入口选择最大脸，宽高均须至少 100 px；无脸或过小分别返回 `IMAGE_NO_FACE` / `IMAGE_FACE_TOO_SMALL`，
-不执行活体或头姿门禁。图片不自动缩放，奇数边只裁去最右列/最下行，处理后每边为 2..4096。
+`fromBitmap` also returns an optional 333×333 aligned preview. Read `getAlignedFace()` once and release the returned Bitmap when finished. Static inputs select the largest face, without liveness or pose gates. A missing or small face returns `IMAGE_NO_FACE` or `IMAGE_FACE_TOO_SMALL`; usable faces need at least 100 pixels in both dimensions. Images are not resized; odd dimensions crop only the last row/column. Processed image dimensions must be even and within 2–4096.
 
-异步入口返回前已复制像素，之后可回收原图；每实例最多一个运行请求和四个等待请求，超出返回 `BUSY`。
-批量图片应在自己的单个工作线程逐张调用 `extractFeatureBlocking` 或 `fromBitmapBlocking`；
-Blocking 入口借用输入至返回，期间不得回收或修改 Bitmap。
+Async calls copy pixels before returning. Each instance permits one running static request and four queued requests; additional requests return `BUSY`. For batch images, use one worker and call `extractFeatureBlocking` / `fromBitmapBlocking` serially. Blocking calls borrow the Bitmap until completion.
 
-相机引导采集仍需持续送帧：
+| Capability | Entry point |
+|---|---|
+| Guided capture | `capture().startCameraCapture(listener)` |
+| Liveness | `liveness().startCameraLiveness(config, listener)` |
+| HF1 comparison | `verification().compare(leftHF1, rightHF1)` |
+| Static image comparison | `verification().compareBlocking(...)` on a worker |
+| Camera verification | `verification().startCameraVerification(config, listener)` |
 
-```java
-FaceRequest request = sdk.capture().startCameraCapture(new FaceCaptureListener() {
-    @Override
-    public void onProgress(@NonNull FaceFlowProgress progress) {
-        // 更新引导。
-    }
-    @Override
-    public void onResult(@NonNull FaceCaptureResult capture) {
-        // 用户确认后保存 capture.getFeature()。
-    }
-    @Override
-    public void onError(@NonNull HiFaceError error) {
-        // 处理技术错误。
-    }
-});
-```
+Camera flows need continuous frames. Capture results must be confirmed before saving. `FaceFlowListener.onResult` contains the business outcome, including rejection; `onError` reports technical failures. Check `isPassed()` / `getOutcome()` before using scores or images. Missing values mean the stage did not produce a result, not a score of zero.
 
-HF1 是固定 604 字符的 Q7/Base64URL 特征表示，不是加密。当前特征空间为 `hiface-feature-new-v1`；
-旧模型特征和测试库需重新提取、导入。人脸图片和特征的授权、保护及删除由宿主负责。
-
-## 活体与 1:1 验证
-
-```java
-FaceFlowListener listener = new FaceFlowListener() {
-    @Override
-    public void onProgress(@NonNull FaceFlowProgress progress) {
-        // 更新动作或静默活体引导。
-    }
-    @Override
-    public void onResult(@NonNull FaceFlowResult result) {
-        // 先判断 result.isPassed() / result.getOutcome()，再读取附带数据。
-    }
-    @Override
-    public void onError(@NonNull HiFaceError error) {
-        // 处理技术错误。
-    }
-};
-sdk.liveness().startCameraLiveness(FaceLivenessConfig.builder().build(), listener);
-```
-
-空动作列表仍执行七帧双模型静默活体；动作最多四步，允许重复。默认拒绝多人，
-`allowMultipleFaces(true)` 允许处理主目标，但不额外保证动作前后的身份连续性。
-活体业务拒绝通过 `onResult` 返回，技术失败通过 `onError` 返回；可空分数/图片表示本轮未产生该项，不能按零值解释。
-
-已有 HF1 用 `verification().compare(left, right)` 同步比较；直接比图用工作线程上的 `compareBlocking`。
-动态验证配置参考特征后启动：
+Empty liveness actions still run seven-frame passive liveness with both models. Up to four actions, including repeats, are supported. Multiple faces are rejected by default. Capture, liveness, verification, and search share one camera flow slot.
 
 ```java
 FaceVerificationConfig config = FaceVerificationConfig.builder()
-        .referenceFeature(referenceFeature)
-        .threshold(0.80f)
+        .referenceFeature(referenceFeature).threshold(0.80f)
         .enableSilentLiveness(true)
-        .actions(Arrays.asList(FaceAction.BLINK, FaceAction.NOD_HEAD))
-        .build();
+        .actions(Arrays.asList(FaceAction.BLINK, FaceAction.NOD_HEAD)).build();
 sdk.verification().startCameraVerification(config, listener);
 ```
 
-采集、活体、验证和搜索共享一个相机流程槽，不能同时启动。相似度不是身份概率，
-放行依据为最终业务结论；完整接入示例见 [FaceVerificationActivity](../demo/src/main/java/com/hiface/sdk/demo/verification/FaceVerificationActivity.java)。
+Cancel the `FaceRequest` and stop sending frames when leaving or switching camera features, then close the SDK. Cancellation suppresses stale callbacks while native work finishes without blocking page teardown. SDK callbacks are posted to the main thread; keep them short.
 
-## 人脸库与连续搜索
+## Face library and continuous search
 
-`HiFaceSdk.openSearchDatabase(context)` 独立开库，不初始化模型；SDK 管理应用私有路径。
-所有库操作在工作线程执行，显式打开的连接由调用方关闭；连续搜索的连接由 Session 自动管理。
+`HiFaceSdk.openSearchDatabase(context)` opens an independent database without loading models. The SDK manages its private path. Run database calls on a worker and close explicit handles yourself.
 
-| 操作 | 用途 |
+| API | Behavior |
 |---|---|
-| `saveFeature` / `saveFeatures` | 按 Face ID 覆盖；批量每批最多 1000 条 |
-| `contains` / `get` | 主键检查 / 返回完整 HF1 |
-| `list` / `listRecent` | 元数据分页，不读取特征 |
-| `listFeatures` | 完整特征分页导出 |
-| `updateMetadata` | 只改 group/tag；null 保留、空串清空 |
-| `search` | group/tag 过滤与精确 Top-K |
-| `releaseMemory` / `close` | 释放范围缓存 / 关闭连接 |
+| `saveFeature`, `saveFeatures` | Upsert by Face ID; atomic batches of 1–1000 |
+| `contains`, `get` | ID existence; full original HF1 feature |
+| `list`, `listRecent` | Metadata pagination without features |
+| `listFeatures` | Full feature pagination for export |
+| `updateMetadata` | Update group/tag; null preserves, empty clears |
+| `search` | Exact Top-K with group/tag filters |
+| `releaseMemory`, `close` | Release gallery cache; close the handle |
 
-数据库保存原始 450 字节 Q7 payload，返回 HF1 不重复量化；压缩不提供数据库加密。
-`FaceFeatureFormat.FEATURE_SPACE_ID` 用于校验服务器特征兼容性，批量输入使用 `FaceSearchFeatureEntry`。
+HF1 is a 604-character Q7/Base64URL representation, **not encryption**. SQLite stores the original 450-byte Q7 payload and returns complete HF1 strings without re-quantization. Validate server features with `FaceFeatureFormat.FEATURE_SPACE_ID` (`hiface-feature-new-v1`) and `FaceSearchFeatureEntry`. The host owns consent, access control, encryption, retention, deletion, and backup policy.
 
-连续搜索使用 `search().startCameraSearch(config, listener)`，继续通过 `processFrame` 送帧。
-Session 支持 `pause()`、`resume()`、`setConfig()`、`close()`；暂停释放范围缓存，恢复前重新预热，模型继续复用。
-1:N 可启用同帧 S/M 静默活体，M:N 不执行活体；两者都不运行 468 点/头姿，要求人脸宽高均至少 100 px。
-`frameId` 关联同次采样，未评分不表示未匹配；业务先看 `endReason`，`SPOOF_DETECTED` 即使命中身份也不能放行。
-完整监听示例见 [FaceSearchActivity](../demo/src/main/java/com/hiface/sdk/demo/search/FaceSearchActivity.java)。
+`search().startCameraSearch(config, listener)` opens and warms its own database connection. Continue sending frames through `processFrame`. The session supports `pause()`, `resume()`, `setConfig()`, and `close()`. Pausing releases the selected gallery cache; resume warms it again while reusing models.
 
-## 帧、线程与错误
+1:N can run passive liveness; M:N does not. Search does not run 468-point/pose processing. Match `frameId` across detection, scoring, and completion. An unscored face is not a negative match. Use the final `endReason`; `SPOOF_DETECTED` rejects the result even if an identity passes the similarity threshold. Similarity is not identity probability.
 
-- `Yuv420Frame` 使用三平面 DirectByteBuffer，填写真实 stride、range、matrix、旋转和镜像。
-  输入须为正偶数，长边最多 1920、短边最多 1080，旋转仅为 0/90/180/270；返回后不再借用 Buffer。
-- 单线程送入最新帧并使用 `KEEP_ONLY_LATEST` 或等价背压；`NOT_READY` 表示当前帧未处理，应释放并继续送帧。
-  连续 10 秒无人脸后按 200 ms 目标节奏分析，检出人脸后恢复；待机跳帧也使用 `NOT_READY`。
-- SDK 异步回调统一在 API 返回后投递主线程；回调中不要执行耗时任务。
-- `HiFaceResult` 成功时用 `requireValue()`，失败时用 `requireError()`；业务依赖稳定 `code`，
-  `message` / `cause` 仅用于诊断。模型初始化失败保留原错误，不会一直退化为 `NOT_READY`。
-- 技术错误与流程终态分开处理；`NOT_MATCHED`、`SPOOF_DETECTED`、超时等业务结论以 `outcome` / `endReason` 为准。
+After 10 seconds without faces, analysis targets a 200 ms interval and resumes normal processing when a face returns. Skipped frames return `NOT_READY`. Search interval controls the wait after a successful match, not camera FPS.
 
-相机结果为旋转后、未镜像的像素坐标，预览缩放、裁剪和前摄镜像由宿主统一映射。
-CameraX 适配与相机设置见下方示例入口；业务应记录实际采集/分析 FPS 与稳态耗时。
+Handle errors by stable `HiFaceErrorCode`, not message text. SDK messages and logs remain internal diagnostics; localize the host UI separately. Model initialization errors retain their cause.

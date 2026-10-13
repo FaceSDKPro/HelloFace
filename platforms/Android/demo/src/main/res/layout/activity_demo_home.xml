@@ -62,13 +62,14 @@
 
 
         <TextView
-            android:layout_width="wrap_content"
+            android:id="@+id/deviceInfoText"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="22dp"
             android:layout_marginBottom="12dp"
-            android:text="@string/api_section_hint"
             android:textColor="@color/text_on_dark_secondary"
-            android:textSize="11sp" />
+            android:textSize="11sp"
+            tools:text="Release：16｜Model：Pixel 9｜Board：tokay" />
 
         <include
             android:id="@+id/featureFaceDetection"

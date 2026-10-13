@@ -8,12 +8,20 @@ enum FaceSearchDemoImportKind: String, Identifiable, Sendable {
     var id: String { rawValue }
     var title: String {
         self == .features
-            ? String(localized: "search_import_features")
-            : String(localized: "search_import_images")
+            ? DemoL10n.text("导入1万条人脸特征")
+            : DemoL10n.text("导入1千张人脸图片")
     }
 }
 
 struct FaceSearchDemoImportSummary: Sendable {
+    let imported: Int
+    let failed: Int
+    var stopped: Bool = false
+}
+
+struct FaceSearchDemoImportProgress: Sendable {
+    let processed: Int
+    let total: Int
     let imported: Int
     let failed: Int
 }
@@ -30,7 +38,8 @@ enum FaceSearchDemoImporter {
 
     static func importFeatures(
         database: FaceSearchDatabase,
-        progress: @escaping @MainActor @Sendable (Int, Int) -> Void
+        control: FaceSearchImportControl,
+        progress: @escaping @MainActor @Sendable (FaceSearchDemoImportProgress) -> Void
     ) async throws -> FaceSearchDemoImportSummary {
         let manifest: FeatureManifest = try decodeResource(named: "features_10000")
         guard manifest.schemaVersion == 1,
@@ -41,29 +50,41 @@ enum FaceSearchDemoImporter {
             throw invalidManifest("Feature JSON header or entry count is invalid")
         }
         var imported = 0
-        for start in stride(from: 0, to: manifest.entries.count, by: featureBatchSize) {
+        var batch: [FaceSearchFeatureEntry] = []
+        for value in manifest.entries {
             try Task.checkCancellation()
-            let end = min(start + featureBatchSize, manifest.entries.count)
-            let batch = try manifest.entries[start..<end].map { value in
-                try FaceSearchFeatureEntry(
+            if control.isStopped { break }
+            batch.append(try FaceSearchFeatureEntry(
                     faceID: value.faceID,
                     feature: value.feature,
                     updateTimeMilliseconds: value.updateTimeMillis,
                     tag: value.tag,
                     group: value.group
-                )
+                ))
+            if batch.count == featureBatchSize {
+                try await database.saveFeatures(batch)
+                imported += batch.count
+                batch.removeAll(keepingCapacity: true)
+                await progress(FaceSearchDemoImportProgress(processed: imported, total: featureCount,
+                                                            imported: imported, failed: 0))
             }
+        }
+        if !batch.isEmpty {
             try await database.saveFeatures(batch)
             imported += batch.count
-            await progress(imported, featureCount)
         }
-        return FaceSearchDemoImportSummary(imported: imported, failed: 0)
+        await progress(FaceSearchDemoImportProgress(processed: imported, total: featureCount,
+                                                    imported: imported, failed: 0))
+        return FaceSearchDemoImportSummary(imported: imported, failed: 0,
+                                           stopped: control.isStopped && imported < featureCount)
     }
 
     static func importImages(
         sdk: HiFaceSDK,
         database: FaceSearchDatabase,
-        progress: @escaping @MainActor @Sendable (Int, Int) -> Void
+        control: FaceSearchImportControl,
+        downloadImage: @escaping @Sendable (String) async throws -> Data = { try await download($0) },
+        progress: @escaping @MainActor @Sendable (FaceSearchDemoImportProgress) -> Void
     ) async throws -> FaceSearchDemoImportSummary {
         let manifest: ImageManifest = try decodeResource(named: "images_1000")
         guard manifest.schemaVersion == 1,
@@ -81,18 +102,19 @@ enum FaceSearchDemoImporter {
             while nextToStart < min(imagePrefetchCount, manifest.entries.count) {
                 let value = manifest.entries[nextToStart]
                 downloads.addTask {
-                    DownloadedImage(entry: value, data: try? await download(value.imageURL))
+                    await controlledDownload(value, control: control, downloadImage: downloadImage)
                 }
                 nextToStart += 1
             }
 
             while let downloaded = try await downloads.next() {
                 try Task.checkCancellation()
+                if control.isStopped { downloads.cancelAll(); break }
                 // 按完成顺序消费，并在解码前补位，避免慢请求阻塞后续图片。
                 if nextToStart < manifest.entries.count {
                     let value = manifest.entries[nextToStart]
                     downloads.addTask {
-                        DownloadedImage(entry: value, data: try? await download(value.imageURL))
+                        await controlledDownload(value, control: control, downloadImage: downloadImage)
                     }
                     nextToStart += 1
                 }
@@ -100,13 +122,15 @@ enum FaceSearchDemoImporter {
                     failed += 1
                     processed += 1
                     // 每张结束立即更新；最后一张在尾批写库完成后报告，避免重复终值。
-                    if processed < imageCount { await progress(processed, imageCount) }
+                    if processed < imageCount { await progress(FaceSearchDemoImportProgress(
+                        processed: processed, total: imageCount, imported: imported, failed: failed)) }
                     continue
                 }
 
                 try Task.checkCancellation()
                 do {
                     let image = try StaticPhotoDecoder.decode(data: data).get()
+                    if control.isStopped { downloads.cancelAll(); break }
                     switch await sdk.extractFeature(from: image) {
                     case .success(let feature):
                         try Task.checkCancellation()
@@ -133,7 +157,9 @@ enum FaceSearchDemoImporter {
                     imported += batch.count
                     batch.removeAll(keepingCapacity: true)
                 }
-                if processed < imageCount { await progress(processed, imageCount) }
+                if processed < imageCount { await progress(FaceSearchDemoImportProgress(
+                    processed: processed, total: imageCount, imported: imported, failed: failed)) }
+                if control.isStopped { downloads.cancelAll(); break }
             }
         }
         if !batch.isEmpty {
@@ -141,8 +167,25 @@ enum FaceSearchDemoImporter {
             try await database.saveFeatures(batch)
             imported += batch.count
         }
-        await progress(processed, imageCount)
-        return FaceSearchDemoImportSummary(imported: imported, failed: failed)
+        await progress(FaceSearchDemoImportProgress(processed: processed, total: imageCount,
+                                                    imported: imported, failed: failed))
+        return FaceSearchDemoImportSummary(imported: imported, failed: failed,
+                                           stopped: control.isStopped && processed < imageCount)
+    }
+
+    private static func controlledDownload(_ entry: ImageManifestEntry,
+                                          control: FaceSearchImportControl,
+                                          downloadImage: @escaping @Sendable (String) async throws -> Data) async -> DownloadedImage {
+        if control.isStopped { return DownloadedImage(entry: entry, data: nil) }
+        let task = Task { try await downloadImage(entry.imageURL) }
+        let token = control.register { task.cancel() }
+        defer { control.unregister(token) }
+        let data = try? await withTaskCancellationHandler {
+            try await task.value
+        } onCancel: {
+            task.cancel()
+        }
+        return DownloadedImage(entry: entry, data: data)
     }
 
     private static func download(_ address: String) async throws -> Data {

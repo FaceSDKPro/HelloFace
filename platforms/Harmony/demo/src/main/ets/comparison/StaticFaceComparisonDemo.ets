@@ -1,3 +1,4 @@
+import { DemoL10n } from '../ui/DemoL10n';
 import { DemoTheme } from '../ui/DemoTheme';
 import { DemoPageHeader } from '../ui/DemoPageHeader';
 import { image } from '@kit.ImageKit';
@@ -70,11 +71,11 @@ export struct StaticFaceComparisonDemo {
 
   build() {
     Column() {
-      DemoPageHeader({ title: '静态人脸 1:1 对比', titleSize: 17, onBack: (): void => this.onExit() })
+      DemoPageHeader({ title: DemoL10n.text("静态人脸 1:1 对比"), titleSize: 17, onBack: (): void => this.onExit() })
 
       Scroll() {
         Column({ space: 20 }) {
-          Text('选择清晰正脸照片，多人时自动选取最大人脸')
+          Text(DemoL10n.text("选择清晰正脸照片，多人时自动选取最大人脸"))
             .fontSize(13)
             .lineHeight(20)
             .fontColor(DemoTheme.contentSecondary)
@@ -105,7 +106,7 @@ export struct StaticFaceComparisonDemo {
       .width('100%')
       .align(Alignment.Top)
 
-      Button('开始比对')
+      Button(DemoL10n.text("开始比对"))
         .enabled(this.canCompare())
         .width('calc(100% - 48vp)')
         .constraintSize({ maxWidth: 592 })
@@ -125,7 +126,7 @@ export struct StaticFaceComparisonDemo {
   @Builder
   private PhotoSlot(slot: number) {
     Column({ space: 9 }) {
-      Text(slot === 0 ? '照片 1' : '照片 2')
+      Text(slot === 0 ? DemoL10n.text("照片 1") : DemoL10n.text("照片 2"))
         .fontSize(15)
         .fontColor(DemoTheme.contentText)
         .fontWeight(FontWeight.Medium)
@@ -144,7 +145,7 @@ export struct StaticFaceComparisonDemo {
           Column({ space: 6 }) {
             Image($r('app.media.ic_compare_photo'))
               .width(32).height(32).fillColor(DemoTheme.contentAccent)
-            Text('选择照片')
+            Text(DemoL10n.text("选择照片"))
               .fontSize(12)
               .fontColor(DemoTheme.contentSecondary)
           }
@@ -153,7 +154,7 @@ export struct StaticFaceComparisonDemo {
           .height('100%')
         }
         if (slot === 0 ? this.leftProcessing : this.rightProcessing) {
-          Text('正在处理…')
+          Text(DemoL10n.text("正在处理…"))
             .fontSize(13)
             .fontColor('#FFFFFF')
             .padding(10)
@@ -189,7 +190,7 @@ export struct StaticFaceComparisonDemo {
       input = await FacePhotoPicker.select();
     } catch (error) {
       if (this.visible && lifecycle === this.lifecycleGeneration) {
-        this.setPickerError(slot, '图片读取失败，请重新选择');
+        this.setPickerError(slot, DemoL10n.text("图片读取失败，请重新选择"));
       }
     } finally {
       if (lifecycle === this.lifecycleGeneration) {
@@ -237,7 +238,7 @@ export struct StaticFaceComparisonDemo {
       }
     } catch (error) {
       if (this.isCurrent(slot, generation, lifecycle)) {
-        this.setSlotError(slot, '人脸提取失败，请重试');
+        this.setSlotError(slot, DemoL10n.text("人脸提取失败，请重试"));
       }
     } finally {
       if (this.isCurrent(slot, generation, lifecycle)) {
@@ -270,12 +271,12 @@ export struct StaticFaceComparisonDemo {
     if (slot === 0) {
       this.leftFeature = feature;
       this.leftReady = true;
-      this.leftStatus = '已就绪 · 点击更换';
+      this.leftStatus = DemoL10n.text("已就绪 · 点击更换");
       this.leftFailed = false;
     } else {
       this.rightFeature = feature;
       this.rightReady = true;
-      this.rightStatus = '已就绪 · 点击更换';
+      this.rightStatus = DemoL10n.text("已就绪 · 点击更换");
       this.rightFailed = false;
     }
   }
@@ -330,7 +331,7 @@ export struct StaticFaceComparisonDemo {
     }
     const similarity: number = result.requireValue();
     this.comparisonFailed = false;
-    this.comparisonText = `相似度 ${(similarity * 100).toFixed(2)}%`;
+    this.comparisonText = DemoL10n.text("相似度 {0}%", [String((similarity * 100).toFixed(2))]);
   }
 
   private canCompare(): boolean {

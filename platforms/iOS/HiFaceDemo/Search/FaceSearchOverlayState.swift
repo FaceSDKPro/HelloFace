@@ -29,16 +29,16 @@ struct FaceSearchOverlayState {
             self.deadline = deadline
             let faceID = face.thresholdPassed ? face.faceID : nil
             // 只有实际查库评分才能判定未匹配，低分仍保留在 SDK 结果中。
-            let identity = faceID ?? (face.similarity != nil ? "未匹配" : "")
+            let identity = faceID ?? (face.similarity != nil ? DemoL10n.text("未匹配") : "")
             let title = livenessRejected
-                ? (identity.isEmpty ? "" : "\(identity) · ") + "活体未通过"
+                ? (identity.isEmpty ? "" : "\(identity) · ") + DemoL10n.text("活体未通过")
                 : identity
             var details: [String] = []
             if faceID != nil, let similarity = face.similarity {
-                details.append(String(format: "相似度 %.3f", similarity))
+                details.append(String(format: DemoL10n.text("相似度 %.3f"), similarity))
             }
             if let livenessScore {
-                details.append(String(format: "活体 %.3f", livenessScore))
+                details.append(String(format: DemoL10n.text("活体 %.3f"), livenessScore))
             }
             let color: BoxColor = livenessRejected ? .unmatched
                 : face.thresholdPassed && !finalResult ? .pending

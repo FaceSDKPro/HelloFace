@@ -20,7 +20,7 @@ final class CameraLifecycleUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--camera-lifecycle-test"]
         app.launch()
-        let entry = app.staticTexts[page].firstMatch
+        let entry = app.descendants(matching: .any)["demo.feature.\(page)"].firstMatch
         XCTAssertTrue(entry.waitForExistence(timeout: 10))
         if !entry.isHittable { app.swipeUp() }
         entry.tap()

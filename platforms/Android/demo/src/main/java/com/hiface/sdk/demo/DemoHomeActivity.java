@@ -1,6 +1,7 @@
 package com.hiface.sdk.demo;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
@@ -28,6 +29,8 @@ public final class DemoHomeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_demo_home);
+        ((TextView) findViewById(R.id.deviceInfoText)).setText(getString(
+                R.string.api_device_info, Build.VERSION.RELEASE, Build.MODEL, Build.BOARD));
 
         bindFeatureCard(R.id.featureFaceDetection, android.R.drawable.ic_menu_camera,
                 R.string.feature_face_detection, R.string.feature_face_detection_desc,

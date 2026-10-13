@@ -10,19 +10,2275 @@
     },
     {
       "name": "entryability_label",
-      "value": "HiFace演示"
+      "value": "HiFace Demo"
     },
     {
       "name": "camera_permission_reason",
-      "value": "用于演示宿主通过 CameraKit 采集人脸分析帧"
+      "value": "Capture camera frames for on-device face analysis."
     },
     {
       "name": "search_import_features",
-      "value": "导入1万条人脸特征"
+      "value": "Import 10,000 Features"
     },
     {
       "name": "search_import_images",
-      "value": "导入1千张人脸图片"
+      "value": "Import 1,000 Images"
+    },
+    {
+      "name": "demo_6f37f7ed24d4",
+      "value": " · adapted"
+    },
+    {
+      "name": "demo_1d6425701d13",
+      "value": " · Tag: {0}"
+    },
+    {
+      "name": "demo_5f2fb6aac903",
+      "value": "0.75–0.85. Higher values require a closer match."
+    },
+    {
+      "name": "demo_c7b8865d54b9",
+      "value": "0–3000 ms, default 0. Wait after a match; does not control FPS."
+    },
+    {
+      "name": "demo_77fd2a70b71d",
+      "value": "0–3000 ms, default 0. Wait time after a match."
+    },
+    {
+      "name": "demo_630560291d37",
+      "value": "0–3000 ms, default 0. Wait after a match; does not control FPS."
+    },
+    {
+      "name": "demo_3dd59e6d18b6",
+      "value": "1000–3000 ms. A new search starts after timeout."
+    },
+    {
+      "name": "demo_49e355644373",
+      "value": "Unable to read the 1:1 reference securely"
+    },
+    {
+      "name": "demo_e76b9b49e78e",
+      "value": "Unable to read the 1:1 reference"
+    },
+    {
+      "name": "demo_52e17a2295ba",
+      "value": "1:1 Face Verification"
+    },
+    {
+      "name": "demo_528a56438987",
+      "value": "1:1 verification failed"
+    },
+    {
+      "name": "demo_70ce5d8c9fe8",
+      "value": "1:1 verification passed"
+    },
+    {
+      "name": "demo_5cfee59ff67f",
+      "value": "1:1 verification requires a confirmed Face ID and HF1 feature"
+    },
+    {
+      "name": "demo_2636c6bccd0c",
+      "value": "1:N"
+    },
+    {
+      "name": "demo_4d7a3fa2ca97",
+      "value": "1:N · Liveness {0}"
+    },
+    {
+      "name": "demo_1104e5657ffe",
+      "value": "1:N Face Search"
+    },
+    {
+      "name": "demo_9fc3461d0ab7",
+      "value": "Enabled by default for 1:N. You can turn it off."
+    },
+    {
+      "name": "demo_6336734c2eea",
+      "value": "1–5 people; default 3."
+    },
+    {
+      "name": "demo_33811c75989f",
+      "value": "Face ID"
+    },
+    {
+      "name": "demo_36082d31ac5a",
+      "value": "Face ID “{0}” exists. Replace it with this capture?"
+    },
+    {
+      "name": "demo_6dd1d3afec05",
+      "value": "Unable to save the Face ID and feature"
+    },
+    {
+      "name": "demo_79bd68d72b42",
+      "value": "Unable to save the Face ID and feature securely. Try again."
+    },
+    {
+      "name": "demo_1ac4df78590a",
+      "value": "Face ID and feature saved in the Demo"
+    },
+    {
+      "name": "demo_3f85ac882046",
+      "value": "Face ID already exists"
+    },
+    {
+      "name": "demo_5c04a6f0e7b3",
+      "value": "Face ID is required; max 255 UTF-8 bytes"
+    },
+    {
+      "name": "demo_eef21fcaab02",
+      "value": "Face ID: {0}\n\nEnroll again to restore this face."
+    },
+    {
+      "name": "demo_043d1ba11585",
+      "value": "Face ID: {0}. Enrolling this ID updates its reference."
+    },
+    {
+      "name": "demo_b8252130d65e",
+      "value": "Face ID: {0}. Enroll it again or select another identity."
+    },
+    {
+      "name": "demo_1bb2e33b2fbb",
+      "value": "HelloFace SDK"
+    },
+    {
+      "name": "demo_21eea5e67ded",
+      "value": "HiFace Demo"
+    },
+    {
+      "name": "demo_cf98a5cf529c",
+      "value": "Unrecognized Keychain data"
+    },
+    {
+      "name": "demo_e9b2b93ab4be",
+      "value": "Keychain error ({0})"
+    },
+    {
+      "name": "demo_f3649c99ac3b",
+      "value": "M:N · No pose or liveness checks"
+    },
+    {
+      "name": "demo_73532851ab98",
+      "value": "M:N Face Search"
+    },
+    {
+      "name": "demo_42b67d1be938",
+      "value": "Release：{0}｜Model：{1}｜Board：{2}"
+    },
+    {
+      "name": "demo_c8fd51aa9075",
+      "value": "Internal SDK error"
+    },
+    {
+      "name": "demo_a9f9e2f512a8",
+      "value": "SDK not ready. Try again shortly."
+    },
+    {
+      "name": "demo_6dd5ec72c66e",
+      "value": "The SDK is closed. Reopen this page."
+    },
+    {
+      "name": "demo_386a9e2243da",
+      "value": "Processing a frame. Try again shortly."
+    },
+    {
+      "name": "demo_1c6706c089ce",
+      "value": "Unknown SDK error. Update the Demo."
+    },
+    {
+      "name": "demo_ea9e51859681",
+      "value": "{0}\nSimilarity: {1}"
+    },
+    {
+      "name": "demo_fff8b2a15f98",
+      "value": "{0}\nPassive liveness score: %2$.4f"
+    },
+    {
+      "name": "demo_a507bd8cd528",
+      "value": "{0}\nPassive liveness score: {1}"
+    },
+    {
+      "name": "demo_cd55a9d95751",
+      "value": "{0} · {1}"
+    },
+    {
+      "name": "demo_44211e6d3b55",
+      "value": "{0} · Liveness failed"
+    },
+    {
+      "name": "demo_38cb763e801d",
+      "value": "{0} · Lens limit"
+    },
+    {
+      "name": "demo_451c0c29bd17",
+      "value": "{0}: saved {1}, failed {2}"
+    },
+    {
+      "name": "demo_70ada34aa56b",
+      "value": "{0}: processed {1} / {2}, saved {3}"
+    },
+    {
+      "name": "demo_92bc17611d26",
+      "value": "Frame failed. Processing resumed."
+    },
+    {
+      "name": "demo_1e01311f167b",
+      "value": "Unsupported image or camera frame format"
+    },
+    {
+      "name": "demo_a567bdaa1136",
+      "value": "Medium"
+    },
+    {
+      "name": "demo_34d4527d9349",
+      "value": "Temporary face capture"
+    },
+    {
+      "name": "demo_fafa8149885a",
+      "value": "Faces do not match"
+    },
+    {
+      "name": "demo_e8d811157ae1",
+      "value": "Face too small"
+    },
+    {
+      "name": "demo_2d3100dfffd8",
+      "value": "Move closer and keep your entire face visible"
+    },
+    {
+      "name": "demo_e752b65b562b",
+      "value": "Face processing failed. Try again."
+    },
+    {
+      "name": "demo_34b415ee8a48",
+      "value": "Unable to finish face processing. Try again."
+    },
+    {
+      "name": "demo_68a8b84fcbf1",
+      "value": "Face too small. Move closer."
+    },
+    {
+      "name": "demo_9d091167affd",
+      "value": "Face too small. Move closer and try again."
+    },
+    {
+      "name": "demo_b61e1b52a7b7",
+      "value": "Face saved"
+    },
+    {
+      "name": "demo_c8d5a742fa73",
+      "value": "Face saved. Enroll another?"
+    },
+    {
+      "name": "demo_773355c1fdbd",
+      "value": "Face Library"
+    },
+    {
+      "name": "demo_28a6a445ab68",
+      "value": "Face library menu"
+    },
+    {
+      "name": "demo_8cfe69d1fd90",
+      "value": "Face library operation failed"
+    },
+    {
+      "name": "demo_38ecfdaca4cc",
+      "value": "No faces yet"
+    },
+    {
+      "name": "demo_f76153afe53e",
+      "value": "Face engine not ready. Try again shortly."
+    },
+    {
+      "name": "demo_18f99291dec5",
+      "value": "Face capture failed. Try again."
+    },
+    {
+      "name": "demo_58fc383c5b54",
+      "value": "Feature extraction failed. Try again."
+    },
+    {
+      "name": "demo_54d85a1f98e4",
+      "value": "Face search paused"
+    },
+    {
+      "name": "demo_14194ab043f2",
+      "value": "Face Search Settings"
+    },
+    {
+      "name": "demo_4373f0a2fbca",
+      "value": "Face Search"
+    },
+    {
+      "name": "demo_62cc4a5b0e0c",
+      "value": "Internal face service error"
+    },
+    {
+      "name": "demo_1f8a8917cb81",
+      "value": "Enable if face boxes and landmarks are mirrored relative to the preview."
+    },
+    {
+      "name": "demo_432a7c297740",
+      "value": "Unable to load face models. Check the app package and device."
+    },
+    {
+      "name": "demo_104972dbbae5",
+      "value": "Face Comparison"
+    },
+    {
+      "name": "demo_80bd15f3c54b",
+      "value": "Face similarity"
+    },
+    {
+      "name": "demo_79d1a03c56c4",
+      "value": "Face similarity {0} percent"
+    },
+    {
+      "name": "demo_b88f535d7986",
+      "value": "Face left the frame"
+    },
+    {
+      "name": "demo_9356bd33c025",
+      "value": "Face was out of the frame for too long"
+    },
+    {
+      "name": "demo_904c929894b4",
+      "value": "Face Capture"
+    },
+    {
+      "name": "demo_f62b51ac7009",
+      "value": "Face capture complete"
+    },
+    {
+      "name": "demo_77d014fb55e4",
+      "value": "Import demo data from the top-right menu."
+    },
+    {
+      "name": "demo_248dce76fd31",
+      "value": "Import in progress"
+    },
+    {
+      "name": "demo_f749854b5f0b",
+      "value": "Tries 0.8×; wide-angle lenses may start at 1.0×. Actual zoom appears on the camera page."
+    },
+    {
+      "name": "demo_c7c66f114710",
+      "value": "Recognize the largest face first"
+    },
+    {
+      "name": "demo_aa9e366f68d3",
+      "value": "Low"
+    },
+    {
+      "name": "demo_6d54e951ed53",
+      "value": "For example, 1A"
+    },
+    {
+      "name": "demo_a3030bf8f16d",
+      "value": "Save"
+    },
+    {
+      "name": "demo_ff509c9ba052",
+      "value": "Saving…"
+    },
+    {
+      "name": "demo_8aacf7fed9a4",
+      "value": "Save Face"
+    },
+    {
+      "name": "demo_6309a3bb5ba4",
+      "value": "Save failed"
+    },
+    {
+      "name": "demo_c1f9e9fc4b0a",
+      "value": "Save failed: {0}"
+    },
+    {
+      "name": "demo_4353650ff7e6",
+      "value": "Hold still"
+    },
+    {
+      "name": "demo_5658d20963cf",
+      "value": "Keep your face forward and still"
+    },
+    {
+      "name": "demo_ccb8d61cc265",
+      "value": "Hold your face steady for a feature and preview"
+    },
+    {
+      "name": "demo_92c198f865c0",
+      "value": "Hold still for the 0.7-second capture countdown."
+    },
+    {
+      "name": "demo_a507db7c3db8",
+      "value": "Stop and exit"
+    },
+    {
+      "name": "demo_ae9616e6f2c4",
+      "value": "Capture failed. Retrying automatically."
+    },
+    {
+      "name": "demo_cf45625df1c3",
+      "value": "{0} face records"
+    },
+    {
+      "name": "demo_5d0ae622f61f",
+      "value": "off"
+    },
+    {
+      "name": "demo_52d25a9e30ba",
+      "value": "About"
+    },
+    {
+      "name": "demo_07744edec8d4",
+      "value": "About HiFace Demo"
+    },
+    {
+      "name": "demo_3fd47edce45b",
+      "value": "Close"
+    },
+    {
+      "name": "demo_aee8644e08e8",
+      "value": "Other action"
+    },
+    {
+      "name": "demo_4cc167a8c40b",
+      "value": "Try again"
+    },
+    {
+      "name": "demo_577df4a20b88",
+      "value": "Preparing 1:1 verification"
+    },
+    {
+      "name": "demo_267924aaa4c3",
+      "value": "Preparing {0}…"
+    },
+    {
+      "name": "demo_0cf92679066c",
+      "value": "Preparing face capture"
+    },
+    {
+      "name": "demo_6a444312eef7",
+      "value": "Starts automatically when ready"
+    },
+    {
+      "name": "demo_c1615caae299",
+      "value": "Preparing liveness detection"
+    },
+    {
+      "name": "demo_9128eb6fb363",
+      "value": "Preparing verification for {0}"
+    },
+    {
+      "name": "demo_87dca615dfac",
+      "value": "Multiple faces detected"
+    },
+    {
+      "name": "demo_68d49655f9b7",
+      "value": "Analysis resolution"
+    },
+    {
+      "name": "demo_399ee6934772",
+      "value": "Group"
+    },
+    {
+      "name": "demo_07b54f43fc3e",
+      "value": "Optional. Leave blank for no group."
+    },
+    {
+      "name": "demo_649beb8b3ebc",
+      "value": "Group (blank for all)"
+    },
+    {
+      "name": "demo_cde915babc94",
+      "value": "Group (optional)"
+    },
+    {
+      "name": "demo_376ab8dc197c",
+      "value": "Group, optional"
+    },
+    {
+      "name": "demo_ced19727af66",
+      "value": "Group: {0}"
+    },
+    {
+      "name": "demo_4989df741c92",
+      "value": "Switch camera"
+    },
+    {
+      "name": "demo_9dd38c6db578",
+      "value": "Unable to switch cameras or restore the previous camera"
+    },
+    {
+      "name": "demo_0ddf84807b6a",
+      "value": "Switch camera"
+    },
+    {
+      "name": "demo_2f9daa828907",
+      "value": "Delete"
+    },
+    {
+      "name": "demo_dd554fadc3bc",
+      "value": "Delete Face"
+    },
+    {
+      "name": "demo_b6b9452bb7cd",
+      "value": "Delete face {0}"
+    },
+    {
+      "name": "demo_c228558cf257",
+      "value": "Delete failed"
+    },
+    {
+      "name": "demo_2de7dc4fed67",
+      "value": "Delete failed: {0}"
+    },
+    {
+      "name": "demo_3fbe3ec332db",
+      "value": "Delete this face?"
+    },
+    {
+      "name": "demo_aee887434131",
+      "value": "Refresh"
+    },
+    {
+      "name": "demo_df081a165c70",
+      "value": "Options menu"
+    },
+    {
+      "name": "demo_a9707d8212a6",
+      "value": "Action {0}/{1}; passive liveness follows"
+    },
+    {
+      "name": "demo_3aa7940a8037",
+      "value": "Actions complete. Face forward and hold still."
+    },
+    {
+      "name": "demo_16cd0cbc2a15",
+      "value": "Action challenge timed out"
+    },
+    {
+      "name": "demo_dba7c4ab38a2",
+      "value": "Action timed out"
+    },
+    {
+      "name": "demo_34a10181138e",
+      "value": "Actions: %@; liveness and verification follow (threshold %.2f%%)"
+    },
+    {
+      "name": "demo_4195d5d7058d",
+      "value": "Actions: {0}; passive liveness follows"
+    },
+    {
+      "name": "demo_0aaaf4016710",
+      "value": "Single person 1:N"
+    },
+    {
+      "name": "demo_dbae173e2a7b",
+      "value": "Process up to {0} faces per frame"
+    },
+    {
+      "name": "demo_e0970ba86628",
+      "value": "Single-frame liveness"
+    },
+    {
+      "name": "demo_1b31eda51552",
+      "value": "Single-frame passive liveness"
+    },
+    {
+      "name": "demo_52a2b0f6fc21",
+      "value": "Search timeout {0} ms"
+    },
+    {
+      "name": "demo_02b122936e56",
+      "value": "Invalid reference feature"
+    },
+    {
+      "name": "demo_4bd07c7a8f53",
+      "value": "The reference identity no longer exists"
+    },
+    {
+      "name": "demo_2cd0f3be8738",
+      "value": "Cancel"
+    },
+    {
+      "name": "demo_885dcef651a2",
+      "value": "Import demo data from the top-right menu."
+    },
+    {
+      "name": "demo_48dfeb83f6f4",
+      "value": "Unable to start the flow: {0}"
+    },
+    {
+      "name": "demo_0c15d19c46a5",
+      "value": "Face detection runs continuously after the camera starts"
+    },
+    {
+      "name": "demo_176d7fb2b579",
+      "value": "Unable to start continuous search: {0}"
+    },
+    {
+      "name": "demo_d7605bad63f4",
+      "value": "No face detected in the image"
+    },
+    {
+      "name": "demo_6bb03216104a",
+      "value": "No face detected in the image"
+    },
+    {
+      "name": "demo_915ee6e64f0e",
+      "value": "The face is too small. Select a clearer photo."
+    },
+    {
+      "name": "demo_66c7c38c1b99",
+      "value": "Unsupported image or frame format"
+    },
+    {
+      "name": "demo_46c7007cc001",
+      "value": "Unable to read the image. Select it again."
+    },
+    {
+      "name": "demo_8934800cfe2e",
+      "value": "Coordinate mirror correction"
+    },
+    {
+      "name": "demo_694b71bc8013",
+      "value": "Processing"
+    },
+    {
+      "name": "demo_ae173945fb80",
+      "value": "Processing failed"
+    },
+    {
+      "name": "demo_6791997d3ad5",
+      "value": "Unable to process the analysis frame: {0}"
+    },
+    {
+      "name": "demo_50899b854c4d",
+      "value": "Multiple people M:N"
+    },
+    {
+      "name": "demo_09d1b96f9481",
+      "value": "No liveness in multi-person mode. Only selected faces are processed."
+    },
+    {
+      "name": "demo_4b1ee8be9207",
+      "value": "The largest face is selected automatically in photos with multiple people."
+    },
+    {
+      "name": "demo_28384d7afd2e",
+      "value": "failed"
+    },
+    {
+      "name": "demo_fe62e55c6af6",
+      "value": "Unable to generate a secure challenge"
+    },
+    {
+      "name": "demo_3c555f351270",
+      "value": "Secure random action {0}/{1} · "
+    },
+    {
+      "name": "demo_c0b3fbff51cc",
+      "value": "Done"
+    },
+    {
+      "name": "demo_9c49a16dfae0",
+      "value": "Live Detection"
+    },
+    {
+      "name": "demo_b531833b8a59",
+      "value": "Live processing failed: {0}"
+    },
+    {
+      "name": "demo_c5defe90963e",
+      "value": "Live Detection"
+    },
+    {
+      "name": "demo_eefd0ad1e827",
+      "value": "Live detection is running"
+    },
+    {
+      "name": "demo_e105ecdf5b50",
+      "value": "Import 10,000 bundled HF1 features. Replace existing Face IDs."
+    },
+    {
+      "name": "demo_f5a636d3f4fe",
+      "value": "Import 10,000 Features"
+    },
+    {
+      "name": "demo_93c1002c4c3c",
+      "value": "Import 1,000 Images"
+    },
+    {
+      "name": "demo_5d549419fa57",
+      "value": "Import 10,000 bundled HF1 features. Replace existing Face IDs."
+    },
+    {
+      "name": "demo_d613fefae300",
+      "value": "Import complete"
+    },
+    {
+      "name": "demo_1d933103db81",
+      "value": "Import complete: saved {0}, failed {1}"
+    },
+    {
+      "name": "demo_a42777c12f0f",
+      "value": "Import incomplete; saved {0}.\n{1}"
+    },
+    {
+      "name": "demo_410d5ec490a6",
+      "value": "Import incomplete; saved {0}: {1}"
+    },
+    {
+      "name": "demo_e4039a1684cb",
+      "value": "Import result"
+    },
+    {
+      "name": "demo_e3600efd307c",
+      "value": "Place your face in the frame"
+    },
+    {
+      "name": "demo_acd6e0c8c926",
+      "value": "1:1 reference face saved"
+    },
+    {
+      "name": "demo_49071c610d99",
+      "value": "Saved {0}. Retry the remaining items."
+    },
+    {
+      "name": "demo_4343a5e46a6e",
+      "value": "Saved · {0} · Mirror correction {1}"
+    },
+    {
+      "name": "demo_b14c5ee3cbe4",
+      "value": "Previous capture kept. Confirm it or try again."
+    },
+    {
+      "name": "demo_f006455e3baf",
+      "value": "Stopped"
+    },
+    {
+      "name": "demo_70be0cd5acc6",
+      "value": "Stopped: saved {0}, failed {1}"
+    },
+    {
+      "name": "demo_11cf70bba26c",
+      "value": "Deleted {0}"
+    },
+    {
+      "name": "demo_8c2808528338",
+      "value": "Loaded · {0} · Mirror correction {1}"
+    },
+    {
+      "name": "demo_caeed4cdc7de",
+      "value": "Overwrite cancelled"
+    },
+    {
+      "name": "demo_56fb72a36eda",
+      "value": "Processed 0 / {0}, saved 0"
+    },
+    {
+      "name": "demo_706566893b1e",
+      "value": "Processed {0} / {1}, saved {2}"
+    },
+    {
+      "name": "demo_ab27f80d046f",
+      "value": "Ready"
+    },
+    {
+      "name": "demo_9eecca4d5f44",
+      "value": "Ready · Tap to change"
+    },
+    {
+      "name": "demo_3e35add09ce9",
+      "value": "Ready. Tap to change."
+    },
+    {
+      "name": "demo_8a4ef3e48e4e",
+      "value": "enabled"
+    },
+    {
+      "name": "demo_669092a1321b",
+      "value": "Enrolled {0}"
+    },
+    {
+      "name": "demo_4bc79a2c9dc9",
+      "value": "Face request running. Try again shortly."
+    },
+    {
+      "name": "demo_fd18a7d98d19",
+      "value": "Selected {0}"
+    },
+    {
+      "name": "demo_30cb6a9fea7a",
+      "value": "Look straight at the camera"
+    },
+    {
+      "name": "demo_63c73c4730f4",
+      "value": "Apply"
+    },
+    {
+      "name": "demo_39eae64cfc41",
+      "value": "on"
+    },
+    {
+      "name": "demo_bb8aa0ddaaf3",
+      "value": "Start import"
+    },
+    {
+      "name": "demo_c094b197a689",
+      "value": "Compare"
+    },
+    {
+      "name": "demo_03de1d313956",
+      "value": "Open your mouth"
+    },
+    {
+      "name": "demo_8f5e7b70fe3e",
+      "value": "The face session is closed"
+    },
+    {
+      "name": "demo_b8469d0042fa",
+      "value": "Session closed. Reopen this page."
+    },
+    {
+      "name": "demo_b90453bd5fce",
+      "value": "A task is running. Try again shortly."
+    },
+    {
+      "name": "demo_2e453ae95814",
+      "value": "This resolution is unavailable. Trying a compatible size."
+    },
+    {
+      "name": "demo_fd33b11455f9",
+      "value": "Unsupported image or camera frame format"
+    },
+    {
+      "name": "demo_def369b46749",
+      "value": "Restarts when the camera is available."
+    },
+    {
+      "name": "demo_ec9b4ee8665b",
+      "value": "Flow paused. Restarts when the camera is available."
+    },
+    {
+      "name": "demo_535c94c17513",
+      "value": "No supported camera analysis size"
+    },
+    {
+      "name": "demo_0830dbd257b6",
+      "value": "Current camera settings: {0}"
+    },
+    {
+      "name": "demo_0d326b0ac6a9",
+      "value": "No faces in this scope"
+    },
+    {
+      "name": "demo_d256e77173da",
+      "value": "Selected camera input unavailable"
+    },
+    {
+      "name": "demo_9434fa3727d2",
+      "value": "Camera preview unavailable"
+    },
+    {
+      "name": "demo_a8f41bbd7e97",
+      "value": "Preview and analysis outputs unavailable"
+    },
+    {
+      "name": "demo_9bf0769dd1dd",
+      "value": "No other camera available"
+    },
+    {
+      "name": "demo_e3cd6f1a24c0",
+      "value": "Selected: {0}"
+    },
+    {
+      "name": "demo_862a7662bce0",
+      "value": "Enroll Face"
+    },
+    {
+      "name": "demo_1e5757c890f4",
+      "value": "Enroll Reference"
+    },
+    {
+      "name": "demo_2450862d6026",
+      "value": "Unable to generate the enrollment preview"
+    },
+    {
+      "name": "demo_04fbe1f84206",
+      "value": "Not selected"
+    },
+    {
+      "name": "demo_f21cda20d5bd",
+      "value": "Required and unique, e.g. an employee ID."
+    },
+    {
+      "name": "demo_e151fa29aaa2",
+      "value": "Restore defaults"
+    },
+    {
+      "name": "demo_7ba45d8ff666",
+      "value": "Interval after a match"
+    },
+    {
+      "name": "demo_29a80829f157",
+      "value": "Match interval {0} ms"
+    },
+    {
+      "name": "demo_7feafea5a88b",
+      "value": "Choose Refresh from the menu at the top right and try again."
+    },
+    {
+      "name": "demo_ab1a23440b70",
+      "value": "Unable to open: {0}"
+    },
+    {
+      "name": "demo_9f10386f483d",
+      "value": "Open the system photo picker"
+    },
+    {
+      "name": "demo_37aa6ad6a36d",
+      "value": "Open Settings"
+    },
+    {
+      "name": "demo_fd7719273970",
+      "value": "Batch Import"
+    },
+    {
+      "name": "demo_d607a66a3dbb",
+      "value": "Import Images"
+    },
+    {
+      "name": "demo_aa4e5afaed94",
+      "value": "Import Features"
+    },
+    {
+      "name": "demo_e82f73f09dfa",
+      "value": "Batch import failed. Try again later."
+    },
+    {
+      "name": "demo_d1222a855607",
+      "value": "Reference identity {0} was not found"
+    },
+    {
+      "name": "demo_ae6874a9e0fd",
+      "value": "Found 1 record"
+    },
+    {
+      "name": "demo_1881d6c0757b",
+      "value": "Enter a group, or leave blank to search all."
+    },
+    {
+      "name": "demo_1452deafc6d9",
+      "value": "Recommended"
+    },
+    {
+      "name": "demo_db03a0ab495f",
+      "value": "Unable to start search"
+    },
+    {
+      "name": "demo_37be40381591",
+      "value": "Search multiple faces without pose or liveness checks."
+    },
+    {
+      "name": "demo_adb911f767ae",
+      "value": "Search paused"
+    },
+    {
+      "name": "demo_95fa00a4726d",
+      "value": "Cannot resume search. Check settings and reopen this page."
+    },
+    {
+      "name": "demo_b4e019b61521",
+      "value": "Search mode"
+    },
+    {
+      "name": "demo_4e65d015121f",
+      "value": "Search scope"
+    },
+    {
+      "name": "demo_2874151bd36b",
+      "value": "Search Settings"
+    },
+    {
+      "name": "demo_65c51a856d54",
+      "value": "Unable to apply search settings"
+    },
+    {
+      "name": "demo_b78443a500ed",
+      "value": "Invalid search settings: {0}"
+    },
+    {
+      "name": "demo_f07daa84d0f6",
+      "value": "Camera resolution"
+    },
+    {
+      "name": "demo_243c78b3db5c",
+      "value": "Camera Settings"
+    },
+    {
+      "name": "demo_8be7156a778f",
+      "value": "Shake your head"
+    },
+    {
+      "name": "demo_0c3b4cf7aa25",
+      "value": "Operation failed"
+    },
+    {
+      "name": "demo_f8af6f45840a",
+      "value": "Hide advanced settings"
+    },
+    {
+      "name": "demo_6e1b353aec5c",
+      "value": "Data or key unavailable. Keep and exit, or clear the reference and enroll again."
+    },
+    {
+      "name": "demo_f7e7183cbf30",
+      "value": "Total action time limit: {0} seconds"
+    },
+    {
+      "name": "demo_c6444db4dcb4",
+      "value": "Unable to switch cameras. The previous camera has been retained."
+    },
+    {
+      "name": "demo_927a32a29679",
+      "value": "Page context is unavailable. Reopen this page."
+    },
+    {
+      "name": "demo_f1e0448c808d",
+      "value": "Unable to open the selected camera"
+    },
+    {
+      "name": "demo_fc07ee5173a4",
+      "value": "The old 1:1 reference has been cleared. Enroll it again."
+    },
+    {
+      "name": "demo_f6f2891ba0d8",
+      "value": "Show up to 10 faces, five landmarks, 468 contour points, and head pose"
+    },
+    {
+      "name": "demo_fb1c97956dae",
+      "value": "Not now"
+    },
+    {
+      "name": "demo_15c2aae70c3a",
+      "value": "No other camera available"
+    },
+    {
+      "name": "demo_c3cff46d207d",
+      "value": "Unable to prepare liveness actions. Try again."
+    },
+    {
+      "name": "demo_05d1c2e7b9e4",
+      "value": "Unable to complete the operation. Try again."
+    },
+    {
+      "name": "demo_7c4c418e51c7",
+      "value": "The face library is unavailable. Try again later."
+    },
+    {
+      "name": "demo_6feda3da10e6",
+      "value": "Unable to read the face library"
+    },
+    {
+      "name": "demo_2ead765a75b1",
+      "value": "More settings: interval and timeout"
+    },
+    {
+      "name": "demo_6e523fed0f28",
+      "value": "Updates and details: https://github.com/FaceSDKPro/"
+    },
+    {
+      "name": "demo_46932c18c2e9",
+      "value": "Final capture timed out"
+    },
+    {
+      "name": "demo_23fb42b6cccc",
+      "value": "This capture was not saved. Enroll it again."
+    },
+    {
+      "name": "demo_e86ea3f280d9",
+      "value": "No group"
+    },
+    {
+      "name": "demo_1c6022b7f4e7",
+      "value": "No match"
+    },
+    {
+      "name": "demo_3cffa9757b69",
+      "value": "disabled"
+    },
+    {
+      "name": "demo_3a97d940180a",
+      "value": "Face ID not found: {0}"
+    },
+    {
+      "name": "demo_4a7befb0dfd0",
+      "value": "The requested face record was not found"
+    },
+    {
+      "name": "demo_94bae7c6cbcc",
+      "value": "Face ID not found"
+    },
+    {
+      "name": "demo_f256f918454b",
+      "value": "No face detected"
+    },
+    {
+      "name": "demo_8b1d8fd08e2a",
+      "value": "Unknown flow result"
+    },
+    {
+      "name": "demo_02584a80f7a7",
+      "value": "Camera access denied. Enable it in system settings."
+    },
+    {
+      "name": "demo_43baa224b452",
+      "value": "No suitable face was captured. Try again."
+    },
+    {
+      "name": "demo_bfca4f9b1c10",
+      "value": "Processing {0} people"
+    },
+    {
+      "name": "demo_f7ef3a772316",
+      "value": "Preview of this face capture"
+    },
+    {
+      "name": "demo_3003318e729a",
+      "value": "Find"
+    },
+    {
+      "name": "demo_46d508935588",
+      "value": "Lookup failed"
+    },
+    {
+      "name": "demo_6a92d53192eb",
+      "value": "Lookup failed: {0}"
+    },
+    {
+      "name": "demo_5fe03dfa919b",
+      "value": "Lookup results"
+    },
+    {
+      "name": "demo_0a0038a2314d",
+      "value": "View face boxes, landmarks, contours and pose"
+    },
+    {
+      "name": "demo_6bea77acefb3",
+      "value": "Standard"
+    },
+    {
+      "name": "demo_3ff30052f94d",
+      "value": "Standard · approximately 640×480"
+    },
+    {
+      "name": "demo_81bf8037e2df",
+      "value": "Standard saves power; HD keeps distant-face detail. Compatible sizes stay within 1080p."
+    },
+    {
+      "name": "demo_7d49dfa02ae6",
+      "value": "Standard (approximately 640×480)"
+    },
+    {
+      "name": "demo_1c493e374a35",
+      "value": "Tag (blank for all)"
+    },
+    {
+      "name": "demo_056dd049477f",
+      "value": "Enable if overlays are mirrored relative to the preview. Recognition is unchanged."
+    },
+    {
+      "name": "demo_6e2fc1ff6c5c",
+      "value": "Check failed: {0}"
+    },
+    {
+      "name": "demo_e28096e037ee",
+      "value": "Detected {0} people · "
+    },
+    {
+      "name": "demo_6bd0b5027265",
+      "value": "Detected {0} people · Largest face first"
+    },
+    {
+      "name": "demo_380ddd6f229f",
+      "value": "Detected {0} people · Processing {1}"
+    },
+    {
+      "name": "demo_f79a5a9fda02",
+      "value": "Detected {0} faces"
+    },
+    {
+      "name": "demo_02bdfdeb6a71",
+      "value": "Unable to load models. Check the model resources."
+    },
+    {
+      "name": "demo_47a270081ab2",
+      "value": "Mode"
+    },
+    {
+      "name": "demo_76a8fc03f2e0",
+      "value": "Saving 1:1 reference…"
+    },
+    {
+      "name": "demo_6bdb4435095e",
+      "value": "Saving…"
+    },
+    {
+      "name": "demo_af48159f380f",
+      "value": "Stopping"
+    },
+    {
+      "name": "demo_0b36c1613228",
+      "value": "Stopping and saving…"
+    },
+    {
+      "name": "demo_5f2ed701d82c",
+      "value": "Preparing"
+    },
+    {
+      "name": "demo_a0277843a36d",
+      "value": "Preparing liveness and verification…"
+    },
+    {
+      "name": "demo_53c967cf010a",
+      "value": "Preparing liveness…"
+    },
+    {
+      "name": "demo_757c08890e8c",
+      "value": "Preparing camera…"
+    },
+    {
+      "name": "demo_82a715781e3d",
+      "value": "Preparing preview"
+    },
+    {
+      "name": "demo_a6bd4a92f82b",
+      "value": "Loading models…"
+    },
+    {
+      "name": "demo_c2c3f2bfcd2a",
+      "value": "Switching cameras"
+    },
+    {
+      "name": "demo_26a724f297e6",
+      "value": "Switching camera…"
+    },
+    {
+      "name": "demo_1d49dd3c3946",
+      "value": "Deleting {0}…"
+    },
+    {
+      "name": "demo_53079c85b8b7",
+      "value": "Loading required models…"
+    },
+    {
+      "name": "demo_7d0a6c426462",
+      "value": "Loading more…"
+    },
+    {
+      "name": "demo_4b22bd7ab475",
+      "value": "Searching the face library"
+    },
+    {
+      "name": "demo_43f3dc12a607",
+      "value": "Starting…"
+    },
+    {
+      "name": "demo_3b7e27cb4379",
+      "value": "Processing"
+    },
+    {
+      "name": "demo_574ec7517de1",
+      "value": "Processing…"
+    },
+    {
+      "name": "demo_8eda4e7c06a0",
+      "value": "Processing. Please wait."
+    },
+    {
+      "name": "demo_faa6e323d497",
+      "value": "Import in progress. Stop saves completed results, then exits."
+    },
+    {
+      "name": "demo_fe7b3d82157e",
+      "value": "Trying compatible camera settings…"
+    },
+    {
+      "name": "demo_bb7e493a77b4",
+      "value": "Resuming face capture"
+    },
+    {
+      "name": "demo_5c8e7a3b55c7",
+      "value": "Resuming camera flow"
+    },
+    {
+      "name": "demo_6443db39c270",
+      "value": "Opening the face library…"
+    },
+    {
+      "name": "demo_3706a5ffa936",
+      "value": "Opening camera…"
+    },
+    {
+      "name": "demo_f26be2478933",
+      "value": "Extracting face…"
+    },
+    {
+      "name": "demo_71a704035095",
+      "value": "Searching"
+    },
+    {
+      "name": "demo_229a6480ac16",
+      "value": "Adding a face library record…"
+    },
+    {
+      "name": "demo_b86d4ba5f304",
+      "value": "Finding {0}…"
+    },
+    {
+      "name": "demo_8bbb38569df1",
+      "value": "Looking up…"
+    },
+    {
+      "name": "demo_7eaf894907ae",
+      "value": "Checking Face ID…"
+    },
+    {
+      "name": "demo_447601eb2f19",
+      "value": "Comparing…"
+    },
+    {
+      "name": "demo_744f68e32f03",
+      "value": "Preparing preview. Confirm enrollment when ready."
+    },
+    {
+      "name": "demo_f5536cc82284",
+      "value": "Overwriting the face library record…"
+    },
+    {
+      "name": "demo_f9374e14ec68",
+      "value": "Requesting camera access…"
+    },
+    {
+      "name": "demo_86b6d0d63062",
+      "value": "Loading…"
+    },
+    {
+      "name": "demo_c1ee390718fb",
+      "value": "Reading the face library…"
+    },
+    {
+      "name": "demo_9ee695637140",
+      "value": "Reading settings…"
+    },
+    {
+      "name": "demo_ecbeb5efc69a",
+      "value": "Face quality OK. Hold still."
+    },
+    {
+      "name": "demo_16019bfa1106",
+      "value": "Faces per search"
+    },
+    {
+      "name": "demo_a28d247ae232",
+      "value": "Search timeout"
+    },
+    {
+      "name": "demo_66227980fcca",
+      "value": "Compare faces in two photos"
+    },
+    {
+      "name": "demo_794d29084632",
+      "value": "Comparison complete"
+    },
+    {
+      "name": "demo_9659733917ec",
+      "value": "ms"
+    },
+    {
+      "name": "demo_48b6aed71c10",
+      "value": "No camera available"
+    },
+    {
+      "name": "demo_a1922393b634",
+      "value": "This ID was not found"
+    },
+    {
+      "name": "demo_77b933df8d2e",
+      "value": "No YUV_420_SP preview size is available within the 1080p limit"
+    },
+    {
+      "name": "demo_dc9d959db0a1",
+      "value": "Liveness"
+    },
+    {
+      "name": "demo_c38ca0284bcd",
+      "value": "Liveness %.3f"
+    },
+    {
+      "name": "demo_79967ffce862",
+      "value": "Liveness {0}"
+    },
+    {
+      "name": "demo_70c114141508",
+      "value": "Liveness score %.3f"
+    },
+    {
+      "name": "demo_f6e3354c14c4",
+      "value": "Liveness action"
+    },
+    {
+      "name": "demo_db6972be8e4d",
+      "value": "Liveness enabled"
+    },
+    {
+      "name": "demo_71b862e3e5e6",
+      "value": "Liveness disabled"
+    },
+    {
+      "name": "demo_59645f0fd1b7",
+      "value": "Liveness failed"
+    },
+    {
+      "name": "demo_f95a833c21ef",
+      "value": "Liveness"
+    },
+    {
+      "name": "demo_b133729acd1d",
+      "value": "Liveness detection is available only in 1:N mode."
+    },
+    {
+      "name": "demo_975ce5bdf06b",
+      "value": "Liveness detection error"
+    },
+    {
+      "name": "demo_cf5dbf062af9",
+      "value": "Unable to run liveness detection"
+    },
+    {
+      "name": "demo_98f9a5971b04",
+      "value": "Liveness detection failed"
+    },
+    {
+      "name": "demo_24df5fb74071",
+      "value": "Liveness detection failed: {0}"
+    },
+    {
+      "name": "demo_94bdcf888464",
+      "value": "Liveness detection failed: action timed out"
+    },
+    {
+      "name": "demo_45d82c35475a",
+      "value": "Liveness detection failed: final capture incomplete. Keep your face forward and try again."
+    },
+    {
+      "name": "demo_75634f3494ac",
+      "value": "Liveness detection failed: multiple faces detected"
+    },
+    {
+      "name": "demo_d09b0a66bb37",
+      "value": "Liveness detection failed: suspected spoof"
+    },
+    {
+      "name": "demo_4844c744e39f",
+      "value": "Liveness detection failed: the face left the frame"
+    },
+    {
+      "name": "demo_fb634b312cd1",
+      "value": "Liveness detection failed: timed out waiting for a face"
+    },
+    {
+      "name": "demo_92268139bebf",
+      "value": "Liveness detection passed"
+    },
+    {
+      "name": "demo_879a8cc02926",
+      "value": "Unable to start the flow"
+    },
+    {
+      "name": "demo_572139cf32fc",
+      "value": "Flow started"
+    },
+    {
+      "name": "demo_b10b8c2aa711",
+      "value": "Flow failed"
+    },
+    {
+      "name": "demo_ed1a39eae022",
+      "value": "Flow passed"
+    },
+    {
+      "name": "demo_f96807d6731c",
+      "value": "Clear and enroll again"
+    },
+    {
+      "name": "demo_937fd1ff3c2a",
+      "value": "Unable to clear the old reference"
+    },
+    {
+      "name": "demo_ada5e42a5eff",
+      "value": "Clear search"
+    },
+    {
+      "name": "demo_058345525f07",
+      "value": "Tap a card to select a photo"
+    },
+    {
+      "name": "demo_376b1c43d6b7",
+      "value": "Tap Start for actions, liveness and 1:1 verification"
+    },
+    {
+      "name": "demo_d9545ce1e182",
+      "value": "Tap to change"
+    },
+    {
+      "name": "demo_68f824952381",
+      "value": "Nod your head"
+    },
+    {
+      "name": "demo_84832da4b831",
+      "value": "Photo 1"
+    },
+    {
+      "name": "demo_82f3129a6089",
+      "value": "Photo 2"
+    },
+    {
+      "name": "demo_49a44a338518",
+      "value": "Multiple faces in the frame"
+    },
+    {
+      "name": "demo_6f9d20916dd5",
+      "value": "Preview correction"
+    },
+    {
+      "name": "demo_e98002493e3a",
+      "value": "Suspected spoof"
+    },
+    {
+      "name": "demo_dfb0432abcef",
+      "value": "Target zoom"
+    },
+    {
+      "name": "demo_747391190bc7",
+      "value": "Similarity"
+    },
+    {
+      "name": "demo_e19e75d6da1e",
+      "value": "Similarity %.2f%%"
+    },
+    {
+      "name": "demo_610a58dc7297",
+      "value": "Similarity %.3f"
+    },
+    {
+      "name": "demo_457d0bb07225",
+      "value": "Similarity %1$.2f%%"
+    },
+    {
+      "name": "demo_5587dc6d9747",
+      "value": "Similarity {0}"
+    },
+    {
+      "name": "demo_8296d878602a",
+      "value": "Similarity {0}%"
+    },
+    {
+      "name": "demo_3a519221e806",
+      "value": "Similarity threshold"
+    },
+    {
+      "name": "demo_622a487f722c",
+      "value": "Similarity threshold %.2f"
+    },
+    {
+      "name": "demo_af9354105039",
+      "value": "The camera does not support NV12 analysis output"
+    },
+    {
+      "name": "demo_e9b2752accb8",
+      "value": "Camera session {0} fps{1} · "
+    },
+    {
+      "name": "demo_e1a53ec26c8c",
+      "value": "Camera session error"
+    },
+    {
+      "name": "demo_5661512aff4f",
+      "value": "Analysis frame unavailable. Try again."
+    },
+    {
+      "name": "demo_f78b63f052f4",
+      "value": "Unable to start the camera"
+    },
+    {
+      "name": "demo_30877f823005",
+      "value": "Unable to start the camera. Try again."
+    },
+    {
+      "name": "demo_23937608403c",
+      "value": "Unable to start the camera: {0}"
+    },
+    {
+      "name": "demo_b20053dab66c",
+      "value": "Mirror camera coordinates"
+    },
+    {
+      "name": "demo_ca8e1b6a679f",
+      "value": "Mirror coordinate correction"
+    },
+    {
+      "name": "demo_33e159367e48",
+      "value": "Camera restored"
+    },
+    {
+      "name": "demo_b9956f5aba76",
+      "value": "Unable to restore the camera. Try again."
+    },
+    {
+      "name": "demo_c54d504df7cb",
+      "value": "Camera or frame processing failed"
+    },
+    {
+      "name": "demo_515087323b48",
+      "value": "Camera temporarily unavailable"
+    },
+    {
+      "name": "demo_c719f94b65ec",
+      "value": "Camera busy. Resumes when available."
+    },
+    {
+      "name": "demo_e5e055b6aed8",
+      "value": "Camera service restored"
+    },
+    {
+      "name": "demo_1d9f14e46392",
+      "value": "Camera service reset. Recovering automatically."
+    },
+    {
+      "name": "demo_54bff34cef8d",
+      "value": "No analysis frames received. Try again."
+    },
+    {
+      "name": "demo_4d0bda1423aa",
+      "value": "Camera restricted. Check Screen Time or contact your administrator."
+    },
+    {
+      "name": "demo_bc9a1a72ffc8",
+      "value": "Camera input interrupted"
+    },
+    {
+      "name": "demo_cf6437126c38",
+      "value": "Camera running"
+    },
+    {
+      "name": "demo_4dcb3d20bdcc",
+      "value": "Camera failed. Try again."
+    },
+    {
+      "name": "demo_48a7d8756c5f",
+      "value": "Camera preview error"
+    },
+    {
+      "name": "demo_580df4b9aed1",
+      "value": "Blink"
+    },
+    {
+      "name": "demo_de32e20193ad",
+      "value": "OK"
+    },
+    {
+      "name": "demo_9700af891649",
+      "value": "Confirm the face is clear and unobstructed"
+    },
+    {
+      "name": "demo_33d53b21d9c4",
+      "value": "Confirm Face Photo"
+    },
+    {
+      "name": "demo_fe5f2c9b9f46",
+      "value": "Confirm Enrollment"
+    },
+    {
+      "name": "demo_d788c6261163",
+      "value": "Confirm overwrite"
+    },
+    {
+      "name": "demo_c0f5c23fc133",
+      "value": "Overwrite the face feature and group for {0}?"
+    },
+    {
+      "name": "demo_848c0ff5c1a0",
+      "value": "Use this face photo?"
+    },
+    {
+      "name": "demo_cf365f844a6c",
+      "value": "Import 10,000 bundled HF1 features offline. Update existing Face IDs."
+    },
+    {
+      "name": "demo_9cb4f4bddc67",
+      "value": "Offline | Private | Fast"
+    },
+    {
+      "name": "demo_c1e79c106b1f",
+      "value": "Waiting for the next search"
+    },
+    {
+      "name": "demo_38532433b960",
+      "value": "Waiting for a face"
+    },
+    {
+      "name": "demo_e6ae87dff6d6",
+      "value": "Timed out waiting for a face"
+    },
+    {
+      "name": "demo_b3d8764e86c3",
+      "value": "Waiting for zoom"
+    },
+    {
+      "name": "demo_f522cd48e4b5",
+      "value": "Waiting for a suitable face. Initial timeout: {0} seconds."
+    },
+    {
+      "name": "demo_21b43262175f",
+      "value": "Waiting for camera frames"
+    },
+    {
+      "name": "demo_88305115b5be",
+      "value": "Restart this detection round when the camera recovers"
+    },
+    {
+      "name": "demo_78491c2e0c2b",
+      "value": "Approximately 1280 × 720 · Balanced detail and performance"
+    },
+    {
+      "name": "demo_ba2145905971",
+      "value": "Approximately 1920 × 1080 · More detail, higher power use"
+    },
+    {
+      "name": "demo_8bbde16ac8f1",
+      "value": "Approximately 640 × 480 · Prioritize performance"
+    },
+    {
+      "name": "demo_e292c6bbf148",
+      "value": "Continue import"
+    },
+    {
+      "name": "demo_57c5765fa02c",
+      "value": "Confidence %.1f%%"
+    },
+    {
+      "name": "demo_61b3c566c5da",
+      "value": "Download 1,000 images; extract the largest face in each and update existing Face IDs. Skip failed images. Stop saves the completed tail batch and keeps saved data."
+    },
+    {
+      "name": "demo_57782c6b829a",
+      "value": "Download and import 1,000 images. Replace existing Face IDs, skip failures and keep saved batches."
+    },
+    {
+      "name": "demo_be2bd874af40",
+      "value": "Download and import 1,000 images. Replace existing Face IDs; keep saved batches."
+    },
+    {
+      "name": "demo_6a1215198c3b",
+      "value": "Adapts to the lens. Low suits nearby faces; medium suits daily detection and liveness. Actual size appears on the camera page."
+    },
+    {
+      "name": "demo_4ce4c98eb27e",
+      "value": "Overwrite"
+    },
+    {
+      "name": "demo_86938b578cad",
+      "value": "Overwrite this face record?"
+    },
+    {
+      "name": "demo_087669f2ca47",
+      "value": "Count failed"
+    },
+    {
+      "name": "demo_b2f74ec00ab4",
+      "value": "Timer running. Bring the same face back into view."
+    },
+    {
+      "name": "demo_5376dbab75f1",
+      "value": "Insufficient device resources to process the face"
+    },
+    {
+      "name": "demo_8babf4927c20",
+      "value": "Insufficient device resources. Close other tasks and try again."
+    },
+    {
+      "name": "demo_ba7b2d354a0e",
+      "value": "Set analysis resolution and coordinate mirroring"
+    },
+    {
+      "name": "demo_9b9078444eac",
+      "value": "Set a unique Face ID."
+    },
+    {
+      "name": "demo_26e2962952e2",
+      "value": "Settings are saved automatically and apply when you reopen a camera page."
+    },
+    {
+      "name": "demo_9c51dd7276c4",
+      "value": "Cannot read settings. Using default camera settings."
+    },
+    {
+      "name": "demo_a9d3ae030658",
+      "value": "Find identities in the face library"
+    },
+    {
+      "name": "demo_f881633852d8",
+      "value": "Recognition settings"
+    },
+    {
+      "name": "demo_10ba9d3eb67f",
+      "value": "Recognition failed"
+    },
+    {
+      "name": "demo_e8b8d819d559",
+      "value": "Unable to initialize the recognition engine. Tap to retry."
+    },
+    {
+      "name": "demo_c3424d2b14eb",
+      "value": "Recognition engine ready"
+    },
+    {
+      "name": "demo_c04f6585ff15",
+      "value": "Recognize the largest face. Passive liveness is enabled by default."
+    },
+    {
+      "name": "demo_b23f79c10ec5",
+      "value": "Unable to prepare recognition models. Tap to retry."
+    },
+    {
+      "name": "demo_83562a5ab678",
+      "value": "No feature exists for this Face ID"
+    },
+    {
+      "name": "demo_1d97d232d504",
+      "value": "This ID already exists"
+    },
+    {
+      "name": "demo_a1765df14aa3",
+      "value": "Please {0} ({1}/{2})"
+    },
+    {
+      "name": "demo_9aa081aa380f",
+      "value": "Hold still"
+    },
+    {
+      "name": "demo_f65a13c32cbc",
+      "value": "Keep your face still"
+    },
+    {
+      "name": "demo_20935edd1545",
+      "value": "Capture a face first"
+    },
+    {
+      "name": "demo_9ab891b851c5",
+      "value": "Enroll a reference face first"
+    },
+    {
+      "name": "demo_ee6d2997be1a",
+      "value": "Face forward and hold still until verification completes."
+    },
+    {
+      "name": "demo_0bdca7a459e6",
+      "value": "Complete action {0}"
+    },
+    {
+      "name": "demo_5950015f8fcf",
+      "value": "Place your face inside the circle"
+    },
+    {
+      "name": "demo_4aa318103bae",
+      "value": "Open your mouth{0}"
+    },
+    {
+      "name": "demo_ea59e9de371c",
+      "value": "Open your mouth ({0}/{1})"
+    },
+    {
+      "name": "demo_4a053ce87ef7",
+      "value": "Enroll a face or adjust the search settings"
+    },
+    {
+      "name": "demo_c3f6b7f71fd2",
+      "value": "Follow the action prompts"
+    },
+    {
+      "name": "demo_e6d0fed24b2c",
+      "value": "Face forward"
+    },
+    {
+      "name": "demo_8ccbb63c7949",
+      "value": "Shake your head{0}"
+    },
+    {
+      "name": "demo_1e699111403a",
+      "value": "Shake your head ({0}/{1})"
+    },
+    {
+      "name": "demo_e7c87ed4da0d",
+      "value": "Check the Face ID, or clear the input to see all records."
+    },
+    {
+      "name": "demo_53ebeaff6575",
+      "value": "Check the input, or clear it to see all faces."
+    },
+    {
+      "name": "demo_6481823d172c",
+      "value": "Face the screen"
+    },
+    {
+      "name": "demo_f24220459f5a",
+      "value": "Face the camera"
+    },
+    {
+      "name": "demo_19587ac6ce9a",
+      "value": "Nod your head{0}"
+    },
+    {
+      "name": "demo_0524aca8d737",
+      "value": "Nod your head ({0}/{1})"
+    },
+    {
+      "name": "demo_9f7fd3901748",
+      "value": "Blink{0}"
+    },
+    {
+      "name": "demo_5eb14bc12826",
+      "value": "Blink ({0}/{1})"
+    },
+    {
+      "name": "demo_346a45be9521",
+      "value": "Keep only one person in the frame"
+    },
+    {
+      "name": "demo_72c657d389d5",
+      "value": "Keep only one person in the frame"
+    },
+    {
+      "name": "demo_d2ce75de7bcb",
+      "value": "Keep only one face in view."
+    },
+    {
+      "name": "demo_11468e44ae66",
+      "value": "Confirm the face is clear and set a unique Face ID"
+    },
+    {
+      "name": "demo_69e470dd61f8",
+      "value": "Confirm the enrollment capture"
+    },
+    {
+      "name": "demo_42645088260a",
+      "value": "Confirm the face is clear, forward-facing, and unobstructed"
+    },
+    {
+      "name": "demo_6f2840fca4fb",
+      "value": "Confirm the photo and enrollment details"
+    },
+    {
+      "name": "demo_46a6ac545e1b",
+      "value": "Confirm the photo, then save it as a 1:1 verification reference"
+    },
+    {
+      "name": "demo_20cfd1c3b4c8",
+      "value": "Please wait"
+    },
+    {
+      "name": "demo_21fd63b5ba5b",
+      "value": "Wait for the camera preview and analysis pipeline to be ready"
+    },
+    {
+      "name": "demo_c5be29e6f6fa",
+      "value": "Enter a value between 0.75 and 0.85"
+    },
+    {
+      "name": "demo_c8c131de25ab",
+      "value": "Enter an integer between 0 and 3000"
+    },
+    {
+      "name": "demo_cb8865f30008",
+      "value": "Enter an integer between 1000 and 3000"
+    },
+    {
+      "name": "demo_f4d50d0a4d9b",
+      "value": "Enter an integer between 1 and 5"
+    },
+    {
+      "name": "demo_170cf2406bb2",
+      "value": "Enter a Face ID"
+    },
+    {
+      "name": "demo_d1e6c6f01819",
+      "value": "Enter a valid number"
+    },
+    {
+      "name": "demo_5c591f8a53f9",
+      "value": "Retry search"
+    },
+    {
+      "name": "demo_30030d182b5b",
+      "value": "Try again, or refresh from the top-right menu."
+    },
+    {
+      "name": "demo_a060c4c6bf8f",
+      "value": "Try again, or refresh from the top-right menu."
+    },
+    {
+      "name": "demo_3ef5363fb4d1",
+      "value": "Move closer"
+    },
+    {
+      "name": "demo_a115a67e5a10",
+      "value": "Move closer to the camera"
+    },
+    {
+      "name": "demo_346ff60e6c7c",
+      "value": "Loading…"
+    },
+    {
+      "name": "demo_fb127aea6b52",
+      "value": "Unable to read reference faces"
+    },
+    {
+      "name": "demo_6aa27f14bff1",
+      "value": "Read failed"
+    },
+    {
+      "name": "demo_0a38fd01cf7e",
+      "value": "Read failed. Using defaults: {0}"
+    },
+    {
+      "name": "demo_d7ff7e3b9fa6",
+      "value": "Read failed: {0}"
+    },
+    {
+      "name": "demo_2aa62479011e",
+      "value": "Invalid parameters. Check the Demo settings."
+    },
+    {
+      "name": "demo_81ccc80c4d9c",
+      "value": "Tap to change"
+    },
+    {
+      "name": "demo_1973cc6d7f75",
+      "value": "Enter Face ID"
+    },
+    {
+      "name": "demo_e9ba332505e2",
+      "value": "Enter a Face ID to find"
+    },
+    {
+      "name": "demo_6621657b142d",
+      "value": "Enter a group name"
+    },
+    {
+      "name": "demo_d4957236ff76",
+      "value": "Enter a unique Face ID"
+    },
+    {
+      "name": "demo_eccb7e928783",
+      "value": "Invalid input. Check it and try again."
+    },
+    {
+      "name": "demo_572cf45ba436",
+      "value": "Back"
+    },
+    {
+      "name": "demo_7c44d171acc6",
+      "value": "Resume the camera when the app returns to the foreground"
+    },
+    {
+      "name": "demo_a9da430aab20",
+      "value": "Resumes automatically in the foreground"
+    },
+    {
+      "name": "demo_f68be37e56cf",
+      "value": "Continuous search paused"
+    },
+    {
+      "name": "demo_892f7b96ea1d",
+      "value": "Select a Face ID, then verify with liveness"
+    },
+    {
+      "name": "demo_3f4b0e1e40ff",
+      "value": "Select two clear front-facing photos"
+    },
+    {
+      "name": "demo_72b817947a86",
+      "value": "Select Reference Face"
+    },
+    {
+      "name": "demo_bf2ac8cbf96a",
+      "value": "Unable to select the reference identity"
+    },
+    {
+      "name": "demo_d1f9e105a986",
+      "value": "Select an enrolled Face ID to start verification."
+    },
+    {
+      "name": "demo_2126d44a4879",
+      "value": "Select clear front-facing photos. The largest face is selected automatically."
+    },
+    {
+      "name": "demo_cae3ab4bfdb2",
+      "value": "Select Photo"
+    },
+    {
+      "name": "demo_2d1911c6a83f",
+      "value": "Select a Face ID to verify"
+    },
+    {
+      "name": "demo_ea57d6f93b17",
+      "value": "Select an identity to verify"
+    },
+    {
+      "name": "demo_1e9f2561b7cf",
+      "value": "passed"
+    },
+    {
+      "name": "demo_95e301a7eeb0",
+      "value": "Invalid configuration"
+    },
+    {
+      "name": "demo_e70cc1b879db",
+      "value": "Capture a face and save its feature"
+    },
+    {
+      "name": "demo_d8d9ff6c9367",
+      "value": "Retake"
+    },
+    {
+      "name": "demo_e99e632a128c",
+      "value": "Capture again"
+    },
+    {
+      "name": "demo_cb5d682bac3d",
+      "value": "Reset"
+    },
+    {
+      "name": "demo_b8784c8dd563",
+      "value": "Retry"
+    },
+    {
+      "name": "demo_c41c08b5ed5b",
+      "value": "Lens field of view"
+    },
+    {
+      "name": "demo_f9c90077a853",
+      "value": "Threshold %.2f"
+    },
+    {
+      "name": "demo_7964bd7d5499",
+      "value": "Continues automatically after the interval"
+    },
+    {
+      "name": "demo_f5b737d94ec9",
+      "value": "Random action challenges and passive liveness detection with both models"
+    },
+    {
+      "name": "demo_5236dff12b76",
+      "value": "Face forward to create a reusable verification reference"
+    },
+    {
+      "name": "demo_9e32f6415f22",
+      "value": "Camera access is required for face detection"
+    },
+    {
+      "name": "demo_c63b22318b0c",
+      "value": "Camera access is required for the live face Demo"
+    },
+    {
+      "name": "demo_0d403e37bcbe",
+      "value": "Select again"
+    },
+    {
+      "name": "demo_fdc5f5e2a510",
+      "value": "Photo 1:1 Comparison"
+    },
+    {
+      "name": "demo_21e29039e257",
+      "value": "Still-image Face Comparison"
+    },
+    {
+      "name": "demo_e61fd71a19f7",
+      "value": "Different people"
+    },
+    {
+      "name": "demo_dff28256e05f",
+      "value": "Face the camera. Recognition starts automatically."
+    },
+    {
+      "name": "demo_c9856fa210d5",
+      "value": "This page has stopped. Reopen it."
+    },
+    {
+      "name": "demo_a7591e153055",
+      "value": "The preview surface is not ready"
+    },
+    {
+      "name": "demo_ed067adebdbb",
+      "value": "Preview {0}×{1}. Confirm to replace the reference."
+    },
+    {
+      "name": "demo_50eb4641d268",
+      "value": "Verify {0}"
+    },
+    {
+      "name": "demo_7393dc3eb9b9",
+      "value": "Verification failed: {0}, similarity {1}"
+    },
+    {
+      "name": "demo_df8104b0d97b",
+      "value": "Verification failed: different people"
+    },
+    {
+      "name": "demo_9abe4b065045",
+      "value": "Verification passed: {0}, similarity {1}"
+    },
+    {
+      "name": "demo_b1c27820fec2",
+      "value": "High"
+    },
+    {
+      "name": "demo_fdd558317870",
+      "value": "High resolution · approximately 1280 × 720"
+    },
+    {
+      "name": "demo_40ab0013082f",
+      "value": "HD"
+    },
+    {
+      "name": "demo_7b5404e5d5f6",
+      "value": "HD · approximately 1280×720"
+    },
+    {
+      "name": "demo_52d3d4e94ad3",
+      "value": "HD selects a compatible size and falls back to default if needed."
+    },
+    {
+      "name": "demo_e626c694c55c",
+      "value": "HD (approximately 1280×720)"
+    },
+    {
+      "name": "demo_dfbb25e818e3",
+      "value": "Default · 640 × 480"
+    },
+    {
+      "name": "demo_9159e93924f3",
+      "value": "Off by default. Enable for mirrored overlays; the camera image is unchanged."
+    },
+    {
+      "name": "demo_e6c4ca7b86f3",
+      "value": "Default uses less processing power; HD suits distant faces."
+    },
+    {
+      "name": "demo_bb0aa5fa3e4f",
+      "value": " (app throttled)"
     }
   ]
 }

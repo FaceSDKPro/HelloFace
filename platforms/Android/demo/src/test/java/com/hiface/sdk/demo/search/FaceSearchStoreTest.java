@@ -5,6 +5,7 @@ import com.hiface.sdk.common.HiFaceErrorCode;
 import com.hiface.sdk.common.HiFaceResult;
 import com.hiface.sdk.search.FaceSearchDatabase;
 import com.hiface.sdk.search.FaceSearchEntry;
+import com.hiface.sdk.search.FaceSearchFeatureEntry;
 
 import org.junit.Test;
 
@@ -98,7 +99,7 @@ public final class FaceSearchStoreTest {
     }
 
     @Test
-    public void closeReleasesEveryQueuedAndPostedRequestBeforeCleanupRuns() {
+    public void closeStopsImportsAndDeliversSummaryAfterCleanup() {
         QueuedExecutor worker = new QueuedExecutor();
         Queue<Runnable> main = new ArrayDeque<>();
         List<String> calls = new ArrayList<>();
@@ -110,16 +111,92 @@ public final class FaceSearchStoreTest {
         FaceSearchStore.Request<?> posted = store.find("A", result -> fail("Late result"));
         worker.drain();
         FaceSearchStore.Request<?> queued = store.delete("A", result -> fail("Late deletion"));
+        List<FaceSearchStore.ImportSummary> summaries = new ArrayList<>();
         FaceSearchStore.Request<?> progress = store.importFeatureDemo(
-                value -> fail("Late progress"), result -> fail("Late import"));
+                value -> {}, result -> summaries.add(result.requireValue()));
         progress.postProgress(100, 1000);
         store.close();
         assertReleased(posted);
         assertReleased(queued);
-        assertReleased(progress);
-        assertTrue(main.isEmpty());
         worker.drain();
+        drain(main);
+        assertReleased(progress);
+        assertEquals(1, summaries.size());
+        assertTrue(summaries.get(0).stopped);
+        assertEquals(0, summaries.get(0).imported);
         assertEquals(Arrays.asList("get", "close"), calls);
+    }
+
+    @Test
+    public void stopWhileOpeningStillDeliversImportCompletionBeforeClosing() {
+        QueuedExecutor worker = new QueuedExecutor();
+        Queue<Runnable> main = new ArrayDeque<>();
+        FaceSearchStore[] holder = new FaceSearchStore[1];
+        List<String> calls = new ArrayList<>();
+        holder[0] = new FaceSearchStore(worker, dispatcher(main), () -> {
+            holder[0].close();
+            return HiFaceResult.success(database((method, args) -> {
+                calls.add(method);
+                return null;
+            }));
+        });
+        List<FaceSearchStore.ImportSummary> summaries = new ArrayList<>();
+        FaceSearchStore.Request<?> request = holder[0].importFeatureDemo(value -> {},
+                result -> summaries.add(result.requireValue()));
+        worker.drain();
+        drain(main);
+        assertEquals(1, summaries.size());
+        assertTrue(summaries.get(0).stopped);
+        assertEquals(0, summaries.get(0).imported);
+        assertEquals(Collections.singletonList("close"), calls);
+        assertReleased(request);
+    }
+
+    @Test
+    public void softStopSavesTailAndReportsCommittedCount() {
+        List<FaceSearchFeatureEntry> batch = new ArrayList<>();
+        for (int i = 0; i < 37; i++) batch.add(new FaceSearchFeatureEntry("tail" + i, "HF1:test", 0, "", "image"));
+        List<Integer> writes = new ArrayList<>();
+        FaceSearchDatabase db = database((method, args) -> {
+            assertEquals("saveFeatures", method);
+            writes.add(((List<?>) args[0]).size());
+            return HiFaceResult.success(true);
+        });
+        FaceSearchStore.Request<?> request = new FaceSearchStore.Request<>();
+        request.stop();
+        HiFaceResult<FaceSearchStore.ImportSummary> result = FaceSearchStore.finishImport(
+                db, request, batch, 100, 2, 139, 1000, true);
+        assertTrue(result.isSuccess());
+        assertEquals(137, result.requireValue().imported);
+        assertEquals(2, result.requireValue().failed);
+        assertTrue(result.requireValue().stopped);
+        assertEquals(137, request.savedCount());
+        assertTrue(batch.isEmpty());
+        assertEquals(Collections.singletonList(37), writes);
+    }
+
+    @Test
+    public void failedTailDoesNotInflateSavedCount() {
+        FaceSearchStore.Request<?> request = new FaceSearchStore.Request<>();
+        request.postProgress(104, 1000, 100, 1);
+        request.stop();
+        List<FaceSearchFeatureEntry> batch = new ArrayList<>(Collections.singletonList(
+                new FaceSearchFeatureEntry("tail", "HF1:test", 0, "", "image")));
+        FaceSearchDatabase db = database((method, args) -> HiFaceResult.failure(
+                new HiFaceError(HiFaceErrorCode.DATABASE_ERROR, "disk full", null)));
+        assertTrue(FaceSearchStore.finishImport(db, request, batch, 100, 1, 104, 1000, true).isFailure());
+        assertEquals(100, request.savedCount());
+        assertEquals(1, batch.size());
+    }
+
+    @Test
+    public void stopAtEndReportsCompletedRatherThanPartialImport() {
+        FaceSearchStore.Request<?> request = new FaceSearchStore.Request<>();
+        request.stop();
+        HiFaceResult<FaceSearchStore.ImportSummary> result = FaceSearchStore.finishImport(
+                null, request, new ArrayList<>(), 1000, 0, 1000, 1000, true);
+        assertEquals(1000, result.requireValue().imported);
+        assertFalse(result.requireValue().stopped);
     }
 
     @Test

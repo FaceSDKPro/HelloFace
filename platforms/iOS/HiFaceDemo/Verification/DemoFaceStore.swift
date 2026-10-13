@@ -184,15 +184,15 @@ private enum StoreError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidFaceID:
-            "Face ID 不能为空，且 UTF-8 长度不能超过 255 字节"
+            DemoL10n.text("Face ID 必填，最多 255 UTF-8 字节")
         case .invalidFeature:
-            "参考人脸特征无效"
+            DemoL10n.text("参考人脸特征无效")
         case .invalidResult:
-            "Keychain 返回了无法识别的数据"
+            DemoL10n.text("Keychain 返回了无法识别的数据")
         case .missingFaceID(let faceID):
-            "找不到参考身份 \(faceID)"
+            DemoL10n.text("找不到参考身份 {0}", [String(describing: faceID)])
         case .keychain(let status):
-            SecCopyErrorMessageString(status, nil) as String? ?? "Keychain 错误（\(status)）"
+            SecCopyErrorMessageString(status, nil) as String? ?? DemoL10n.text("Keychain 错误（{0}）", [String(describing: status)])
         }
     }
 }

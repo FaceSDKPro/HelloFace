@@ -21,7 +21,7 @@ struct SearchLibraryPerson: Identifiable, Sendable, Equatable {
 /// 人脸库管理：精确查询、滚动加载、删除和两种批量导入；连接与任务由页面生命周期管理。
 @MainActor
 final class SearchLibraryModel: ObservableObject {
-    @Published var status = "读取中…"
+    @Published var status = DemoL10n.text("读取中…")
     @Published var query = ""
     @Published private(set) var people: [SearchLibraryPerson] = []
     @Published private(set) var isLookup = false
@@ -29,6 +29,10 @@ final class SearchLibraryModel: ObservableObject {
     @Published private(set) var hasError = false
     @Published private(set) var pendingDeleteFaceID: String?
     @Published private(set) var pendingImport: FaceSearchDemoImportKind?
+    @Published private(set) var isImporting = false
+    @Published private(set) var isStoppingImport = false
+    @Published private(set) var importSaved = 0
+    @Published private(set) var importNotice: String?
 
     private static let loadSize = 100
     private static let prefetchRemaining = 10
@@ -39,6 +43,8 @@ final class SearchLibraryModel: ObservableObject {
     private var operationGeneration = 0
     private var nextOffset = 0
     private var canLoadMore = false
+    private var importControl: FaceSearchImportControl?
+    private var resumeAfterImport = false
 
     private struct ListSnapshot: Sendable {
         let count: UInt64
@@ -46,6 +52,7 @@ final class SearchLibraryModel: ObservableObject {
     }
 
     func refresh() {
+        if isImporting { resumeAfterImport = true; return }
         query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? loadFirstPage() : lookup()
     }
 
@@ -55,7 +62,7 @@ final class SearchLibraryModel: ObservableObject {
             loadFirstPage()
             return
         }
-        let generation = beginOperation(status: "正在查询…")
+        let generation = beginOperation(status: DemoL10n.text("正在查询…"))
         operationTask = Task { [weak self] in
             guard let self else { return }
             do {
@@ -72,7 +79,7 @@ final class SearchLibraryModel: ObservableObject {
                 }
                 guard isCurrent(generation) else { return }
                 apply(snapshot, lookup: true)
-                status = snapshot.people.isEmpty ? "未找到 Face ID：\(faceID)" : "找到 1 条记录"
+                status = snapshot.people.isEmpty ? DemoL10n.text("未找到 Face ID：{0}", [String(describing: faceID)]) : DemoL10n.text("找到 1 条记录")
                 finish(generation)
             } catch {
                 finish(error, generation: generation)
@@ -90,7 +97,7 @@ final class SearchLibraryModel: ObservableObject {
         guard !isWorking, !isLookup, pendingDeleteFaceID == nil, pendingImport == nil, canLoadMore,
               people.suffix(Self.prefetchRemaining).contains(where: { $0.id == person.id }) else { return }
         let offset = nextOffset
-        let generation = beginOperation(status: "正在加载更多…")
+        let generation = beginOperation(status: DemoL10n.text("正在加载更多…"))
         operationTask = Task { [weak self] in
             guard let self else { return }
             do {
@@ -102,7 +109,7 @@ final class SearchLibraryModel: ObservableObject {
                 nextOffset = offset + loaded.count
                 canLoadMore = !loaded.isEmpty && nextOffset < Int(clamping: total)
                 people = Self.merge(people, with: loaded)
-                status = "共 \(total) 条人脸记录"
+                status = DemoL10n.text("共 {0} 条人脸记录", [String(describing: total)])
                 finish(generation)
             } catch {
                 finish(error, generation: generation)
@@ -119,7 +126,7 @@ final class SearchLibraryModel: ObservableObject {
         guard let faceID = pendingDeleteFaceID else { return }
         pendingDeleteFaceID = nil
         let lookup = isLookup
-        let generation = beginOperation(status: "正在删除 \(faceID)…")
+        let generation = beginOperation(status: DemoL10n.text("正在删除 {0}…", [String(describing: faceID)]))
         operationTask = Task { [weak self] in
             guard let self else { return }
             do {
@@ -134,7 +141,7 @@ final class SearchLibraryModel: ObservableObject {
                 guard isCurrent(generation) else { return }
                 if !lookup { query = "" }
                 apply(snapshot, lookup: lookup)
-                status = "已删除 \(faceID)"
+                status = DemoL10n.text("已删除 {0}", [String(describing: faceID)])
                 finish(generation)
             } catch {
                 finish(error, generation: generation)
@@ -145,15 +152,22 @@ final class SearchLibraryModel: ObservableObject {
     func cancelDelete() { pendingDeleteFaceID = nil }
 
     func requestImport(_ kind: FaceSearchDemoImportKind) {
+        guard !isImporting else { return }
         guard !isWorking, pendingDeleteFaceID == nil else { return }
         pendingImport = kind
     }
     func cancelImport() { pendingImport = nil }
 
     func confirmImport() {
-        guard let kind = pendingImport else { return }
+        guard let kind = pendingImport, !isImporting else { return }
         pendingImport = nil
-        let generation = beginOperation(status: "准备\(kind.title)…")
+        let generation = beginOperation(status: DemoL10n.text("准备{0}…", [String(describing: kind.title)]))
+        let control = FaceSearchImportControl()
+        importControl = control
+        isImporting = true
+        isStoppingImport = false
+        importSaved = 0
+        importNotice = nil
         let sdk: HiFaceSDK? = kind == .images ? {
             // 每次导入独立持有 SDK；旧导入仍在退出时不能复用其即将关闭的实例。
             let value = DemoEnvironment.makeSDK()
@@ -167,11 +181,23 @@ final class SearchLibraryModel: ObservableObject {
                     sdk?.close()
                     if imageImportSDK === sdk { imageImportSDK = nil }
                 }
+                if importControl === control {
+                    importControl = nil
+                    isImporting = false
+                    isStoppingImport = false
+                    if operationGeneration != generation {
+                        let resume = resumeAfterImport
+                        resumeAfterImport = false
+                        stop()
+                        if resume { refresh() }
+                    }
+                }
             }
             do {
-                let progress: @MainActor @Sendable (Int, Int) -> Void = { [weak self] done, total in
+                let progress: @MainActor @Sendable (FaceSearchDemoImportProgress) -> Void = { [weak self] value in
                     guard let self, isCurrent(generation) else { return }
-                    status = "\(kind.title)：\(done) / \(total)"
+                    importSaved = value.imported
+                    status = DemoL10n.text("{0}：已处理 {1} / {2}，已保存 {3} 条", [String(describing: isStoppingImport ? DemoL10n.text("正在停止") : kind.title), String(describing: value.processed), String(describing: value.total), String(describing: value.imported)])
                 }
                 let database = try await database()
                 let summary: FaceSearchDemoImportSummary
@@ -179,6 +205,7 @@ final class SearchLibraryModel: ObservableObject {
                 case .features:
                     summary = try await FaceSearchDemoImporter.importFeatures(
                         database: database,
+                        control: control,
                         progress: progress
                     )
                 case .images:
@@ -188,20 +215,25 @@ final class SearchLibraryModel: ObservableObject {
                     summary = try await FaceSearchDemoImporter.importImages(
                         sdk: sdk,
                         database: database,
+                        control: control,
                         progress: progress
                     )
                 }
+                let message = DemoL10n.text("{0}：已保存 {1} 条，失败 {2} 条", [String(describing: summary.stopped ? DemoL10n.text("已停止") : DemoL10n.text("导入完成")), String(describing: summary.imported), String(describing: summary.failed)])
+                importNotice = message
+                guard isCurrent(generation) else { return }
                 let snapshot = try await Self.firstPage(database: database)
                 guard isCurrent(generation) else { return }
                 query = ""
                 apply(snapshot)
-                status = summary.failed == 0
-                    ? "已导入 \(summary.imported) 条"
-                    : "已导入 \(summary.imported) 条，跳过 \(summary.failed) 条"
+                status = message
                 finish(generation)
             } catch is CancellationError {
                 finish(generation)
             } catch {
+                if isCurrent(generation) {
+                    importNotice = DemoL10n.text("导入未完成，已保存 {0} 条。\n{1}", [String(describing: importSaved), String(describing: DemoErrorPresentation.message(for: error))])
+                }
                 finish(error, generation: generation)
             }
         }
@@ -209,6 +241,13 @@ final class SearchLibraryModel: ObservableObject {
 
     func stop() {
         operationGeneration &+= 1
+        pendingDeleteFaceID = nil
+        pendingImport = nil
+        if isImporting {
+            resumeAfterImport = false
+            requestStopImport()
+            return
+        }
         operationTask?.cancel()
         operationTask = nil
         imageImportSDK?.close()
@@ -230,8 +269,17 @@ final class SearchLibraryModel: ObservableObject {
 
     deinit { imageImportSDK?.close() }
 
+    func requestStopImport() {
+        guard isImporting else { return }
+        isStoppingImport = true
+        status = DemoL10n.text("正在停止并保存，请稍候…")
+        importControl?.stop()
+    }
+
+    func dismissImportNotice() { importNotice = nil }
+
     private func loadFirstPage() {
-        let generation = beginOperation(status: "读取中…")
+        let generation = beginOperation(status: DemoL10n.text("读取中…"))
         operationTask = Task { [weak self] in
             guard let self else { return }
             do {
@@ -239,7 +287,7 @@ final class SearchLibraryModel: ObservableObject {
                 let snapshot = try await Self.firstPage(database: database)
                 guard isCurrent(generation) else { return }
                 apply(snapshot)
-                status = "共 \(snapshot.count) 条人脸记录"
+                status = DemoL10n.text("共 {0} 条人脸记录", [String(describing: snapshot.count)])
                 finish(generation)
             } catch {
                 finish(error, generation: generation)
@@ -277,7 +325,7 @@ final class SearchLibraryModel: ObservableObject {
     private func finish(_ error: Error, generation: Int) {
         guard isCurrent(generation) else { return }
         status = (error as? HiFaceError).map(DemoErrorPresentation.message(for:))
-            ?? error.localizedDescription
+            ?? DemoErrorPresentation.message(for: error)
         hasError = true
         canLoadMore = false
         finish(generation)

@@ -1,3 +1,4 @@
+import { DemoL10n } from '../ui/DemoL10n';
 import { common } from '@kit.AbilityKit';
 import { preferences } from '@kit.ArkData';
 
@@ -16,7 +17,7 @@ export class CameraDemoSettings {
   }
 
   resolutionLabel(): string {
-    return this.highResolution ? '高清（接近 1280×720）' : '标准（接近 640×480）';
+    return this.highResolution ? DemoL10n.text("高清（接近 1280×720）") : DemoL10n.text("标准（接近 640×480）");
   }
 }
 

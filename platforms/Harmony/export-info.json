@@ -1,7 +1,7 @@
 {
   "sdkVersion": "0.0.1",
   "dependency": "libs/hiface-0.0.1.har",
-  "sha256": "197e13103b98638fca8b9a4f540c4e8913a6b16478278f6b087913fb612cb4b0",
+  "sha256": "58e6ee16a9b26e92132fd8bb1ab35962ac4cb23dd0883e0a98b0652a8a344fe9",
   "embeddedModels": {
     "kcehc.bphfm": {
       "size": 1273257,
@@ -33,16 +33,5 @@
     "timeZone": "Asia/Shanghai",
     "expiresAtUnixSeconds": 1798214400,
     "replacementRequiredFromVersion": "0.1.0"
-  },
-  "updatedOn": "2026-10-13",
-  "deliveryStatus": "beta-demo",
-  "demoApplicationId": "com.hiface.sdk.public",
-  "demoDisplayName": "HiFace演示",
-  "verification": {
-    "sdkStructure": "passed",
-    "apiCompatibility": "passed",
-    "independentReleaseBuild": "passed",
-    "deviceAcceptance": "pending",
-    "applicationSigning": "configure-your-own"
   }
 }

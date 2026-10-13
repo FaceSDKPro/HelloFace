@@ -100,9 +100,9 @@ struct FaceSearchOverlayStateTests {
                                           frame: frame(1, [matched])), now: 10.2)
         precondition(overlay.box(at: 0).color == .matched)
         precondition(overlay.box(at: 0).title == "A")
-        precondition(overlay.box(at: 0).details == "相似度 0.940 · 活体 0.970")
+        precondition(overlay.box(at: 0).details == "Similarity 0.940 · Liveness 0.970")
         for _ in 0..<10_000 {
-            precondition(overlay.box(at: 0).details == "相似度 0.940 · 活体 0.970")
+            precondition(overlay.box(at: 0).details == "Similarity 0.940 · Liveness 0.970")
         }
 
         overlay.accept(frame(2, [pending]), now: 10.25)
@@ -119,7 +119,7 @@ struct FaceSearchOverlayStateTests {
         overlay.accept(frame(3, [pending]), now: 12)
         overlay.accept(frame(3, [low]), now: 12.1)
         precondition(overlay.box(at: 0).color == .unmatched)
-        precondition(overlay.box(at: 0).title == "未匹配")
+        precondition(overlay.box(at: 0).title == "No match")
         precondition(overlay.box(at: 0).details.isEmpty)
         overlay.accept(frame(3, [low]), now: 12.8)
         overlay.expire(now: 13.11)
@@ -131,8 +131,8 @@ struct FaceSearchOverlayStateTests {
         overlay.complete(FaceSearchResult(endReason: .spoofDetected, livenessScore: 0.2,
                                           frame: frame(4, [matched])), now: 20.2)
         precondition(overlay.box(at: 0).color == .unmatched)
-        precondition(overlay.box(at: 0).title == "A · 活体未通过")
-        precondition(overlay.box(at: 0).details == "相似度 0.940 · 活体 0.200")
+        precondition(overlay.box(at: 0).title == "A · Liveness failed")
+        precondition(overlay.box(at: 0).details == "Similarity 0.940 · Liveness 0.200")
 
         overlay.clear()
         let bothLow = frame(8, [low])
@@ -140,8 +140,8 @@ struct FaceSearchOverlayStateTests {
         overlay.complete(FaceSearchResult(endReason: .spoofDetected, livenessScore: 0.42,
                                           frame: bothLow), now: 21.1)
         precondition(overlay.box(at: 0).color == .unmatched)
-        precondition(overlay.box(at: 0).title == "未匹配 · 活体未通过")
-        precondition(overlay.box(at: 0).details == "活体 0.420")
+        precondition(overlay.box(at: 0).title == "No match · Liveness failed")
+        precondition(overlay.box(at: 0).details == "Liveness 0.420")
         precondition(bothLow.faces[0].similarity == 0.4 && bothLow.faces[0].faceID == nil)
 
         overlay.clear()
@@ -149,7 +149,7 @@ struct FaceSearchOverlayStateTests {
         overlay.complete(FaceSearchResult(endReason: .spoofDetected, livenessScore: 0.1,
                                           frame: frame(7, [matched])), now: 25.1)
         precondition(overlay.box(at: 0).color == .unmatched)
-        precondition(overlay.box(at: 0).details == "相似度 0.940 · 活体 0.100")
+        precondition(overlay.box(at: 0).details == "Similarity 0.940 · Liveness 0.100")
 
         overlay.clear()
         overlay.accept(frame(5, [matched]), now: 30)

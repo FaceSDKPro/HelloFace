@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C20000000000000000000033 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000033 /* InfoPlist.xcstrings */; };
+		C20000000000000000000032 /* DemoL10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000032 /* DemoL10n.swift */; };
 		F50000000000000000000002 /* ModelResourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000001 /* ModelResourceTests.swift */; };
 		F50000000000000000000015 /* HiFace in Frameworks */ = {isa = PBXBuildFile; productRef = 300000000000000000000001 /* HiFace */; };
 		D20000000000000000000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000001 /* PrivacyInfo.xcprivacy */; };
@@ -32,6 +34,7 @@
 		B2000000000000000000000E /* FaceLivenessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000E /* FaceLivenessView.swift */; };
 		10000000000000000000000B /* FaceSearchOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000C /* FaceSearchOverlayView.swift */; };
 		B20000000000000000000010 /* FaceSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* FaceSearchView.swift */; };
+		C20000000000000000000031 /* FaceSearchImportControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000031 /* FaceSearchImportControl.swift */; };
 		C20000000000000000000013 /* SearchLibraryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000013 /* SearchLibraryModel.swift */; };
 		100000000000000000000006 /* SearchLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000006 /* SearchLibraryView.swift */; };
 		B20000000000000000000012 /* SearchSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* SearchSettingsView.swift */; };
@@ -66,6 +69,8 @@
 
 
 /* Begin PBXFileReference section */
+		C10000000000000000000033 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		C10000000000000000000032 /* DemoL10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoL10n.swift; sourceTree = "<group>"; };
 		F50000000000000000000001 /* ModelResourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelResourceTests.swift; sourceTree = "<group>"; };
 		F50000000000000000000003 /* HiFaceDemoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HiFaceDemoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D10000000000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -91,6 +96,7 @@
 		B1000000000000000000000E /* FaceLivenessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceLivenessView.swift; sourceTree = "<group>"; };
 		20000000000000000000000C /* FaceSearchOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceSearchOverlayView.swift; sourceTree = "<group>"; };
 		B10000000000000000000010 /* FaceSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceSearchView.swift; sourceTree = "<group>"; };
+		C10000000000000000000031 /* FaceSearchImportControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceSearchImportControl.swift; sourceTree = "<group>"; };
 		C10000000000000000000013 /* SearchLibraryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchLibraryModel.swift; sourceTree = "<group>"; };
 		200000000000000000000006 /* SearchLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchLibraryView.swift; sourceTree = "<group>"; };
 		B10000000000000000000012 /* SearchSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSettingsView.swift; sourceTree = "<group>"; };
@@ -167,6 +173,7 @@
 		F30000000000000000000010 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				C10000000000000000000033 /* InfoPlist.xcstrings */,
 				F10000000000000000000013 /* Localizable.xcstrings */,
 				F30000000000000000000011 /* FaceSearch */,
 			);
@@ -257,6 +264,7 @@
 				E10000000000000000000003 /* FaceSearchPresentation.swift */,
 				F10000000000000000000010 /* FaceSearchDemoImporter.swift */,
 				B10000000000000000000010 /* FaceSearchView.swift */,
+				C10000000000000000000031 /* FaceSearchImportControl.swift */,
 				C10000000000000000000013 /* SearchLibraryModel.swift */,
 				200000000000000000000006 /* SearchLibraryView.swift */,
 				B10000000000000000000012 /* SearchSettingsView.swift */,
@@ -278,6 +286,7 @@
 			isa = PBXGroup;
 			children = (
 				B10000000000000000000013 /* CameraDialog.swift */,
+				C10000000000000000000032 /* DemoL10n.swift */,
 				E10000000000000000000001 /* DemoErrorPresentation.swift */,
 				B10000000000000000000014 /* DemoCameraButton.swift */,
 				B10000000000000000000015 /* DemoCameraControls.swift */,
@@ -406,6 +415,7 @@
 				D20000000000000000000001 /* PrivacyInfo.xcprivacy in Resources */,
 				F20000000000000000000011 /* features_10000.json in Resources */,
 				F20000000000000000000012 /* images_1000.json in Resources */,
+				C20000000000000000000033 /* InfoPlist.xcstrings in Resources */,
 				F20000000000000000000013 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -453,6 +463,7 @@
 				10000000000000000000000B /* FaceSearchOverlayView.swift in Sources */,
 				B20000000000000000000010 /* FaceSearchView.swift in Sources */,
 				F20000000000000000000010 /* FaceSearchDemoImporter.swift in Sources */,
+				C20000000000000000000031 /* FaceSearchImportControl.swift in Sources */,
 				C20000000000000000000013 /* SearchLibraryModel.swift in Sources */,
 				100000000000000000000006 /* SearchLibraryView.swift in Sources */,
 				B20000000000000000000012 /* SearchSettingsView.swift in Sources */,
@@ -463,6 +474,7 @@
 				B20000000000000000000017 /* FaceActionCountdown.swift in Sources */,
 				B20000000000000000000018 /* FaceCaptureCameraView.swift in Sources */,
 				B20000000000000000000019 /* FaceCaptureOverlayView.swift in Sources */,
+				C20000000000000000000032 /* DemoL10n.swift in Sources */,
 				E20000000000000000000001 /* DemoErrorPresentation.swift in Sources */,
 				E20000000000000000000002 /* FaceFlowPresentation.swift in Sources */,
 				E20000000000000000000003 /* FaceSearchPresentation.swift in Sources */,

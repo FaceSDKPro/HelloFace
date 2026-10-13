@@ -8,14 +8,15 @@ enum CameraDemoMode: String, CaseIterable, Identifiable {
     case search = "人脸搜索识别"
 
     var id: String { rawValue }
+    var title: String { DemoL10n.text(rawValue) }
 
     var subtitle: String {
         switch self {
-        case .detection: "实时展示人脸框、五点、轮廓和头姿"
-        case .capture: "采集清晰正脸，并保存人脸特征"
-        case .verification: "选择 Face ID，完成动作活体后进行动态 1:1 验证"
-        case .liveness: "随机动作挑战与双模型静默检测"
-        case .search: "从人脸库中检索匹配结果"
+        case .detection: DemoL10n.text("查看人脸框、关键点、轮廓和头姿")
+        case .capture: DemoL10n.text("采集正脸并保存特征")
+        case .verification: DemoL10n.text("选择 Face ID，活体通过后验证")
+        case .liveness: DemoL10n.text("随机动作挑战与双模型静默检测")
+        case .search: DemoL10n.text("识别人脸库中的身份")
         }
     }
 

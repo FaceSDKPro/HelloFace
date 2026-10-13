@@ -1,3 +1,4 @@
+import { DemoL10n } from '../ui/DemoL10n';
 import { abilityAccessCtrl, common, Permissions } from '@kit.AbilityKit';
 import { display } from '@kit.ArkUI';
 import { BusinessError, systemDateTime } from '@kit.BasicServicesKit';
@@ -101,7 +102,7 @@ export class CameraPreviewController {
   private async startInternal(surfaceId: string, preferFrontCamera: boolean,
     token: number): Promise<void> {
     if (surfaceId.length === 0) {
-      this.callbacks.onCameraError('预览 Surface 尚未就绪');
+      this.callbacks.onCameraError(DemoL10n.text("预览 Surface 尚未就绪"));
       return;
     }
     this.surfaceId = surfaceId;
@@ -110,7 +111,7 @@ export class CameraPreviewController {
     try {
       if (!await this.requestPermission() || token !== this.generation) {
         if (token === this.generation) {
-          this.callbacks.onCameraError('需要相机权限才能运行实时人脸 Demo');
+          this.callbacks.onCameraError(DemoL10n.text("需要相机权限才能运行实时人脸 Demo"));
         }
         return;
       }
@@ -142,7 +143,7 @@ export class CameraPreviewController {
     } catch (error) {
       await this.stopInternal();
       if (token === this.generation) {
-        try { this.callbacks.onCameraError(`相机启动失败：${error}`); } catch (_) {}
+        try { this.callbacks.onCameraError(DemoL10n.text("相机启动失败：{0}", [String(error)])); } catch (_) {}
       }
     }
   }
@@ -153,11 +154,11 @@ export class CameraPreviewController {
     const attempt: number = ++this.attempt;
     this.startupError = undefined;
     this.inputErrorCallback = (error: BusinessError): void =>
-      this.handleRuntimeError('相机输入中断', error, token, attempt);
+      this.handleRuntimeError(DemoL10n.text("相机输入中断"), error, token, attempt);
     this.sessionErrorCallback = (error: BusinessError): void =>
-      this.handleRuntimeError('相机会话异常', error, token, attempt);
+      this.handleRuntimeError(DemoL10n.text("相机会话异常"), error, token, attempt);
     this.previewErrorCallback = (error: BusinessError): void =>
-      this.handleRuntimeError('相机预览异常', error, token, attempt);
+      this.handleRuntimeError(DemoL10n.text("相机预览异常"), error, token, attempt);
     this.arrivalCallback = (): void => {
       if (token === this.generation && attempt === this.attempt) this.handleArrival();
     };
@@ -200,15 +201,15 @@ export class CameraPreviewController {
       session.on('error', this.sessionErrorCallback);
       session.beginConfig();
       if (!session.canAddInput(input)) {
-        throw new Error('当前设备不允许添加选定相机输入');
+        throw new Error(DemoL10n.text("当前设备不允许添加选定相机输入"));
       }
       session.addInput(input);
       if (!session.canAddOutput(displayOutput)) {
-        throw new Error('当前设备不支持可见预览输出');
+        throw new Error(DemoL10n.text("当前设备不支持可见预览输出"));
       }
       session.addOutput(displayOutput);
       if (!session.canAddOutput(analysisOutput)) {
-        throw new Error('当前设备不支持预览与分析双路输出');
+        throw new Error(DemoL10n.text("当前设备不支持预览与分析双路输出"));
       }
       session.addOutput(analysisOutput);
       await session.commitConfig();
@@ -244,12 +245,12 @@ export class CameraPreviewController {
         if (token === this.generation && this.active && this.frameTask === undefined &&
           this.consumerTask === undefined &&
           systemDateTime.getUptime(systemDateTime.TimeType.STARTUP) - this.lastFrameAt >= 8000) {
-          this.failCamera('相机未收到分析帧，请重试');
+          this.failCamera(DemoL10n.text("相机未收到分析帧，请重试"));
         }
       }, 1000);
       this.callbacks.onCameraState(CameraPreviewState.RUNNING, this.frontCamera,
-        `${this.settings.highResolution ? '高清' : '标准'} ${profileLabel} · ` +
-        `相机会话 ${this.targetSessionFrameRate} fps${this.analysisOutputRateLimited ? '' : '（应用节流）'} · ` +
+        `${this.settings.highResolution ? DemoL10n.text("高清") : DemoL10n.text("标准")} ${profileLabel} · ` +
+        DemoL10n.text("相机会话 {0} fps{1} · ", [String(this.targetSessionFrameRate), String(this.analysisOutputRateLimited ? '' : DemoL10n.text("（应用节流）"))]) +
         `rotation ${this.rotationDegrees}° · NV21/BT.709 video`);
     } catch (error) {
       throw new Error(`CameraKit profile ${profileLabel} failed: ${error}`);
@@ -393,7 +394,7 @@ export class CameraPreviewController {
 
   private selectCamera(devices: Array<camera.CameraDevice>, preferFront: boolean): camera.CameraDevice {
     if (devices.length === 0) {
-      throw new Error('没有可用相机');
+      throw new Error(DemoL10n.text("没有可用相机"));
     }
     const preferred: camera.CameraPosition = preferFront ?
       camera.CameraPosition.CAMERA_POSITION_FRONT : camera.CameraPosition.CAMERA_POSITION_BACK;
@@ -516,9 +517,9 @@ export class CameraPreviewController {
     if (token !== this.generation || !this.active) return;
     this.consecutiveFrameErrors += 1;
     if (this.consecutiveFrameErrors >= 3) {
-      this.failCamera('相机分析帧不可用，请重试');
+      this.failCamera(DemoL10n.text("相机分析帧不可用，请重试"));
     } else {
-      try { this.callbacks.onFrameError(`处理相机分析帧失败：${error}`); } catch (_) {}
+      try { this.callbacks.onFrameError(DemoL10n.text("处理相机分析帧失败：{0}", [String(error)])); } catch (_) {}
     }
   }
 
@@ -584,7 +585,8 @@ export class CameraPreviewController {
 
   private handleRuntimeError(label: string, error: BusinessError, token: number, attempt: number): void {
     if (token !== this.generation || attempt !== this.attempt) return;
-    const message: string = `${label}：${error.code} · ${error.message}`;
+    hilog.error(0xFF00, 'HiFaceDemo', 'Camera error: %{public}s code=%{public}d message=%{public}s', label, error.code, error.message);
+    const message: string = `${label}: ${error.code}`;
     if (this.active) {
       this.failCamera(message);
     } else if (this.startupError === undefined) {

@@ -1,3 +1,4 @@
+import { DemoL10n } from '../ui/DemoL10n';
 import { FaceVerificationFlow } from '../verification/FaceVerificationFlow';
 import { FaceLivenessFlow } from '../liveness/FaceLivenessFlow';
 import { SearchSettingsDialog } from '../search/SearchSettingsDialog';
@@ -103,8 +104,8 @@ export struct RealtimeCameraDemo {
   onOpenLibrary: () => void = () => {};
   @State private detectedPeople: number = 0;
   @State private searchedPeople: number = 0;
-  @State private resultState: string = '启动相机后将持续检测人脸';
-  @State private guideState: string = '实时检测';
+  @State private resultState: string = DemoL10n.text("启动相机后将持续检测人脸");
+  @State private guideState: string = DemoL10n.text("实时检测");
   @State private frontCamera: boolean = true;
   @State private currentMode: RealtimeMode = RealtimeMode.DETECTION;
   @State private capturedFace: image.PixelMap | undefined = undefined;
@@ -274,14 +275,14 @@ export struct RealtimeCameraDemo {
           Canvas(this.canvasContext).width('100%').height('100%').hitTestBehavior(HitTestMode.None)
             .onReady(() => this.drawOverlay())
           Row() {
-            this.CameraIcon($r('app.media.ic_navigation_back'), '返回', (): void => this.onExit())
+            this.CameraIcon($r('app.media.ic_navigation_back'), DemoL10n.text("返回"), (): void => this.onExit())
             Blank()
             if (this.isSearchMode()) {
-              this.CameraIcon($r('app.media.ic_search_settings'), '搜索设置', (): void => this.openSearchSettings())
+              this.CameraIcon($r('app.media.ic_search_settings'), DemoL10n.text("搜索设置"), (): void => this.openSearchSettings())
             }
             if (this.currentMode === RealtimeMode.DETECTION || this.isSearchMode() ||
               this.currentMode === RealtimeMode.LIVENESS) {
-              this.CameraIcon($r('app.media.ic_camera_switch'), '切换摄像头', (): void => { this.switchCamera(); })
+              this.CameraIcon($r('app.media.ic_camera_switch'), DemoL10n.text("切换摄像头"), (): void => { this.switchCamera(); })
             }
           }.width('100%').padding({
             top: this.isSearchMode() ? 6 : 12,
@@ -291,9 +292,9 @@ export struct RealtimeCameraDemo {
           if (this.isSearchMode() && this.detectedPeople > 1) {
             Column() {
               Blank()
-              Text(`检测到 ${this.detectedPeople} 人 · ` +
-                (this.currentMode === RealtimeMode.SEARCH_SINGLE ? '优先识别最大脸' :
-                  `本次处理 ${this.searchedPeople} 人`))
+              Text(DemoL10n.text("检测到 {0} 人 · ", [String(this.detectedPeople)]) +
+                (this.currentMode === RealtimeMode.SEARCH_SINGLE ? DemoL10n.text("优先识别最大脸") :
+                  DemoL10n.text("本次处理 {0} 人", [String(this.searchedPeople)])))
                 .fontSize(11).fontColor('#FFFFFF')
                 .padding({ left: 10, right: 10, top: 8, bottom: 8 })
                 .backgroundColor('#D9172233').borderRadius(12).maxLines(2)
@@ -302,10 +303,10 @@ export struct RealtimeCameraDemo {
           }
           if (this.cameraFailed) {
             Column({ space: 12 }) {
-              Text('相机暂时不可用').fontSize(16).fontColor(this.isGuidedMode() ? DemoTheme.contentText : '#FFFFFF')
+              Text(DemoL10n.text("相机暂时不可用")).fontSize(16).fontColor(this.isGuidedMode() ? DemoTheme.contentText : '#FFFFFF')
               Text(this.cameraError).fontSize(12).fontColor(this.isGuidedMode() ? DemoTheme.contentSecondary : '#FFFFFF')
                 .textAlign(TextAlign.Center).padding({ left: 20, right: 20 })
-              Button('重试').backgroundColor(DemoTheme.primary).onClick(() => this.onSurfaceReady())
+              Button(DemoL10n.text("重试")).backgroundColor(DemoTheme.primary).onClick(() => this.onSurfaceReady())
             }.width('100%').height('100%').justifyContent(FlexAlign.Center).zIndex(1)
           }
         }.layoutWeight(1).width('100%').backgroundColor('#000000').clip(true)
@@ -321,9 +322,9 @@ export struct RealtimeCameraDemo {
           Column({ space: 10 }) {
             this.SearchStatus()
             Row({ space: 10 }) {
-              this.SearchActionButton($r('app.media.ic_search_add'), '录入人脸', true,
+              this.SearchActionButton($r('app.media.ic_search_add'), DemoL10n.text("录入人脸"), true,
                 (): void => this.onEnroll())
-              this.SearchActionButton($r('app.media.ic_search_library'), '人脸库', false,
+              this.SearchActionButton($r('app.media.ic_search_library'), DemoL10n.text("人脸库"), false,
                 (): void => this.onOpenLibrary())
             }.width('100%')
           }.padding({ left: 16, right: 16, top: 10, bottom: 12 }).width('100%')
@@ -351,19 +352,19 @@ export struct RealtimeCameraDemo {
     Button({ type: ButtonType.Circle }) {
       Stack({ alignContent: Alignment.Center }) {
         Column().width(this.isSearchMode() ? 36 : 48).height(this.isSearchMode() ? 36 : 48)
-          .borderRadius(24).backgroundColor(this.isSearchMode() ? '#D9172233' : this.isGuidedMode() || label === '切换摄像头' ?
+          .borderRadius(24).backgroundColor(this.isSearchMode() ? '#D9172233' : this.isGuidedMode() || label === DemoL10n.text("切换摄像头") ?
             Color.Transparent : DemoTheme.surfaceOnDark)
         if (this.isSearchMode()) {
           // 搜索页 SVG 已使用与 Android 一致的白色描边；fillColor 会把相机闭合外框误填成色块。
           Image(icon).width(20).height(20)
         } else {
           Image(icon).width(24).height(24)
-            .fillColor(this.isGuidedMode() || label === '切换摄像头' ? DemoTheme.brand : '#FFFFFF')
+            .fillColor(this.isGuidedMode() || label === DemoL10n.text("切换摄像头") ? DemoTheme.brand : '#FFFFFF')
         }
       }.width(48).height(48)
     }.width(48).height(48).padding(0).backgroundColor(Color.Transparent)
-    .accessibilityText(label).enabled(label === '返回' ||
-      (!this.switchingCamera && (label !== '切换摄像头' || this.cameraReady))).onClick(action)
+    .accessibilityText(label).enabled(label === DemoL10n.text("返回") ||
+      (!this.switchingCamera && (label !== DemoL10n.text("切换摄像头") || this.cameraReady))).onClick(action)
   }
 
   /** 与 Android 搜索页按钮保持一致：48dp 高、20dp 图标、13sp 中字重，并关闭平台默认内容边距。 */
@@ -394,7 +395,7 @@ export struct RealtimeCameraDemo {
       if (this.searchRetryVisible) {
         Row() {
           Blank()
-          Button('重试').height(48).fontSize(12).backgroundColor(Color.Transparent)
+          Button(DemoL10n.text("重试")).height(48).fontSize(12).backgroundColor(Color.Transparent)
             .fontColor(DemoTheme.searchAccent).enabled(this.cameraReady && !this.flowBusy)
             .onClick(() => this.resumeSearch())
         }.width('100%')
@@ -409,10 +410,10 @@ export struct RealtimeCameraDemo {
       Column().width('100%').height('100%').backgroundColor('#9E000000').onClick(() => {})
       Scroll() {
         Column({ space: 14 }) {
-          Text(this.isSearchEnrollment() ? '确认录入信息' : '确认这张人脸照片？')
+          Text(this.isSearchEnrollment() ? DemoL10n.text("确认录入信息") : DemoL10n.text("确认这张人脸照片？"))
             .fontSize(18).fontWeight(FontWeight.Bold).fontColor(this.dialogText()).width('100%')
           if (this.isSearchEnrollment()) {
-            Text('为这张人脸设置一个唯一 ID，便于识别与管理。').fontSize(12)
+            Text(DemoL10n.text("设置唯一 Face ID。")).fontSize(12)
               .fontColor(DemoTheme.textOnDarkSecondary).width('100%')
           }
           if (this.capturedFace !== undefined) {
@@ -420,15 +421,15 @@ export struct RealtimeCameraDemo {
               .height(this.isSearchEnrollment() ? 144 : 188).borderRadius(16).objectFit(ImageFit.Cover)
               .scale({ x: this.capturedFaceMirrored ? -1 : 1, y: 1 })
           }
-          Text(this.isSearchEnrollment() ? 'Face ID' : '确认为清晰无遮挡正脸')
+          Text(this.isSearchEnrollment() ? 'Face ID' : DemoL10n.text("确认为清晰无遮挡正脸"))
             .fontSize(14).fontColor(this.dialogText()).width('100%')
             .textAlign(this.isSearchEnrollment() ? TextAlign.Start : TextAlign.Center)
-          TextInput({ text: this.cameraEnrollmentFaceId, placeholder: '输入 Face ID' })
+          TextInput({ text: this.cameraEnrollmentFaceId, placeholder: DemoL10n.text("输入 Face ID") })
             .height(48).maxLength(64).fontColor(this.dialogText()).backgroundColor(this.dialogField())
             .enabled(!this.libraryBusy).onChange((value: string) => { this.cameraEnrollmentFaceId = value; })
           if (this.isSearchEnrollment()) {
-            Text('分组选填，留空保存为未分组。').fontSize(12).fontColor(DemoTheme.textOnDarkSecondary).width('100%')
-            TextInput({ text: this.cameraEnrollmentGroup, placeholder: '分组' })
+            Text(DemoL10n.text("分组选填，留空为未分组。")).fontSize(12).fontColor(DemoTheme.textOnDarkSecondary).width('100%')
+            TextInput({ text: this.cameraEnrollmentGroup, placeholder: DemoL10n.text("分组") })
               .height(48).fontColor('#FFFFFF').backgroundColor('#243247').enabled(!this.libraryBusy)
               .onChange((value: string) => { this.cameraEnrollmentGroup = value; })
           }
@@ -437,10 +438,10 @@ export struct RealtimeCameraDemo {
               .width('100%')
           }
           Row({ space: 10 }) {
-            Button(this.isSearchEnrollment() ? '重拍' : '重试').layoutWeight(1).height(44).fontSize(16)
+            Button(this.isSearchEnrollment() ? DemoL10n.text("重拍") : DemoL10n.text("重试")).layoutWeight(1).height(44).fontSize(16)
               .backgroundColor(this.dialogField()).fontColor(this.dialogText()).enabled(!this.libraryBusy)
               .onClick(() => this.retryCapture())
-            Button(this.libraryBusy ? '保存中…' : this.isSearchEnrollment() ? '保存' : '完成')
+            Button(this.libraryBusy ? DemoL10n.text("保存中…") : this.isSearchEnrollment() ? DemoL10n.text("保存") : DemoL10n.text("完成"))
               .layoutWeight(1).height(44).fontSize(16).backgroundColor(this.isSearchEnrollment() ? DemoTheme.searchAccent : DemoTheme.primary)
               .fontColor(this.isSearchEnrollment() ? DemoTheme.searchBackground : '#FFFFFF').enabled(!this.libraryBusy)
               .onClick(() => this.confirmEnrollment())
@@ -459,11 +460,11 @@ export struct RealtimeCameraDemo {
         Text(this.guideState).fontSize(20).fontColor(DemoTheme.contentText).width('100%')
         Text(this.resultState).fontSize(15).fontColor(DemoTheme.contentSecondary).width('100%')
         Row({ space: 12 }) {
-          Button(this.currentMode === RealtimeMode.VERIFICATION ? '关闭' : '返回')
+          Button(this.currentMode === RealtimeMode.VERIFICATION ? DemoL10n.text("关闭") : DemoL10n.text("返回"))
             .layoutWeight(1).height(44).fontColor(DemoTheme.brand).backgroundColor(Color.Transparent)
             .onClick(() => this.onExit())
           if (this.resultRetryVisible) {
-            Button(this.currentMode === RealtimeMode.VERIFICATION ? '再试一次' : '重试')
+            Button(this.currentMode === RealtimeMode.VERIFICATION ? DemoL10n.text("再试一次") : DemoL10n.text("重试"))
               .layoutWeight(1).height(44).backgroundColor(DemoTheme.primary)
               .onClick(() => {
                 this.resultVisible = false;
@@ -501,7 +502,7 @@ export struct RealtimeCameraDemo {
     } catch (error) {
       if (this.visible && generation === this.cameraSurfaceGeneration) {
         this.cameraFailed = true;
-        this.cameraError = '无法取得页面上下文，请返回后重新进入';
+        this.cameraError = DemoL10n.text("无法取得页面上下文，请返回后重新进入");
       }
       return;
     }
@@ -510,7 +511,7 @@ export struct RealtimeCameraDemo {
       settings = await CameraDemoSettingsStore.load(context);
     } catch (_) {
       if (this.visible && generation === this.cameraSurfaceGeneration) {
-        this.resultState = '摄像头设置读取失败，已使用标准分辨率和默认镜像映射';
+        this.resultState = DemoL10n.text("设置读取失败，已恢复默认相机参数");
       }
     }
     if (!this.visible || generation !== this.cameraSurfaceGeneration) {
@@ -589,7 +590,7 @@ export struct RealtimeCameraDemo {
     this.cancelFlow();
     this.resetRealtimeState();
     this.switchingCamera = false;
-    if (!this.resultVisible && !this.captureAwaitingConfirmation) this.resultState = '返回前台后自动恢复';
+    if (!this.resultVisible && !this.captureAwaitingConfirmation) this.resultState = DemoL10n.text("返回前台后自动恢复");
     const controller: CameraPreviewController | undefined = this.cameraController;
     this.cameraController = undefined;
     controller?.stop();
@@ -617,7 +618,7 @@ export struct RealtimeCameraDemo {
     this.currentMode = selectedMode;
     if (!preserveRequest) {
       this.guideState = this.modeTitle(selectedMode);
-      this.resultState = '正在切换相机…';
+      this.resultState = DemoL10n.text("正在切换相机…");
     }
     this.resetRealtimeState();
     try {
@@ -661,8 +662,8 @@ export struct RealtimeCameraDemo {
     } catch (error) {
       if (this.visible && generation === this.flowGeneration &&
         surfaceGeneration === this.cameraSurfaceGeneration) {
-        this.resultState = `实时推理异常：${error}`;
-        this.guideState = '识别失败';
+        this.resultState = DemoL10n.text("实时推理异常：{0}", [String(error)]);
+        this.guideState = DemoL10n.text("识别失败");
         this.resultVisible = this.isGuidedMode();
         this.resultRetryVisible = false;
         this.searchRetryVisible = this.isSearchMode();
@@ -685,7 +686,7 @@ export struct RealtimeCameraDemo {
           this.cameraError = DemoErrorUi.describe(error);
         }
         if (this.activeSearchSession === undefined) {
-          this.resultState = `${error.code} · ${error.message}`;
+          this.resultState = DemoErrorUi.describe(error);
         }
         if (this.activeRequest !== undefined) {
           this.cancelFlow();
@@ -710,8 +711,8 @@ export struct RealtimeCameraDemo {
   }
 
   private updateModeGuidance(mode: RealtimeMode): void {
-    this.guideState = this.isGuidedMode() ? '平视正对摄像头' : this.modeTitle(mode);
-    this.resultState = '正在准备相机…';
+    this.guideState = this.isGuidedMode() ? DemoL10n.text("平视正对摄像头") : this.modeTitle(mode);
+    this.resultState = DemoL10n.text("正在准备相机…");
   }
 
   /** 相机就绪后按首页选定模式启动唯一业务流程。 */
@@ -720,11 +721,11 @@ export struct RealtimeCameraDemo {
     if (this.isSearchMode() && this.lastSearchError !== undefined &&
       !FaceSearchStatusUi.canResumeSearch(this.lastSearchError)) return;
     if (!this.cameraReady) {
-      this.resultState = '请等待相机预览与分析链路就绪';
+      this.resultState = DemoL10n.text("请等待相机预览与分析链路就绪");
       return;
     }
     if (this.currentMode === RealtimeMode.DETECTION) {
-      this.resultState = '实时检测已持续运行，无需单独启动';
+      this.resultState = DemoL10n.text("实时检测已开启");
       return;
     }
     if (this.currentMode === RealtimeMode.CAPTURE || this.isSearchEnrollment()) {
@@ -757,18 +758,18 @@ export struct RealtimeCameraDemo {
     this.cameraController?.resumeAnalysis();
     const generation: number = this.flowGeneration;
     this.flowBusy = true;
-    this.guideState = '准备人脸采集';
-    this.resultState = '正在按需加载特征与关键点模型…';
+    this.guideState = DemoL10n.text("准备人脸采集");
+    this.resultState = DemoL10n.text("正在加载所需模型…");
     await this.awaitFlowStart(
       () => this.sdk.capture().startCameraCapture(
         this.createFlowListener(this.currentMode, generation)),
-      '平视正对摄像头', this.currentMode, generation);
+      DemoL10n.text("平视正对摄像头"), this.currentMode, generation);
   }
 
   private async startVerification(): Promise<void> {
     const referenceFeature: string | undefined = this.referenceFeature;
     if (referenceFeature === undefined) {
-      this.resultState = '请先完成人脸采集';
+      this.resultState = DemoL10n.text("请先完成人脸采集");
       this.resultVisible = true;
       this.resultRetryVisible = false;
       this.cameraController?.pauseAnalysis();
@@ -780,8 +781,8 @@ export struct RealtimeCameraDemo {
     this.cameraController?.resumeAnalysis();
     const generation: number = this.flowGeneration;
     this.flowBusy = true;
-    this.guideState = '准备 1:1 验证';
-    this.resultState = '正在生成安全随机动作并准备活体与验证模型…';
+    this.guideState = DemoL10n.text("准备 1:1 验证");
+    this.resultState = DemoL10n.text("正在准备活体与验证…");
     const actions: ReadonlyArray<FaceAction> | undefined = await this.prepareChallengeActions(
       FaceVerificationFlow.VERIFICATION_ACTION_COUNT, RealtimeMode.VERIFICATION, generation);
     if (actions === undefined) {
@@ -791,7 +792,7 @@ export struct RealtimeCameraDemo {
     await this.awaitFlowStart(
       () => this.sdk.verification().startCameraVerification(config,
         this.createFlowListener(RealtimeMode.VERIFICATION, generation)),
-      '平视正对摄像头', RealtimeMode.VERIFICATION, generation);
+      DemoL10n.text("平视正对摄像头"), RealtimeMode.VERIFICATION, generation);
   }
 
   private async startLiveness(): Promise<void> {
@@ -801,8 +802,8 @@ export struct RealtimeCameraDemo {
     this.cameraController?.resumeAnalysis();
     const generation: number = this.flowGeneration;
     this.flowBusy = true;
-    this.guideState = '准备活体检测';
-    this.resultState = '正在生成安全随机动作并加载双静默活体模型…';
+    this.guideState = DemoL10n.text("准备活体检测");
+    this.resultState = DemoL10n.text("正在准备活体检测…");
     const actions: ReadonlyArray<FaceAction> | undefined = await this.prepareChallengeActions(
       FaceLivenessFlow.LIVENESS_ACTION_COUNT, RealtimeMode.LIVENESS, generation);
     if (actions === undefined) {
@@ -812,7 +813,7 @@ export struct RealtimeCameraDemo {
     await this.awaitFlowStart(
       () => this.sdk.liveness().startCameraLiveness(config,
         this.createFlowListener(RealtimeMode.LIVENESS, generation)),
-      '平视正对摄像头', RealtimeMode.LIVENESS, generation);
+      DemoL10n.text("平视正对摄像头"), RealtimeMode.LIVENESS, generation);
   }
 
   /** 优先恢复已有会话，保留模型和数据库；相机就绪由平台控制器负责。 */
@@ -828,8 +829,8 @@ export struct RealtimeCameraDemo {
     this.searchOverlayState.clear();
     this.detectedPeople = 0;
     this.searchedPeople = 0;
-    this.guideState = '正在准备';
-    this.resultState = '准备完成后自动开始';
+    this.guideState = DemoL10n.text("正在准备");
+    this.resultState = DemoL10n.text("准备完成后自动开始");
     this.activeSearchSession.resume();
     this.flowActive = true;
     this.cameraController?.resumeAnalysis();
@@ -844,8 +845,8 @@ export struct RealtimeCameraDemo {
     this.flowBusy = true;
     this.searchRetryVisible = false;
     this.searchSettingsVisible = false;
-    this.guideState = '正在准备';
-    this.resultState = '准备完成后自动开始';
+    this.guideState = DemoL10n.text("正在准备");
+    this.resultState = DemoL10n.text("准备完成后自动开始");
     try {
       const config: FaceSearchSessionConfig = this.searchConfig(mode);
       const started: HiFaceResult<FaceSearchSession> | undefined = await CameraFlowStartQueue.run(
@@ -866,15 +867,15 @@ export struct RealtimeCameraDemo {
       this.flowActive = true;
       this.lastSearchError = undefined;
       this.cameraController?.resumeAnalysis();
-      this.guideState = '等待人脸入镜';
-      this.resultState = '面向镜头，入镜后自动识别';
+      this.guideState = DemoL10n.text("等待人脸入镜");
+      this.resultState = DemoL10n.text("面向镜头，入镜后自动识别");
     } catch (error) {
       if (this.visible && generation === this.flowGeneration && this.currentMode === realtimeMode) {
         this.flowBusy = false;
         this.flowActive = false;
         this.searchRetryVisible = true;
-        this.guideState = '搜索启动失败';
-        this.resultState = `启动连续搜索异常：${error}`;
+        this.guideState = DemoL10n.text("搜索启动失败");
+        this.resultState = DemoL10n.text("启动连续搜索异常：{0}", [String(error)]);
       }
     }
   }
@@ -948,9 +949,9 @@ export struct RealtimeCameraDemo {
     this.searchOverlayState.clear();
     this.detectedPeople = 0;
     this.searchedPeople = 0;
-    this.guideState = '连续搜索已暂停';
+    this.guideState = DemoL10n.text("连续搜索已暂停");
     this.resultState = this.searchRetryVisible ? DemoErrorUi.describe(error) :
-      '搜索无法恢复，请检查任务占用、配置或模型状态，解决后返回并重新进入。';
+      DemoL10n.text("搜索恢复失败，请检查配置并重新进入。");
     this.drawOverlay();
   }
 
@@ -969,8 +970,8 @@ export struct RealtimeCameraDemo {
         this.resultVisible = true;
         this.resultRetryVisible = true;
         this.cameraController?.pauseAnalysis();
-        this.guideState = '安全挑战生成失败';
-        this.resultState = '暂时无法准备活体动作，请重试';
+        this.guideState = DemoL10n.text("安全挑战生成失败");
+        this.resultState = DemoL10n.text("暂时无法准备活体动作，请重试");
       }
       return undefined;
     }
@@ -993,8 +994,8 @@ export struct RealtimeCameraDemo {
       this.resultVisible = true;
       this.resultRetryVisible = false;
       this.cameraController?.pauseAnalysis();
-      this.guideState = '流程启动失败';
-      this.resultState = `启动流程异常：${error}`;
+      this.guideState = DemoL10n.text("流程启动失败");
+      this.resultState = DemoL10n.text("启动流程异常：{0}", [String(error)]);
       this.drawOverlay();
     }
   }
@@ -1020,7 +1021,7 @@ export struct RealtimeCameraDemo {
     this.activeRequest = result.requireValue();
     this.flowActive = true;
     this.guideState = readyGuide;
-    this.resultState = '流程已启动';
+    this.resultState = DemoL10n.text("流程已启动");
     this.drawOverlay();
   }
 
@@ -1075,34 +1076,34 @@ export struct RealtimeCameraDemo {
       const retainedCandidate: boolean = this.captureAwaitingConfirmation;
       const captureGeneration: number = ++this.captureGeneration;
       this.flowBusy = true;
-      this.guideState = '正在准备确认预览';
-      this.resultState = '正在安全处理对齐人脸，完成后可确认录入';
+      this.guideState = DemoL10n.text("正在准备确认预览");
+      this.resultState = DemoL10n.text("正在生成预览，完成后确认录入");
       this.stageEnrollmentCandidate(result.feature, result.alignedRgba, result.alignedSide,
         generation, captureGeneration, retainedCandidate, this.shouldMirrorCoordinates());
     } else if (mode === RealtimeMode.VERIFICATION) {
-      this.guideState = result.isPassed() ? '1:1 验证通过' : '1:1 验证未通过';
+      this.guideState = result.isPassed() ? DemoL10n.text("1:1 验证通过") : DemoL10n.text("1:1 验证未通过");
       const outcomeMessage: string = `Face ID：${this.referenceFaceId}\n${FaceFlowUi.outcomeTitle(result.outcome)}`;
       // 未完成身份比对时没有相似度，只展示 Face ID 和结果原因，不能当作 0 分展示。
       const similarity: number | undefined = result.similarity;
       this.resultState = similarity === undefined
         ? outcomeMessage
-        : `${outcomeMessage}\n相似度：${similarity.toFixed(4)}`;
+        : DemoL10n.text("{0}\n相似度：{1}", [String(outcomeMessage), String(similarity.toFixed(4))]);
       this.resultVisible = true;
     } else if (mode === RealtimeMode.LIVENESS) {
-      this.guideState = '活体检测';
+      this.guideState = DemoL10n.text("活体检测");
       const outcomeMessage: string = result.isPassed()
-        ? '活体检测通过'
-        : `活体检测未通过：${FaceFlowUi.outcomeTitle(result.outcome)}`;
+        ? DemoL10n.text("活体检测通过")
+        : DemoL10n.text("活体检测未通过：{0}", [String(FaceFlowUi.outcomeTitle(result.outcome))]);
       // 通过或检测到非真人时已产生分数；动作超时、丢脸等提前结束时只展示结果原因。
       // undefined 表示未产生静默活体分数，不能当作 0 分展示。
       const livenessScore: number | undefined = result.livenessScore;
       this.resultState = livenessScore === undefined
         ? outcomeMessage
-        : `${outcomeMessage}\n静默活体分数：${livenessScore.toFixed(4)}`;
+        : DemoL10n.text("{0}\n静默活体分数：{1}", [String(outcomeMessage), String(livenessScore.toFixed(4))]);
       this.resultVisible = true;
     } else {
       this.guideState = FaceFlowUi.outcomeTitle(result.outcome);
-      this.resultState = '未采集到合格人脸，请重试';
+      this.resultState = DemoL10n.text("未采集到合格人脸，请重试");
       this.resultVisible = true;
     }
     this.drawOverlay();
@@ -1113,7 +1114,7 @@ export struct RealtimeCameraDemo {
     if (feature === undefined || !this.captureAwaitingConfirmation || this.libraryBusy) return;
     const faceId: string = this.cameraEnrollmentFaceId.trim();
     if (faceId.length === 0) {
-      this.enrollmentError = '请输入 Face ID';
+      this.enrollmentError = DemoL10n.text("请输入 Face ID");
       return;
     }
     if (this.isSearchEnrollment()) {
@@ -1122,12 +1123,12 @@ export struct RealtimeCameraDemo {
     }
     const captureGeneration: number = this.captureGeneration;
     this.libraryBusy = true;
-    this.enrollmentError = '正在安全保存 1:1 人脸基准…';
+    this.enrollmentError = DemoL10n.text("正在保存 1:1 基准…");
     try {
       const saved: boolean = await this.onReferenceConfirmed(faceId, feature);
       if (!this.visible || captureGeneration !== this.captureGeneration) return;
       if (!saved) {
-        this.enrollmentError = 'Face ID 与特征安全保存失败，请重试';
+        this.enrollmentError = DemoL10n.text("Face ID 与特征安全保存失败，请重试");
       } else if (this.isPageActive()) {
         this.onExit();
       } else {
@@ -1136,13 +1137,13 @@ export struct RealtimeCameraDemo {
         this.pendingReferenceFeature = undefined;
         this.resultVisible = true;
         this.resultRetryVisible = false;
-        this.guideState = '人脸已保存';
+        this.guideState = DemoL10n.text("人脸已保存");
         this.resultState = `Face ID：${faceId}`;
         await this.releaseCapturedFace();
       }
     } catch (_) {
       if (this.visible && captureGeneration === this.captureGeneration) {
-        this.enrollmentError = 'Face ID 与特征安全保存失败，请重试';
+        this.enrollmentError = DemoL10n.text("Face ID 与特征安全保存失败，请重试");
       }
     } finally {
       if (this.visible && captureGeneration === this.captureGeneration) this.libraryBusy = false;
@@ -1170,7 +1171,7 @@ export struct RealtimeCameraDemo {
     const group: string = this.cameraEnrollmentGroup.trim();
     const generation: number = ++this.libraryGeneration;
     this.libraryBusy = true;
-    this.enrollmentError = '正在检查搜索库中的 faceId…';
+    this.enrollmentError = DemoL10n.text("正在检查搜索库中的 faceId…");
     try {
       const database: FaceSearchDatabase | undefined = await this.enrollmentDatabase(generation);
       if (database === undefined || !this.isCurrentLibraryTask(generation)) return;
@@ -1182,13 +1183,13 @@ export struct RealtimeCameraDemo {
         return;
       }
       if (existing.requireError().code !== HiFaceErrorCode.NOT_FOUND) {
-        this.enrollmentError = `检查失败：${DemoErrorUi.describe(existing.requireError())}`;
+        this.enrollmentError = DemoL10n.text("检查失败：{0}", [String(DemoErrorUi.describe(existing.requireError()))]);
         return;
       }
       this.libraryBusy = false;
       await this.persistCameraEnrollment(database, faceId, feature, tag, group, false, generation);
     } catch (error) {
-      if (this.isCurrentLibraryTask(generation)) this.enrollmentError = `保存失败：${error}`;
+      if (this.isCurrentLibraryTask(generation)) this.enrollmentError = DemoL10n.text("保存失败：{0}", [String(error)]);
     } finally {
       if (this.isCurrentLibraryTask(generation)) this.libraryBusy = false;
     }
@@ -1197,19 +1198,19 @@ export struct RealtimeCameraDemo {
   private confirmCameraEnrollmentOverwrite(database: FaceSearchDatabase, faceId: string,
     feature: string, tag: string, group: string, generation: number): void {
     this.getUIContext().showAlertDialog({
-      title: '覆盖搜索库记录？',
-      message: `faceId “${faceId}” 已存在。确认后将使用当前相机录入样本替换。`,
+      title: DemoL10n.text("覆盖搜索库记录？"),
+      message: DemoL10n.text("Face ID “{0}” 已存在，替换为本次采集？", [String(faceId)]),
       primaryButton: {
-        value: '覆盖',
+        value: DemoL10n.text("覆盖"),
         fontColor: DemoTheme.contentError,
         action: (): void => {
           this.persistCameraEnrollment(database, faceId, feature, tag, group, true, generation);
         }
       },
       secondaryButton: {
-        value: '取消',
+        value: DemoL10n.text("取消"),
         action: (): void => {
-          if (this.isCurrentLibraryTask(generation)) this.enrollmentError = '已取消覆盖';
+          if (this.isCurrentLibraryTask(generation)) this.enrollmentError = DemoL10n.text("已取消覆盖");
         }
       }
     });
@@ -1220,13 +1221,13 @@ export struct RealtimeCameraDemo {
     generation: number): Promise<void> {
     if (!this.isCurrentLibraryTask(generation) || this.libraryBusy) return;
     this.libraryBusy = true;
-    this.enrollmentError = overwrite ? '正在覆盖搜索库记录…' : '正在新增搜索库记录…';
+    this.enrollmentError = overwrite ? DemoL10n.text("正在覆盖搜索库记录…") : DemoL10n.text("正在新增搜索库记录…");
     try {
       const saved: HiFaceResult<boolean> =
         await database.saveFeature(faceId, feature, Date.now(), tag, group);
       if (!this.isCurrentLibraryTask(generation)) return;
       if (saved.isSuccess()) {
-        try { this.getUIContext().getPromptAction().showToast({ message: `已录入 ${faceId}` }); } catch (_) {}
+        try { this.getUIContext().getPromptAction().showToast({ message: DemoL10n.text("已录入 {0}", [String(faceId)]) }); } catch (_) {}
         this.libraryBusy = false;
         this.cameraEnrollmentFaceId = '';
         this.cameraEnrollmentGroup = '';
@@ -1235,10 +1236,10 @@ export struct RealtimeCameraDemo {
         await this.releaseCapturedFace();
         if (this.isCurrentLibraryTask(generation)) this.onExit();
       } else {
-        this.enrollmentError = `保存失败：${DemoErrorUi.describe(saved.requireError())}`;
+        this.enrollmentError = DemoL10n.text("保存失败：{0}", [String(DemoErrorUi.describe(saved.requireError()))]);
       }
     } catch (error) {
-      if (this.isCurrentLibraryTask(generation)) this.enrollmentError = `保存失败：${error}`;
+      if (this.isCurrentLibraryTask(generation)) this.enrollmentError = DemoL10n.text("保存失败：{0}", [String(error)]);
     } finally {
       if (this.isCurrentLibraryTask(generation)) this.libraryBusy = false;
     }
@@ -1255,13 +1256,13 @@ export struct RealtimeCameraDemo {
         return undefined;
       }
       if (opened.isFailure()) {
-        this.enrollmentError = `打开失败：${DemoErrorUi.describe(opened.requireError())}`;
+        this.enrollmentError = DemoL10n.text("打开失败：{0}", [String(DemoErrorUi.describe(opened.requireError()))]);
         return undefined;
       }
       this.enrollmentDatabaseConnection = opened.requireValue();
       return this.enrollmentDatabaseConnection;
     } catch (error) {
-      if (this.isCurrentLibraryTask(generation)) this.enrollmentError = `打开失败：${error}`;
+      if (this.isCurrentLibraryTask(generation)) this.enrollmentError = DemoL10n.text("打开失败：{0}", [String(error)]);
       return undefined;
     }
   }
@@ -1282,8 +1283,8 @@ export struct RealtimeCameraDemo {
     if (this.currentMode === RealtimeMode.CAPTURE &&
       DemoErrorUi.shouldRestartCapture(error) && this.cameraReady) {
       try { this.getUIContext().getPromptAction().showToast({ message: DemoErrorUi.describe(error) }); } catch (_) {}
-      this.guideState = '正在恢复人脸采集';
-      this.resultState = '偶发处理失败，已自动开始下一次采集';
+      this.guideState = DemoL10n.text("正在恢复人脸采集");
+      this.resultState = DemoL10n.text("偶发处理失败，已自动开始下一次采集");
       this.resultVisible = false;
       this.resultRetryVisible = false;
       this.startCapture();
@@ -1292,7 +1293,7 @@ export struct RealtimeCameraDemo {
     this.resultVisible = true;
     this.resultRetryVisible = DemoErrorUi.isRetryable(error);
     this.cameraController?.pauseAnalysis();
-    this.guideState = '流程执行失败';
+    this.guideState = DemoL10n.text("流程执行失败");
     this.resultState = DemoErrorUi.describe(error);
     this.drawOverlay();
   }
@@ -1323,9 +1324,9 @@ export struct RealtimeCameraDemo {
         captureGeneration === this.captureGeneration) {
         this.flowBusy = false;
         this.resultVisible = !retainedCandidate;
-        this.guideState = '录入预览生成失败';
-        this.resultState = retainedCandidate ? '新样本未替换上一份待确认样本，可重试或确认原样本' :
-          '未保存本次样本，请重新录入';
+        this.guideState = DemoL10n.text("录入预览生成失败");
+        this.resultState = retainedCandidate ? DemoL10n.text("已保留原样本，可确认或重试") :
+          DemoL10n.text("未保存本次样本，请重新录入");
       }
       return;
     }
@@ -1340,8 +1341,8 @@ export struct RealtimeCameraDemo {
     this.pendingReferenceFeature = feature;
     this.captureAwaitingConfirmation = true;
     this.flowBusy = false;
-    this.guideState = '请确认录入样本';
-    this.resultState = `已生成 ${side}×${side} 对齐人脸；确认后才会替换验证基准`;
+    this.guideState = DemoL10n.text("请确认录入样本");
+    this.resultState = DemoL10n.text("预览 {0}×{1}；确认后替换基准", [String(side), String(side)]);
     await PixelMapResource.release(previous);
   }
 
@@ -1366,21 +1367,21 @@ export struct RealtimeCameraDemo {
 
   private modeTitle(mode: RealtimeMode): string {
     if (mode === RealtimeMode.CAPTURE || mode === RealtimeMode.SEARCH_ENROLLMENT) {
-      return '人脸采集';
+      return DemoL10n.text("人脸采集");
     }
     if (mode === RealtimeMode.VERIFICATION) {
-      return '1:1 人脸验证';
+      return DemoL10n.text("1:1 人脸验证");
     }
     if (mode === RealtimeMode.LIVENESS) {
-      return '活体检测';
+      return DemoL10n.text("活体检测");
     }
     if (mode === RealtimeMode.SEARCH_SINGLE) {
-      return '1:N 人脸搜索';
+      return DemoL10n.text("1:N 人脸搜索");
     }
     if (mode === RealtimeMode.SEARCH_MULTI) {
-      return 'M:N 人脸搜索';
+      return DemoL10n.text("M:N 人脸搜索");
     }
-    return '实时检测';
+    return DemoL10n.text("实时检测");
   }
 
   private isSearchMode(): boolean {
@@ -1472,8 +1473,8 @@ export struct RealtimeCameraDemo {
       this.resumeSearch();
     } catch (error) {
       this.searchRetryVisible = true;
-      this.guideState = '搜索设置应用失败';
-      this.resultState = '请重试搜索';
+      this.guideState = DemoL10n.text("搜索设置应用失败");
+      this.resultState = DemoL10n.text("请重试搜索");
     }
   }
 
@@ -1509,8 +1510,8 @@ export struct RealtimeCameraDemo {
   }
 
   private searchOptions(): string {
-    return this.currentMode === RealtimeMode.SEARCH_MULTI ? 'M:N · 不检测姿态与活体' :
-      `1:N · 活体${this.searchConfiguration.needsLiveness ? '已开启' : '未开启'}`;
+    return this.currentMode === RealtimeMode.SEARCH_MULTI ? DemoL10n.text("M:N · 不检测姿态与活体") :
+      DemoL10n.text("1:N · 活体{0}", [String(this.searchConfiguration.needsLiveness ? DemoL10n.text("已开启") : DemoL10n.text("未开启"))]);
   }
 
   private startCountdown(duration: number): void {

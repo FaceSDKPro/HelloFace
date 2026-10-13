@@ -12,6 +12,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.PopupMenu;
@@ -53,6 +54,12 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
     private boolean canLoadMore;
     private boolean lookupMode;
     private boolean loading;
+    private boolean importing;
+    private boolean stoppingImport;
+    private boolean exitAfterImport;
+    private boolean importCleanupPending;
+    private boolean pageStarted;
+    private int importSaved;
 
     /** 创建页面独享的数据库连接和列表，实际读取在页面可见时触发。 */
     @Override
@@ -84,7 +91,10 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
 
     /** 绑定功能菜单、精确 ID 查询和距列表末尾 10 条时的下一批预加载。 */
     private void bindActions() {
-        findViewById(R.id.libraryBack).setOnClickListener(v -> finish());
+        findViewById(R.id.libraryBack).setOnClickListener(v -> requestExit());
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override public void handleOnBackPressed() { requestExit(); }
+        });
         menuButton.setOnClickListener(this::showMenu);
         queryField.setEndIconOnClickListener(v -> lookup());
         query.setOnEditorActionListener((v, action, event) -> {
@@ -166,36 +176,67 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
         int count = images ? FaceSearchStore.IMAGE_DEMO_COUNT
                 : FaceSearchStore.FEATURE_DEMO_COUNT;
         loading = true;
-        status.setText(getString(R.string.search_ui_import_progress, 0, count));
+        importing = true;
+        stoppingImport = false;
+        exitAfterImport = false;
+        importSaved = 0;
+        final HiFaceSdk ownedSdk = images ? HiFaceSdk.builder(this).build() : null;
+        imageSdk = ownedSdk;
+        status.setText(getString(R.string.search_ui_import_progress, 0, count, 0));
         updateActions();
         FaceSearchStore.ProgressCallback progress = value -> {
             if (requestId == generation) {
+                importSaved = value.imported;
                 status.setText(getString(R.string.search_ui_import_progress,
-                        value.processed, value.total));
+                        value.processed, value.total, value.imported));
             }
         };
         FaceSearchStore.Callback<FaceSearchStore.ImportSummary> complete = result -> {
+            if (ownedSdk != null) ownedSdk.close();
+            if (imageSdk == ownedSdk) imageSdk = null;
             if (requestId != generation) {
+                if (importCleanupPending) {
+                    importCleanupPending = false;
+                    if (dialog != null) dialog.dismiss();
+                    if (pageStarted) {
+                        if (result.isSuccess()) {
+                            FaceSearchStore.ImportSummary summary = result.requireValue();
+                            Toast.makeText(this, getString(R.string.search_ui_import_stopped,
+                                    summary.imported, summary.failed), Toast.LENGTH_LONG).show();
+                        }
+                        openAndLoad();
+                    }
+                }
                 return;
             }
+            if (pendingTask != null) importSaved = pendingTask.savedCount();
             pendingTask = null;
             loading = false;
-            releaseImageSdk();
+            importing = false;
+            stoppingImport = false;
+            if (dialog != null) dialog.dismiss();
             if (result.isFailure()) {
                 showError(result.requireError(), false);
-                Toast.makeText(this, R.string.search_ui_import_failed, Toast.LENGTH_LONG).show();
+                status.setText(getString(R.string.search_ui_import_failed_saved, importSaved)
+                        + "\n" + getString(SearchUi.errorText(result.requireError())));
+                exitAfterImport = false;
                 return;
             }
             FaceSearchStore.ImportSummary summary = result.requireValue();
-            Toast.makeText(this, getString(R.string.search_ui_import_done,
-                    summary.imported, summary.failed), Toast.LENGTH_LONG).show();
+            String message = getString(summary.stopped ? R.string.search_ui_import_stopped : R.string.search_ui_import_done,
+                    summary.imported, summary.failed);
+            if (exitAfterImport) {
+                dialog = SearchUi.dialog(this).setTitle(R.string.search_ui_import_saved_title)
+                        .setMessage(message).setCancelable(false)
+                        .setPositiveButton(R.string.cd_back, (d, which) -> finish()).create();
+                dialog.show();
+                return;
+            }
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
             resetSearch();
         };
         if (images) {
-            if (imageSdk == null) {
-                imageSdk = HiFaceSdk.builder(this).lifecycleOwner(this).build();
-            }
-            pendingTask = store.importImageDemo(imageSdk.capture(), progress, complete);
+            pendingTask = store.importImageDemo(ownedSdk.capture(), progress, complete);
         } else {
             pendingTask = store.importFeatureDemo(progress, complete);
         }
@@ -386,6 +427,30 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
         }
     }
 
+    private void requestExit() {
+        if (importCleanupPending || (importing && stoppingImport)) {
+            if (dialog != null && dialog.isShowing()) return;
+            dialog = SearchUi.dialog(this).setTitle(R.string.search_ui_import_running_title)
+                    .setMessage(R.string.search_ui_import_stopping)
+                    .setPositiveButton(android.R.string.ok, null).create();
+            dialog.show();
+            return;
+        }
+        if (!importing) { finish(); return; }
+        if (dialog != null && dialog.isShowing()) return;
+        dialog = SearchUi.dialog(this).setTitle(R.string.search_ui_import_running_title)
+                .setMessage(R.string.search_ui_import_exit_message)
+                .setNegativeButton(R.string.search_ui_import_continue, null)
+                .setPositiveButton(R.string.search_ui_import_stop_exit, (d, which) -> {
+                    if (!importing) { finish(); return; }
+                    exitAfterImport = true;
+                    stoppingImport = true;
+                    status.setText(R.string.search_ui_import_stopping);
+                    if (pendingTask != null) pendingTask.stop();
+                }).create();
+        dialog.show();
+    }
+
     /** 图片导入结束或页面离开后释放模型；下次导入独立创建，不长期占用搜索页的内存。 */
     private void releaseImageSdk() {
         if (imageSdk != null) {
@@ -424,7 +489,19 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        pageStarted = true;
+        if (importCleanupPending) {
+            loading = true;
+            status.setText(R.string.search_ui_import_stopping);
+            updateActions();
+            return;
+        }
+        openAndLoad();
+    }
+
+    private void openAndLoad() {
         if (store == null) store = new FaceSearchStore(this);
+        loading = false;
         if (query.getText().toString().trim().isEmpty()) {
             loadFirstPage();
         } else {
@@ -432,12 +509,19 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
         }
     }
 
-    /** 后台或离开时取消任务并关闭管理连接，返回后重新读取已提交的数据。 */
+    /** 后台停止新输入，尾批保存结束后释放资源，返回时重读已保存的数据。 */
     @Override
     protected void onStop() {
         generation++;
-        cancelTask();
-        releaseImageSdk();
+        pageStarted = false;
+        if (importing && pendingTask != null) {
+            importCleanupPending = true;
+            pendingTask.stop();
+            pendingTask = null;
+        } else {
+            cancelTask();
+            if (!importCleanupPending) releaseImageSdk();
+        }
         if (store != null) store.close();
         store = null;
         if (dialog != null) {
@@ -445,6 +529,9 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
             dialog = null;
         }
         loading = false;
+        importing = false;
+        stoppingImport = false;
+        exitAfterImport = false;
         canLoadMore = false;
         // 下一次 onStart 会重新查询；后台不保留列表数据和异步 Diff 的页面闭包。
         adapter.submitList(null);

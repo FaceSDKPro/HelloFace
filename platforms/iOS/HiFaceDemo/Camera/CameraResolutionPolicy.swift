@@ -14,17 +14,17 @@ enum CameraAnalysisResolution: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .low: "低"
-        case .medium: "中"
-        case .high: "高"
+        case .low: DemoL10n.text("低")
+        case .medium: DemoL10n.text("中")
+        case .high: DemoL10n.text("高")
         }
     }
 
     var detail: String {
         switch self {
-        case .low: "约 640 × 480 · 性能优先"
-        case .medium: "约 1280 × 720 · 兼顾清晰度与性能"
-        case .high: "约 1920 × 1080 · 细节更多，耗电更高"
+        case .low: DemoL10n.text("约 640 × 480 · 性能优先")
+        case .medium: DemoL10n.text("约 1280 × 720 · 兼顾清晰度与性能")
+        case .high: DemoL10n.text("约 1920 × 1080 · 细节更多，耗电更高")
         }
     }
 

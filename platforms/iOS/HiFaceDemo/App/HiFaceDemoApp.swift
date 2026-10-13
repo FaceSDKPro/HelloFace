@@ -12,6 +12,6 @@ enum DemoEnvironment {
 @main
 struct HiFaceDemoApp: App {
     var body: some Scene {
-        WindowGroup { DemoHomeView() }
+        WindowGroup { DemoHomeView().environment(\.locale, DemoL10n.locale) }
     }
 }

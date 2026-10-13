@@ -120,14 +120,14 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         guard let token = suspendForSessionRecovery() else { return }
         reportCameraAvailability(
             false,
-            message: "相机被系统暂时占用，恢复可用后将自动继续",
+            message: DemoL10n.text("相机暂被占用，可用后自动继续"),
             token: token
         )
     }
 
     @objc private func sessionInterruptionEnded(_ notification: Notification) {
         _ = notification
-        recoverSession(message: "相机已恢复")
+        recoverSession(message: DemoL10n.text("相机已恢复"))
     }
 
     @objc private func sessionFailed(_ notification: Notification) {
@@ -137,13 +137,13 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
            let token = suspendForSessionRecovery() {
             reportCameraAvailability(
                 false,
-                message: "相机服务已重置，正在自动恢复",
+                message: DemoL10n.text("相机服务已重置，正在自动恢复"),
                 token: token
             )
-            recoverSession(message: "相机服务已恢复")
+            recoverSession(message: DemoL10n.text("相机服务已恢复"))
             return
         }
-        reportCurrentError(error?.localizedDescription ?? "相机运行失败，请重试")
+        reportCurrentError(error?.localizedDescription ?? DemoL10n.text("相机运行失败，请重试"))
     }
 
     func start(analysisEnabled: Bool = true) {
@@ -166,13 +166,13 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
                 if granted {
                     startAuthorized(generation: generation)
                 } else {
-                    reportError("未获得相机权限，请在系统设置中允许访问", generation: generation)
+                    reportError(DemoL10n.text("未获得相机权限，请在系统设置中允许访问"), generation: generation)
                 }
             }
         case .restricted:
-            reportError("相机访问受系统或设备管理限制，请检查屏幕使用时间或联系设备管理员", generation: generation)
+            reportError(DemoL10n.text("相机访问受限，请检查屏幕使用时间或联系管理员"), generation: generation)
         default:
-            reportError("未获得相机权限，请在系统设置中允许访问", generation: generation)
+            reportError(DemoL10n.text("未获得相机权限，请在系统设置中允许访问"), generation: generation)
         }
     }
 
@@ -264,7 +264,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
             guard configureIfNeeded(generation: generation), isCurrentLifecycle(generation) else { return }
             if !captureSession.isRunning { captureSession.startRunning() }
             guard captureSession.isRunning else {
-                reportError("相机启动失败，请重试", generation: generation)
+                reportError(DemoL10n.text("相机启动失败，请重试"), generation: generation)
                 return
             }
             withControlLock { sessionUnavailable = false }
@@ -284,11 +284,11 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         captureSession.outputs.forEach(captureSession.removeOutput)
         let currentPosition = withControlLock { position }
         guard installInput(position: currentPosition) else {
-            reportError("无法打开所选相机", generation: generation)
+            reportError(DemoL10n.text("无法打开所选相机"), generation: generation)
             return false
         }
         guard applyResolutionFormat() else {
-            reportError("当前相机不支持可用的分析分辨率", generation: generation)
+            reportError(DemoL10n.text("当前相机不支持可用的分析分辨率"), generation: generation)
             return false
         }
 
@@ -302,7 +302,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         ]
         output.setSampleBufferDelegate(self, queue: frameQueue)
         guard captureSession.canAddOutput(output) else {
-            reportError("相机不支持 NV12 分析输出", generation: generation)
+            reportError(DemoL10n.text("相机不支持 NV12 分析输出"), generation: generation)
             return false
         }
         captureSession.addOutput(output)
@@ -439,7 +439,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         }
         guard let device = preferredDevice(position: target),
               let replacement = try? AVCaptureDeviceInput(device: device) else {
-            reportCurrentNotice("当前设备没有可切换的摄像头")
+            reportCurrentNotice(DemoL10n.text("当前设备没有可切换的摄像头"))
             return true
         }
         let previousInputs = captureSession.inputs
@@ -465,10 +465,10 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         captureSession.commitConfiguration()
         guard installed else {
             if restored {
-                reportCurrentNotice("无法切换摄像头，已保留原摄像头")
+                reportCurrentNotice(DemoL10n.text("无法切换摄像头，已保留原摄像头"))
             } else {
                 configured = false
-                reportCurrentError("切换摄像头失败，且无法恢复原摄像头")
+                reportCurrentError(DemoL10n.text("切换摄像头失败，且无法恢复原摄像头"))
             }
             return restored
         }
@@ -571,12 +571,12 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
             case .failure(let error):
                 guard lastReportedError != error.code else { return }
                 lastReportedError = error.code
-                reportFrameError(error.message, generation: generation)
+                reportFrameError(DemoErrorPresentation.message(for: error), generation: generation)
             }
         } catch let error as HiFaceError {
             guard lastReportedError != error.code else { return }
             lastReportedError = error.code
-            reportFrameError(error.message, generation: generation)
+            reportFrameError(DemoErrorPresentation.message(for: error), generation: generation)
         } catch {
             reportFrameError(error.localizedDescription, generation: generation)
         }
@@ -690,7 +690,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
             guard let self, isCurrentRecovery(token) else { return }
             if !captureSession.isRunning { captureSession.startRunning() }
             guard captureSession.isRunning else {
-                reportError("相机恢复失败，请重试", generation: token.lifecycle)
+                reportError(DemoL10n.text("相机恢复失败，请重试"), generation: token.lifecycle)
                 return
             }
             Task { @MainActor [weak self] in

@@ -44,7 +44,7 @@ struct FaceCaptureCameraView: View {
                         }
                         Text(model.cameraDisplayMetrics)
                             .font(.caption.monospacedDigit())
-                            .accessibilityLabel("当前相机参数：\(model.cameraDisplayMetrics)")
+                            .accessibilityLabel(DemoL10n.text("当前相机参数：{0}", [String(describing: model.cameraDisplayMetrics)]))
                     }
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 24)
