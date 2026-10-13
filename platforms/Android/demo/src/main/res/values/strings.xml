@@ -4,7 +4,7 @@
 -->
 <resources xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="MissingTranslation">
-    <string name="app_name">HiFace Demo</string>
+    <string name="app_name">HiFace演示</string>
     <string name="switch_camera">切换相机</string>
     <string name="camera_switch_unavailable">暂无可切换的前后摄像头</string>
     <string name="camera_permission_required">需要相机权限才能使用人脸检测</string>

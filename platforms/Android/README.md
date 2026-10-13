@@ -1,5 +1,7 @@
 # HiFace Android 集成 Demo
 
+Demo 的应用标识为 `com.hiface.sdk.public`。
+
 本工程演示 HiFace SDK 的实时人脸检测、特征录入、静态与动态 1:1 比对、活体检测、1:N / M:N 搜索及人脸库管理。
 当前 SDK / Demo 版本为 **0.0.1 Beta**，依赖坐标为 `io.github.facesdkpro:hiface-android:0.0.1`。
 

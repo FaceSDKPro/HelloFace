@@ -1,6 +1,6 @@
 {
   "app": {
-    "bundleName": "com.hiface.demo",
+    "bundleName": "com.hiface.sdk.public",
     "vendor": "HiFace",
     "versionCode": 1000001,
     "versionName": "0.0.1",
