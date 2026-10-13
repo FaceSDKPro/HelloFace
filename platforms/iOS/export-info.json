@@ -12,11 +12,19 @@
   },
   "updatedOn": "2026-10-13",
   "deliveryStatus": "beta-demo",
+  "demoApplicationId": "com.hiface.sdk.public",
+  "demoDisplayName": "HiFace演示",
   "verification": {
     "sdkStructure": "passed",
     "apiCompatibility": "passed",
     "independentReleaseBuild": "passed",
     "deviceAcceptance": "pending",
     "applicationSigning": "configure-your-own"
+  },
+  "sdkBinarySha256": {
+    "SDK/HiFace.xcframework/ios-arm64/HiFace.framework/HiFace": "eb2be8ee14854f94ebb817999c22e4ac6f686b349d4b1039c91610be10d768cc",
+    "SDK/HiFace.xcframework/ios-arm64_x86_64-simulator/HiFace.framework/HiFace": "1a77d449fda68f705ec2c221a5f6c0d475acc2d0f5cfda354dd7f459f6cb769e",
+    "SDK/HiFaceNative.xcframework/ios-arm64/HiFaceNative.framework/HiFaceNative": "a242642cb36e13e3b6cb2c25e305d06313a3cd9d44982bd0807fc678262d11bc",
+    "SDK/HiFaceNative.xcframework/ios-arm64_x86_64-simulator/HiFaceNative.framework/HiFaceNative": "b9eb4c03ce70fef84ea38eb5c1b3e42aca5f23ac8f0bc2b81162b9002bc812f5"
   }
 }

@@ -1,18 +1,4 @@
-# HiFace 与模型授权说明
+Copyright (c) 2026 HiFace. All rights reserved.
 
-HiFace 是闭源 SDK。使用、商业部署和再分发的权利以你与权利方取得的有效授权协议为准。
-本文件是接入说明，不自行授予 SDK、模型权重或测试素材的许可。
-
-交付前应分别确认以下项目：
-
-- HiFace SDK 的客户、应用/项目范围、使用方式及再分发条件；
-- 检测、特征、Face Mesh、两套静默活体模型权重的来源和商业使用/再分发权利；
-- 人脸测试素材及 HF1 夹具的合法使用范围；
-- 客户应保留的第三方版权与许可声明。
-
-`THIRD_PARTY_NOTICES.txt` 包含 NCNN、libyuv、SQLite、Monocypher 的声明，仅适用于这些第三方代码，
-不能替代 SDK 或模型权重的授权。当前 Core 仅使用临时固定期限：北京时间 2026-12-25 全天可用，
-2026-12-26 零点起停止初始化和工作。SDK 未实现客户绑定、签名许可证或撤销校验。
-
-发布脚本与 Android 共用第三方声明生成规则。Monocypher 采用 BSD-2-Clause，仅分发该选项的完整条款，
-不再附带另一许可选项 CC0 的全文；其他组件的版权、条款与免责声明保留。
+Third-party components remain subject to the licenses listed in
+THIRD_PARTY_NOTICES.txt.

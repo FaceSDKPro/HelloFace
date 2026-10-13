@@ -275,7 +275,7 @@ public final class FaceSearchActivity extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle state) {
         state.putBoolean("multi", config.getMode() == FaceSearchMode.MULTI_FACE);
         state.putBoolean("live", config.needsLiveness());
-        state.putString("group", config.getGroup());
+        state.putString("group", config.getGroup()); //搜索分组
         state.putFloat("threshold", config.getThreshold());
         state.putInt("interval", config.getSearchIntervalMillis());
         state.putInt("timeout", config.getSearchTimeoutMillis());

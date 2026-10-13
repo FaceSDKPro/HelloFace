@@ -1,7 +1,5 @@
 # HiFace Android 集成 Demo
 
-Demo 的应用标识为 `com.hiface.sdk.public`。
-
 本工程演示 HiFace SDK 的实时人脸检测、特征录入、静态与动态 1:1 比对、活体检测、1:N / M:N 搜索及人脸库管理。
 当前 SDK / Demo 版本为 **0.0.1 Beta**，依赖坐标为 `io.github.facesdkpro:hiface-android:0.0.1`。
 
@@ -25,6 +23,7 @@ Demo 的应用标识为 `com.hiface.sdk.public`。
 
 | 项目 | 当前配置 |
 | --- | --- |
+| App ID | `com.hiface.sdk.public` |
 | 最低系统 | Android 6.0 / API 23，包含 Android 7 |
 | CPU ABI | `arm64-v8a`、`armeabi-v7a`；相机体验使用 ARM 真机 |
 | 构建 JDK | 17 |
@@ -160,5 +159,5 @@ HF1 是编码，生产应用应使用获授权的数据，并配置自己的存�
 SDK 使用范围和第三方声明见 [LICENSE](LICENSE)。版本、设备、相机或构建问题请提交到
 [Issues](https://github.com/FaceSDKPro/HelloFace/issues)，附上环境、复现步骤及脱敏后的错误日志。
 
-本次更新：2026-10-13，SDK / Demo 均为 0.0.1 Beta。三端公开 API 兼容检查与独立 Release 工程编译已通过；
-App 签名由接入方配置，真机相机、活体和长期性能仍需在目标设备验收。
+本次更新：2026-10-13，SDK / Demo 均为 0.0.1 Beta。应用标识为 com.hiface.sdk.public，桌面名称为 HiFace演示。
+独立 Release 工程构建和公开 API 兼容检查已通过；签名由接入方配置，真机相机、活体和长期性能仍需目标设备验收。

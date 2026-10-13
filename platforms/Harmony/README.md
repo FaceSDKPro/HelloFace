@@ -1,8 +1,7 @@
 # HiFace HarmonyOS 集成 Demo
 
-Demo 的应用标识为 `com.hiface.sdk.public`。
-
 SDK 版本：0.0.1，以 `libs/hiface-0.0.1.har` 交付。
+Demo Bundle Name：`com.hiface.sdk.public`。
 本工程演示实时检测、人脸采集、活体检测、动态/静态 1:1 比对以及 1:N/M:N 人脸搜索。
 Demo 负责 CameraKit、权限、页面和示例数据；算法、流程状态机和搜索库能力由 HAR 提供。
 
@@ -65,5 +64,5 @@ SDK 搜索库使用普通 SQLite，HF1 是特征编码；工作区有修改的�
 请核对正式 HAR 的版本与 SHA-256，并在目标 API 设备验证权限拒绝恢复、前后台、连续切页、切摄、
 全部能力流程、长时间内存、帧率、温升和耗电，再把 Demo 改造成业务页面。
 
-本次更新：2026-10-13，SDK / Demo 均为 0.0.1 Beta。三端公开 API 兼容检查与独立 Release 工程编译已通过；
-App 签名由接入方配置，真机相机、活体和长期性能仍需在目标设备验收。
+本次更新：2026-10-13，SDK / Demo 均为 0.0.1 Beta。应用标识为 com.hiface.sdk.public，桌面名称为 HiFace演示。
+独立 Release 工程构建和公开 API 兼容检查已通过；签名由接入方配置，真机相机、活体和长期性能仍需目标设备验收。

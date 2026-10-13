@@ -13,6 +13,8 @@
   },
   "updatedOn": "2026-10-13",
   "deliveryStatus": "beta-demo",
+  "demoApplicationId": "com.hiface.sdk.public",
+  "demoDisplayName": "HiFace演示",
   "verification": {
     "sdkStructure": "passed",
     "apiCompatibility": "passed",

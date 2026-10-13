@@ -1,6 +1,6 @@
 # HiFace iOS SDK 使用与 Demo 指南
 
-Demo 的应用标识为 `com.hiface.sdk.public`。
+开发 Demo 的应用标识为 `com.hiface.sdk.public`。
 
 <!-- SDK-USER-GUIDE:BEGIN -->
 ## 支持与安装
