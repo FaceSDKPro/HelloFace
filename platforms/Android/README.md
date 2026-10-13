@@ -46,6 +46,9 @@ adb install -r demo/build/outputs/apk/debug/demo-debug.apk
 Demo 默认使用本地 `maven-repository/` 中的 SDK，当前导出依赖方式为 `embedded-maven`。
 首次同步 Gradle 和 AndroidX 等依赖仍需网络；已有完整缓存后可以使用 Gradle 离线模式。
 
+已有工程更新到本次 0.0.1 Beta 后，先运行 `./gradlew --refresh-dependencies :demo:assembleDebug`，
+确保使用目录内更新后的 SDK；正式发布版本应使用独立版本号。
+
 ## 集成到自己的 App
 
 当前 Demo 自带候选 SDK 二进制。复制本目录的 `maven-repository/` 到自己的工程根目录，
@@ -154,3 +157,6 @@ HF1 是编码，生产应用应使用获授权的数据，并配置自己的存�
 
 SDK 使用范围和第三方声明见 [LICENSE](LICENSE)。版本、设备、相机或构建问题请提交到
 [Issues](https://github.com/FaceSDKPro/HelloFace/issues)，附上环境、复现步骤及脱敏后的错误日志。
+
+本次更新：2026-10-13，SDK / Demo 均为 0.0.1 Beta。三端公开 API 兼容检查与独立 Release 工程编译已通过；
+App 签名由接入方配置，真机相机、活体和长期性能仍需在目标设备验收。

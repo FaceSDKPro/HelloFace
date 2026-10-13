@@ -4,12 +4,16 @@
 
 ## [0.0.1] - Release candidate
 
+- Exposed SDK-owned capabilities as public interfaces returned by HiFaceSdk; removed internal port constructors and unreachable internal HAR declarations.
+- Kept EAR/MAR and derived action metrics internal; public detection provides boxes, confidence, landmarks and optional pose/mesh.
+- Froze public signatures and verified the previous integration example against the updated Release HAR.
+
 - Preserved original HF1 features with explicit feature-space IDs; added lightweight metadata pages, existence checks and metadata-only updates.
 - Moved search-database close and SQLite/cache cleanup to background work, rejecting queued operations after close.
 - Rejected integer truncation at the N-API boundary and aligned search thresholds with Core float32 semantics.
 
 - Aligned SDK and Demo versions with the Android/iOS 0.0.1 release train; verified local zero-major HAR build and OHPM prepublish (registry review pending).
-- Added customer Demo checksums, version/source metadata and commercial/third-party notices; technical license enforcement is deferred to a later version.
+- Added customer Demo checksums, version/source metadata and commercial/third-party notices; 0.0.1 Beta works through 2026-12-25 (Asia/Shanghai) and stops initializing/working from 2026-12-26 00:00.
 - Removed the pre-release fixed build-stage probe; runtime compatibility diagnostics use `getApiVersion()` and readiness uses `whenReady()`.
 
 - Hardened customer Demo export and Release verification so only a fully validated HAR with all five encrypted models embedded exactly once can be delivered.

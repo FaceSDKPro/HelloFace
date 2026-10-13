@@ -73,6 +73,10 @@ SDK、请求句柄和数据库连接不作为可复制的页面状态；页面�
 只从 `hiface` 导入 `Index.ets` 的公开符号；internal、N-API 字段与 Native 符号不属于兼容承诺。
 `getApiVersion()` 仅用于 ABI 诊断，基础能力是否就绪以 `whenReady()` 为准。
 
+采集、活体、验证、搜索和实时处理器是公开接口，由 `HiFaceSdk` 返回实例；接入方不构造或实现这些能力对象。
+首发检测结果承诺人脸框、置信度、五点及可选头姿/468 点。EAR/MAR、闭眼/张嘴指标仅用于 Core 内部流程，
+不作为公开返回值或兼容承诺；业务放行依据最终流程结果。
+
 静态图片使用已归一化方向的 `RgbaImage`：
 
 ```typescript
@@ -144,5 +148,5 @@ SDK 创建的 SQLite 数据库当前不提供包内加密。人脸特征和搜�
 - `CHANGELOG.md`：当前版本的公开变化。
 - `src/main/resources/rawfile/THIRD_PARTY_NOTICES.txt`：第三方组件版权及许可证。
 
-客户交付时应同时提供版本号和 `SHA256SUMS`。宿主 HAP/APP 使用接入方自己的签名；HAR 不应携带 Demo、
+客户交付时应记录版本号和 HAR 校验值。宿主 HAP/APP 使用接入方自己的签名；HAR 不应携带 Demo、
 客户签名文件或私钥。

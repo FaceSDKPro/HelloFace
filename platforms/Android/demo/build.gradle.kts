@@ -28,7 +28,7 @@ android {
         }
     }
 
-    //打包签名，接入方请使用自己的签名配置
+    //打包签名，  接入方请使用自己的签名配置
     signingConfigs {
         if (demoSigningFile.isFile) {
             create("release") {

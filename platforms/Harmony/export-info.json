@@ -1,7 +1,7 @@
 {
   "sdkVersion": "0.0.1",
   "dependency": "libs/hiface-0.0.1.har",
-  "sha256": "a451187f46ebc4bc9f86422b1ab9e30751e11e5f0874f3c6cbdf8eb363c36df7",
+  "sha256": "a03358f48657688a324363b0ed22ee11522d6157804d75cd10f1fd276329bb84",
   "embeddedModels": {
     "kcehc.bphfm": {
       "size": 1273257,
@@ -34,9 +34,11 @@
     "expiresAtUnixSeconds": 1798214400,
     "replacementRequiredFromVersion": "0.1.0"
   },
+  "updatedOn": "2026-10-13",
   "deliveryStatus": "beta-demo",
   "verification": {
     "sdkStructure": "passed",
+    "apiCompatibility": "passed",
     "independentReleaseBuild": "passed",
     "deviceAcceptance": "pending",
     "applicationSigning": "configure-your-own"

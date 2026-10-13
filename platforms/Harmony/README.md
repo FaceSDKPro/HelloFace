@@ -10,7 +10,7 @@ Demo 负责 CameraKit、权限、页面和示例数据；算法、流程状态�
 2. 配置自己的 App Bundle Name 和 HAP 签名；本工程不含开发者签名材料。
 3. 选择 `demo` 模块并部署到 arm64 真机。App 最低兼容 API 20。
 
-当前公开 HAR 仅含 arm64-v8a；相机体验使用 ARM 真机。CameraKit、活体、方向、切摄、性能和功耗
+API 26 x86_64 模拟器只适合安装、ArkTS 和 N-API 冒烟。CameraKit、活体、方向、切摄、性能和功耗
 必须在真机验收。
 
 ## 工程内容
@@ -20,7 +20,6 @@ Demo 负责 CameraKit、权限、页面和示例数据；算法、流程状态�
 - `AppScope/`：Demo 的 Bundle Name、版本、应用名称和图标，打包时保留并按业务修改。
 - `hvigor/`：构建配置，需保留；与可清理的 `.hvigor/` 构建缓存不同。
 - `export-info.json`：SDK 版本、HAR SHA-256、模型和发布校验状态。
-- `LICENSE`、`CHANGELOG.md` 与第三方声明：使用范围、版本变化和第三方许可。
 
 `oh_modules/` 和 `demo/oh_modules/` 是同步后生成的依赖目录，不随 Demo 交付；清理后使用 DevEco
 Sync 或在工程根目录执行 `ohpm install --all` 恢复。`.hvigor/` 和模块内 `build/` 也可清理后重建。
@@ -64,7 +63,5 @@ SDK 搜索库使用普通 SQLite，HF1 是特征编码；工作区有修改的�
 请核对正式 HAR 的版本与 SHA-256，并在目标 API 设备验证权限拒绝恢复、前后台、连续切页、切摄、
 全部能力流程、长时间内存、帧率、温升和耗电，再把 Demo 改造成业务页面。
 
-## 当前交付状态
-
-本工程为 0.0.1 Beta。HAR 验包和独立混淆 Release HAP 构建已通过；当前 HAP 构建未配置发布签名。
-API 20/24/26 真机功能、长期性能和签名安装验收仍待完成；中心仓发布状态以实际审核为准。
+本次更新：2026-10-13，SDK / Demo 均为 0.0.1 Beta。三端公开 API 兼容检查与独立 Release 工程编译已通过；
+App 签名由接入方配置，真机相机、活体和长期性能仍需在目标设备验收。

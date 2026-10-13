@@ -10,9 +10,11 @@
     "expiresAtUnixSeconds": 1798214400,
     "replacementRequiredFromVersion": "0.1.0"
   },
+  "updatedOn": "2026-10-13",
   "deliveryStatus": "beta-demo",
   "verification": {
     "sdkStructure": "passed",
+    "apiCompatibility": "passed",
     "independentReleaseBuild": "passed",
     "deviceAcceptance": "pending",
     "applicationSigning": "configure-your-own"

@@ -12,7 +12,7 @@
 | ABI | 真机 `arm64`；模拟器 `arm64`、`x86_64` |
 | 入口 | Swift `HiFaceSDK` |
 
-当前 Demo 使用本地 `SDK/Package.swift`；业务 App 可通过 Add Local 添加 `SDK/` 并选择 `HiFace` product；
+业务 App 在 Xcode 添加已发布的二进制 SPM 仓库和固定版本，选择 `HiFace` product；
 保留 `HiFace`、`HiFaceNative` 两个 binary targets。在 Info.plist 配置 `NSCameraUsageDescription`。
 
 ```swift

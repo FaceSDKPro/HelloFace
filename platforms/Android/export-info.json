@@ -10,5 +10,15 @@
     "timeZone": "Asia/Shanghai",
     "expiresAtUnixSeconds": 1798214400,
     "replacementRequiredFromVersion": "0.1.0"
-  }
+  },
+  "updatedOn": "2026-10-13",
+  "deliveryStatus": "beta-demo",
+  "verification": {
+    "sdkStructure": "passed",
+    "apiCompatibility": "passed",
+    "independentReleaseBuild": "passed",
+    "deviceAcceptance": "pending",
+    "applicationSigning": "configure-your-own"
+  },
+  "sha256": "fa843bf7a72ba32a9842ef3c7c94a3ec86425432cd0e9fdd5cc19a78d5506e88"
 }

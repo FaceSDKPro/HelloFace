@@ -19,7 +19,6 @@ Demo 负责相机、权限、页面和示例数据；算法、流程状态机和
 - `HiFaceDemo/`：可修改的 SwiftUI/AVFoundation 示例源码。
 - `SDK/`：二进制 SPM Package 和 SDK 文档，不包含 SDK/Core 源码。
 - `export-info.json`：本次导出的 SDK 版本与依赖方式。
-- `LICENSING.md` 与第三方声明：使用范围和第三方许可。
 
 `HiFace` 与 `HiFaceNative` 两个 XCFramework 共同组成 SDK 产品，不能只保留其中一个。
 密文模型和隐私清单由 `HiFace.framework` 自带。请使用 `HiFaceSDK()` 默认配置，不要改为
@@ -64,8 +63,5 @@ SDK 搜索库使用普通 SQLite，HF1 是特征编码；宿主负责数据保�
 请在目标 iPhone 验证首次授权、拒绝后恢复、四方向、前后台、系统中断、连续切摄、全部能力流程、
 长时间内存、帧率、温升和耗电，再把 Demo 改造成业务页面。
 
-## 当前交付状态
-
-本工程是 0.0.1 Beta，本地 SDK 仅供集成测试。真机 arm64 和模拟器 arm64/x86_64 的
-XCFramework 结构、模型、接口与符号校验已完成；SDK 未按正式发布证书签名，App 需由接入方配置自己的 Team。
-真机相机、活体、长期性能与正式远程 SPM 验收仍待完成。Beta 可用至北京时间 2026-12-25 全天。
+本次更新：2026-10-13，SDK / Demo 均为 0.0.1 Beta。三端公开 API 兼容检查与独立 Release 工程编译已通过；
+App 签名由接入方配置，真机相机、活体和长期性能仍需在目标设备验收。
