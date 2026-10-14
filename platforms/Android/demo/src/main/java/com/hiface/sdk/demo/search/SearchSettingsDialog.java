@@ -5,9 +5,8 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.text.InputType;
 import android.view.View;
-import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.annotation.StringRes;
@@ -76,10 +75,13 @@ final class SearchSettingsDialog {
         live.setChecked(current.needsLiveness());
         maxFaces.set(String.valueOf(current.getMaxFacesPerFrame()));
 
-        ScrollView scroll = new ScrollView(context);
-        scroll.setFillViewport(false);
-        scroll.addView(form);
-        AlertDialog dialog = SearchUi.dialog(context)
+        maxFaces.edit.setNextFocusForwardId(group.edit.getId());
+        group.edit.setNextFocusForwardId(threshold.edit.getId());
+        threshold.edit.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        interval.edit.setNextFocusForwardId(timeout.edit.getId());
+        timeout.edit.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        SearchUi.FormScrollView scroll = SearchUi.scroll(form);
+        AlertDialog dialog = SearchUi.formDialog(context)
                 .setTitle(R.string.search_settings)
                 .setView(scroll)
                 .setNeutralButton(R.string.search_ui_reset, null)
@@ -96,8 +98,7 @@ final class SearchSettingsDialog {
                 }
             });
         });
-        dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-        dialog.show();
+        SearchUi.showFormDialog(dialog, scroll);
         return dialog;
     }
 

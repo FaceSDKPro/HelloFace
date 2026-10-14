@@ -1,15 +1,27 @@
 package com.hiface.sdk.demo.search;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
+import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.text.InputType;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
+import android.view.ViewTreeObserver;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.annotation.StringRes;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.view.ContextThemeWrapper;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -33,14 +45,106 @@ final class SearchUi {
         return new MaterialAlertDialogBuilder(theme(context));
     }
 
+    static MaterialAlertDialogBuilder formDialog(Context context) {
+        return dialog(context).setBackgroundInsetStart(0).setBackgroundInsetEnd(0);
+    }
+
+    static FormScrollView scroll(LinearLayout form) {
+        FormScrollView scroll = new FormScrollView(form.getContext());
+        scroll.setClipToPadding(false);
+        scroll.addView(form);
+        return scroll;
+    }
+
+    /** 窄屏两侧留 12dp；键盘弹出后只收缩表单，标题和操作按钮保留。 */
+    static void showFormDialog(AlertDialog dialog, FormScrollView scroll) {
+        dialog.show();
+        Window window = dialog.getWindow();
+        if (window == null) return;
+        Context context = scroll.getContext();
+        window.clearFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
+                | WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+                | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+        int availableWidth = dp(context, context.getResources().getConfiguration().screenWidthDp);
+        window.setLayout(Math.min(dp(context, 560), availableWidth - dp(context, 24)),
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        for (int which : new int[] {AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE,
+                AlertDialog.BUTTON_NEUTRAL}) {
+            Button button = dialog.getButton(which);
+            if (button == null) continue;
+            button.setAllCaps(false);
+            if (which == AlertDialog.BUTTON_POSITIVE) {
+                button.setBackgroundTintList(ColorStateList.valueOf(
+                        context.getColor(R.color.search_accent)));
+                button.setTextColor(context.getColor(R.color.search_background));
+                if (button instanceof MaterialButton) {
+                    ((MaterialButton) button).setCornerRadius(dp(context, 12));
+                }
+            }
+        }
+        View decor = window.getDecorView();
+        Rect visible = new Rect();
+        ViewTreeObserver.OnGlobalLayoutListener listener = () -> {
+            decor.getWindowVisibleDisplayFrame(visible);
+            if (visible.height() <= 0) return;
+            int chrome = Math.max(dp(context, 112), decor.getHeight() - scroll.getHeight());
+            scroll.setMaximumHeight(Math.max(dp(context, 48), visible.height() - chrome - dp(context, 24)));
+            View focus = scroll.findFocus();
+            if (focus instanceof TextInputEditText) revealInput(focus);
+        };
+        decor.getViewTreeObserver().addOnGlobalLayoutListener(listener);
+        scroll.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override public void onViewAttachedToWindow(View view) {}
+            @Override public void onViewDetachedFromWindow(View view) {
+                if (decor.getViewTreeObserver().isAlive()) {
+                    decor.getViewTreeObserver().removeOnGlobalLayoutListener(listener);
+                }
+                view.removeOnAttachStateChangeListener(this);
+            }
+        });
+    }
+
+    private static void revealInput(View input) {
+        input.post(() -> {
+            if (!input.isAttachedToWindow() || !input.hasFocus()) return;
+            Rect bounds = new Rect();
+            input.getDrawingRect(bounds);
+            bounds.bottom += dp(input.getContext(), 24);
+            input.requestRectangleOnScreen(bounds, true);
+        });
+    }
+
+    static final class FormScrollView extends ScrollView {
+        private int maximumHeight;
+
+        FormScrollView(Context context) {
+            super(context);
+            maximumHeight = Math.max(dp(context, 48),
+                    dp(context, context.getResources().getConfiguration().screenHeightDp - 160));
+        }
+
+        void setMaximumHeight(int value) {
+            if (maximumHeight == value) return;
+            maximumHeight = value;
+            requestLayout();
+        }
+
+        @Override protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            int mode = MeasureSpec.getMode(heightMeasureSpec);
+            int height = mode == MeasureSpec.UNSPECIFIED ? maximumHeight
+                    : Math.min(maximumHeight, MeasureSpec.getSize(heightMeasureSpec));
+            super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(height, MeasureSpec.AT_MOST));
+        }
+    }
+
     /** 创建可滚动弹窗的纵向表单容器，初始焦点留在容器而非输入框。 */
     static LinearLayout form(Context context) {
         LinearLayout form = new LinearLayout(context);
         form.setOrientation(LinearLayout.VERTICAL);
         // 打开长表单时停在标题处，避免自动滚到第一个输入框。
         form.setFocusableInTouchMode(true);
-        form.setFocusable(true);
-        form.setPadding(dp(context, 24), dp(context, 8), dp(context, 24), dp(context, 8));
+        form.setPadding(dp(context, 16), dp(context, 4), dp(context, 16), dp(context, 12));
         return form;
     }
 
@@ -80,7 +184,22 @@ final class SearchUi {
         edit.setSingleLine(true);
         edit.setTextSize(14);
         edit.setTextColor(context.getColor(android.R.color.white));
+        if ((type & InputType.TYPE_MASK_CLASS) == InputType.TYPE_CLASS_TEXT) {
+            type |= InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+        }
         edit.setInputType(type);
+        edit.setImeOptions(EditorInfo.IME_ACTION_NEXT);
+        edit.setOnFocusChangeListener((view, focused) -> {
+            if (focused) revealInput(view);
+        });
+        edit.setOnEditorActionListener((view, action, event) -> {
+            if (action != EditorInfo.IME_ACTION_DONE) return false;
+            InputMethodManager keyboard = context.getSystemService(InputMethodManager.class);
+            if (keyboard != null) keyboard.hideSoftInputFromWindow(edit.getWindowToken(), 0);
+            form.setFocusableInTouchMode(true);
+            form.requestFocus();
+            return true;
+        });
         edit.setText(value);
         edit.setMinHeight(dp(context, 52));
         box.addView(edit, rowParams());
@@ -147,7 +266,11 @@ final class SearchUi {
         /** 显示字段错误并定位焦点，返回 false 便于串联表单校验。 */
         boolean error(@StringRes int label) {
             box.setError(box.getContext().getString(label));
-            edit.requestFocus();
+            // 高级字段可能仍隐藏，等调用方展开并布局后再定位。
+            edit.post(() -> {
+                edit.requestFocus();
+                revealInput(edit);
+            });
             return false;
         }
 

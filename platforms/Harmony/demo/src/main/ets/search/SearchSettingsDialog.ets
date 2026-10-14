@@ -7,6 +7,7 @@ import { createDemoFaceSearchConfig, DEMO_SUCCESS_INTERVAL_MILLIS } from './Demo
 @Component
 export struct SearchSettingsDialog {
   @Prop initialConfig: FaceSearchSessionConfig = createDemoFaceSearchConfig();
+  @Prop viewportHeight: number = 600;
   onCancel: () => void = () => {};
   onApply: (config: FaceSearchSessionConfig) => void = () => {};
   @State private draftSearchMode: FaceSearchMode = FaceSearchMode.SINGLE_FACE;
@@ -28,9 +29,9 @@ export struct SearchSettingsDialog {
   build() {
     Stack() {
       Column().width('100%').height('100%').backgroundColor('#99000000').onClick(() => {})
-      Column({ space: 16 }) {
+      Column({ space: 12 }) {
         Text(DemoL10n.text("搜索设置")).fontSize(20).fontWeight(FontWeight.Medium).fontColor('#FFFFFF').width('100%')
-          .padding({ left: 24, right: 24, top: 24 })
+          .padding({ left: 16, right: 16, top: 20 })
         Scroll() {
           Column({ space: 12 }) {
             this.SectionTitle(DemoL10n.text("搜索模式"))
@@ -60,12 +61,14 @@ export struct SearchSettingsDialog {
               .fontColor(DemoTheme.textOnDarkSecondary).width('100%')
             TextInput({ text: this.draftSearchGroup, placeholder: DemoL10n.text("例如 1A") })
               .height(52).fontSize(14).fontColor('#FFFFFF').backgroundColor('#243247').borderRadius(12)
+              .border({ width: 1, color: DemoTheme.searchBorder }).caretColor(DemoTheme.searchAccent)
               .placeholderColor(DemoTheme.textOnDarkSecondary)
+              .enterKeyType(EnterKeyType.Done).onSubmit(() => this.dismissKeyboard())
               .onChange((value: string) => { this.draftSearchGroup = value; })
             this.SectionTitle(DemoL10n.text("识别参数"))
             this.SearchField(DemoL10n.text("相似度阈值"), this.draftThresholdText,
               DemoL10n.text("0.75–0.85，数值越高，匹配要求越严格。"),
-              (value: string): void => { this.draftThresholdText = value; })
+              (value: string): void => { this.draftThresholdText = value; }, InputType.NUMBER_DECIMAL)
             Button(this.searchAdvancedVisible ? DemoL10n.text("收起高级参数") : DemoL10n.text("更多参数：间隔与超时")).height(48).fontSize(12)
               .fontColor(DemoTheme.searchAccent).backgroundColor(Color.Transparent)
               .onClick(() => { this.searchAdvancedVisible = !this.searchAdvancedVisible; })
@@ -79,18 +82,20 @@ export struct SearchSettingsDialog {
             if (this.searchSettingsError.length > 0) {
               Text(this.searchSettingsError).fontSize(12).fontColor(DemoTheme.searchError).width('100%')
             }
-          }.width('100%').padding({ left: 24, right: 24 })
-        }.constraintSize({ maxHeight: '65%' }).width('100%').scrollBar(BarState.Auto)
+          }.width('100%').padding({ left: 16, right: 16, bottom: 4 })
+        }.constraintSize({ maxHeight: Math.max(64, this.viewportHeight - 156) })
+          .width('100%').scrollBar(BarState.Auto)
         Row({ space: 8 }) {
           Button(DemoL10n.text("重置")).height(48).fontSize(14).fontColor(DemoTheme.searchAccent).backgroundColor(Color.Transparent)
             .onClick(() => this.resetSearchSettingsDraft())
           Blank()
           Button(DemoL10n.text("取消")).height(48).fontSize(14).fontColor('#FFFFFF').backgroundColor(Color.Transparent)
-            .onClick(() => this.onCancel())
+            .onClick(() => { this.dismissKeyboard(); this.onCancel(); })
           Button(DemoL10n.text("应用")).height(48).fontSize(14).fontColor(DemoTheme.searchBackground).backgroundColor(DemoTheme.searchAccent)
             .onClick(() => this.commitSearchSettingsDraft())
-        }.width('100%').padding({ left: 24, right: 24, bottom: 24 })
-      }.width('90%').backgroundColor(DemoTheme.searchSurface).borderRadius(24).clip(true)
+        }.width('100%').padding({ left: 16, right: 16, bottom: 16 })
+      }.width('94%').constraintSize({ maxWidth: 560 })
+        .backgroundColor(DemoTheme.searchSurface).borderRadius(24).clip(true)
     }.width('100%').height('100%')
   }
 
@@ -115,16 +120,20 @@ export struct SearchSettingsDialog {
   }
 
   @Builder
-  private SearchField(label: string, value: string, hint: string, change: (value: string) => void) {
+  private SearchField(label: string, value: string, hint: string, change: (value: string) => void,
+    inputType: InputType = InputType.Number) {
     Column({ space: 6 }) {
       Text(label).fontSize(14).fontColor('#FFFFFF').width('100%')
-      TextInput({ text: value }).height(52).fontSize(14).type(InputType.NUMBER_DECIMAL).fontColor('#FFFFFF')
-        .backgroundColor('#243247').borderRadius(12).onChange(change)
+      TextInput({ text: value }).height(52).fontSize(14).type(inputType).fontColor('#FFFFFF')
+        .backgroundColor('#243247').borderRadius(12).border({ width: 1, color: DemoTheme.searchBorder })
+        .caretColor(DemoTheme.searchAccent).enterKeyType(EnterKeyType.Done)
+        .onSubmit(() => this.dismissKeyboard()).onChange(change)
       Text(hint).fontSize(12).fontColor(DemoTheme.textOnDarkSecondary).width('100%')
     }.width('100%')
   }
 
   private resetSearchSettingsDraft(): void {
+    this.dismissKeyboard();
     this.setSearchSettingsDraft(createDemoFaceSearchConfig());
   }
 
@@ -146,7 +155,12 @@ export struct SearchSettingsDialog {
       this.searchSettingsError = DemoL10n.text("搜索配置无效：{0}", [String(error)]);
       return;
     }
+    this.dismissKeyboard();
     this.onApply(config);
+  }
+
+  private dismissKeyboard(): void {
+    this.getUIContext().getFocusController().clearFocus();
   }
 
   private setSearchSettingsDraft(config: FaceSearchSessionConfig): void {

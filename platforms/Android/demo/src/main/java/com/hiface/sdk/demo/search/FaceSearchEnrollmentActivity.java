@@ -5,10 +5,9 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.Gravity;
-import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -91,10 +90,11 @@ public final class FaceSearchEnrollmentActivity extends CameraFlowActivity {
         form.addView(SearchUi.text(themed, R.string.search_ui_enroll_scope_help, 12, false));
         SearchUi.Input group = SearchUi.field(form, R.string.search_ui_group_label, "",
                 0, InputType.TYPE_CLASS_TEXT);
-        ScrollView scroll = new ScrollView(themed);
-        scroll.addView(form);
+        id.edit.setNextFocusForwardId(group.edit.getId());
+        group.edit.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        SearchUi.FormScrollView scroll = SearchUi.scroll(form);
 
-        AlertDialog dialog = SearchUi.dialog(this)
+        AlertDialog dialog = SearchUi.formDialog(this)
                 .setTitle(R.string.search_ui_confirm_title)
                 .setView(scroll)
                 .setCancelable(false)
@@ -124,8 +124,7 @@ public final class FaceSearchEnrollmentActivity extends CameraFlowActivity {
                     group.set(group.value());
                     save(dialog, capture, faceId, group.value(), false);
                 }));
-        dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-        dialog.show();
+        SearchUi.showFormDialog(dialog, scroll);
     }
 
     /** 添加对齐人脸预览；前摄仅在 ImageView 上镜像，不修改 SDK 返回的特征或位图像素。 */

@@ -55,7 +55,7 @@ import { CameraPreviewController } from '../camera/CameraPreviewController';
 import { CameraPreviewCallbacks, CameraPreviewState } from '../camera/CameraPreviewCallbacks';
 import { CameraPreviewBounds, CameraPreviewLayout } from '../camera/CameraPreviewLayout';
 import { PixelMapResource } from '../ui/PixelMapResource';
-import { FrameCallback } from '@kit.ArkUI';
+import { FrameCallback, KeyboardAvoidMode } from '@kit.ArkUI';
 import { DEBUG } from 'BuildProfile';
 
 const ACTION_TIMEOUT_MILLIS: number = 3000;
@@ -126,6 +126,8 @@ export struct RealtimeCameraDemo {
   @State private enrollmentError: string = '';
   @State private cameraEnrollmentGroup: string = '';
   @State private libraryBusy: boolean = false;
+  @State private dialogViewportHeight: number = 600;
+  private previousKeyboardAvoidMode: KeyboardAvoidMode = KeyboardAvoidMode.OFFSET;
   private readonly xComponentController: XComponentController = new XComponentController();
   private readonly canvasSettings: RenderingContextSettings = new RenderingContextSettings(true);
   private readonly canvasContext: CanvasRenderingContext2D =
@@ -174,6 +176,8 @@ export struct RealtimeCameraDemo {
 
   /** 恢复入口参数并绑定页面生命周期；不在这里启动相机，等待 XComponent Surface 就绪。 */
   aboutToAppear(): void {
+    this.previousKeyboardAvoidMode = this.getUIContext().getKeyboardAvoidMode();
+    this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.RESIZE_WITH_CARET);
     this.visible = true;
     this.lastSearchError = undefined;
     this.switchingCamera = false;
@@ -226,6 +230,7 @@ export struct RealtimeCameraDemo {
     this.releaseCapturedFace();
     this.realtimeProcessor?.close();
     this.realtimeProcessor = undefined;
+    this.getUIContext().setKeyboardAvoidMode(this.previousKeyboardAvoidMode);
   }
 
   private leaveCameraPage(): void {
@@ -338,6 +343,7 @@ export struct RealtimeCameraDemo {
       }
       if (this.searchSettingsVisible) {
         SearchSettingsDialog({
+          viewportHeight: this.dialogViewportHeight,
           initialConfig: this.searchConfig(this.currentMode === RealtimeMode.SEARCH_MULTI ?
             FaceSearchMode.MULTI_FACE : FaceSearchMode.SINGLE_FACE),
           onCancel: (): void => this.cancelSearchSettings(),
@@ -345,6 +351,7 @@ export struct RealtimeCameraDemo {
         })
       }
     }.width('100%').height('100%')
+      .onAreaChange((_, area) => { this.dialogViewportHeight = Number.parseFloat(`${area.height}`); })
   }
 
   @Builder
@@ -408,48 +415,64 @@ export struct RealtimeCameraDemo {
   private EnrollmentConfirmation() {
     Stack() {
       Column().width('100%').height('100%').backgroundColor('#9E000000').onClick(() => {})
-      Scroll() {
-        Column({ space: 14 }) {
-          Text(this.isSearchEnrollment() ? DemoL10n.text("确认录入信息") : DemoL10n.text("确认这张人脸照片？"))
-            .fontSize(18).fontWeight(FontWeight.Bold).fontColor(this.dialogText()).width('100%')
-          if (this.isSearchEnrollment()) {
-            Text(DemoL10n.text("设置唯一 Face ID。")).fontSize(12)
-              .fontColor(DemoTheme.textOnDarkSecondary).width('100%')
-          }
-          if (this.capturedFace !== undefined) {
-            Image(this.capturedFace).width(this.isSearchEnrollment() ? 144 : 188)
-              .height(this.isSearchEnrollment() ? 144 : 188).borderRadius(16).objectFit(ImageFit.Cover)
-              .scale({ x: this.capturedFaceMirrored ? -1 : 1, y: 1 })
-          }
-          Text(this.isSearchEnrollment() ? 'Face ID' : DemoL10n.text("确认为清晰无遮挡正脸"))
-            .fontSize(14).fontColor(this.dialogText()).width('100%')
-            .textAlign(this.isSearchEnrollment() ? TextAlign.Start : TextAlign.Center)
-          TextInput({ text: this.cameraEnrollmentFaceId, placeholder: DemoL10n.text("输入 Face ID") })
-            .height(48).maxLength(64).fontColor(this.dialogText()).backgroundColor(this.dialogField())
-            .enabled(!this.libraryBusy).onChange((value: string) => { this.cameraEnrollmentFaceId = value; })
-          if (this.isSearchEnrollment()) {
-            Text(DemoL10n.text("分组选填，留空为未分组。")).fontSize(12).fontColor(DemoTheme.textOnDarkSecondary).width('100%')
-            TextInput({ text: this.cameraEnrollmentGroup, placeholder: DemoL10n.text("分组") })
-              .height(48).fontColor('#FFFFFF').backgroundColor('#243247').enabled(!this.libraryBusy)
-              .onChange((value: string) => { this.cameraEnrollmentGroup = value; })
-          }
-          if (this.enrollmentError.length > 0) {
-            Text(this.enrollmentError).fontSize(12).fontColor(this.isSearchEnrollment() ? DemoTheme.searchError : DemoTheme.contentError)
-              .width('100%')
-          }
-          Row({ space: 10 }) {
-            Button(this.isSearchEnrollment() ? DemoL10n.text("重拍") : DemoL10n.text("重试")).layoutWeight(1).height(44).fontSize(16)
-              .backgroundColor(this.dialogField()).fontColor(this.dialogText()).enabled(!this.libraryBusy)
-              .onClick(() => this.retryCapture())
-            Button(this.libraryBusy ? DemoL10n.text("保存中…") : this.isSearchEnrollment() ? DemoL10n.text("保存") : DemoL10n.text("完成"))
-              .layoutWeight(1).height(44).fontSize(16).backgroundColor(this.isSearchEnrollment() ? DemoTheme.searchAccent : DemoTheme.primary)
-              .fontColor(this.isSearchEnrollment() ? DemoTheme.searchBackground : '#FFFFFF').enabled(!this.libraryBusy)
-              .onClick(() => this.confirmEnrollment())
-          }.width('100%')
-        }.padding({ left: 24, right: 24, top: 20, bottom: 22 }).width('100%')
-      }.width('86%').constraintSize({ maxHeight: '90%' }).backgroundColor(this.isSearchEnrollment() ? DemoTheme.searchSurface : '#FFFFFF')
-      .borderRadius(24)
+      Column() {
+        Scroll() {
+          Column({ space: 14 }) {
+            Text(this.isSearchEnrollment() ? DemoL10n.text("确认录入信息") : DemoL10n.text("确认这张人脸照片？"))
+              .fontSize(18).fontWeight(FontWeight.Bold).fontColor(this.dialogText()).width('100%')
+            if (this.isSearchEnrollment()) {
+              Text(DemoL10n.text("设置唯一 Face ID。")).fontSize(12)
+                .fontColor(DemoTheme.textOnDarkSecondary).width('100%')
+            }
+            if (this.capturedFace !== undefined) {
+              Image(this.capturedFace).width(this.isSearchEnrollment() ? 144 : 188)
+                .height(this.isSearchEnrollment() ? 144 : 188).borderRadius(16).objectFit(ImageFit.Cover)
+                .scale({ x: this.capturedFaceMirrored ? -1 : 1, y: 1 })
+            }
+            Text(this.isSearchEnrollment() ? 'Face ID' : DemoL10n.text("确认为清晰无遮挡正脸"))
+              .fontSize(14).fontColor(this.dialogText()).width('100%')
+              .textAlign(this.isSearchEnrollment() ? TextAlign.Start : TextAlign.Center)
+            TextInput({ text: this.cameraEnrollmentFaceId, placeholder: DemoL10n.text("输入 Face ID") })
+              .height(48).maxLength(64).fontSize(14).fontColor(this.dialogText()).backgroundColor(this.dialogField())
+              .borderRadius(12).caretColor(this.isSearchEnrollment() ? DemoTheme.searchAccent : DemoTheme.primary)
+              .enterKeyType(this.isSearchEnrollment() ? EnterKeyType.Next : EnterKeyType.Done)
+              .onSubmit(() => {
+                if (this.isSearchEnrollment()) this.getUIContext().getFocusController().requestFocus('enrollmentGroup');
+                else this.dismissEnrollmentKeyboard();
+              })
+              .enabled(!this.libraryBusy).onChange((value: string) => { this.cameraEnrollmentFaceId = value; })
+            if (this.isSearchEnrollment()) {
+              Text(DemoL10n.text("分组选填，留空为未分组。")).fontSize(12).fontColor(DemoTheme.textOnDarkSecondary).width('100%')
+              TextInput({ text: this.cameraEnrollmentGroup, placeholder: DemoL10n.text("分组") })
+                .id('enrollmentGroup').height(48).fontSize(14).fontColor('#FFFFFF').backgroundColor('#243247')
+                .borderRadius(12).caretColor(DemoTheme.searchAccent).enabled(!this.libraryBusy)
+                .enterKeyType(EnterKeyType.Done).onSubmit(() => this.dismissEnrollmentKeyboard())
+                .onChange((value: string) => { this.cameraEnrollmentGroup = value; })
+            }
+            if (this.enrollmentError.length > 0) {
+              Text(this.enrollmentError).fontSize(12).fontColor(this.isSearchEnrollment() ? DemoTheme.searchError : DemoTheme.contentError)
+                .width('100%')
+            }
+          }.padding({ left: 16, right: 16, top: 20, bottom: 16 }).width('100%')
+        }.width('100%').constraintSize({ maxHeight: Math.max(64, this.dialogViewportHeight - 112) })
+        .scrollBar(BarState.Auto)
+        Row({ space: 10 }) {
+          Button(this.isSearchEnrollment() ? DemoL10n.text("重拍") : DemoL10n.text("重试")).layoutWeight(1).height(44).fontSize(16)
+            .backgroundColor(this.dialogField()).fontColor(this.dialogText()).enabled(!this.libraryBusy)
+            .onClick(() => { this.dismissEnrollmentKeyboard(); this.retryCapture(); })
+          Button(this.libraryBusy ? DemoL10n.text("保存中…") : this.isSearchEnrollment() ? DemoL10n.text("保存") : DemoL10n.text("完成"))
+            .layoutWeight(1).height(44).fontSize(16).backgroundColor(this.isSearchEnrollment() ? DemoTheme.searchAccent : DemoTheme.primary)
+            .fontColor(this.isSearchEnrollment() ? DemoTheme.searchBackground : '#FFFFFF').enabled(!this.libraryBusy)
+            .onClick(() => { this.dismissEnrollmentKeyboard(); this.confirmEnrollment(); })
+        }.width('100%').padding(16)
+      }.width('94%').constraintSize({ maxWidth: 560 })
+        .backgroundColor(this.isSearchEnrollment() ? DemoTheme.searchSurface : '#FFFFFF')
+        .borderRadius(24).clip(true)
     }.width('100%').height('100%')
+  }
+
+  private dismissEnrollmentKeyboard(): void {
+    this.getUIContext().getFocusController().clearFocus();
   }
 
   @Builder

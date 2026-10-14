@@ -8,7 +8,7 @@ struct FaceCaptureView: View {
     @FocusState private var focusedField: InputField?
     private let capturedFacePreviewSize: CGFloat = 144 * 1.1
 
-    private enum InputField: Hashable { case faceID, group }
+    private enum InputField: String, Hashable { case faceID, group }
 
     var body: some View {
         ZStack {
@@ -22,7 +22,7 @@ struct FaceCaptureView: View {
     }
 
     private var captureConfirmation: some View {
-        CameraDialog {
+        CameraDialog(scrollTarget: focusedField?.rawValue) {
             CameraDialogTitle(
                 title: model.enrollsInSearchLibrary ? DemoL10n.text("确认录入信息") : DemoL10n.text("确认人脸照片"),
                 subtitle: model.enrollsInSearchLibrary
@@ -36,40 +36,47 @@ struct FaceCaptureView: View {
             if let image = model.alignedFace {
                 Image(image, scale: 1, label: Text(DemoL10n.text("本次采集的人脸预览")))
                     .resizable().scaledToFit()
-                    .frame(width: capturedFacePreviewSize, height: capturedFacePreviewSize)
+                    .frame(width: focusedField == nil ? capturedFacePreviewSize : 104,
+                           height: focusedField == nil ? capturedFacePreviewSize : 104)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .scaleEffect(x: model.previewMirrored ? -1 : 1, y: 1)
             }
-            TextField(DemoL10n.text("输入唯一的人脸 ID"), text: $model.enrollmentFaceID)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled(true)
-                .textFieldStyle(.roundedBorder)
-                .accessibilityLabel("Face ID")
-                .focused($focusedField, equals: .faceID)
-                .submitLabel(model.enrollsInSearchLibrary ? .next : .done)
-                .onSubmit { focusedField = model.enrollsInSearchLibrary ? .group : nil }
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Face ID").font(.subheadline.weight(.medium))
+                TextField(DemoL10n.text("输入唯一的人脸 ID"), text: $model.enrollmentFaceID)
+                    .demoTextInputStyle()
+                    .accessibilityLabel("Face ID")
+                    .focused($focusedField, equals: .faceID)
+                    .submitLabel(model.enrollsInSearchLibrary ? .next : .done)
+                    .onSubmit { focusedField = model.enrollsInSearchLibrary ? .group : nil }
+            }
+            .id(InputField.faceID.rawValue)
             if model.enrollsInSearchLibrary {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(DemoL10n.text("分组（选填）")).font(.subheadline.weight(.medium))
                     TextField(DemoL10n.text("输入分组名称"), text: $model.enrollmentGroup)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled(true)
-                        .textFieldStyle(.roundedBorder)
+                        .demoTextInputStyle()
                         .accessibilityLabel(DemoL10n.text("分组，选填"))
                         .focused($focusedField, equals: .group)
                         .submitLabel(.done)
                         .onSubmit { focusedField = nil }
                 }
+                .id(InputField.group.rawValue)
             }
             if let detail = model.detail, detail.hasPrefix(DemoL10n.text("保存失败")) || model.status == DemoL10n.text("保存失败") {
                 Text(detail).font(.footnote).foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        } actions: {
             dialogActions
-            .padding(.top, 8)
-            .disabled(model.isSavingCapture)
         }
         .disabled(model.isSavingCapture)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button(DemoL10n.text("完成")) { focusedField = nil }
+            }
+        }
         .onChange(of: model.enrollmentCompleted) { completed in
             if completed { onClose() }
         }
