@@ -36,7 +36,7 @@ async function createSdk(context: common.UIAbilityContext): Promise<HiFaceSdk> {
 }
 ```
 
-Check `isSuccess()` / `isFailure()` before `requireValue()` / `requireError()`. Invalid constructor arguments throw `Error`. Use stable error codes for decisions; SDK message text remains internal diagnostics. Keep camera/platform failures separate from SDK business outcomes.
+Check `isSuccess()` / `isFailure()` before `requireValue()` / `requireError()`. Invalid constructor arguments throw `Error`. Handle errors by code.
 
 Reuse an instance per Ability or business container. Pass the SDK to ArkUI children through a normal field, optionally `@Require`, **not `@Prop`**. Deep copying SDK objects corrupts their Promise state. Do not copy SDK/request/database handles into observed UI state.
 

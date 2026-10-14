@@ -1,8 +1,11 @@
 package com.hiface.sdk.demo;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -29,9 +32,23 @@ public final class DemoHomeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_demo_home);
-        ((TextView) findViewById(R.id.deviceInfoText)).setText(getString(
-                R.string.api_device_info, Build.VERSION.RELEASE, Build.MODEL, Build.BOARD));
+        TextView deviceInfo = findViewById(R.id.deviceInfoText);
+        String deviceInfoText = Build.VERSION.RELEASE + "/" + Build.MODEL + "/" + Build.BOARD;
+        deviceInfo.setText(deviceInfoText);
+        deviceInfo.setOnLongClickListener(view -> {
+            Log.i("DeviceInfo", deviceInfoText);
+            ClipboardManager clipboard = getSystemService(ClipboardManager.class);
+            if (clipboard != null) {
+                clipboard.setPrimaryClip(ClipData.newPlainText("DeviceInfo", deviceInfoText));
+                // Android 13+ already shows the system clipboard confirmation.
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    Toast.makeText(this, R.string.device_info_copied, Toast.LENGTH_SHORT).show();
+                }
+            }
+            return true;
+        });
 
+        //Log.d("DeviceInfo","设备信息： "+Build.VERSION.RELEASE+","+Build.MODEL+","+Build.BOARD);
         bindFeatureCard(R.id.featureFaceDetection, android.R.drawable.ic_menu_camera,
                 R.string.feature_face_detection, R.string.feature_face_detection_desc,
                 FaceDetectionActivity.class);

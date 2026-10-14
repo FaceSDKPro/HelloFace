@@ -579,23 +579,6 @@
         }
       }
     },
-    "Release：{0}｜Model：{1}｜Board：{2}": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Release：{0}｜Model：{1}｜Board：{2}"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Release：{0}｜Model：{1}｜Board：{2}"
-          }
-        }
-      }
-    },
     "SDK 内部错误": {
       "extractionState": "manual",
       "localizations": {
@@ -2670,6 +2653,40 @@
         }
       }
     },
+    "复制失败": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制失败"
+          }
+        }
+      }
+    },
+    "复制设备信息": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy device info"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制设备信息"
+          }
+        }
+      }
+    },
     "多人 M:N": {
       "extractionState": "manual",
       "localizations": {
@@ -3210,6 +3227,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "已处理 {0} / {1}，已保存 {2} 条"
+          }
+        }
+      }
+    },
+    "已复制": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制"
           }
         }
       }

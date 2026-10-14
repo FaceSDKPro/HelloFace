@@ -17,7 +17,6 @@
     <string name="sdk_error_internal">人脸服务发生内部错误</string>
     <string name="api_title">HelloFace SDK</string>
     <string name="api_subtitle">离线｜数据安全｜高效</string>
-    <string name="api_device_info">Release：%1$s｜Model：%2$s｜Board：%3$s</string>
     <string name="api_about">关于 HiFace SDK Demo</string>
     <string name="api_about_message">更新以及更多说明：https://github.com/FaceSDKPro/</string>
     <string name="feature_face_detection">实时人脸检测</string>
@@ -213,4 +212,5 @@
     <string name="search_ui_id_help">必填且唯一，如员工编号。</string>
     <string name="search_ui_enroll_scope_help">分组选填，留空为未分组。</string>
     <string name="search_ui_capture_preview">本次采集的人脸预览</string>
+    <string name="device_info_copied">已复制</string>
 </resources>

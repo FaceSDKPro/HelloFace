@@ -65,11 +65,13 @@
             android:id="@+id/deviceInfoText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
+            android:gravity="end"
+            android:paddingEnd="4dp"
+            android:layout_marginTop="11dp"
             android:layout_marginBottom="12dp"
             android:textColor="@color/text_on_dark_secondary"
             android:textSize="11sp"
-            tools:text="Release：16｜Model：Pixel 9｜Board：tokay" />
+            tools:text="16/Pixel 9/tokay" />
 
         <include
             android:id="@+id/featureFaceDetection"

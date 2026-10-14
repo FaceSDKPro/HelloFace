@@ -126,4 +126,4 @@ Search manages its own database connection. Pause retains the models, connection
 
 Correlate callbacks by `frameID`. An unscored detection (`similarity == nil`) is not an unmatched result. Use final `endReason`; `.spoofDetected` rejects the result even when similarity passes. After 10 seconds without faces, analysis targets 200 ms intervals; skipped frames return `.notReady`. Search interval controls the wait after successful matching, not camera FPS.
 
-Use stable `HiFaceError.code` for decisions. Keep business outcomes separate from technical errors. SDK diagnostics remain internal; localize host presentation using error codes. The host owns consent, retention, protection, and deletion of biometric data.
+Use `HiFaceError.code` for errors and the result outcome for business decisions.

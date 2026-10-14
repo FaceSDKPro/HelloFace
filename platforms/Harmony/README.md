@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-SDK: **0.0.1 Beta** · Bundle ID: `com.hiface.sdk.public`
+SDK: **0.0.1 Beta**
 
 On-device detection, capture, liveness, 1:1 comparison, 1:N/M:N search and face-library management.
 
@@ -19,18 +19,9 @@ On-device detection, capture, liveness, 1:1 comparison, 1:N/M:N search and face-
 | `demo/` | Editable ArkTS examples |
 | `libs/hiface-0.0.1.har` | Binary SDK |
 | `AppScope/`, `hvigor/` | Required App and build configuration |
-| `export-info.json` | SDK version, dependency and integrity details |
 
-`oh_modules/`, `.hvigor/` and `build/` can be regenerated. Models are embedded. Reuse `HiFaceSdk` and await `whenReady()`. Cancel flows or close search sessions before leaving pages.
+Models are embedded in the HAR. Await `whenReady()` before using the SDK.
 
-Guides: [SDK English](SDK.md) · [SDK 中文](SDK.zh-CN.md) · [Demo English](demo/README.md) · [Demo 中文](demo/README.zh-CN.md).
+Guides: [SDK](SDK.md) · [Demo](demo/README.md).
 
-## Languages and data
-
-System regions CN/HK/MO/TW use Simplified Chinese; all others use English. Restart after changing region. SDK diagnostics remain in Chinese.
-
-Back during import offers continue or stop. Stop saves the completed tail batch, then reports saved/failed counts. Database errors keep earlier saved batches.
-
-Replace sample identities, URLs and features before production. HF1 is encoding; SDK SQLite is not encrypted. Protect and delete data in your App, and keep signing credentials private.
-
-Beta expires at **2026-12-26 00:00 (UTC+08:00)**. Retain licenses/notices and validate flows/lifecycle on target phones. [Updates and details](https://github.com/FaceSDKPro/).
+Beta expires at **2026-12-26 00:00 (UTC+08:00)**. [Updates](https://github.com/FaceSDKPro/).

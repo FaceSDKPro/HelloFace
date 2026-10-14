@@ -161,10 +161,6 @@
       "value": "M:N Face Search"
     },
     {
-      "name": "demo_42b67d1be938",
-      "value": "Release：{0}｜Model：{1}｜Board：{2}"
-    },
-    {
       "name": "demo_c8fd51aa9075",
       "value": "Internal SDK error"
     },
@@ -2279,6 +2275,18 @@
     {
       "name": "demo_bb0aa5fa3e4f",
       "value": " (app throttled)"
+    },
+    {
+      "name": "demo_753d8bb0da99",
+      "value": "Copy failed"
+    },
+    {
+      "name": "demo_66677de83e31",
+      "value": "Copy device info"
+    },
+    {
+      "name": "demo_8f6f8d979c98",
+      "value": "Copied"
     }
   ]
 }

@@ -102,4 +102,4 @@ HF1 is a 604-character Q7/Base64URL representation, **not encryption**. SQLite s
 
 After 10 seconds without faces, analysis targets a 200 ms interval and resumes normal processing when a face returns. Skipped frames return `NOT_READY`. Search interval controls the wait after a successful match, not camera FPS.
 
-Handle errors by stable `HiFaceErrorCode`, not message text. SDK messages and logs remain internal diagnostics; localize the host UI separately. Model initialization errors retain their cause.
+Handle errors by `HiFaceErrorCode`.

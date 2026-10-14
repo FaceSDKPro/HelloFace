@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import Darwin
+import os
 
 struct DemoHomeView: View {
     @State private var showsAbout = false
@@ -25,13 +26,20 @@ struct DemoHomeView: View {
                         }
                         .accessibilityLabel(DemoL10n.text("关于 HiFace SDK Demo"))
                     }
-                    Text(DemoDeviceInfo.summary)
+                    Text(DemoDeviceInfo.copyText)
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.75))
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 22)
+                        .padding(.trailing, 4)
+                        .padding(.top, 11)
                         .padding(.bottom, 12)
+                        .contentShape(Rectangle())
+                        .onLongPressGesture(minimumDuration: 0.5) { copyDeviceInfo() }
+                        .accessibilityAction(named: Text(DemoL10n.text("复制设备信息"))) {
+                            copyDeviceInfo()
+                        }
                     VStack(spacing: 11) {
                         ForEach(CameraDemoMode.allCases) { mode in
                             NavigationLink(destination: LazyDestination { CameraDemoView(mode: mode) }) {
@@ -73,22 +81,31 @@ struct DemoHomeView: View {
         }
         .navigationViewStyle(.stack)
     }
+
+    private func copyDeviceInfo() {
+        let value = DemoDeviceInfo.copyText
+        DemoDeviceInfo.logger.info("\(value, privacy: .public)")
+        UIPasteboard.general.string = value
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
 }
 
 /// 设备诊断信息仅用于 Demo 主页；硬件型号是 Android Board 的近似字段。
 @MainActor
 private enum DemoDeviceInfo {
-    static let summary: String = {
+    static let values: [String] = {
         #if targetEnvironment(simulator)
         let model = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"]
             ?? hardwareValue("hw.machine", fallback: UIDevice.current.model)
         #else
         let model = hardwareValue("hw.machine", fallback: UIDevice.current.model)
         #endif
-        return DemoL10n.text("Release：{0}｜Model：{1}｜Board：{2}", [
+        return [
             UIDevice.current.systemVersion, model, hardwareValue("hw.model", fallback: "-")
-        ])
+        ]
     }()
+    static let copyText = values.joined(separator: "/")
+    static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.hiface.demo", category: "DeviceInfo")
 
     private static func hardwareValue(_ name: String, fallback: String) -> String {
         var size = 0

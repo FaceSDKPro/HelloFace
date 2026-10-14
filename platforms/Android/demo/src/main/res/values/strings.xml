@@ -17,7 +17,6 @@
     <string name="sdk_error_internal">Internal face service error</string>
     <string name="api_title">HelloFace SDK</string>
     <string name="api_subtitle">Offline | Private | Fast</string>
-    <string name="api_device_info">Release：%1$s｜Model：%2$s｜Board：%3$s</string>
     <string name="api_about">About HiFace Demo</string>
     <string name="api_about_message">Updates and details: https://github.com/FaceSDKPro/</string>
     <string name="feature_face_detection">Live Detection</string>
@@ -213,4 +212,5 @@
     <string name="search_ui_id_help">Required and unique, e.g. an employee ID.</string>
     <string name="search_ui_enroll_scope_help">Optional. Leave blank for no group.</string>
     <string name="search_ui_capture_preview">Preview of this face capture</string>
+    <string name="device_info_copied">Copied</string>
 </resources>

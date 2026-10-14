@@ -161,10 +161,6 @@
       "value": "M:N 人脸搜索"
     },
     {
-      "name": "demo_42b67d1be938",
-      "value": "Release：{0}｜Model：{1}｜Board：{2}"
-    },
-    {
       "name": "demo_c8fd51aa9075",
       "value": "SDK 内部错误"
     },
@@ -2279,6 +2275,18 @@
     {
       "name": "demo_bb0aa5fa3e4f",
       "value": "（应用节流）"
+    },
+    {
+      "name": "demo_753d8bb0da99",
+      "value": "复制失败"
+    },
+    {
+      "name": "demo_66677de83e31",
+      "value": "复制设备信息"
+    },
+    {
+      "name": "demo_8f6f8d979c98",
+      "value": "已复制"
     }
   ]
 }

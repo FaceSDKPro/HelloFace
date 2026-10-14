@@ -62,7 +62,7 @@ android {
     // 压缩 APK 内的 .so，安装时解压，减小 APK 体积。
     packaging.jniLibs.useLegacyPackaging = true
     androidResources {
-        // 模型必须保持未压缩供 Native mmap；AAR 的 noCompress 不会传递给宿主应用。
+        //模型必须保持未压缩供 Native mmap；AAR 的 noCompress 不会传递给宿主应用。
         noCompress += "bphfm"
     }
 

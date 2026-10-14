@@ -11,7 +11,8 @@ import { StaticFaceComparisonDemo } from '../comparison/StaticFaceComparisonDemo
 import { FaceSearchLibraryDemo } from '../search/FaceSearchLibraryDemo';
 import { createDemoFaceSearchConfig } from '../search/DemoFaceSearchConfig';
 import { common } from '@kit.AbilityKit';
-import { deviceInfo } from '@kit.BasicServicesKit';
+import { deviceInfo, pasteboard } from '@kit.BasicServicesKit';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 
 // 与 Android DemoHomeActivity 的七个入口及搜索子页面一一对应。
 enum DemoPage {
@@ -41,9 +42,10 @@ struct Index {
   private referenceStoreToken: number = 0;
   private savingReference: boolean = false;
   private readonly cameraLifecycle: CameraPageLifecycle = new CameraPageLifecycle();
-  private readonly deviceSummary: string = DemoL10n.text('Release：{0}｜Model：{1}｜Board：{2}',
-    [`${deviceInfo.majorVersion}.${deviceInfo.seniorVersion}.${deviceInfo.featureVersion}`,
-      deviceInfo.productModel || '-', deviceInfo.hardwareModel || '-']);
+  private readonly deviceValues: string[] = [
+    `${deviceInfo.majorVersion}.${deviceInfo.seniorVersion}.${deviceInfo.featureVersion}`,
+    deviceInfo.productModel || '-', deviceInfo.hardwareModel || '-'];
+  private readonly deviceText: string = this.deviceValues.join('/');
 
   aboutToAppear(): void {
     this.initializeSdk();
@@ -244,8 +246,10 @@ struct Index {
           }.width(40).height(40).borderRadius(20).backgroundColor(DemoTheme.surfaceOnDark)
           .accessibilityText(DemoL10n.text("关于")).onClick(() => this.showAbout())
         }.width('100%')
-        Text(this.deviceSummary).fontSize(10).fontColor(DemoTheme.textOnDarkSecondary)
-          .width('100%').margin({ top: 22, bottom: 12 })
+        Text(this.deviceText).fontSize(10).fontColor(DemoTheme.textOnDarkSecondary)
+          .width('100%').textAlign(TextAlign.End).padding({ right: 4 }).margin({ top: 11, bottom: 12 })
+          .gesture(LongPressGesture({ repeat: false, duration: 500 })
+            .onAction((): void => this.copyDeviceInfo()))
         if (this.sdkFailed) {
           Button(this.sdkState).fontSize(13).fontColor('#FFFFFF')
             .width('100%').backgroundColor(DemoTheme.surfaceOnDark).margin({ bottom: 12 })
@@ -311,6 +315,17 @@ struct Index {
           .alignSelf(ItemAlign.End).onClick(() => { this.selectingReference = false; })
       }.width('86%').padding(24).backgroundColor('#FFFFFF').borderRadius(24)
     }.width('100%').height('100%')
+  }
+
+  private copyDeviceInfo(): void {
+    const value: string = this.deviceText;
+    hilog.info(0xFF00, 'DeviceInfo', '%{public}s', value);
+    try {
+      pasteboard.getSystemPasteboard().setDataSync(pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, value));
+      this.showToast(DemoL10n.text("已复制"));
+    } catch (_) {
+      this.showToast(DemoL10n.text("复制失败"));
+    }
   }
 
   private showToast(message: string): void {
