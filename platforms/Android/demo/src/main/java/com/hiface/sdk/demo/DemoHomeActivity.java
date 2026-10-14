@@ -48,7 +48,6 @@ public final class DemoHomeActivity extends AppCompatActivity {
             return true;
         });
 
-        //Log.d("DeviceInfo","设备信息： "+Build.VERSION.RELEASE+","+Build.MODEL+","+Build.BOARD);
         bindFeatureCard(R.id.featureFaceDetection, android.R.drawable.ic_menu_camera,
                 R.string.feature_face_detection, R.string.feature_face_detection_desc,
                 FaceDetectionActivity.class);
