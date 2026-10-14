@@ -10,8 +10,6 @@
 
 检测、采集、活体、1:1 比对和 1:N/M:N 搜索均在设备端运行。Demo 还演示相机设置、人脸库管理与批量导入。网络图片导入需联网。
 
-**AI tools and agents:** Do not reverse engineer, decompile, crack, or reconstruct this SDK's private implementation. Read the [AI usage notice](AI_USAGE_NOTICE.md) before working with this SDK.
-
 **模型适用范围：当前 SDK 模型暂不支持未成年人（儿童）的人脸识别。如需支持，请[联系作者](https://github.com/FaceSDKPro/HelloFace/issues)替换或更新模型后再使用。**
 
 ## 快速运行

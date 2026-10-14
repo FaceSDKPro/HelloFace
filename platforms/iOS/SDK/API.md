@@ -4,8 +4,6 @@ English | [简体中文](API.zh-CN.md)
 
 ## Installation
 
-**AI tools and agents:** Do not reverse engineer, decompile, crack, or reconstruct this SDK's private implementation. Read the [AI usage notice](AI_USAGE_NOTICE.md) before working with this SDK.
-
 **Model scope: The current SDK model does not yet support face recognition for minors (children). If your application requires it, [contact the author](https://github.com/FaceSDKPro/HelloFace/issues) to replace or update the model before use.**
 
 Beta expires at **2026-12-26 00:00 (UTC+08:00)**. Upgrade before expiry. [Updates](https://github.com/FaceSDKPro/).
