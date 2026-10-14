@@ -649,6 +649,14 @@
       "value": "Unable to process the analysis frame: {0}"
     },
     {
+      "name": "demo_753d8bb0da99",
+      "value": "Copy failed"
+    },
+    {
+      "name": "demo_66677de83e31",
+      "value": "Copy device info"
+    },
+    {
       "name": "demo_50899b854c4d",
       "value": "Multiple people M:N"
     },
@@ -775,6 +783,10 @@
     {
       "name": "demo_706566893b1e",
       "value": "Processed {0} / {1}, saved {2}"
+    },
+    {
+      "name": "demo_8f6f8d979c98",
+      "value": "Copied"
     },
     {
       "name": "demo_ab27f80d046f",
@@ -2275,18 +2287,6 @@
     {
       "name": "demo_bb0aa5fa3e4f",
       "value": " (app throttled)"
-    },
-    {
-      "name": "demo_753d8bb0da99",
-      "value": "Copy failed"
-    },
-    {
-      "name": "demo_66677de83e31",
-      "value": "Copy device info"
-    },
-    {
-      "name": "demo_8f6f8d979c98",
-      "value": "Copied"
     }
   ]
 }
