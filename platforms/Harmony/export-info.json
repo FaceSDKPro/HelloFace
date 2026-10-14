@@ -1,7 +1,7 @@
 {
   "sdkVersion": "0.0.1",
   "dependency": "libs/hiface-0.0.1.har",
-  "sha256": "dec309c02f01dfb96d79e6793853f38924bbac7b911d77e672cae597c840babd",
+  "sha256": "d47a025ef0af55dc6405086f38df8e14362a4169d0021d7935738b891893c774",
   "embeddedModels": {
     "kcehc.bphfm": {
       "size": 1273257,
