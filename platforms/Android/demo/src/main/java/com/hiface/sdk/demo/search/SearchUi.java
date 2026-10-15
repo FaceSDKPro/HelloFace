@@ -56,8 +56,12 @@ final class SearchUi {
         return scroll;
     }
 
-    /** 窄屏两侧留 12dp；键盘弹出后只收缩表单，标题和操作按钮保留。 */
     static void showFormDialog(AlertDialog dialog, FormScrollView scroll) {
+        showFormDialog(dialog, scroll, 12);
+    }
+
+    /** 键盘弹出后只收缩表单，标题和操作按钮保留。 */
+    static void showFormDialog(AlertDialog dialog, FormScrollView scroll, int horizontalMarginDp) {
         dialog.show();
         Window window = dialog.getWindow();
         if (window == null) return;
@@ -67,7 +71,7 @@ final class SearchUi {
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
                 | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         int availableWidth = dp(context, context.getResources().getConfiguration().screenWidthDp);
-        window.setLayout(Math.min(dp(context, 560), availableWidth - dp(context, 24)),
+        window.setLayout(Math.min(dp(context, 560), availableWidth - dp(context, horizontalMarginDp * 2)),
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         for (int which : new int[] {AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE,
                 AlertDialog.BUTTON_NEUTRAL}) {

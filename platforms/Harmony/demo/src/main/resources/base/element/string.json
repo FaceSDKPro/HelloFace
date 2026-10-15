@@ -1821,10 +1821,6 @@
       "value": "Set analysis resolution and coordinate mirroring"
     },
     {
-      "name": "demo_9b9078444eac",
-      "value": "Set a unique Face ID."
-    },
-    {
       "name": "demo_26e2962952e2",
       "value": "Settings are saved automatically and apply when you reopen a camera page."
     },
@@ -1971,10 +1967,6 @@
     {
       "name": "demo_d2ce75de7bcb",
       "value": "Keep only one face in view."
-    },
-    {
-      "name": "demo_11468e44ae66",
-      "value": "Confirm the face is clear and set a unique Face ID"
     },
     {
       "name": "demo_69e470dd61f8",

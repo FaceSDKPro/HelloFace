@@ -1821,10 +1821,6 @@
       "value": "设置分析分辨率与坐标镜像"
     },
     {
-      "name": "demo_9b9078444eac",
-      "value": "设置唯一 Face ID。"
-    },
-    {
       "name": "demo_26e2962952e2",
       "value": "设置自动保存，重新进入相机页面后生效。"
     },
@@ -1971,10 +1967,6 @@
     {
       "name": "demo_d2ce75de7bcb",
       "value": "请确保画面中只有一张人脸"
-    },
-    {
-      "name": "demo_11468e44ae66",
-      "value": "请确认人脸清晰，设置唯一 Face ID"
     },
     {
       "name": "demo_69e470dd61f8",

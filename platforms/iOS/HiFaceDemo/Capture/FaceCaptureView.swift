@@ -22,11 +22,12 @@ struct FaceCaptureView: View {
     }
 
     private var captureConfirmation: some View {
-        CameraDialog(scrollTarget: focusedField?.rawValue) {
+        CameraDialog(horizontalMargin: model.enrollsInSearchLibrary ? 17 : 12,
+                     scrollTarget: focusedField?.rawValue) {
             CameraDialogTitle(
                 title: model.enrollsInSearchLibrary ? DemoL10n.text("确认录入信息") : DemoL10n.text("确认人脸照片"),
                 subtitle: model.enrollsInSearchLibrary
-                    ? DemoL10n.text("请确认人脸清晰，设置唯一 Face ID")
+                    ? ""
                     : DemoL10n.text("请确认正脸清晰、无遮挡"),
                 symbol: "person.crop.square",
                 symbolPlacement: .leading,

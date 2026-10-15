@@ -208,7 +208,6 @@
     <string name="search_ui_person_group">分组：%1$s</string>
     <string name="search_ui_person_tag"> · 标签：%1$s</string>
     <string name="search_ui_confirm_title">确认录入信息</string>
-    <string name="search_ui_confirm_hint">设置唯一 Face ID。</string>
     <string name="search_ui_id_label">Face ID</string>
     <string name="search_ui_id_help">必填且唯一，如员工编号。</string>
     <string name="search_ui_enroll_scope_help">分组选填，留空为未分组。</string>

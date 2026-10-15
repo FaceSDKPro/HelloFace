@@ -208,7 +208,6 @@
     <string name="search_ui_person_group">Group: %1$s</string>
     <string name="search_ui_person_tag"> · Tag: %1$s</string>
     <string name="search_ui_confirm_title">Confirm Enrollment</string>
-    <string name="search_ui_confirm_hint">Set a unique Face ID.</string>
     <string name="search_ui_id_label">Face ID</string>
     <string name="search_ui_id_help">Required and unique, e.g. an employee ID.</string>
     <string name="search_ui_enroll_scope_help">Optional. Leave blank for no group.</string>

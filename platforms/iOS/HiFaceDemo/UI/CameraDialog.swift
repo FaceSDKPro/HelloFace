@@ -6,6 +6,7 @@ import UIKit
 struct CameraDialog<Content: View, Actions: View>: View {
     @ViewBuilder let content: () -> Content
     @ViewBuilder let actions: () -> Actions
+    let horizontalMargin: CGFloat
     let scrollTarget: String?
     let hasActions: Bool
     @State private var contentHeight: CGFloat = 0
@@ -14,11 +15,12 @@ struct CameraDialog<Content: View, Actions: View>: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
-    init(scrollTarget: String? = nil, @ViewBuilder content: @escaping () -> Content,
+    init(horizontalMargin: CGFloat = 12, scrollTarget: String? = nil, @ViewBuilder content: @escaping () -> Content,
          @ViewBuilder actions: @escaping () -> Actions) {
         self.content = content
         self.actions = actions
         self.scrollTarget = scrollTarget
+        self.horizontalMargin = horizontalMargin
         hasActions = true
     }
 
@@ -61,7 +63,8 @@ struct CameraDialog<Content: View, Actions: View>: View {
                 .clipShape(dialogShape)
                 .shadow(color: .black.opacity(0.14), radius: 24, y: 10)
                 .frame(maxWidth: horizontalSizeClass == .regular ? 560 : 480)
-                .padding(12)
+                .padding(.horizontal, horizontalMargin)
+                .padding(.vertical, 12)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -91,10 +94,11 @@ struct CameraDialog<Content: View, Actions: View>: View {
 }
 
 extension CameraDialog where Actions == EmptyView {
-    init(scrollTarget: String? = nil, @ViewBuilder content: @escaping () -> Content) {
+    init(horizontalMargin: CGFloat = 12, scrollTarget: String? = nil, @ViewBuilder content: @escaping () -> Content) {
         self.content = content
         actions = { EmptyView() }
         self.scrollTarget = scrollTarget
+        self.horizontalMargin = horizontalMargin
         hasActions = false
     }
 }
@@ -148,9 +152,11 @@ struct CameraDialogTitle: View {
             Text(title)
                 .font(.system(size: titleFontSize * textScale, weight: .semibold))
                 .accessibilityAddTraits(.isHeader)
-            Text(subtitle)
-                .font(.system(size: subtitleFontSize * textScale))
-                .foregroundStyle(Color(uiColor: .secondaryLabel))
+            if !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.system(size: subtitleFontSize * textScale))
+                    .foregroundStyle(Color(uiColor: .secondaryLabel))
+            }
         }
         .multilineTextAlignment(alignment)
         .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : .center)

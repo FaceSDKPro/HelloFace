@@ -7634,23 +7634,6 @@
         }
       }
     },
-    "设置唯一 Face ID。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Set a unique Face ID."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "设置唯一 Face ID。"
-          }
-        }
-      }
-    },
     "设置自动保存，重新进入相机页面后生效。": {
       "extractionState": "manual",
       "localizations": {
@@ -8276,23 +8259,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "请确保画面中只有一张人脸"
-          }
-        }
-      }
-    },
-    "请确认人脸清晰，设置唯一 Face ID": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Confirm the face is clear and set a unique Face ID"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请确认人脸清晰，设置唯一 Face ID"
           }
         }
       }

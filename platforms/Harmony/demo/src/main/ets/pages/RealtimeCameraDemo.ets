@@ -420,10 +420,6 @@ export struct RealtimeCameraDemo {
           Column({ space: 14 }) {
             Text(this.isSearchEnrollment() ? DemoL10n.text("确认录入信息") : DemoL10n.text("确认这张人脸照片？"))
               .fontSize(18).fontWeight(FontWeight.Bold).fontColor(this.dialogText()).width('100%')
-            if (this.isSearchEnrollment()) {
-              Text(DemoL10n.text("设置唯一 Face ID。")).fontSize(12)
-                .fontColor(DemoTheme.textOnDarkSecondary).width('100%')
-            }
             if (this.capturedFace !== undefined) {
               Image(this.capturedFace).width(this.isSearchEnrollment() ? 144 : 188)
                 .height(this.isSearchEnrollment() ? 144 : 188).borderRadius(16).objectFit(ImageFit.Cover)
@@ -462,10 +458,10 @@ export struct RealtimeCameraDemo {
             .onClick(() => { this.dismissEnrollmentKeyboard(); this.retryCapture(); })
           Button(this.libraryBusy ? DemoL10n.text("保存中…") : this.isSearchEnrollment() ? DemoL10n.text("保存") : DemoL10n.text("完成"))
             .layoutWeight(1).height(44).fontSize(16).backgroundColor(this.isSearchEnrollment() ? DemoTheme.searchAccent : DemoTheme.primary)
-            .fontColor(this.isSearchEnrollment() ? DemoTheme.searchBackground : '#FFFFFF').enabled(!this.libraryBusy)
+            .fontColor('#FFFFFF').enabled(!this.libraryBusy)
             .onClick(() => { this.dismissEnrollmentKeyboard(); this.confirmEnrollment(); })
         }.width('100%').padding(16)
-      }.width('94%').constraintSize({ maxWidth: 560 })
+      }.width(this.isSearchEnrollment() ? 'calc(100% - 34vp)' : '94%').constraintSize({ maxWidth: 560 })
         .backgroundColor(this.isSearchEnrollment() ? DemoTheme.searchSurface : '#FFFFFF')
         .borderRadius(24).clip(true)
     }.width('100%').height('100%')

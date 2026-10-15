@@ -81,7 +81,6 @@ public final class FaceSearchEnrollmentActivity extends CameraFlowActivity {
     private void showConfirmation(FaceCaptureResult capture) {
         Context themed = SearchUi.theme(this);
         LinearLayout form = SearchUi.form(themed);
-        form.addView(SearchUi.text(themed, R.string.search_ui_confirm_hint, 12, false));
         Bitmap bitmap = capture.getAlignedFace();
         ImageView image = addPreview(form, bitmap);
         SearchUi.Input id = SearchUi.field(form, R.string.search_ui_id_label, "",
@@ -124,7 +123,8 @@ public final class FaceSearchEnrollmentActivity extends CameraFlowActivity {
                     group.set(group.value());
                     save(dialog, capture, faceId, group.value(), false);
                 }));
-        SearchUi.showFormDialog(dialog, scroll);
+        SearchUi.showFormDialog(dialog, scroll, 17);
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(getColor(android.R.color.white));
     }
 
     /** 添加对齐人脸预览；前摄仅在 ImageView 上镜像，不修改 SDK 返回的特征或位图像素。 */
