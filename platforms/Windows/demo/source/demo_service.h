@@ -6,6 +6,9 @@ struct Update : hiface::FrameUpdate {
     std::string message;
     bool enrolling = false, saved = false;
 };
+bool searchFaceAccepted(const Update& update, const HiFaceSearchCameraFaceV1& face);
+std::string searchFaceText(const Update& update, const HiFaceSearchCameraFaceV1& face);
+std::string searchStatusText(const Update& update);
 // Worker-thread workflow for SDK requests, enrollment identity, and persistence.
 // 工作线程中的应用流程：SDK 请求、录入身份与持久化。
 class DemoService {
@@ -30,6 +33,7 @@ public:
     std::vector<HiFaceFaceV1> detect(const Image& image) { return client_.detect(image); }
     Feature capture(const Image& image) { return client_.capture(image); }
     CaptureResult captureWithPreview(const Image& image) { return client_.captureWithPreview(image); }
+    CaptureResult captureEnrollmentImage(const Image& image);
     void insertFeature(const std::string& id, const Feature& feature) { client_.insertFeature(id, feature); }
     std::vector<std::pair<std::string, float>> query(const Feature& feature) { return client_.query(feature); }
     uint64_t count() const { return client_.count(); }

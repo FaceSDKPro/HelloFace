@@ -37,10 +37,12 @@ struct Draw {
 // Shared pixels keep native and software cursors identical without a theme/font.
 // 系统与软件光标共用像素，不依赖嵌入式系统的光标主题或字体。
 struct MouseCursorBitmap {
-    static constexpr int width = 16, height = 24, stride = (width + 7) / 8;
+    // Pad the arrow to a square so every rotation shares one X11 bitmap layout.
+    static constexpr int arrow_width = 16, width = 24, height = 24, stride = (width + 7) / 8;
+    int hotspot_x = 0, hotspot_y = 0;
     std::array<uint8_t, stride * height> source{}, mask{};
 };
-const MouseCursorBitmap& mouseCursorBitmap();
+const MouseCursorBitmap& mouseCursorBitmap(int clockwise_rotation = 0);
 struct Scene {
     int width = 0, height = 0;
     Rect clip;
@@ -49,7 +51,7 @@ struct Scene {
     void text(int x, int baseline, std::string value, uint32_t color, Font font, int width);
     void image(Rect bounds, const uint8_t* pixels, int width, int height, bool mirror,
                bool x11_bgrx = false);
-    void mouseCursor(int x, int y);
+    void mouseCursor(int x, int y, int clockwise_rotation = 0);
     void line(int x1, int y1, int x2, int y2, uint32_t color, int width = 1);
     void dot(int x, int y, int size, uint32_t color);
     // Only contiguous commands with identical paint/clip state can share a native request.

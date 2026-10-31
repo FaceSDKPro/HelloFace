@@ -49,8 +49,10 @@ void Scene::text(int x, int y, std::string value, uint32_t color, Font font, int
 void Scene::image(Rect bounds, const uint8_t* pixels, int width, int height, bool mirror, bool x11_bgrx) {
     Draw d; d.kind = Draw::Image; d.bounds = bounds; d.clip = clip; d.pixels = pixels; d.source_width = width; d.source_height = height; d.mirror = mirror; d.x11_bgrx = x11_bgrx; draws.push_back(std::move(d));
 }
-const MouseCursorBitmap& mouseCursorBitmap() {
-    static const MouseCursorBitmap bitmap = [] {
+const MouseCursorBitmap& mouseCursorBitmap(int clockwise_rotation) {
+    if (clockwise_rotation < 0 || clockwise_rotation > 270 || clockwise_rotation % 90)
+        throw std::invalid_argument("Cursor rotation must be 0, 90, 180 or 270");
+    static const std::array<MouseCursorBitmap, 4> bitmaps = [] {
         const char* rows[] = {
             "#...............", "##..............", "#o#.............", "#oo#............",
             "#ooo#...........", "#oooo#..........", "#ooooo#.........", "#oooooo#........",
@@ -59,19 +61,39 @@ const MouseCursorBitmap& mouseCursorBitmap() {
             "#ooo#.#ooo#.....", "#oo#..#ooo#.....", "#o#....#ooo#....", "##.....#ooo#....",
             "#.......#ooo#...", "........#ooo#...", ".........###....", "................"
         };
-        MouseCursorBitmap result;
-        for (int y = 0; y < result.height; ++y) for (int x = 0; x < result.width; ++x) {
-            const size_t byte = y * result.stride + x / 8;
+        std::array<MouseCursorBitmap, 4> result{};
+        auto& base = result[0];
+        base.hotspot_x = base.arrow_width - 1;
+        for (int y = 0; y < base.height; ++y) for (int x = 0; x < base.arrow_width; ++x) {
+            const size_t byte = y * base.stride + x / 8;
             const uint8_t bit = uint8_t(1u << (x % 8));
-            if (rows[y][x] != '.') result.mask[byte] |= bit;
-            if (rows[y][x] == 'o') result.source[byte] |= bit;
+            const char pixel = rows[y][base.arrow_width - 1 - x];
+            if (pixel != '.') base.mask[byte] |= bit;
+            if (pixel == 'o') base.source[byte] |= bit;
+        }
+        for (size_t turn = 1; turn < result.size(); ++turn) {
+            const auto& previous = result[turn - 1];
+            auto& rotated = result[turn];
+            rotated.hotspot_x = previous.height - 1 - previous.hotspot_y;
+            rotated.hotspot_y = previous.hotspot_x;
+            for (int y = 0; y < previous.height; ++y) for (int x = 0; x < previous.width; ++x) {
+                const size_t from = y * previous.stride + x / 8;
+                const uint8_t from_bit = uint8_t(1u << (x % 8));
+                const int rx = previous.height - 1 - y, ry = x;
+                const size_t to = ry * rotated.stride + rx / 8;
+                const uint8_t to_bit = uint8_t(1u << (rx % 8));
+                if (previous.mask[from] & from_bit) rotated.mask[to] |= to_bit;
+                if (previous.source[from] & from_bit) rotated.source[to] |= to_bit;
+            }
         }
         return result;
     }();
-    return bitmap;
+    return bitmaps[clockwise_rotation / 90];
 }
-void Scene::mouseCursor(int x, int y) {
-    const auto& bitmap = mouseCursorBitmap();
+void Scene::mouseCursor(int x, int y, int clockwise_rotation) {
+    const auto& bitmap = mouseCursorBitmap(clockwise_rotation);
+    x -= bitmap.hotspot_x;
+    y -= bitmap.hotspot_y;
     const Rect viewport = clip.intersect({0, 0, width, height});
     for (int row = 0; row < bitmap.height; ++row) {
         auto pixel = [&](int column) {

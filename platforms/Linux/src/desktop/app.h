@@ -16,6 +16,8 @@ struct Command {
 // UI 读取已发布的状态快照；可变的 SDK 和数据库状态留在工作流线程。
 struct ViewState {
     bool ready = false, importing = false, connected = false, busy = false, failed = false;
+    bool camera_stalled = false, search_idle = false;
+    std::string fixed_camera_device;
     HiFaceStatus initialization_status = HIFACE_STATUS_OK;
     std::string device_time_utc;
     uint64_t settings_attempt = 0, photo_search_generation = 0, preview_sequence = 0, visual_revision = 0;
@@ -79,7 +81,7 @@ public:
 private:
     struct CaptureRequest {
         uint64_t generation = 0;
-        bool open = false;
+        bool open = false, search_idle = false;
         std::string device, preview_device;
         int width = 640, height = 360, fps = 25;
         int preview_width = 1280, preview_height = 720;
@@ -96,6 +98,7 @@ private:
     };
     void captureLoop();
     void configureCapture(const std::string& device, const DemoSettings& settings, bool open);
+    void setSearchIdle(bool idle);
     CaptureState captureSnapshot();
     void run(const std::string& models, const std::string& database, std::string device, bool smoke, const std::string& assets);
     std::atomic<bool> stopping_{false};

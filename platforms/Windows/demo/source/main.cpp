@@ -3,6 +3,7 @@
 #include "win_util.h"
 #include "theme.h"
 #include "image_search_view.h"
+#include "enrollment_draft.h"
 #include <commctrl.h>
 #include <commdlg.h>
 #include <shellapi.h>
@@ -29,7 +30,7 @@ enum Control {
     ImageReference, GalleryReference, ImportReference, ExportFeature, ExportPreview, ImageEnroll,
     RefreshGallery, PreviousPage, NextPage, DeletePerson, UpdatePerson, ImportJson, ExportJson,
     ImportImages, PickSearchImage, SearchImageAgain, GoGallery, SearchGuide, SaveEnrollment, ReleaseMemory, People, Status, Metrics, Primary,
-    Back = kBackControl, Parameters = kParametersControl, HomePrevious = kHomePreviousControl, HomeNext = kHomeNextControl,
+    SearchResults, Back = kBackControl, Parameters = kParametersControl, HomePrevious = kHomePreviousControl, HomeNext = kHomeNextControl,
     ParameterPane = 5000, NavBase = 6000, HomeBase = 7000
 };
 constexpr int kLabelOffset = 1000;
@@ -64,6 +65,7 @@ struct Ui {
     std::vector<Person> rendered_people;
     std::array<Draft, kPageCount> drafts;
     std::wstring parameter_notice;
+    std::wstring last_search_results;
     int card_top = 160, main_left = 24, parameter_width = 296;
 };
 HWND child(HWND window, int id) {
@@ -179,7 +181,7 @@ Settings readSettings(Ui& ui) {
     if (ui.page == Page::Search) {
         settings.search.multi_face = selection(window, SearchMode) == 1;
         settings.search.liveness = !settings.search.multi_face && checked(window, Silent);
-        settings.search.max_faces = integer(window, MaxFaces, 1, 5);
+        settings.search.max_faces = settings.search.multi_face ? integer(window, MaxFaces, 1, 5) : 1;
         settings.search.threshold = threshold(window);
         settings.search.interval_ms = integer(window, Interval, 0, 3000); settings.search.timeout_ms = integer(window, Timeout, 1000, 3000);
         settings.search.group = settings.group; settings.search.tag = settings.tag;
@@ -192,10 +194,12 @@ void submit(Ui& ui, Action action, std::vector<std::filesystem::path> files = {}
         || action == Action::PreviousPage || action == Action::NextPage || action == Action::ReleaseMemory
         || action == Action::ExportPreview || action == Action::ExportFeature;
     auto settings = independent ? ui.app.current()->settings : readSettings(ui);
+    if (action == Action::Pause && !ui.app.current()->paused && ui.dirty)
+        ui.parameter_notice = L"搜索已暂停；修改后的参数仍需点击应用修改。";
     if (action == Action::Apply || action == Action::OpenCamera)
         saveCameraPreferences(demoDataDirectory() / L"camera-settings.txt", {settings.width, settings.height, settings.rotation, settings.mirror});
     ui.pending_command = ui.app.enqueue({action, std::move(settings), std::move(files), 0});
-    ui.parameter_notice.clear();
+    if (action != Action::Pause) ui.parameter_notice.clear();
     if (action == Action::Apply || action == Action::OpenCamera) ui.dirty = false;
 }
 void refreshDevices(Ui& ui) {
@@ -254,7 +258,7 @@ void layout(Ui& ui) {
     ShowWindow(child(window,Primary),home||camera_settings?SW_HIDE:SW_SHOW);
     ShowWindow(child(window,Cancel),home||camera_settings?SW_HIDE:SW_SHOW);
     for(int id=PersonId;id<=ReleaseMemory;++id){ShowWindow(child(window,id),SW_HIDE);ShowWindow(child(window,id+kLabelOffset),SW_HIDE);}
-    for(int id:{Device,RefreshDevices,Open,Close,Resolution,Rotation,Mirror,Apply,People,Enroll,GoGallery,Parameters,SearchImageAgain,HomePrevious,HomeNext})ShowWindow(child(window,id),SW_HIDE);
+    for(int id:{Device,RefreshDevices,Open,Close,Resolution,Rotation,Mirror,Apply,People,Enroll,GoGallery,Parameters,SearchImageAgain,HomePrevious,HomeNext,SearchResults})ShowWindow(child(window,id),SW_HIDE);
     for(int i=0;i<kFeatureCount;++i)ShowWindow(child(window,HomeBase+i),SW_HIDE);
     move(Status,ui.main_left+8,height-67,width-ui.main_left-32,32);
     move(Metrics,ui.main_left+8,height-32,width-ui.main_left-32,24);
@@ -297,11 +301,17 @@ void layout(Ui& ui) {
     ui.parameters=rect(ui.main_left,ui.card_top,ui.parameter_width,std::max(1,height-80-ui.card_top));
     const int canvas_bottom=pane_visible||camera_settings?height-80:height-164;
     ui.canvas=rect(preview_left,ui.card_top,std::max(1,width-preview_left-20),std::max(1,canvas_bottom-ui.card_top));
+    if(ui.page==Page::Search){
+        const int details_height=112;
+        move(SearchResults,preview_left+8,canvas_bottom-details_height+4,std::max(1,width-preview_left-36),details_height-8);
+        ShowWindow(child(window,SearchResults),SW_SHOW);
+        ui.canvas.bottom-=px(details_height);
+    }
     ui.view_height=std::max(1,height-194-ui.card_top);
     MoveWindow(ui.pane,px(ui.main_left+10),px(ui.card_top+40),px(ui.parameter_width-20),px(ui.view_height),TRUE);
     int y=8;
     auto row=[&](int id,bool labelled=true){
-        if(id==primaryAction(ui.page))return;
+        if(id==primaryAction(ui.page) && ui.page!=Page::Enrollment)return;
         ShowWindow(child(window,id),SW_SHOW);
         if(labelled&&child(window,id+kLabelOffset)){
             ShowWindow(child(window,id+kLabelOffset),SW_SHOW);
@@ -309,6 +319,10 @@ void layout(Ui& ui) {
             move(id,8,y+25-ui.scroll,ui.parameter_width-58,34);y+=76;
         }else{move(id,8,y-ui.scroll,ui.parameter_width-58,id==SearchMode||id==Actions?280:36);y+=46;}
     };
+    if(ui.page==Page::Enrollment){
+        ShowWindow(child(window,SearchGuide),SW_SHOW);
+        move(SearchGuide,8,y-ui.scroll,ui.parameter_width-58,100);y+=110;
+    }
     if(ui.page==Page::Gallery){row(FilterGroup);row(FilterTag);}
     if(ui.page==Page::Reference||ui.page==Page::Verification||ui.page==Page::Enrollment||ui.page==Page::Gallery)row(PersonId);
     if(ui.page==Page::Search||ui.page==Page::Enrollment||ui.page==Page::Gallery){row(Group);row(Tag);}
@@ -318,7 +332,7 @@ void layout(Ui& ui) {
         case Page::Verification:row(ImportReference,false);row(Threshold);row(Actions,false);row(CustomActions);row(Silent,false);row(Multiple,false);break;
         case Page::Liveness:row(Actions,false);row(CustomActions);row(Multiple,false);row(ExportPreview,false);break;
         case Page::Search:row(SearchMode,false);row(MaxFaces);row(Silent,false);row(Threshold);row(Interval);row(Timeout);break;
-        case Page::Enrollment:row(SaveEnrollment,false);row(PickA,false);row(ImageEnroll,false);break;
+        case Page::Enrollment:row(SaveEnrollment,false);row(StartFlow,false);row(PickA,false);row(ImageEnroll,false);break;
         case Page::Comparison:row(Threshold);row(PickA,false);row(PickB,false);break;
         case Page::Gallery:
             row(UpdatePerson,false);row(DeletePerson,false);
@@ -364,6 +378,7 @@ void update(Ui& ui) {
     setText(window, Status, ui.parameter_notice.empty() ? widen(state->update.message) : ui.parameter_notice);
     std::wostringstream metrics;
     metrics << L"人脸库 " << state->total << L" 条 | 1:1 基准: " << (state->has_reference ? L"已保存" : L"未设置");
+    if (ui.page == Page::Search) metrics << L" | 当前搜索范围 " << state->search_population << L" 条";
     if (state->camera_open) metrics << std::fixed << std::setprecision(1) << L" | 采集 " << state->capture_fps << L" FPS | 分析 " << state->analysis_fps << L" FPS | 推理 " << state->inference_ms << L" ms";
     if (ui.page == Page::Gallery) metrics << L" | 当前筛选 " << state->filtered << L" 条 | " << state->offset + (state->filtered ? 1 : 0) << L"-" << state->offset + state->people.size();
     setText(window, Metrics, metrics.str());
@@ -387,6 +402,7 @@ void update(Ui& ui) {
     EnableWindow(child(window, HomeNext), ui.home_scroll < homeGeometry(ui).clampScroll(100000));
     EnableWindow(child(window, Apply), ready);
     EnableWindow(child(window, Silent), ready && (ui.page != Page::Search || selection(window, SearchMode) == 0));
+    EnableWindow(child(window, MaxFaces), ready && (ui.page != Page::Search || selection(window, SearchMode) == 1));
     EnableWindow(child(window, CustomActions), ready && selection(window, Actions) == 7);
     EnableWindow(child(window, Compare), ready && state->image_a && state->image_b);
     EnableWindow(child(window, ImageReference), ready && state->image_a);
@@ -409,7 +425,8 @@ void update(Ui& ui) {
         else if (!ui.pending_command) ui.image_search.setContent(nullptr, nullptr);
     }
     EnableWindow(child(window, Primary), IsWindowEnabled(child(window, primaryAction(ui.page))));
-    EnableWindow(child(window, Cancel), state->flow_active || state->busy || ui.pending_command || state->pending_enrollment);
+    EnableWindow(child(window, Cancel), state->flow_active || state->busy || ui.pending_command || state->pending_enrollment
+        || (ui.page == Page::Search && state->camera_open && !state->paused));
     setText(window, Apply, ui.dirty ? L"应用修改 *" : L"应用参数");
     setText(window, Parameters, ui.parameters_open ? L"收起参数" : ui.dirty ? L"参数设置 *" : L"参数设置");
     for (auto* returning : {&ui.return_after_save, &ui.return_after_reference}) {
@@ -422,6 +439,30 @@ void update(Ui& ui) {
     }
     setText(window, Pause, state->paused ? L"恢复搜索" : L"暂停搜索 / 释放缓存");
     if (ui.page == Page::Search) setText(window, Primary, state->paused ? L"恢复搜索" : L"暂停搜索");
+    if (ui.page == Page::Enrollment) {
+        setText(window, SearchGuide, state->pending_enrollment
+            ? L"第 2 步 / 共 2 步\r\n核对预览与人员信息，再确认保存。\r\n重复 ID 不会覆盖已有人员。"
+            : L"第 1 步 / 共 2 步\r\n打开相机后开始采集，或选择单人图片。\r\n采集后确认保存才会入库。");
+        setText(window, Primary, state->pending_enrollment ? L"确认预览并保存人员" : L"开始 / 重新采集");
+        EnableWindow(child(window, Primary), ready && (state->pending_enrollment || state->camera_open));
+        setText(window, Cancel, state->pending_enrollment ? L"丢弃本次预览" : L"取消采集");
+    } else setText(window, Cancel, ui.page == Page::Search ? L"停止搜索" : L"取消流程 / 停止导入");
+    if (ui.page == Page::Search && state->settings.page == Page::Search) {
+        const auto& options = state->settings.search;
+        std::wostringstream detail;
+        detail << (options.multi_face ? L"M:N 多人" : L"1:N 单人") << L" | 活体 " << (options.liveness ? L"开启" : L"关闭")
+            << std::fixed << std::setprecision(2) << L" | 阈值 " << options.threshold << L" | 范围 " << state->search_population << L" 条"
+            << L" | 分组 " << (options.group.empty() ? L"全部" : widen(options.group)) << L" | 标签 " << (options.tag.empty() ? L"全部" : widen(options.tag)) << L"\r\n";
+        if (ui.dirty) detail << L"参数有未应用修改；上方显示当前已应用配置。\r\n";
+        if (state->paused || !state->camera_open || state->search_population == 0) {
+            detail << (state->paused ? L"已暂停，结果已清空；恢复后重新识别。" : !state->search_population
+                ? L"当前范围没有人员；请录入人员、导入人脸库或检查分组/标签。" : L"打开摄像头开始搜索。录入成功后需重新打开相机。");
+        } else if (state->update.faces.empty()) detail << widen(state->update.message);
+        else for (size_t i=0;i<state->update.faces.size();++i)
+            detail << L"人脸 " << i+1 << L"：" << widen(searchFaceText(state->update,state->update.faces[i])) << L"\r\n";
+        const auto value=detail.str();
+        if(value!=ui.last_search_results){ui.last_search_results=value;setText(window,SearchResults,value);}
+    }
     bool changed = state->total != ui.rendered_gallery || state->offset != ui.rendered_offset || state->people.size() != ui.rendered_people.size();
     if (!changed) for (size_t i = 0; i < state->people.size(); ++i) {
         const auto& a = state->people[i]; const auto& b = ui.rendered_people[i];
@@ -520,7 +561,7 @@ void paint(Ui& ui) {
             const auto old_brush = SelectObject(dc, GetStockObject(NULL_BRUSH));
             for (size_t i = 0; i < state->update.faces.size(); ++i) {
                 const auto& face = state->update.faces[i];
-                const bool passed = state->update.matched && (ui.page != Page::Search || face.threshold_passed);
+                const bool passed = ui.page == Page::Search ? searchFaceAccepted(state->update, face) : state->update.matched;
                 const auto color = passed ? RGB(40, 220, 90) : RGB(255, 190, 40);
                 const auto pen = CreatePen(PS_SOLID, px(2), color); const auto previous_pen = SelectObject(dc, pen);
                 auto x = [&](float value) { return fit.x + static_cast<int>((state->settings.mirror ? state->preview->width - value : value) * fit.scale); };
@@ -540,7 +581,7 @@ void paint(Ui& ui) {
                     }
                 }
                 if (face.has_similarity) {
-                    const auto label = widen(std::string(face.face_id) + " " + std::to_string(face.similarity) + (state->update.end_reason == HIFACE_SEARCH_END_SPOOF_DETECTED ? " [LIVENESS REJECTED]" : ""));
+                    const auto label = widen(ui.page == Page::Search ? searchFaceText(state->update, face) : std::string(face.face_id) + " " + std::to_string(face.similarity));
                     TextOutW(dc, left, y(face.y) - px(22), label.c_str(), static_cast<int>(label.size()));
                 }
                 SelectObject(dc, previous_pen); DeleteObject(pen);
@@ -623,6 +664,7 @@ void create(Ui& ui) {
     button(ui, ImportJson, L"批量导入 Android HF1 JSON"); button(ui, ExportJson, L"导出筛选结果 HF1 JSON"); button(ui, ImportImages, L"多选本地图片提取并导入"); button(ui, ReleaseMemory, L"释放数据库内存缓存");
     button(ui, PickSearchImage, L"选择图片并搜索"); button(ui, SearchImageAgain, L"重新搜索当前图片"); button(ui, GoGallery, L"打开人脸库");
     control(ui, L"STATIC", L"最多 10 张脸 · 阈值 0.80", SearchGuide);
+    control(ui, L"EDIT", L"", SearchResults, ES_READONLY | ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL | WS_TABSTOP);
     const auto list = control(ui, WC_LISTVIEWW, L"", People, LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_TABSTOP);
     ListView_SetExtendedListViewStyle(list, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_LABELTIP);
     const wchar_t* columns[] = {L"人员 ID", L"分组", L"标签", L"更新时间"};
@@ -642,7 +684,7 @@ void create(Ui& ui) {
         const auto field = child(window, HomeBase+i);
         SetWindowPos(field, after, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE); after = field;
     }
-    const int tab_order[] = {Enroll, GoGallery, Parameters, Device, RefreshDevices, Open, Close, Resolution, Rotation, Mirror, Apply, ParameterPane, Primary, SearchImageAgain, Cancel, People, Logs, Help};
+    const int tab_order[] = {Enroll, GoGallery, Parameters, Device, RefreshDevices, Open, Close, Resolution, Rotation, Mirror, Apply, ParameterPane, Primary, SearchImageAgain, Cancel, SearchResults, People, Logs, Help};
     for (const int id : tab_order) {
         const auto field = child(window, id); SetWindowPos(field, after, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE); after = field;
     }
@@ -708,7 +750,8 @@ void action(Ui& ui, int id, int notification) {
         else SetFocus(child(window, Back));
         InvalidateRect(window, nullptr, TRUE); return;
     }
-    if (id == Primary) { if (!IsWindowEnabled(child(window, Primary))) return; id = primaryAction(ui.page); }
+    if (id == Primary) { if (!IsWindowEnabled(child(window, Primary))) return;
+        id = ui.page == Page::Enrollment && ui.app.current()->pending_enrollment ? SaveEnrollment : primaryAction(ui.page); }
     if ((notification == EN_CHANGE && id >= PersonId && id <= CustomActions)
         || (notification == CBN_SELCHANGE && (id == Resolution || id == Rotation || id == SearchMode || id == Actions))
         || (notification == BN_CLICKED && (id == Mirror || id == Details || id == Silent || id == Multiple))) {
@@ -747,12 +790,15 @@ void action(Ui& ui, int id, int notification) {
             ++ui.app.generation; submit(ui, Action::StartFlow); break;
         case Enroll: action(ui, NavBase + static_cast<int>(Page::Enrollment), BN_CLICKED); break;
         case SaveEnrollment:
+            EnrollmentDraft::validateMetadata(utf8(text(window, PersonId)), utf8(text(window, Group)), utf8(text(window, Tag)));
             if (ui.app.current()->pending_enrollment && MessageBoxW(window,
                 (L"确认将当前预览保存为人员 ID: " + text(window, PersonId) + L"？重复 ID 会拒绝保存。").c_str(),
                 L"确认人脸录入", MB_YESNO | MB_ICONQUESTION) == IDYES) { submit(ui, Action::SaveEnrollment); ui.return_after_save = ui.pending_command; }
             break;
         case Cancel: ++ui.app.generation; submit(ui, Action::Cancel); break;
-        case Pause: submit(ui, Action::Pause); break;
+        case Pause:
+            if (ui.app.current()->paused && ui.dirty) { ui.parameter_notice = L"请先应用修改，再恢复搜索。"; break; }
+            submit(ui, Action::Pause); break;
         case PickA: case PickB: {
             auto files = choose(window, false, false, kImages); if (!files.empty()) submit(ui, id == PickA ? Action::LoadA : Action::LoadB, std::move(files)); break;
         }

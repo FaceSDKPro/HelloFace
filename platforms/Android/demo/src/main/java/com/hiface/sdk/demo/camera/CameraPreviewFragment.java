@@ -80,10 +80,11 @@ public final class CameraPreviewFragment extends Fragment {
     private int resolutionIndex;
     private boolean started, cameraRequested, analysisPaused, permissionPending, providerLoading;
     private boolean overlayEnabled;
-    // Zero preserves the device default; search switches between 15 FPS when active and 5 FPS when idle
-    // without faces.
-    // 0 表示沿用设备默认；搜索页会在活跃 15 FPS 与无人脸待机 5 FPS 之间动态切换。
+    // Zero preserves the device default; search uses 15 FPS active and 10 FPS idle preview.
+    // SDK analysis independently drops to 5 FPS while idle.
+    // 0 表示沿用设备默认；搜索页活跃 15 FPS，待机预览 10 FPS、分析独立降至 5 FPS。
     private volatile int targetSessionFrameRate;
+    private volatile int targetAnalysisFrameRate;
     private PreviewView.ScaleType scaleType = PreviewView.ScaleType.FIT_CENTER;
     private volatile boolean deliverFrames;
     private volatile FrameListener frameListener;
@@ -150,13 +151,21 @@ public final class CameraPreviewFragment extends Fragment {
      */
     @MainThread
     public void configureSessionFrameRate(int framesPerSecond) {
-        if (framesPerSecond <= 0) {
-            throw new IllegalArgumentException("framesPerSecond must be positive");
+        configureSessionFrameRates(framesPerSecond, framesPerSecond);
+    }
+
+    /** Set preview/capture and SDK analysis ceilings independently. / 分别设置预览采集与 SDK 分析上限。 */
+    @MainThread
+    public void configureSessionFrameRates(int previewFramesPerSecond, int analysisFramesPerSecond) {
+        if (previewFramesPerSecond <= 0 || analysisFramesPerSecond <= 0
+                || analysisFramesPerSecond > previewFramesPerSecond) {
+            throw new IllegalArgumentException("Frame rates must be positive; analysis cannot exceed preview");
         }
-        if (targetSessionFrameRate == framesPerSecond) return;
-        targetSessionFrameRate = framesPerSecond;
+        targetAnalysisFrameRate = analysisFramesPerSecond;
+        if (targetSessionFrameRate == previewFramesPerSecond) return;
+        targetSessionFrameRate = previewFramesPerSecond;
         Binding current = binding;
-        if (current != null) current.updateFrameRate(framesPerSecond);
+        if (current != null) current.updateFrameRate(previewFramesPerSecond);
     }
 
     @MainThread
@@ -593,7 +602,7 @@ public final class CameraPreviewFragment extends Fragment {
                 }
                 FrameListener listener = frameListener;
                 if (!deliverFrames || listener == null) return;
-                int analysisFrameRate = targetSessionFrameRate;
+                int analysisFrameRate = targetAnalysisFrameRate;
                 if (analysisFrameRate > 0) {
                     long timestamp = image.getImageInfo().getTimestamp();
                     long minimumInterval = Math.max(0L,

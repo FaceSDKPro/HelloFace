@@ -32,7 +32,7 @@ struct Snapshot {
     std::filesystem::path search_file;
     std::shared_ptr<const ImageSearchResult> image_search;
     std::vector<Person> people;
-    uint64_t total = 0, filtered = 0;
+    uint64_t total = 0, filtered = 0, search_population = 0;
     uint32_t offset = 0;
     uint64_t completed_command = 0, search_generation = 0;
     bool error = false, pending_enrollment = false;

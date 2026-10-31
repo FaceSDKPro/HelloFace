@@ -85,7 +85,13 @@ def main(require_outside_root=None):
     target=Path(str(args.entry.resolve())+'.hfpackage')
     fd,temporary=tempfile.mkstemp(prefix='.hfpackage-',dir=target.parent)
     try:
-        with os.fdopen(fd,'wb')as out:out.write(data);out.flush();os.fsync(out.fileno())
+        with os.fdopen(fd,'wb')as out:
+            out.write(data);out.flush()
+            # This signed inventory contains only public identity and digests.
+            # A root-owned install must remain readable by the runtime UID.
+            # The publisher private key is never copied or chmodded here.
+            if os.name!='nt':os.fchmod(out.fileno(),0o644)
+            os.fsync(out.fileno())
         if args.replace:os.replace(temporary,target)
         else:os.link(temporary,target)
     finally:

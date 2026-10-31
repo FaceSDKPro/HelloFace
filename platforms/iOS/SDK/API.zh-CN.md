@@ -1,4 +1,4 @@
-# HiFace 0.8.1 API 指南
+# HiFace 0.8.2 API 指南
 
 [English](API.md) | 简体中文
 
@@ -183,6 +183,7 @@ search.close()
 并以最终 `endReason` 为准；即使身份达到门限，`.spoofDetected` 仍是拒绝结果。
 
 无人脸待机固定启用：连续 10 秒无人脸后，Core 按 200 ms 目标节奏分析（约 5 FPS），检出人脸后恢复。
+Demo 待机预览目标为 10 FPS，SDK 输入独立限至 5 FPS；实际采集帧率由设备支持范围决定。
 跳帧返回 `.notReady`，宿主丢弃当前帧并继续送入最新帧；
 `searchIntervalMilliseconds` 仅控制匹配成功后的下一轮等待，不控制相机或无人脸检测频率。
 

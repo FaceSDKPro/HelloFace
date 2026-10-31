@@ -245,8 +245,9 @@ std::vector<GalleryEntry> readFeatureFile(const std::string& path) {
         } else json.skip();
     });
     json.end();
-    require(version == 1 && format == "HF1" && space == HIFACE_FEATURE_SPACE_ID && found_entries
-        && expected_count >= 0 && static_cast<uint64_t>(expected_count) == entries.size(), "Feature JSON schema, space or entryCount mismatch");
+    require(version == 1 && format == "HF1" && found_entries, "Feature JSON must use schemaVersion 1, HF1 and entries");
+    require(space == HIFACE_FEATURE_SPACE_ID, "Feature space mismatch: expected " HIFACE_FEATURE_SPACE_ID);
+    require(expected_count >= 0 && static_cast<uint64_t>(expected_count) == entries.size(), "Feature JSON entryCount does not match entries");
     return entries;
 }
 

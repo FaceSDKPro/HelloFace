@@ -27,9 +27,9 @@ public:
     FaceWorkflow(const std::string& models, const std::string& database);
     ~FaceWorkflow();
     void action(char key);
-    // Publish detection geometry before database resolution, without provisional identities.
-    // 数据库检索前可先发布本帧几何信息，不将候选身份作为最终结果显示。
-    bool process(const CameraFrame& frame, const std::function<void(const std::vector<Box>&)>& detected = {});
+    // Complete the whole frame before exposing its boxes/status to the UI.
+    // 本帧检索和活体处理完成后再更新框及状态，避免中间态覆盖最终结果。
+    bool process(const CameraFrame& frame);
     void stop();
     void applySettings(const DemoSettings& settings);
     const DemoSettings& settings() const { return settings_; }

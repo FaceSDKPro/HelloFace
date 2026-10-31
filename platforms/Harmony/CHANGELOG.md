@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.8.2]
+
+- 本地候选准备中；构建、验收及发布批准待完成。
+
 ## [0.8.1]
 
 - Aligned the Demo SDK Settings entry with the other platforms.

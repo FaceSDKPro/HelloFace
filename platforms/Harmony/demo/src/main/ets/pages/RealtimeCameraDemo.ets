@@ -63,7 +63,8 @@ const CAPTURE_STABLE_COUNTDOWN_MILLIS: number = 700;
 const CAMERA_LOG_DOMAIN: number = 0xFF00;
 const CAMERA_LOG_TAG: string = 'HiFaceCamera';
 const SEARCH_ACTIVE_FPS: number = 15;
-const SEARCH_IDLE_FPS: number = 5;
+const SEARCH_IDLE_FPS: number = 10;
+const SEARCH_IDLE_ANALYSIS_FPS: number = 5;
 
 class OverlayFrameCallback extends FrameCallback {
   private readonly draw: () => void;
@@ -615,16 +616,16 @@ export struct RealtimeCameraDemo {
         this.resetRealtimeState();
       }
     );
-    // Target 15 FPS for active search and 5 FPS for idle, requesting both preview and analysis rates;
+    // Target 15 FPS for active search, 10 FPS idle preview and 5 FPS idle analysis;
     // hardware may fall back.
-    // 搜索活跃目标 15 FPS、待机目标 5 FPS，同时请求预览和分析输出；硬件可能回退。
+    // 搜索活跃目标 15 FPS，待机预览 10 FPS、分析 5 FPS；硬件可能回退。
     const sessionFps: number = this.isSearchMode() ?
       SEARCH_ACTIVE_FPS :
       (this.currentMode === RealtimeMode.DETECTION ? 30 : 15);
     this.cameraController = new CameraPreviewController(context, callbacks, settings,
       sessionFps, this.isSearchMode());
     if (this.isSearchMode() && this.searchCameraIdle) {
-      this.cameraController.setSessionFrameRate(SEARCH_IDLE_FPS);
+      this.cameraController.setSessionFrameRate(SEARCH_IDLE_FPS, SEARCH_IDLE_ANALYSIS_FPS);
     }
     const surfaceId: string = this.xComponentController.getXComponentSurfaceId();
     this.cameraController.start(surfaceId, this.frontCamera);
@@ -1496,7 +1497,7 @@ export struct RealtimeCameraDemo {
     if (!this.isSearchMode() || this.searchCameraIdle === idle) return;
     this.searchCameraIdle = idle;
     this.cameraController?.setSessionFrameRate(
-      idle ? SEARCH_IDLE_FPS : SEARCH_ACTIVE_FPS);
+      idle ? SEARCH_IDLE_FPS : SEARCH_ACTIVE_FPS, idle ? SEARCH_IDLE_ANALYSIS_FPS : SEARCH_ACTIVE_FPS);
   }
 
   private searchConfig(mode: FaceSearchMode): FaceSearchSessionConfig {

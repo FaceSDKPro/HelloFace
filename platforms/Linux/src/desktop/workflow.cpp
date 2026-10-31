@@ -366,7 +366,7 @@ std::vector<Box> searchBoxes(const HiFaceSearchCameraResultV1& result, bool comp
     }
     return boxes;
 }
-bool FaceWorkflow::process(const CameraFrame& input, const std::function<void(const std::vector<Box>&)>& detected) {
+bool FaceWorkflow::process(const CameraFrame& input) {
     if (mode_ == 'P' || importing_ || enrollment_.pending() || result_pending_) return false;
     const auto begin = monotonicMilliseconds(); const auto frame = input.view();
     if (mode_ == 'S') {
@@ -375,11 +375,6 @@ bool FaceWorkflow::process(const CameraFrame& input, const std::function<void(co
         if (prepared == HIFACE_STATUS_FRAME_SKIPPED) return false;
         check(prepared, "prepare camera search");
         std::unique_ptr<HiFaceSearchBatchOpaque, decltype(&hiface_search_batch_destroy_v1)> batch(raw, hiface_search_batch_destroy_v1);
-        if (detected) {
-            HiFaceSearchCameraResultV1 geometry{}; geometry.struct_size = sizeof(geometry);
-            check(hiface_search_batch_read_v1(raw, &geometry), "read search geometry");
-            detected(searchBoxes(geometry, false));
-        }
         check(hiface_search_batch_resolve_v1(raw, database_.handle), "resolve camera search");
         check(hiface_session_search_complete_v1(session_.handle, raw), "complete camera search");
         HiFaceSearchCameraResultV1 result{}; result.struct_size = sizeof(result);

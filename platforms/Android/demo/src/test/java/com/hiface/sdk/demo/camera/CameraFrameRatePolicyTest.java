@@ -4,6 +4,12 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public final class CameraFrameRatePolicyTest {
+    @Test public void idlePreviewTenAndAnalysisFiveSelectIndependentSupportedRates() {
+        int[][] ranges = {{5, 30}, {10, 10}, {5, 5}, {15, 15}};
+        assertEquals(1, CameraFrameRatePolicy.selectIndex(10, ranges));
+        assertEquals(2, CameraFrameRatePolicy.selectIndex(5, ranges));
+        assertEquals(3, CameraFrameRatePolicy.selectIndex(15, ranges));
+    }
     @Test public void idlePrefersRealFiveFpsAndActiveRestoresFifteen() {
         int[][] ranges = {{5, 30}, {15, 30}, {5, 5}, {15, 15}};
         assertEquals(2, CameraFrameRatePolicy.selectIndex(5, ranges));

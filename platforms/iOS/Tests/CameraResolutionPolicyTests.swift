@@ -38,7 +38,7 @@ struct CameraResolutionPolicyTests {
         }
         func searchSelect(_ formats: [CameraFormatOption]) -> Int? {
             CameraResolutionPolicy.selectIndex(
-                from: formats, tier: .low, sdkLimit: limit, preferredFrameRates: [15, 5]
+                from: formats, tier: .low, sdkLimit: limit, preferredFrameRates: [15, 10]
             )
         }
         let fixed30 = captureOption(1280, 720, minimum: 30, maximum: 30)
@@ -48,6 +48,7 @@ struct CameraResolutionPolicyTests {
             })?.framesPerSecond
         }
         precondition(rate(5, [(5, 30)]) == 5)
+        precondition(rate(10, [(5, 30), (10, 10), (15, 15)]) == 10)
         precondition(rate(15, [(5, 30)]) == 15)
         precondition(rate(5, [(30, 30), (10, 10), (15, 15)]) == 10)
         precondition(rate(15, [(30, 30), (10, 10), (15, 15)]) == 15)

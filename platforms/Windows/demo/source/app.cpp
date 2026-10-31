@@ -1,6 +1,7 @@
 #include "app.h"
 #include "win_util.h"
 #include "enrollment_draft.h"
+#include "search_power.h"
 #include <algorithm>
 #include <fstream>
 
@@ -65,6 +66,7 @@ void App::run() {
         const auto reference_path = demoDataDirectory() / L"verification.hf1";
         std::string reference;
         EnrollmentDraft enrollment;
+        std::string enrollment_notice;
         std::shared_ptr<const Image> search_source;
         struct SuspendedPhoto {
             std::shared_ptr<const Image> source, photo;
@@ -79,6 +81,7 @@ void App::run() {
         auto refresh = [&] {
             state.total = gallery.count();
             state.filtered = gallery.count(state.settings.filter_group, state.settings.filter_tag);
+            state.search_population = gallery.count(state.settings.search.group, state.settings.search.tag);
             if (state.offset >= state.filtered) state.offset = 0;
             state.people = gallery.list(state.offset, 100, state.settings.filter_group, state.settings.filter_tag);
         };
@@ -89,6 +92,7 @@ void App::run() {
             return *sdk;
         };
         auto apply = [&](const Settings& settings) {
+            const bool keep_paused = state.settings.page == Page::Search && settings.page == Page::Search && state.paused;
             const bool returning_to_photo = state.settings.page == Page::Gallery && settings.page == Page::ImageSearch;
             if (state.settings.page == Page::ImageSearch && settings.page == Page::Gallery)
                 suspended_photo = SuspendedPhoto{search_source, state.search_photo, state.image_search, state.search_file, state.search_generation};
@@ -99,7 +103,7 @@ void App::run() {
                 if (usesCamera(settings.page) && settings.page != Page::CameraSettings)
                     sdk->configureDetection(settings.detection_max, settings.detailed && settings.page == Page::Detection);
                 sdk->useSearch(settings.page == Page::Search);
-                sdk->pauseSearch(false);
+                sdk->pauseSearch(keep_paused);
             }
             if (!usesCamera(settings.page) || state.settings.page != settings.page) camera.reset();
             if (state.settings.page != settings.page) {
@@ -109,7 +113,7 @@ void App::run() {
                 state.image_search.reset(); state.search_photo.reset(); search_source.reset(); state.search_file.clear();
                 state.capture_fps = state.analysis_fps = state.inference_ms = 0;
             }
-            state.settings = settings; state.flow_active = false; state.paused = false;
+            state.settings = settings; state.flow_active = false; state.paused = keep_paused;
             if (returning_to_photo && suspended_photo) {
                 search_source = std::move(suspended_photo->source); state.search_photo = std::move(suspended_photo->photo);
                 state.image_search = std::move(suspended_photo->result); state.search_file = std::move(suspended_photo->file);
@@ -128,6 +132,8 @@ void App::run() {
         uint64_t flow_generation = 0;
         auto last_frame = std::chrono::steady_clock::now(), metric_time = last_frame;
         auto notice_until = last_frame;
+        auto next_search_preview = last_frame, next_search_analysis = last_frame;
+        SearchPreviewPower search_power;
         std::string notice;
         uint64_t analyzed = 0, previous_captured = 0;
         while (!stopping_) {
@@ -141,20 +147,31 @@ void App::run() {
                 sdk->cancelEnrollment(); state.flow_active = false; state.update.message = u8"已取消当前流程"; publish(state);
             }
             if (command && !stopping_) {
+                search_power.reset();
+                next_search_preview = next_search_analysis = std::chrono::steady_clock::now();
                 state.busy = true; state.importing = command->action == Action::ImportJson || command->action == Action::ImportImages;
                 state.error = false; publish(state);
                 try {
                     const auto& task = *command;
                     auto current = [&] { return !stopping_ && task.generation == generation; };
-                    switch (task.action) {
+                    // A cancelled queued command must not reopen a camera, stage a face or write data.
+                    if (current()) switch (task.action) {
                         case Action::Apply:
                             apply(task.settings); state.update = {};
-                            state.update.message = state.settings.page == Page::ImageSearch && state.image_search ? state.image_search->summary : u8"参数已应用";
+                            state.update.message = state.settings.page == Page::ImageSearch && state.image_search ? state.image_search->summary
+                                : state.paused ? u8"参数已应用，搜索仍暂停；点击恢复搜索后生效" : u8"参数已应用";
+                            if (state.settings.page == Page::Search && !enrollment_notice.empty()) {
+                                state.update.message = std::move(enrollment_notice); enrollment_notice.clear();
+                            }
                             break;
                         case Action::OpenCamera: {
                             if (task.settings.page != Page::CameraSettings) ensure();
                             apply(task.settings);
                             if (!current()) break;
+                            if (task.settings.page == Page::Enrollment) {
+                                enrollment.clear(); state.pending_enrollment = false; state.captured.reset();
+                                state.image_a.reset(); state.preview.reset();
+                            }
                             camera.reset(); state.camera_open = false;
                             camera = std::make_unique<Camera>(task.settings.camera_index, task.settings.camera_link, task.settings.width, task.settings.height);
                             state.camera_open = true; previous_captured = analyzed = 0;
@@ -163,6 +180,7 @@ void App::run() {
                         }
                         case Action::CloseCamera:
                             if (sdk) sdk->cancelEnrollment(); camera.reset(); state.camera_open = state.flow_active = false;
+                            state.preview.reset(); state.capture_fps = state.analysis_fps = state.inference_ms = 0;
                             state.update = {}; state.update.message = u8"摄像头已关闭，数据已保留"; break;
                         case Action::StartFlow: {
                             if (!camera) throw std::runtime_error("Open the camera before starting a flow");
@@ -176,17 +194,20 @@ void App::run() {
                         }
                         case Action::Cancel:
                             if (sdk) sdk->cancelEnrollment(); state.flow_active = false;
+                            if (state.settings.page == Page::Search && sdk) { sdk->pauseSearch(true); state.paused = true; }
                             enrollment.clear(); state.pending_enrollment = false;
                             if (state.settings.page == Page::Enrollment) state.captured.reset();
                             if (state.settings.page == Page::ImageSearch) state.image_search.reset();
-                            state.update.message = u8"已取消"; break;
+                            state.update = {}; state.update.message = state.paused ? u8"搜索已停止，点击恢复搜索重新识别" : u8"已取消；未确认的人脸不会写入人脸库"; break;
                         case Action::Pause:
-                            if (!sdk) throw std::runtime_error("Open the camera before pausing search");
+                            if (!sdk || !camera || state.settings.page != Page::Search) throw std::runtime_error(u8"请先在搜索页打开摄像头");
                             sdk->pauseSearch(!state.paused); state.paused = !state.paused;
+                            state.update = {}; state.analysis_fps = state.inference_ms = 0;
                             state.update.message = state.paused ? u8"搜索已暂停，缓存已释放" : u8"搜索已恢复"; break;
                         case Action::LoadA:
                         case Action::LoadB: {
                             const auto image = std::make_shared<Image>(readImage(task.files.at(0)));
+                            if (!current()) break;
                             state.update = {}; state.aligned_a.reset(); state.aligned_b.reset();
                             if (state.settings.page == Page::Enrollment) { enrollment.clear(); state.pending_enrollment = false; state.captured.reset(); }
                             if (task.action == Action::LoadA) { state.image_a = image; state.aligned_a.reset(); }
@@ -249,7 +270,7 @@ void App::run() {
                             if (state.settings.page != Page::Enrollment) throw std::runtime_error("Open the independent enrollment page first");
                             if (!state.image_a) throw std::runtime_error("Choose an image before enrollment");
                             enrollment.clear(); state.pending_enrollment = false; state.captured.reset();
-                            const auto captured = ensure().captureWithPreview(*state.image_a);
+                            const auto captured = ensure().captureEnrollmentImage(*state.image_a);
                             if (!current()) break;
                             enrollment.stage(captured); state.pending_enrollment = true;
                             state.captured = std::make_shared<Image>(captured.preview);
@@ -259,7 +280,10 @@ void App::run() {
                             if (state.settings.page != Page::Enrollment || !current()) break;
                             enrollment.save(gallery, task.settings.id, task.settings.group, task.settings.tag);
                             state.pending_enrollment = false; refresh();
-                            state.update = {}; state.update.message = u8"确认录入成功: " + task.settings.id; break;
+                            state.captured.reset();
+                            enrollment_notice = u8"已录入人员 " + task.settings.id + u8"；请打开摄像头开始搜索";
+                            enrollment_notice += u8"；搜索范围须包含该人员的分组和标签";
+                            state.update = {}; state.update.message = enrollment_notice; break;
                         case Action::PreviousPage: if (state.offset >= 100) state.offset -= 100; refresh(); break;
                         case Action::NextPage: if (state.offset + 100 < state.filtered) state.offset += 100; refresh(); break;
                         case Action::RefreshGallery: state.settings = task.settings; state.offset = 0; refresh(); state.update.message = u8"人脸库已刷新，每页 100 条"; break;
@@ -306,7 +330,15 @@ void App::run() {
                 }
                 state.busy = state.importing = false; state.completed_command = command->sequence; publish(state);
             }
-            if (!camera || stopping_) continue;
+            if (!camera || stopping_) { search_power.reset(); continue; }
+            if (state.settings.page == Page::Search && search_power.idle()) {
+                const auto deadline = std::min(next_search_preview, next_search_analysis);
+                std::unique_lock<std::mutex> lock(mutex_);
+                if (std::chrono::steady_clock::now() < deadline) {
+                    changed_.wait_until(lock, deadline, [&] { return stopping_ || !commands_.empty(); });
+                    if (stopping_ || !commands_.empty()) continue;
+                }
+            }
             try {
                 CameraFrame frame;
                 if (!camera->next(frame, std::chrono::milliseconds(100))) {
@@ -314,7 +346,9 @@ void App::run() {
                     continue;
                 }
                 last_frame = std::chrono::steady_clock::now(); frame.rotation_degrees = state.settings.rotation;
-                if (state.settings.page == Page::CameraSettings || state.pending_enrollment) {
+                if (state.settings.page == Page::CameraSettings || state.pending_enrollment
+                    || (state.settings.page == Page::Enrollment && !state.flow_active) || state.paused) {
+                    search_power.reset();
                     state.preview = std::make_shared<Image>(frame.displayBgra(state.settings.mirror));
                     state.update.faces.clear(); state.update.details.clear();
                     state.analysis_fps = state.inference_ms = 0;
@@ -326,10 +360,25 @@ void App::run() {
                     publish(state); continue;
                 }
                 const auto begin = std::chrono::steady_clock::now();
+                const bool idle_search = state.settings.page == Page::Search && search_power.idle();
+                const bool preview_due = !idle_search || begin >= next_search_preview;
+                const bool analysis_due = !idle_search || begin >= next_search_analysis;
+                if (!preview_due && !analysis_due) continue;
+                if (preview_due) {
+                    state.preview = std::make_shared<Image>(frame.displayBgra(state.settings.mirror));
+                    next_search_preview = begin + std::chrono::milliseconds(SearchPreviewPower::preview_interval_ms);
+                }
+                if (!analysis_due) { publish(state); continue; }
+                next_search_analysis = begin + std::chrono::milliseconds(SearchPreviewPower::analysis_interval_ms);
                 const auto frame_generation = generation.load();
                 auto update = sdk->process(frame, [&] { return !stopping_ && flow_generation == generation; });
                 if (stopping_ || frame_generation != generation) continue;
-                if (update.skipped) continue;
+                if (update.skipped) { if (preview_due) publish(state); continue; }
+                if (state.settings.page == Page::Search) {
+                    const auto detected_at = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now().time_since_epoch()).count();
+                    search_power.observe(detected_at, !update.faces.empty());
+                } else search_power.reset();
                 state.inference_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - begin).count();
                 state.flow_active = sdk->enrolling(); ++analyzed;
                 if (update.result) {
@@ -345,9 +394,9 @@ void App::run() {
                     notice = update.message; notice_until = last_frame + std::chrono::seconds(6);
                     update.result.reset(); // UI needs the outcome message/preview, never the HF1 payload. / UI 只需要结果提示与预览，不需要 HF1 内容。
                 }
-                if (!state.flow_active && last_frame < notice_until) update.message = notice;
+                if (!state.flow_active && state.settings.page != Page::Search && last_frame < notice_until) update.message = notice;
                 else state.error = false;
-                state.preview = std::make_shared<Image>(frame.displayBgra(state.settings.mirror)); state.update = std::move(update);
+                state.update = std::move(update);
                 const auto seconds = std::chrono::duration<double>(last_frame - metric_time).count();
                 if (seconds >= 1) {
                     const auto captured = camera->capturedFrames();
@@ -356,6 +405,7 @@ void App::run() {
                 }
                 publish(state);
             } catch (const std::exception& error) {
+                search_power.reset();
                 writeLog(error.what());
                 if (sdk) { try { sdk->cancelEnrollment(); } catch (...) {} }
                 camera.reset(); state.camera_open = state.flow_active = false;

@@ -27,11 +27,12 @@ export class CameraPreviewController {
   private readonly callbacks: CameraPreviewCallbacks;
   private readonly settings: CameraDemoSettings;
   private readonly limitDisplayFrameRate: boolean;
-  // The constructor rate is the active ceiling; targetSessionFrameRate may drop to 5 FPS while search is
+  // The constructor rate is the active ceiling; preview may drop to 10 FPS while search is
   // idle.
-  // 构造值是活跃上限；targetSessionFrameRate 可在搜索待机时降至 5 FPS。
+  // 构造值是活跃上限；搜索待机预览可降至 10 FPS，分析独立降至 5 FPS。
   private readonly sessionFrameRate: number;
   private targetSessionFrameRate: number;
+  private targetAnalysisFrameRate: number;
   private analysisOutputRateLimited: boolean = false;
   private applicationFrameInterval: number = 0;
   private cameraDevice: camera.CameraDevice | undefined = undefined;
@@ -93,6 +94,7 @@ export class CameraPreviewController {
     this.settings = settings;
     this.sessionFrameRate = sessionFrameRate;
     this.targetSessionFrameRate = sessionFrameRate;
+    this.targetAnalysisFrameRate = sessionFrameRate;
     this.limitDisplayFrameRate = limitDisplayFrameRate;
   }
 
@@ -237,7 +239,7 @@ export class CameraPreviewController {
         this.applyOutputFrameRate(displayOutput, this.targetSessionFrameRate);
       }
       this.analysisOutputRateLimited = this.applyOutputFrameRate(
-        analysisOutput, this.targetSessionFrameRate);
+        analysisOutput, this.targetAnalysisFrameRate);
       // If CameraKit rejects the target rate, retain app throttling at that rate before copying pixels.
       // CameraKit 拒绝目标帧率时，在像素复制前保留同频率的应用侧兜底门禁。
       this.updateApplicationFrameInterval();
@@ -292,17 +294,21 @@ export class CameraPreviewController {
    * 更新 SDK 输入目标并请求分析输出帧率；仅启用预览限频时同时请求预览帧率，不重建会话。
    * 设备拒绝动态设置时，分析流仍在像素复制前按目标频率降帧。
    */
-  setSessionFrameRate(targetFps: number): void {
+  setSessionFrameRate(targetFps: number, analysisFps: number = targetFps): void {
     if (!Number.isInteger(targetFps) || targetFps <= 0 || targetFps > this.sessionFrameRate) {
       throw new Error('Target frame rate must be a positive integer within the session frame rate');
     }
-    if (this.targetSessionFrameRate === targetFps) return;
+    if (!Number.isInteger(analysisFps) || analysisFps <= 0 || analysisFps > targetFps) {
+      throw new Error('Analysis frame rate must be a positive integer within the preview frame rate');
+    }
+    if (this.targetSessionFrameRate === targetFps && this.targetAnalysisFrameRate === analysisFps) return;
     this.targetSessionFrameRate = targetFps;
+    this.targetAnalysisFrameRate = analysisFps;
     if (this.limitDisplayFrameRate && this.displayOutput !== undefined) {
       this.applyOutputFrameRate(this.displayOutput, targetFps);
     }
     this.analysisOutputRateLimited = this.analysisOutput !== undefined &&
-      this.applyOutputFrameRate(this.analysisOutput, targetFps);
+      this.applyOutputFrameRate(this.analysisOutput, analysisFps);
     this.updateApplicationFrameInterval();
     this.lastAnalysisFrameAt = -1;
   }
@@ -330,8 +336,11 @@ export class CameraPreviewController {
   }
 
   private updateApplicationFrameInterval(): void {
-    this.applicationFrameInterval = this.analysisOutputRateLimited ?
-      0 : 1000 / this.targetSessionFrameRate - 2;
+    // Separate preview/analysis targets retain the SDK gate even when the driver accepts both requests.
+    // 预览与分析分开限频时，即使驱动接受请求，也保留 SDK 输入门禁，防止双输出共享帧率。
+    this.applicationFrameInterval = this.analysisOutputRateLimited &&
+      this.targetAnalysisFrameRate === this.targetSessionFrameRate ?
+      0 : 1000 / this.targetAnalysisFrameRate - 2;
   }
 
   async stop(): Promise<void> {

@@ -42,6 +42,7 @@ public:
     const std::string& description() const { return description_; }
     bool ready() const { return streaming_; }
     bool waitForFrame(int timeout_ms);
+    bool requestFrameRate(int fps); // Best effort, without restarting the stream.
 private:
     enum class Rotation { none, counter_clockwise, clockwise };
     struct Buffer { void* data; size_t size; int dma_fd = -1; };

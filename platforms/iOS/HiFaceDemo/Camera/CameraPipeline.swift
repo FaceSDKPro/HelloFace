@@ -24,8 +24,8 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     private let detectionConfiguration: FaceDetectionConfiguration
     private let settings: DemoCameraSettings
     private let deliversDetectionResults: Bool
-    // The active rate is also this screen's allowed ceiling; search additionally permits 5 FPS.
-    // 活跃帧率也是该页面允许设置的上限；搜索页另允许降到 5 FPS。
+    // The active rate is this screen's ceiling; search independently lowers preview and SDK analysis.
+    // 活跃帧率是该页面上限；搜索页分别降低预览和 SDK 分析频率。
     private let sessionFramesPerSecond: Int32
     private let minimumSessionFramesPerSecond: Int32
     private let sessionQueue = DispatchQueue(
@@ -56,6 +56,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     // sessionQueue.
     // 受 controlLock 保护；先更新应用侧门禁，再由 sessionQueue 串行修改 AVCaptureDevice。
     private var targetSessionFramesPerSecond: Int32
+    private var targetAnalysisFramesPerSecond: Int32
     private var applicationFrameIntervalSeconds: Double = 0
     private var lastAcceptedFrameSeconds: Double?
 
@@ -97,6 +98,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         self.sessionFramesPerSecond = sessionFramesPerSecond
         self.minimumSessionFramesPerSecond = minimumFramesPerSecond
         targetSessionFramesPerSecond = sessionFramesPerSecond
+        targetAnalysisFramesPerSecond = sessionFramesPerSecond
         super.init()
         NotificationCenter.default.addObserver(
             self,
@@ -230,13 +232,17 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     /// Update analysis throttling immediately and request device rate asynchronously; actual preview rate
     /// depends on hardware.
     /// 立即更新分析门禁，异步请求设备帧率；实际预览帧率取决于硬件支持。
-    func setSessionFrameRate(_ framesPerSecond: Int32) {
+    func setSessionFrameRate(_ framesPerSecond: Int32, analysisFramesPerSecond: Int32? = nil) {
         precondition(framesPerSecond >= minimumSessionFramesPerSecond
             && framesPerSecond <= sessionFramesPerSecond)
+        let analysisRate = analysisFramesPerSecond ?? framesPerSecond
+        precondition(analysisRate > 0 && analysisRate <= framesPerSecond)
         let changed = withControlLock { () -> Bool in
-            guard targetSessionFramesPerSecond != framesPerSecond else { return false }
+            guard targetSessionFramesPerSecond != framesPerSecond
+                || targetAnalysisFramesPerSecond != analysisRate else { return false }
             targetSessionFramesPerSecond = framesPerSecond
-            applicationFrameIntervalSeconds = Self.frameInterval(for: framesPerSecond)
+            targetAnalysisFramesPerSecond = analysisRate
+            applicationFrameIntervalSeconds = Self.frameInterval(for: analysisRate)
             lastAcceptedFrameSeconds = nil
             return true
         }
@@ -382,14 +388,14 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         // iOS 在设置 activeFormat 后自动进入 inputPriority，避免质量 preset 再覆盖所选格式。
         device.activeFormat = formats[index]
         let targetFramesPerSecond = withControlLock { targetSessionFramesPerSecond }
-        // Lower hardware capture where possible even without 5 FPS support; never assign durations outside the
+        // Lower hardware capture where possible even without exact target support; never assign durations outside the
         // format's advertised range.
-        // 不支持 5 FPS 时也尽量降低硬件采集；不能写入格式未声明的时长。
+        // 不支持精确目标时也尽量降低硬件采集；不能写入格式未声明的时长。
         if let duration = Self.frameDuration(for: device.activeFormat, target: targetFramesPerSecond) {
             Self.setFrameDuration(duration, on: device)
         }
         withControlLock {
-            applicationFrameIntervalSeconds = Self.frameInterval(for: targetSessionFramesPerSecond)
+            applicationFrameIntervalSeconds = Self.frameInterval(for: targetAnalysisFramesPerSecond)
             lastAcceptedFrameSeconds = nil
         }
         let displayMultiplier: CGFloat

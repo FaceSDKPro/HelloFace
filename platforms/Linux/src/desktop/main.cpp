@@ -1,10 +1,14 @@
 #include "window.h"
 #include "navigation.h"
 #include "camera.h"
+#include "search_power.h"
 #include <iostream>
 #include <cstdlib>
+#include <csignal>
 using namespace hiface_linux_demo;
 namespace {
+volatile std::sig_atomic_t interrupted = 0;
+void interrupt(int) { interrupted = 1; }
 void logMessage(HiFaceLogLevel level, const char* tag, const char* message, void*) {
     if (level >= HIFACE_LOG_WARNING) std::fprintf(stderr, "[%s] %s\n", tag, message);
 }
@@ -55,6 +59,8 @@ int main(int argc, char** argv) {
             return 0;
         }
         DesktopWindow window;
+        std::signal(SIGTERM, interrupt);
+        std::signal(SIGINT, interrupt);
         hiface_set_log_callback_v1(logMessage, nullptr);
         const bool smoke = argc == 4 && std::string(argv[3]) == "--smoke-test";
         const char* assets_env = std::getenv("HIFACE_DEMO_ASSETS_DIR");
@@ -63,21 +69,29 @@ int main(int argc, char** argv) {
         if (error) executable = std::filesystem::absolute(argv[0]);
         const auto assets = assets_env ? std::string(assets_env) : (executable.parent_path().parent_path() / "assets").string();
         DesktopApp app(argv[1], argv[2], argc == 4 && !smoke ? argv[3] : "/dev/video0", smoke, assets);
+        const char* start_search = std::getenv("HIFACE_START_SEARCH");
+        if (!smoke && start_search && std::string(start_search) == "1")
+            app.post({"page", {"camera"}, {}});
         unsigned smoke_frames = 0;
         const bool performance_log = std::getenv("HIFACE_PERF_LOG") != nullptr;
         const auto start = monotonicMilliseconds();
-        int64_t next_preview = start, last_performance_log = start, paint_ms = 0;
+        int64_t next_preview = start, next_idle_paint = start, last_performance_log = start, paint_ms = 0;
         unsigned paints = 0;
-        while (window.open()) {
+        while (window.open() && !interrupted) {
             const auto state = app.snapshot();
-            for (auto command : window.events(*state)) app.post(std::move(command));
+            auto commands = window.events(*state);
+            const bool user_command = !commands.empty();
+            for (auto& command : commands) app.post(std::move(command));
             const auto paint_start = performance_log ? monotonicMilliseconds() : 0;
-            window.paint(*state);
-            if (performance_log) {
+            const auto paint_now = monotonicMilliseconds();
+            const bool painted = !state->search_idle || user_command || paint_now >= next_idle_paint;
+            if (painted) { window.paint(*state); next_idle_paint = paint_now + kSearchIdlePreviewIntervalMs; }
+            if (performance_log && painted) {
                 paint_ms += monotonicMilliseconds() - paint_start; ++paints;
                 if (monotonicMilliseconds() - last_performance_log >= 5000) {
-                    std::fprintf(stderr, "[Performance] preview=%.1f recognition=%.1f analysis_ms=%.1f paint_ms=%.1f faces=%zu\n",
-                        state->fps, state->analysis_fps, state->milliseconds, double(paint_ms) / paints, state->boxes.size());
+                    std::fprintf(stderr, "[Performance] preview=%.1f recognition=%.1f analysis_ms=%.1f paint_ms=%.1f faces=%zu search_idle=%d ready=%d connected=%d failed=%d status=%s\n",
+                        state->fps, state->analysis_fps, state->milliseconds, double(paint_ms) / paints, state->liveBoxes().size(), state->search_idle,
+                        state->ready, state->connected, state->failed, state->status.c_str());
                     last_performance_log = monotonicMilliseconds(); paint_ms = 0; paints = 0;
                 }
             }
@@ -89,6 +103,9 @@ int main(int argc, char** argv) {
                 }
             }
             next_preview += 40; // 25 FPS UI/preview clock, independent from recognition. / UI 与预览时钟为 25 FPS，独立于识别。
+            // Wake at the 100 ms idle paint deadline too, avoiding 25 Hz polling rounding it to 120 ms.
+            // 同时按待机 100 ms 绘制截止时间唤醒，避免 25 Hz 轮询将它量化成 120 ms。
+            if (state->search_idle) next_preview = std::min(next_preview, next_idle_paint);
             const auto now = monotonicMilliseconds();
             if (next_preview <= now) next_preview = now;
             else std::this_thread::sleep_for(std::chrono::milliseconds(next_preview - now));

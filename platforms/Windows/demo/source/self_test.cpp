@@ -1,6 +1,7 @@
 #include "demo_service.h"
 #include "data_exchange.h"
 #include "enrollment_draft.h"
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <iostream>
@@ -19,6 +20,34 @@ struct TemporaryDirectory {
 };
 }
 void runSelfTest() {
+    {
+        Update update; update.searching = true;
+        HiFaceSearchCameraFaceV1 face{};
+        face.has_similarity = face.threshold_passed = 1; face.similarity = .9f;
+        std::copy_n("person-001", 11, face.face_id);
+        update.faces = {face};
+        require(!searchFaceAccepted(update, face), "A candidate must not be presented as a confirmed identity");
+        update.matched = true; update.end_reason = HIFACE_SEARCH_END_MATCH_FOUND;
+        require(searchFaceAccepted(update, face) && searchFaceText(update, face).find("person-001") != std::string::npos,
+            "A completed match must identify the accepted person");
+        update.faces.push_back(face); update.faces.back().threshold_passed = 0;
+        require(!searchFaceAccepted(update, update.faces.back()) && searchStatusText(update).find("1 / 2") != std::string::npos,
+            "M:N must report per-face acceptance, not mark every detected face matched");
+        update.end_reason = HIFACE_SEARCH_END_SPOOF_DETECTED;
+        require(!searchFaceAccepted(update, face) && searchFaceText(update, face).find(u8"不确认身份") != std::string::npos,
+            "Liveness rejection must suppress identity confirmation despite a high similarity");
+        update = {}; update.searching = true; update.search_progress = HIFACE_SEARCH_STAGE_EMPTY_GALLERY;
+        require(searchStatusText(update).find(u8"范围") != std::string::npos, "Empty scoped gallery must explain the active range");
+        update.search_progress = HIFACE_SEARCH_STAGE_FACE_TOO_SMALL;
+        require(searchStatusText(update).find(u8"靠近") != std::string::npos, "Small-face progress must give actionable guidance");
+        update.paused = true;
+        require(searchStatusText(update).find(u8"暂停") != std::string::npos, "Paused search must not claim continued recognition");
+        EnrollmentDraft::requireSingleFace(1);
+        for (size_t count : {size_t{0}, size_t{2}, size_t{10}}) {
+            bool rejected = false; try { EnrollmentDraft::requireSingleFace(count); } catch (const std::exception&) { rejected = true; }
+            require(rejected, "Photo enrollment must reject zero or multiple faces");
+        }
+    }
     TemporaryDirectory temporary;
     const auto database = temporary.path / std::filesystem::u8path("人脸库.db");
     Feature feature{};
@@ -38,6 +67,10 @@ void runSelfTest() {
         try { sdk.capture(blank); }
         catch (const SdkError& error) { no_face = error.status == HIFACE_STATUS_IMAGE_NO_FACE; }
         require(no_face, "Blank capture must report IMAGE_NO_FACE");
+        no_face = false;
+        try { sdk.captureEnrollmentImage(blank); }
+        catch (const SdkError& error) { no_face = error.status == HIFACE_STATUS_IMAGE_NO_FACE; }
+        require(no_face && sdk.count() == 0, "Photo enrollment must reject no-face images without creating a person");
         std::vector<uint8_t> pixels(112 * 112 * 3);
         uint32_t state = 17;
         for (auto& value : pixels) { state = state * 1664525u + 1013904223u; value = state >> 24; }
@@ -155,16 +188,24 @@ void runSelfTest() {
         require(draft.pending() && gallery.count() == 0, "A capture must wait for explicit confirmation");
         rejected = false; try { draft.save(gallery, " ", "", ""); } catch (const std::exception&) { rejected = true; }
         require(rejected && draft.pending() && gallery.count() == 0, "Invalid ID must retain the draft without writing");
+        for (const auto& id : {std::string(1025, 'x'), std::string("bad\0id", 6)}) {
+            rejected = false; try { draft.save(gallery, id, "", ""); } catch (const std::exception&) { rejected = true; }
+            require(rejected && draft.pending() && gallery.count() == 0, "Invalid metadata must preserve the editable capture and not write");
+        }
         draft.save(gallery, "confirmed", "group", "tag");
         require(!draft.pending() && gallery.count() == 1 && gallery.get("confirmed").group == "group", "Confirmation must save exactly once");
         draft.stage(result); rejected = false;
         try { draft.save(gallery, "confirmed", "other", ""); } catch (const SdkError& error) { rejected = error.status == HIFACE_STATUS_ALREADY_EXISTS; }
         require(rejected && draft.pending() && gallery.get("confirmed").group == "group", "Duplicate ID must preserve both record and editable draft");
-        draft.clear(); require(!draft.pending() && gallery.count() == 1, "Cancel or leave must discard the unsaved capture");
+        draft.save(gallery, u8"修正后的人员", u8"中文分组", u8"标签");
+        require(!draft.pending() && gallery.count() == 2 && gallery.get(u8"修正后的人员").tag == u8"标签",
+            "A duplicate failure must allow saving the same draft with a corrected Unicode ID");
+        draft.stage(result);
+        draft.clear(); require(!draft.pending() && gallery.count() == 2, "Cancel or leave must discard the unsaved capture");
         rejected = false; try { draft.save(gallery, "never-captured", "", ""); } catch (const std::exception&) { rejected = true; }
-        require(rejected && gallery.count() == 1, "An empty draft must never be committed");
+        require(rejected && gallery.count() == 2, "An empty draft must never be committed");
         CaptureResult photo; photo.text = result.feature; photo.preview = result.preview;
-        draft.stage(photo); require(draft.pending() && gallery.count() == 1, "Photo enrollment must also wait for confirmation");
+        draft.stage(photo); require(draft.pending() && gallery.count() == 2, "Photo enrollment must also wait for confirmation");
         draft.clear();
     }
     std::cout << "Self-test passed: explicit enrollment confirmation/cancel/duplicate protection, five real CPU models, RGBA/NV12, guided-capture cancellation, "

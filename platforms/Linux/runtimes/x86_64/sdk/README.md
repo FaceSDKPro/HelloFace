@@ -40,6 +40,7 @@ JPEG/PNG decoding and camera adapters are demonstrated in the separate Demo.
 ## API essentials
 
 - Set every `struct_size` and, where present, `api_version`. Check returned status and result-validity flags.
+- Release builds omit internal Debug/Info diagnostics. Warning/Error log callbacks and original status codes remain available.
 - Enable feature/landmark in the config. Configure runtime → create Session → `hiface_linux_load_builtin_models_v1` → process → destroy.
   The Linux initialization declaration is in `include/hiface/hiface_linux.h`.
   Calls are synchronous; serialize Session work and wait for in-flight calls before destruction. Input buffers remain valid until return.
@@ -59,5 +60,5 @@ IR-only FLIR: create a CPU session with feature/landmarks disabled, call
 pixels, row stride, an IR-coordinate face box (x/y + width/height, at least 10x10)
 and a device-calibrated real threshold. `real_score >= real_threshold` passes;
 check status before reading the result. Dimensions may be odd, up to 4096 per side.
-See `../../../examples/image-search/infrared_liveness.c` for a complete consumer. This does not capture
+See `examples/infrared_liveness.c` for a complete consumer. This does not capture
 IR cameras, detect a face, or change the RGB liveness/search flows. Validate actual IR hardware and attacks separately.

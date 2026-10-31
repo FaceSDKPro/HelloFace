@@ -1,4 +1,7 @@
 #include "demo_service.h"
+#include "enrollment_draft.h"
+#include <iomanip>
+#include <sstream>
 namespace hiface_demo {
 namespace {
 std::string actionName(HiFaceFlowActionV1 action) {
@@ -31,6 +34,40 @@ std::string outcomeText(HiFaceFlowOutcomeV1 outcome) {
     }
 }
 
+}
+bool searchFaceAccepted(const Update& update, const HiFaceSearchCameraFaceV1& face) {
+    return update.searching && update.matched && update.end_reason == HIFACE_SEARCH_END_MATCH_FOUND
+        && face.has_similarity && face.threshold_passed && face.face_id[0];
+}
+std::string searchFaceText(const Update& update, const HiFaceSearchCameraFaceV1& face) {
+    std::ostringstream text;
+    if (update.end_reason == HIFACE_SEARCH_END_SPOOF_DETECTED) text << u8"活体未通过 · 不确认身份";
+    else if (searchFaceAccepted(update, face)) text << u8"已识别 · " << face.face_id;
+    else if (face.has_similarity) text << u8"未确认身份 · " << (face.face_id[0] ? face.face_id : u8"无匹配人员");
+    else text << u8"等待有效人脸 / 搜索结果";
+    if (face.has_similarity) text << std::fixed << std::setprecision(3) << u8" · 相似度 " << face.similarity;
+    return text.str();
+}
+std::string searchStatusText(const Update& update) {
+    if (update.paused) return u8"搜索已暂停，恢复后重新识别";
+    if (update.search_progress == HIFACE_SEARCH_STAGE_EMPTY_GALLERY) return u8"当前搜索范围没有人员，请先录入或检查分组、标签";
+    if (update.end_reason == HIFACE_SEARCH_END_SPOOF_DETECTED) return u8"活体未通过，本轮不确认身份";
+    if (update.matched) {
+        size_t matched = 0;
+        for (const auto& face : update.faces) if (searchFaceAccepted(update, face)) ++matched;
+        return u8"已识别 " + std::to_string(matched) + u8" / " + std::to_string(update.faces.size()) + u8" 张人脸";
+    }
+    if (update.search_progress == HIFACE_SEARCH_STAGE_SUCCESS_INTERVAL) return u8"成功间隔中，稍后开始下一轮识别";
+    if (update.search_progress == HIFACE_SEARCH_STAGE_FACE_TOO_SMALL) return u8"人脸太小，请靠近摄像头";
+    if (update.end_reason == HIFACE_SEARCH_END_TIMEOUT) return u8"本轮未找到匹配人员，继续搜索";
+    return update.faces.empty() ? u8"等待人脸，请正对摄像头" : u8"正在搜索，尚未确认身份";
+}
+CaptureResult DemoService::captureEnrollmentImage(const Image& image) {
+    auto faces = client_.captureFaces(image, 2);
+    EnrollmentDraft::requireSingleFace(faces.size());
+    check(faces.front().status, u8"图片录入采集失败，请选择清晰、足够大的正脸照片");
+    if (!faces.front().capture) throw std::runtime_error(u8"未取得录入预览，请重新选择图片");
+    return std::move(*faces.front().capture);
 }
 DemoService::DemoService(const std::filesystem::path& database)
     : client_(database), database_(database) {}
@@ -69,13 +106,7 @@ Update DemoService::process(const CameraFrame& frame, const std::function<bool()
     else if (update.paused) update.message = u8"搜索已暂停";
     else if (!update.searching) update.message = u8"检测到 " + std::to_string(update.faces.size()) + u8" 张人脸";
     else {
-        update.message = update.faces.empty() ? u8"未检测到人脸" : u8"未匹配";
-        if (update.end_reason == HIFACE_SEARCH_END_SPOOF_DETECTED) update.message = u8"活体未通过";
-        else if (update.matched) {
-            update.message = u8"匹配成功";
-            for (const auto& face : update.faces) if (face.threshold_passed) update.message += " | " + std::string(face.face_id) + "=" + std::to_string(face.similarity);
-        } else if (update.search_progress == HIFACE_SEARCH_STAGE_EMPTY_GALLERY) update.message = u8"当前范围人脸库为空，请先录入或导入";
-        else if (update.end_reason == HIFACE_SEARCH_END_TIMEOUT) update.message = u8"本轮搜索超时，继续搜索";
+        update.message = searchStatusText(update);
         if (update.has_liveness) update.message += u8" | 活体=" + std::to_string(update.liveness_score);
     }
     return update;

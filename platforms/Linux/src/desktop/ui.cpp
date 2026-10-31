@@ -10,15 +10,6 @@ namespace {
 constexpr uint32_t background = 0xf5f5f7, surface = 0xffffff, ink = 0x242029, muted = 0x69636f, border = 0xe1e5eb;
 constexpr uint32_t accent = 0x077a63, tint = 0xe6f4ef, danger = 0xb33d37, dark = 0x172233;
 constexpr uint32_t technology_green = 0x00f5a0;
-std::string aboutTitle() {
-    const char* locale = nullptr;
-    for (const char* name : {"LC_ALL", "LC_MESSAGES", "LANG"}) {
-        locale = std::getenv(name);
-        if (locale && *locale) break;
-    }
-    const bool chinese = locale && std::string(locale).rfind("zh", 0) == 0;
-    return std::string(chinese ? "关于 HelloFace SDK " : "About HelloFace SDK ") + HIFACE_DEMO_SDK_VERSION;
-}
 const std::string& deviceInfo() {
     static const std::string value = [] {
         struct utsname system{};
@@ -210,7 +201,7 @@ void DemoUi::home(const ViewState& s, Rect b) {
         wrap(r.x + 14, r.y + 55, feature.description, muted, w - 28, h > 100 ? 3 : 2, Font::Small);
     }
     scene_.clip = old_clip;
-    button({28, b.h - 100, b.w - 198, 34}, aboutTitle(), "about", 0);
+    text(28, b.h - 78, "https://github.com/FaceSDKPro/", accent, b.w - 56, Font::Large);
     if (home_max_scroll_) text(28, b.h - 54, "Scroll or use Page Up / Page Down for more features", muted, b.w - 190, Font::Small);
     text(28, b.h - 28, notice_.empty() ? s.ready ? "SDK ready | Open a feature to begin" : s.status : notice_,
          s.failed ? danger : muted, b.w - 190, Font::Small);
@@ -328,9 +319,10 @@ void DemoUi::camera(const ViewState& s, Rect b) {
     text(b.x + 18, b.y + b.h - 137, "Running: " + std::string(modeName(s.mode)), technology_green, b.w - 36, Font::Large);
     wrap(b.x + 18, b.y + b.h - 108, friendly(s.status), 0xffffff, b.w - 36, 2, Font::Body);
     const int action_width = (b.w - 48) / 3;
-    button({b.x + 12, controls_y, action_width, 46}, selected_task_ == "S" && s.mode == 'P' ? "Resume" : selected_task_ == "S" && s.mode == 'S' ? "Pause" : "Try again",
-        selected_task_ == "S" && (s.mode == 'S' || s.mode == 'P') ? "pause" : "start-task", 4,
-        content_enabled_ && s.connected && (s.mode == 'D' || selected_task_ == "S") && !s.pending_enrollment && !s.flow_result_pending && (selected_task_ != "V" || !s.reference.empty()), Font::Large);
+    const bool retry_camera = selected_task_ == "S" && (!s.connected || s.camera_stalled);
+    button({b.x + 12, controls_y, action_width, 46}, retry_camera ? "Reconnect" : selected_task_ == "S" && s.mode == 'P' ? "Resume" : selected_task_ == "S" && s.mode == 'S' ? "Pause" : "Try again",
+        !retry_camera && selected_task_ == "S" && (s.mode == 'S' || s.mode == 'P') ? "pause" : "start-task", 4,
+        content_enabled_ && (s.connected || selected_task_ == "S") && (s.mode == 'D' || selected_task_ == "S") && !s.pending_enrollment && !s.flow_result_pending && (selected_task_ != "V" || !s.reference.empty()), Font::Large);
     button({b.x + 24 + action_width, controls_y, action_width, 46}, s.settings.mirror ? "Mirror on" : "Mirror off", "mirror",
         s.settings.mirror ? 2 : 4, content_enabled_, Font::Large);
     button({b.x + 36 + action_width * 2, controls_y, action_width, 46}, camera_menu_ ? "Close menu" : "Menu", "camera-menu", 4,
@@ -344,9 +336,9 @@ void DemoUi::camera(const ViewState& s, Rect b) {
     scene_.box({b.x + 12, menu_y, b.w - 24, menu_h}, 0x253342, 14);
     text(b.x + 32, menu_y + 32, "Camera options", 0xffffff, b.w - 64, Font::Title);
     const int x = b.x + 32, w = b.w - 64;
-    field({x, menu_y + 48, w - 224, 56}, "device", "Camera device", s.device, !s.busy);
+    field({x, menu_y + 48, w - 224, 56}, "device", "Camera device", s.device, !s.busy && s.fixed_camera_device.empty());
     button({x + w - 212, menu_y + 69, 96, 34}, "Connect", "connect", 1, content_enabled_);
-    button({x + w - 106, menu_y + 69, 106, 34}, "Next", "next", 0, content_enabled_);
+    button({x + w - 106, menu_y + 69, 106, 34}, "Next", "next", 0, content_enabled_ && s.fixed_camera_device.empty());
     text(x, menu_y + 126, s.camera, 0x9badbf, w, Font::Small);
     button({x, menu_y + 148, w, 34}, "Stop this workflow", "mode:X", 0, content_enabled_ && s.mode != 'D');
     if (page_ == "verification") {
@@ -491,7 +483,7 @@ void DemoUi::library(const ViewState& s, Rect b) {
         card({b.x+b.w-340,b.y,340,210});
         const int x=b.x+b.w-324;
         button({x,b.y+16,308,36},"Refresh","library-refresh",0,content_enabled_);
-        button({x,b.y+62,308,36},"Import sample features (10k)","import-demo",0,content_enabled_ && !s.demo_features.empty());
+        button({x,b.y+62,308,36},"Import synthetic features (10k)","import-demo",0,content_enabled_ && !s.demo_features.empty());
         button({x,b.y+108,308,36},"Import local image folder","library-import-images",0,content_enabled_);
         button({x,b.y+154,308,36},"Import / export HF1 files","library:transfer",0,content_enabled_);
         return;
@@ -510,7 +502,7 @@ void DemoUi::library(const ViewState& s, Rect b) {
         scene_.box({b.x + 20, py + 18, b.w - 40, 8}, 0xe9eef1, 4); if (fraction > 0) scene_.box({b.x + 20, py + 18, int((b.w - 40) * fraction), 8}, accent, 4);
         text(b.x + 20, py + 56, std::to_string(s.import_processed) + " / " + std::to_string(s.import_total) + " processed   |   Saved " + std::to_string(s.import_saved) + "   Skipped " + std::to_string(s.import_failed), muted, b.w - 40, Font::Small);
         button({b.x + 20, py + 76, 154, 34}, "Stop import", "cancel-import", 3, s.importing && !s.busy);
-        if (!s.demo_features.empty()) button({b.x + 190, py + 76, 210, 34}, "Import sample (10k)", "import-demo", 0, content_enabled_);
+        if (!s.demo_features.empty()) button({b.x + 190, py + 76, 210, 34}, "Synthetic sample (10k)", "import-demo", 0, content_enabled_);
         if (b.h > 408) wrap(b.x + 20, b.y + b.h - 42, "Imports add or replace matching IDs; stopping preserves completed batches. Export writes the complete library, even during an ID lookup.", muted, b.w - 40, 2, Font::Small);
         return;
     }
@@ -802,7 +794,6 @@ void DemoUi::handle(const std::string& action, const ViewState& state) {
         const auto id=action.substr(15);
         confirm({"delete",{id},{}},"Delete this face?","Face ID: "+id+". This entry will be removed from the library.");return;
     }
-    if (action == "about") { notice_ = "https://github.com/FaceSDKPro/"; return; }
     if (action == "camera-menu") { camera_menu_ = !camera_menu_; focused_.clear(); keyboard_focus_.clear(); return; }
     if (action == "back") { back(state); return; }
     if (action == "result-close") { dismissOverlay(); back(state); return; }
@@ -931,7 +922,7 @@ void DemoUi::handle(const std::string& action, const ViewState& state) {
     }
     else if (action == "delete") confirm({"delete", {values_["selected-id"]}, {}}, "Delete this face?", "Face ID: " + values_["selected-id"] + ". This entry will be removed from the library.");
     else if (action == "export") emit("export", {values_["exchange-path"]});
-    else if (action == "import-demo") { library_menu_ = false; confirm({"import", {state.demo_features, "features", ""}, {}}, "Import sample library?", "Import 10000 demo features. Matching face IDs will be replaced; completed batches remain if stopped."); }
+    else if (action == "import-demo") { library_menu_ = false; confirm({"import", {state.demo_features, "features", ""}, {}}, "Import synthetic test data?", "10000 synthetic demo features for import and performance testing, not enrolled real users. Matching IDs are replaced; completed batches remain if stopped."); }
     else if (action == "import-features" || action == "import-images") confirm({"import", {values_["exchange-path"], action == "import-images" ? "images" : "features", values_["query-group"]}, {}}, "Import into your library?", "Entries with matching IDs will be replaced. Stopping the import keeps completed batches.");
     else if (action == "settings-apply") {
         Command command{"settings", {}, settingsFields(state.settings)};

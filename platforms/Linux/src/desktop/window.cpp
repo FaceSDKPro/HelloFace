@@ -142,7 +142,10 @@ struct DesktopWindow::Impl {
         const char* requested = std::getenv("HIFACE_MOUSE_CURSOR");
         const std::string mode = requested ? requested : "auto";
         software_cursor = useSoftwareMouseCursor(mode, embedded_display);
-        const auto& bitmap = mouseCursorBitmap();
+        updateCursor();
+    }
+    void updateCursor() {
+        const auto& bitmap = mouseCursorBitmap(rotation);
         const std::array<uint8_t, MouseCursorBitmap::stride * MouseCursorBitmap::height> blank{};
         const auto& source_bits = software_cursor ? blank : bitmap.source;
         const auto& mask_bits = software_cursor ? blank : bitmap.mask;
@@ -158,13 +161,16 @@ struct DesktopWindow::Impl {
         XColor foreground{}, background{};
         foreground.red = foreground.green = foreground.blue = 65535;
         foreground.flags = background.flags = DoRed | DoGreen | DoBlue;
-        mouse_cursor = XCreatePixmapCursor_fn(display, source, mask, &foreground, &background, 0, 0);
+        const Cursor created = XCreatePixmapCursor_fn(display, source, mask, &foreground, &background,
+            bitmap.hotspot_x, bitmap.hotspot_y);
         XFreePixmap_fn(display, source); XFreePixmap_fn(display, mask);
-        require(mouse_cursor, "Cannot create mouse cursor");
+        require(created, "Cannot create mouse cursor");
         // A transparent native cursor prevents a duplicate arrow in software
         // mode, including kiosk X servers started with -nocursor.
         // 软件模式隐藏原生箭头，避免双光标；也兼容以 -nocursor 启动的嵌入式 X Server。
-        XDefineCursor_fn(display, window, mouse_cursor);
+        XDefineCursor_fn(display, window, created);
+        if (mouse_cursor) XFreeCursor_fn(display, mouse_cursor);
+        mouse_cursor = created;
     }
     void pointer(int x, int y, bool inside) {
         pointer_x = x; pointer_y = y;
@@ -199,6 +205,7 @@ struct DesktopWindow::Impl {
         if (!state.ready || rotation == state.settings.ui_rotation) return;
         if (state.settings.ui_rotation) ensureRotationRenderer();
         rotation = state.settings.ui_rotation;
+        updateCursor();
         updateLogicalSize();
         pointer(pointer_x, pointer_y, pointer_inside);
         ui.render(state, width, height);
@@ -381,11 +388,11 @@ struct DesktopWindow::Impl {
         else XRenderComposite_fn(display, kPictOpSrc, source_picture, 0, destination_picture,
             0, 0, 0, 0, 0, 0, physical_width, physical_height);
         if (software_cursor && pointer_inside) {
-            // Composite the cursor last in physical coordinates, so rotation
-            // never moves its hotspot away from the X11 mouse coordinates.
-            // 光标最后按物理坐标绘制，UI 旋转不改变鼠标热点；下一帧全景重绘会清除旧箭头。
+            // Rotate the artwork with the UI, then anchor its rotated tip to
+            // the physical pointer. Input coordinates themselves stay unchanged.
+            // 箭头随界面转向，旋转后的尖端仍锚定物理鼠标坐标；不重复旋转输入。
             Scene cursor; cursor.width = physical_width; cursor.height = physical_height;
-            cursor.clip = {0, 0, physical_width, physical_height}; cursor.mouseCursor(pointer_x, pointer_y);
+            cursor.clip = {0, 0, physical_width, physical_height}; cursor.mouseCursor(pointer_x, pointer_y, rotation);
             for (const auto& draw : cursor.draws) box(draw, window);
         }
         XFlush_fn(display);

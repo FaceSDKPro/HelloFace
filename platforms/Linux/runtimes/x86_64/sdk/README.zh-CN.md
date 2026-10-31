@@ -41,6 +41,7 @@ JPEG/PNG 解码和摄像头适配见独立 Demo。
 ## 接口要点
 
 - 填写每个结构体的 `struct_size` 和存在时的 `api_version`，检查返回状态及结果有效标记。
+- Release 构建不包含内部 Debug/Info 诊断，保留 Warning/Error 日志回调和原始状态码。
 - 配置启用 feature/landmark。配置运行时 → 创建 Session → `hiface_linux_load_builtin_models_v1` → 处理 → 销毁。
   Linux 初始化接口声明位于 `include/hiface/hiface_linux.h`。
   接口同步调用；同一 Session 串行使用，销毁前等待在途调用结束，输入缓冲保留到调用返回。
@@ -63,5 +64,5 @@ JPEG/PNG 解码和摄像头适配见独立 Demo。
 支持奇数尺寸，每边最大 4096；宿主提供该 IR 图像内的人脸框（左上角加宽高，至少 10×10）和
 目标摄像头标定的真人阈值。成功返回后，`real_score >= real_threshold` 才通过；失败不能放行。
 
-完整 C 消费示例为 `../../../examples/image-search/infrared_liveness.c`。SDK 不管理 IR 摄像头采集、IR 人脸检测或补光，
+完整 C 消费示例为 `examples/infrared_liveness.c`。SDK 不管理 IR 摄像头采集、IR 人脸检测或补光，
 此入口不改变 RGB 相机活体和搜索流程。

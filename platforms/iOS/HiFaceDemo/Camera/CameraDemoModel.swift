@@ -100,10 +100,10 @@ final class CameraDemoModel: ObservableObject {
             sdk: sdk,
             detectionConfiguration: detectionConfiguration,
             settings: cameraSettings,
-            // Search targets 15 FPS while active and 5 FPS while idle; other screens use a fixed rate.
-            // 搜索活跃 15 FPS、待机 5 FPS；其他页面固定帧率。
+            // Search uses 15 FPS active and 10 FPS idle preview, with 5 FPS idle SDK analysis.
+            // 搜索活跃 15 FPS、待机预览 10 FPS，待机 SDK 分析保持 5 FPS。
             sessionFramesPerSecond: mode == .search ? 15 : 30,
-            minimumSessionFramesPerSecond: mode == .search ? 5 : nil,
+            minimumSessionFramesPerSecond: mode == .search ? 10 : nil,
             deliversDetectionResults: mode != .search
         )
         pipeline.onDetection = { [weak self] result, previewMirrored, overlayMirrored in
@@ -236,12 +236,12 @@ final class CameraDemoModel: ObservableObject {
         detection = nil
     }
 
-    /// Request 5 FPS after ten continuous no-face seconds; the session falls back within supported ranges
+    /// Request 10 FPS preview and 5 FPS SDK analysis after ten continuous no-face seconds; hardware falls back within supported ranges
     /// while SDK input keeps target throttling.
-    /// 连续无人脸 10 秒后请求 5 FPS，会话按支持范围回退，SDK 输入保持目标门禁。
+    /// 连续无人脸 10 秒后请求 10 FPS 预览、5 FPS 分析；会话按支持范围回退，SDK 输入独立限流。
     func setSearchCameraIdle(_ idle: Bool) {
         guard mode == .search else { return }
-        pipeline.setSessionFrameRate(idle ? 5 : 15)
+        pipeline.setSessionFrameRate(idle ? 10 : 15, analysisFramesPerSecond: idle ? 5 : 15)
     }
 
     deinit {
@@ -758,8 +758,7 @@ final class CameraDemoModel: ObservableObject {
         failureAllowsRetry = FaceSearchPresentation.canResumeSearch(error)
         phase = .failed
         status = DemoL10n.text("人脸搜索已暂停")
-        detail = failureAllowsRetry ? DemoErrorPresentation.message(for: error)
-            : DemoL10n.text("搜索恢复失败，请检查配置并重新进入。")
+        detail = "\(DemoErrorPresentation.message(for: error)) (\(error.code.rawValue))"
     }
 
     private func handleCameraError(_ message: String) {

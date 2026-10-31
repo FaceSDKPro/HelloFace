@@ -263,6 +263,14 @@ bool Camera::waitForFrame(int timeout_ms) {
     cameraCheck(polled >= 0 && !(descriptor.revents & (POLLERR | POLLHUP | POLLNVAL)), "Camera disconnected");
     return polled > 0;
 }
+bool Camera::requestFrameRate(int fps) {
+    if (!streaming_ || fps <= 0) return false;
+    v4l2_streamparm parameters{}; parameters.type = type_;
+    if (request(fd_, VIDIOC_G_PARM, &parameters) < 0 ||
+        !(parameters.parm.capture.capability & V4L2_CAP_TIMEPERFRAME)) return false;
+    parameters.parm.capture.timeperframe = {1, static_cast<uint32_t>(fps)};
+    return request(fd_, VIDIOC_S_PARM, &parameters) == 0;
+}
 bool Camera::readFrame(CameraFrame& frame, int preview_width, int preview_height, bool analysis_only) {
     if (!waitForFrame(0)) return false;
     const bool multiplanar = type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
