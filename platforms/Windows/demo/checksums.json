@@ -32,7 +32,7 @@
     "source/app.rc": "251ff8b33f6066af7f5ffcfb0fb333e037a8a1d874bf059428a2364703d15571",
     "source/camera.cpp": "c759b91f2d994dd30f11ff5eacb1b8eb68e415fc547febcf54fe1ab33b64d831",
     "source/camera.h": "ca3a4ce68273915006d1ece496e9dc23cb412977e7f3b58e2a3908e814c7c426",
-    "source/camera_preferences.cpp": "5ecf5c852eb2f89fa98d2a31df8022650364ca68a649a2c6deca65c61d34ab1f",
+    "source/camera_preferences.cpp": "a0fab6bd9a35d1ec3236de1a0a769a8a22b0095f6143185889bc952d2f6ccc70",
     "source/camera_preferences.h": "08187e57976b9d6eff1838ba0cb5b4f44f7dbc744f48a743cf3302c918029768",
     "source/cli.cpp": "0229c8eedb72c5441043d7570d0ea2f083da29cfddd8f576f2d3a396a467ead7",
     "source/data_exchange.cpp": "92ca1a5e7e8ca7f972e6b9593e384aa5de946074bb748aa44fcb596acb009f5c",

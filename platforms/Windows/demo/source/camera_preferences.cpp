@@ -1,5 +1,6 @@
 #include "camera_preferences.h"
 #include <fstream>
+#include <string>
 #include <chrono>
 #include <stdexcept>
 #ifdef _WIN32
