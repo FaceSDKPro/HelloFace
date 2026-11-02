@@ -43,9 +43,9 @@ struct FaceSearchOverlayView: View {
                     )
                     guard !box.title.isEmpty else { continue }
                     let font: Font = .system(size: 14, weight: .semibold, design: .monospaced)
-                    let title = Self.fitted(box.title, font: font, width: size.width - 12,
+                    let title = Self.fitted(box.caption ?? box.title, font: font, width: size.width - 12,
                                             context: context)
-                    let details = Self.fitted(box.details, font: font, width: size.width - 12,
+                    let details = Self.fitted(box.caption == nil ? box.details : "", font: font, width: size.width - 12,
                                               context: context)
                     let labelWidth = max(Self.width(title, font: font, context: context),
                                          Self.width(details, font: font, context: context))

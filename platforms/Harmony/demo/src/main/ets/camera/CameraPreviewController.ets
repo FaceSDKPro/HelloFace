@@ -17,18 +17,14 @@ const CAMERA_PERMISSION: Permissions = 'ohos.permission.CAMERA';
 const RECEIVER_CAPACITY: number = 3;
 
 /**
- * CameraKit dual-output preview with ImageReceiver NV21 adaptation, latest-frame backpressure, and
- * deterministic cleanup.
- *
- * CameraKit 双路预览，ImageReceiver NV21 适配、最新帧背压和确定性释放。
+ * 宿主相机适配：拥有 CameraKit/Surface/ImageReceiver，只向 SDK 交付 YUV，不处理识别决策。
+ * 同时最多读取一帧并向消费者提交一帧；停止时等待读取与消费结束，再释放相机资源。
  */
 export class CameraPreviewController {
   private readonly context: common.UIAbilityContext;
   private readonly callbacks: CameraPreviewCallbacks;
   private readonly settings: CameraDemoSettings;
   private readonly limitDisplayFrameRate: boolean;
-  // The constructor rate is the active ceiling; preview may drop to 10 FPS while search is
-  // idle.
   // 构造值是活跃上限；搜索待机预览可降至 10 FPS，分析独立降至 5 FPS。
   private readonly sessionFrameRate: number;
   private targetSessionFrameRate: number;
@@ -61,8 +57,6 @@ export class CameraPreviewController {
 
   getPreviewAspectRatio(): number { return this.previewAspect; }
 
-  // Bind events independently for each profile attempt; invalidate callbacks already queued before
-  // off().
   // 每次规格尝试独立绑定事件。off() 前已排队的回调也必须失效。
   private attempt: number = 0;
   private startupError: string | undefined = undefined;
@@ -74,8 +68,6 @@ export class CameraPreviewController {
   private handleArrival(): void {
     if (!this.active) return;
     if (this.frameTask !== undefined) {
-      // For overlapping callbacks, wait for the next actual frame event instead of reading the same
-      // notifications twice.
       // 回调重叠时等待下一次真实到帧事件，避免重复读取同一批通知。
       this.recordDroppedFrame();
       return;
@@ -101,8 +93,6 @@ export class CameraPreviewController {
   async start(surfaceId: string, preferFrontCamera: boolean = true): Promise<void> {
     const token: number = ++this.generation;
     this.active = false;
-    // Serialize startup and cleanup so close() cannot race open(), and an old start cannot overwrite newer
-    // resources.
     // 串行完成上一轮启动/释放，避免 open() 尚未完成就 close()，或旧启动覆盖新资源。
     const task: Promise<void> = CameraPreviewController.lifecycleTask.then(async (): Promise<void> => {
       await this.stopInternal();
@@ -147,8 +137,6 @@ export class CameraPreviewController {
           if (token !== this.generation) await this.stopInternal();
           return;
         } catch (error) {
-          // Support for each profile individually does not guarantee dual-output support. Fully release
-          // partially opened resources before trying a smaller shared profile.
           // 设备单独声明支持某个规格，不代表它支持双输出组合。尝试更小的共享规格前，
           // 必须完整释放本次已经打开的部分资源。
           await this.stopInternal();
@@ -179,8 +167,6 @@ export class CameraPreviewController {
     this.arrivalCallback = (): void => {
       if (token === this.generation && attempt === this.attempt) this.handleArrival();
     };
-    // Use matching aspect ratios for both outputs to avoid face-box offsets between 16:9 analysis and 4:3
-    // preview.
     // 两路使用相同比例，避免高清分析 16:9 与可见预览 4:3 的人脸框偏移。
     const displayProfile: camera.Profile = analysisProfile;
     const profileLabel: string = `${analysisProfile.size.width}×${analysisProfile.size.height}`;
@@ -240,11 +226,8 @@ export class CameraPreviewController {
       }
       this.analysisOutputRateLimited = this.applyOutputFrameRate(
         analysisOutput, this.targetAnalysisFrameRate);
-      // If CameraKit rejects the target rate, retain app throttling at that rate before copying pixels.
       // CameraKit 拒绝目标帧率时，在像素复制前保留同频率的应用侧兜底门禁。
       this.updateApplicationFrameInterval();
-      // Add PreviewOutput and commit the Session first; some devices otherwise report GetPreviewRotation
-      // session-is-null error 7400201.
       // PreviewOutput 必须先加入并提交 Session。部分真机会在提交前返回
       // "GetPreviewRotation ... session is nullptr"（7400201）。
       const displayRotation: number = display.getDefaultDisplaySync().rotation;
@@ -287,10 +270,6 @@ export class CameraPreviewController {
   }
 
   /**
-   * Update the SDK input target and request the analysis rate without rebuilding the session; request
-   * preview rate too only when preview throttling is enabled. If dynamic settings fail, throttle
-   * analysis before pixel copying.
-   *
    * 更新 SDK 输入目标并请求分析输出帧率；仅启用预览限频时同时请求预览帧率，不重建会话。
    * 设备拒绝动态设置时，分析流仍在像素复制前按目标频率降帧。
    */
@@ -313,30 +292,19 @@ export class CameraPreviewController {
     this.lastAnalysisFrameAt = -1;
   }
 
-  /**
-   * Pause only analysis pixel copying and business callbacks, retaining visible preview and the
-   * CameraKit session.
-   *
-   * 只暂停分析帧的像素拷贝和业务回调，保持可见预览和 CameraKit 会话。
-   */
+  /** 只暂停分析帧的像素拷贝和业务回调，保持可见预览和 CameraKit 会话。 */
   pauseAnalysis(): void {
     this.analysisPaused = true;
     this.pendingFrame = undefined;
   }
 
-  /**
-   * Resume analysis and admit the first frame immediately without reusing the pre-pause throttle
-   * timestamp.
-   *
-   * 恢复分析帧；首帧立即通过，不继承暂停前的节流时间戳。
-   */
+  /** 恢复分析帧；首帧立即通过，不继承暂停前的节流时间戳。 */
   resumeAnalysis(): void {
     this.analysisPaused = false;
     this.lastAnalysisFrameAt = -1;
   }
 
   private updateApplicationFrameInterval(): void {
-    // Separate preview/analysis targets retain the SDK gate even when the driver accepts both requests.
     // 预览与分析分开限频时，即使驱动接受请求，也保留 SDK 输入门禁，防止双输出共享帧率。
     this.applicationFrameInterval = this.analysisOutputRateLimited &&
       this.targetAnalysisFrameRate === this.targetSessionFrameRate ?
@@ -470,8 +438,6 @@ export class CameraPreviewController {
       if (receiver === undefined || token !== this.generation || !this.active) {
         return;
       }
-      // Read one buffer per imageArrival; on some devices readLatestImage additionally scans/discards the
-      // queue and repeatedly logs no-dirty-buffer diagnostics.
       // 每个 imageArrival 只取一个缓冲。readLatestImage 会在部分真机上额外扫描并
       // 丢弃队列，持续产生 “no dirty buffer ready” 诊断日志。
       const source: image.Image = await receiver.readNextImage();
@@ -483,8 +449,6 @@ export class CameraPreviewController {
         if (token !== this.generation || !this.active || this.analysisPaused) {
           return;
         }
-        // Match CameraX KEEP_ONLY_LATEST: retain only the newest pending frame during inference and consume it
-        // immediately afterward, avoiding an extra camera interval of waiting.
         // 与 CameraX KEEP_ONLY_LATEST 一致：推理忙时仅保留一份最新帧，覆盖中间帧。
         // 推理完成立即消费它，避免丢弃所有到帧后再空等一个相机周期。
         const now: number = systemDateTime.getUptime(systemDateTime.TimeType.STARTUP);
@@ -497,7 +461,6 @@ export class CameraPreviewController {
           this.recordDroppedFrame();
         }
       } finally {
-        // The adapter copied Y/U/V data; release camera buffers before inference continues.
         // 适配器已复制 Y/U/V 数据，推理期间无需继续占用相机缓冲区。
         await source.release();
       }
@@ -587,13 +550,9 @@ export class CameraPreviewController {
         CameraFrameRatePolicy.select(output.getSupportedFrameRates(), targetFps);
       if (selected === undefined) return false;
       output.setFrameRate(selected.min, selected.max);
-      // A successful setting does not guarantee the target rate; hardware fallback to 10 FPS still needs
-      // throttling to 5 FPS before copying.
       // 设置成功不等于达到目标；例如硬件 10 FPS 回退必须继续在复制前限到 5 FPS。
       return selected.max <= targetFps;
     } catch (_) {
-      // Some devices reject dynamic or dual-output frame-rate changes; retain equivalent latest-frame
-      // throttling in the app.
       // 个别设备会拒绝动态或双路帧率设置；应用侧仍保留同样的最新帧节流。
       return false;
     }
@@ -624,8 +583,6 @@ export class CameraPreviewController {
 
   private failCamera(message: string): void {
     if (!this.active) return;
-    // Queue cleanup and invalidate old requests before notifying the screen, allowing immediate retry from
-    // the error callback.
     // 先排队释放并使旧请求失效，再通知页面，允许错误回调立即发起重试。
     this.stop();
     try { this.callbacks.onCameraError(message); } catch (_) {}
@@ -644,8 +601,6 @@ export class CameraPreviewController {
     if (this.active) {
       this.failCamera(message);
     } else if (this.startupError === undefined) {
-      // Preserve events received before open/commitConfig/start finishes, and never concurrently release
-      // resources still being created.
       // open/commitConfig/start 尚未完成时的事件不能丢弃，也不能并发释放正在创建的资源。
       this.startupError = message;
     }

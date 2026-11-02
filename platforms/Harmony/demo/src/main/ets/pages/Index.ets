@@ -14,18 +14,13 @@ import { bundleManager, common } from '@kit.AbilityKit';
 import { deviceInfo, pasteboard } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 
-// Correspond one to one with Android DemoHomeActivity's eight entries and search subscreens.
-// 与 Android DemoHomeActivity 的八个入口及搜索子页面一一对应。
+// 导航只保存页面，不包装 SDK；各功能页直接调用 hiface 的公开 API。
 enum DemoPage {
   HOME, DETECTION, ENROLLMENT, VERIFICATION, LIVENESS, SEARCH,
   IMAGE_SEARCH, COMPARISON, CAMERA_SETTINGS, SEARCH_LIBRARY, SEARCH_ENROLLMENT
 }
 
-/**
- * The root screen owns the SDK, HUKS-encrypted verification references, and feature navigation.
- *
- * 根页面统一管理 SDK、HUKS 加密验证基准和功能导航。
- */
+/** 根页面拥有 SDK 和功能导航；1:1 基准的 HUKS 文件仅用于 Demo，与 SDK 的 runtime.db 授权状态独立。 */
 @Entry
 @Component
 struct Index {
@@ -54,6 +49,7 @@ struct Index {
   @State private selectedFeature: string = '';
   @State private searchConfig: FaceSearchSessionConfig = createDemoFaceSearchConfig();
   private readonly featureStore: FaceFeatureStore = new FaceFeatureStore();
+  // 只把就绪实例交给子页面；原生句柄和 Promise 不进入 ArkUI 可深拷贝的状态。
   private sdk: HiFaceSdk | undefined = undefined;
   private initializingSdk: HiFaceSdk | undefined = undefined;
   private backStack: DemoPage[] = [];
@@ -71,12 +67,7 @@ struct Index {
     this.restoreReferences();
   }
 
-  /**
-   * Restore the 1:1 reference from an HUKS-protected snapshot; late results from old screens cannot
-   * overwrite current state.
-   *
-   * 从 HUKS 保护的持久化快照恢复 1:1 基准；旧页面的晚到结果不能覆盖当前状态。
-   */
+  /** 从 HUKS 保护的持久化快照恢复 1:1 基准；旧页面的晚到结果不能覆盖当前状态。 */
   private async restoreReferences(): Promise<void> {
     const token: number = ++this.referenceStoreToken;
     try {
@@ -92,12 +83,7 @@ struct Index {
     }
   }
 
-  /**
-   * Do not silently overwrite ciphertext when authentication fails or the key is unavailable; require
-   * explicit user reset.
-   *
-   * 认证失败或密钥不可用时不静默覆盖旧密文，只允许用户明确重置。
-   */
+  /** 认证失败或密钥不可用时不静默覆盖旧密文，只允许用户明确重置。 */
   private showReferenceStoreRecovery(): void {
     try {
       this.getUIContext().showAlertDialog({
@@ -130,11 +116,7 @@ struct Index {
     }
   }
 
-  /**
-   * Close failed initialization attempts before retrying; the lifecycle token rejects stale results.
-   *
-   * 重试前关闭失败的初始化实例；生命周期 token 用于丢弃旧实例的晚到结果。
-   */
+  /** 重试前关闭旧实例；token 防止已退出或被替换的初始化结果重新挂回页面。 */
   private async initializeSdk(): Promise<void> {
     const token: number = ++this.lifecycleToken;
     this.closeSdk();
@@ -176,7 +158,6 @@ struct Index {
   }
 
   aboutToDisappear(): void {
-    // Invalidate pending results before stopping the camera and closing SDK resources.
     // 先使异步结果失效，再停止相机并关闭 SDK 资源。
     ++this.lifecycleToken;
     ++this.referenceStoreToken;
@@ -201,11 +182,7 @@ struct Index {
     return true;
   }
 
-  /**
-   * Stop the camera lifecycle before leaving a feature and creating another screen instance.
-   *
-   * 离开当前功能前先停止相机生命周期，再创建新的页面实例。
-   */
+  /** 离开当前功能前先停止相机生命周期，再创建新的页面实例。 */
   private navigate(page: DemoPage): void {
     if (this.sdk === undefined && page !== DemoPage.CAMERA_SETTINGS) {
       this.showToast(this.sdkState);
@@ -217,11 +194,7 @@ struct Index {
     this.cameraPageKey += 1;
   }
 
-  /**
-   * The back stack stores only Demo feature screens; shared lifecycle logic releases the camera.
-   *
-   * 返回栈只保存 Demo 功能页；相机释放由共享生命周期对象统一触发。
-   */
+  /** 返回栈只保存 Demo 功能页；相机释放由共享生命周期对象统一触发。 */
   private goBack(): void {
     this.cameraLifecycle.leave();
     this.activePage = this.backStack.pop() ?? DemoPage.HOME;
@@ -246,12 +219,7 @@ struct Index {
     this.selectingReference = true;
   }
 
-  /**
-   * Store 1:1 references separately from the search library; return only persistence results and let the
-   * still-visible camera screen navigate.
-   *
-   * 1:1 基准与搜索库分开保存；只返回落盘结果，由仍然可见的相机页决定导航。
-   */
+  /** 1:1 基准与搜索库分开保存；只返回落盘结果，由仍然可见的相机页决定导航。 */
   private async saveReference(faceId: string, feature: string): Promise<boolean> {
     if (this.savingReference) return false;
     this.savingReference = true;

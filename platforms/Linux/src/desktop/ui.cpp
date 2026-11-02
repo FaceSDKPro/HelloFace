@@ -43,7 +43,7 @@ std::string friendly(const std::string& text) {
 }
 DemoUi::DemoUi(Measure measure) : measure_(std::move(measure)) {
     if (!measure_) measure_ = [](const std::string& value, Font font) {
-        int width = 0; for (unsigned char c : value) if ((c & 0xc0) != 0x80) width += c < 128 ? (font == Font::Title ? 12 : font == Font::Large ? 10 : font == Font::Caption ? 9 : font == Font::Small ? 6 : 7) : (font == Font::Title ? 22 : font == Font::Large ? 18 : font == Font::Caption ? 15 : 14); return width;
+        int width = 0; for (unsigned char c : value) if ((c & 0xc0) != 0x80) width += c < 128 ? (font == Font::Result ? 15 : font == Font::Title ? 12 : font == Font::Large ? 10 : font == Font::Caption ? 9 : font == Font::Small ? 6 : 7) : (font == Font::Result ? 30 : font == Font::Title ? 22 : font == Font::Large ? 18 : font == Font::Caption ? 15 : 14); return width;
     };
 }
 void DemoUi::text(int x, int y, std::string value, uint32_t color, int max_width, Font font, bool centered) {
@@ -259,7 +259,8 @@ void DemoUi::pageHeader(const ViewState& state, const std::string& title, bool c
         // Float navigation over the preview; no header strip consumes camera space.
         // 导航直接叠加在预览上，不再用整条标题底色遮挡相机画面。
         button({16, 12, 86, 36}, "< Back", "back", 4, state.ready && (!state.busy || state.importing));
-        button({width - 276, 12, 146, 36}, "Settings", "feature-settings", 4, content_enabled_);
+        const int settings_width = measure_("Settings", Font::Body) + 24;
+        button({width - 130 - settings_width, 12, settings_width, 36}, "Settings", "feature-settings", 4, content_enabled_);
         button({width - 122, 12, 106, 36}, camera_menu_ ? "Close menu" : "Menu", "camera-menu", 4,
                state.ready && !state.importing);
         return;
@@ -812,21 +813,21 @@ void DemoUi::searchResults(const ViewState& s, Rect panel) {
             if (!best || *box.similarity > *best->similarity) best = &box;
         }
     }
-    // The second row summarizes only the best confirmed match from one sample.
-    // 第二行只汇总最佳已确认匹配；身份、相似度和活体分数来自同一份采样。
+    // Format: 1001=0.92, Liveness=0.97; summarize the best confirmed match from one sample.
+    // 五平台统一格式；第二行的身份、相似度和活体分数来自同一份已确认采样。
     if (best) {
-        summary = best->face_id + ", Simi=" + number(*best->similarity, 2);
+        summary = best->face_id + "=" + number(*best->similarity, 2);
         if (!s.settings.search_multi && s.settings.search_liveness && best->liveness && std::isfinite(*best->liveness))
             summary += ", Liveness=" + number(*best->liveness, 2);
     }
     if (summary.empty()) summary = status;
     std::replace(summary.begin(), summary.end(), '\n', ' ');
     std::replace(summary.begin(), summary.end(), '\r', ' ');
-    // Use a slightly smaller caption font for both fixed rows; keep other UI text unchanged.
-    // 固定两行使用略小的结果字号，其他界面文字保持原样。
-    text(panel.x + 18, panel.y + 30, mode, technology_green, panel.w - 36, Font::Caption);
-    text(panel.x + 18, panel.y + 61, summary, s.failed ? 0xff7777 : best ? technology_green : 0xffffff,
-         panel.w - 36, Font::Caption);
+    // Keep the two row baselines fixed, with a larger result line.
+    // 两行基线保持固定，结果行使用更大字号。
+    text(panel.x + 18, panel.y + 24, mode, technology_green, panel.w - 36, Font::Caption);
+    text(panel.x + 18, panel.y + 65, summary, s.failed ? 0xff7777 : best ? technology_green : 0xffffff,
+         panel.w - 36, Font::Result);
 }
 void DemoUi::scroll(int steps, int x, int y, const ViewState& state) {
     if (soft_keyboard_open_) return;

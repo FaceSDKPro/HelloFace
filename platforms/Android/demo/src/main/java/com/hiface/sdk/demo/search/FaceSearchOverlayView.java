@@ -227,7 +227,9 @@ public final class FaceSearchOverlayView extends View {
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(2 * density);
             canvas.drawRect(rect, paint);
-            drawLabel(canvas, state.label(i), state.details(i), density);
+            String caption = state.caption(i);
+            drawLabel(canvas, caption.isEmpty() ? state.label(i) : caption,
+                    caption.isEmpty() ? state.details(i) : "", density);
         }
     }
 

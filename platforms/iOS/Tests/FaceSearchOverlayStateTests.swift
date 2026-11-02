@@ -57,8 +57,8 @@ struct FaceSearchOverlayStateTests {
         precondition(card.confirmedResults.first?.title == "Face ID: " + longID)
         precondition(card.confirmedResults.first?.details.contains("0.000") == true)
         precondition(card.confirmedLivenessScore == 0)
-        precondition(card.bestMatchCaption(includeLiveness: true) == longID + ", Simi=0.98, Liveness=0.00")
-        precondition(card.bestMatchCaption(includeLiveness: false) == longID + ", Simi=0.98")
+        precondition(card.bestMatchCaption(includeLiveness: true) == longID + "=0.98, Liveness=0.00")
+        precondition(card.bestMatchCaption(includeLiveness: false) == longID + "=0.98")
         card.accept(frame(2, []), now: 0.2)
         precondition(card.confirmedResults.isEmpty && card.confirmedLivenessScore == nil)
         precondition(card.bestMatchCaption(includeLiveness: true) == nil)
@@ -85,8 +85,8 @@ struct FaceSearchOverlayStateTests {
         bestCard.accept(bestFrame, now: 0)
         precondition(bestCard.bestMatchCaption(includeLiveness: true) == nil)
         bestCard.complete(FaceSearchResult(endReason: .matchFound, livenessScore: 0.98, frame: bestFrame), now: 0.1)
-        precondition(bestCard.bestMatchCaption(includeLiveness: true) == "best-person, Simi=0.95, Liveness=0.98")
-        precondition(bestCard.bestMatchCaption(includeLiveness: false) == "best-person, Simi=0.95")
+        precondition(bestCard.bestMatchCaption(includeLiveness: true) == "best-person=0.95, Liveness=0.98")
+        precondition(bestCard.bestMatchCaption(includeLiveness: false) == "best-person=0.95")
         bestCard.expire(now: 1)
         precondition(bestCard.bestMatchCaption(includeLiveness: true) == nil)
 
@@ -149,6 +149,7 @@ struct FaceSearchOverlayStateTests {
         precondition(overlay.box(at: 0).color == .matched)
         precondition(overlay.box(at: 0).title == "A")
         precondition(overlay.box(at: 0).details == "Similarity 0.940 · Liveness 0.970")
+        precondition(overlay.box(at: 0).caption == "A=0.94, Liveness=0.97")
         for _ in 0..<10_000 {
             precondition(overlay.box(at: 0).details == "Similarity 0.940 · Liveness 0.970")
         }

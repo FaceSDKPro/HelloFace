@@ -45,7 +45,14 @@ bool searchFaceAccepted(const Update& update, const HiFaceSearchCameraFaceV1& fa
 std::string searchFaceText(const Update& update, const HiFaceSearchCameraFaceV1& face) {
     std::ostringstream text;
     if (update.end_reason == HIFACE_SEARCH_END_SPOOF_DETECTED) text << u8"活体未通过 · 不确认身份";
-    else if (searchFaceAccepted(update, face)) text << "Face ID: " << face.face_id;
+    else if (searchFaceAccepted(update, face)) {
+        text.imbue(std::locale::classic());
+        text << std::string(face.face_id, std::find(std::begin(face.face_id), std::end(face.face_id), '\0'))
+             << '=' << std::fixed << std::setprecision(2) << face.similarity;
+        if (update.has_liveness && std::isfinite(update.liveness_score))
+            text << ", Liveness=" << update.liveness_score;
+        return text.str();
+    }
     else if (face.has_similarity) text << u8"未匹配 · 请录入人脸或更换清晰正脸";
     else text << u8"等待有效人脸 / 搜索结果";
     if (face.has_similarity) text << std::fixed << std::setprecision(3) << u8" · 相似度 " << face.similarity;
@@ -59,12 +66,12 @@ std::string bestSearchMatchCaption(const Update& update, bool include_liveness) 
         if (!best || face.similarity > best->similarity) best = &face;
     }
     if (!best) return {};
-    // Keep the selected identity and both scores on one fixed result row.
-    // 选中身份及两项分数固定在结果第二行，不能混用不同人脸的分数。
+    // Format: 1001=0.92, Liveness=0.97; keep both scores on the selected result row.
+    // 五平台统一格式；结果第二行不能混用不同人脸的身份和分数。
     std::ostringstream text;
     text.imbue(std::locale::classic());
     text << std::string(best->face_id, std::find(std::begin(best->face_id), std::end(best->face_id), '\0'))
-         << ", Simi=" << std::fixed << std::setprecision(2) << best->similarity;
+         << "=" << std::fixed << std::setprecision(2) << best->similarity;
     if (include_liveness && update.has_liveness && std::isfinite(update.liveness_score))
         text << ", Liveness=" << update.liveness_score;
     return text.str();

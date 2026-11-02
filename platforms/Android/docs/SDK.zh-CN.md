@@ -14,7 +14,7 @@ SDK正在Beta 迭代公测中，请及时升级SDK版本。
 | ABI | `arm64-v8a`、`armeabi-v7a` |
 | 入口 | Java `com.hiface.sdk.HiFaceSdk` |
 
-当前候选版本为 `0.8.0`，正式上线状态以发布记录为准：
+当前接入示例版本为 `0.8.6`；Maven 渠道可用性以实际发布记录为准：
 
 ```kotlin
 repositories {
@@ -22,7 +22,7 @@ repositories {
     mavenCentral()
 }
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.0")
+    implementation("io.github.facesdkpro:hiface-android:0.8.6")
 }
 android {
     androidResources { noCompress += "bphfm" }

@@ -10,11 +10,13 @@ export class FaceSearchOverlayVisual {
   readonly color: string;
   readonly label: string;
   readonly details: string;
+  readonly caption: string;
 
-  constructor(color: string, label: string, details: string) {
+  constructor(color: string, label: string, details: string, caption: string = '') {
     this.color = color;
     this.label = label;
     this.details = details;
+    this.caption = caption;
   }
 }
 
@@ -66,7 +68,12 @@ class HeldSearchScore {
       DemoL10n.text("活体 {0}", [String(this.livenessScore.toFixed(3))]) : '';
     const details: string = similarity.length === 0 ? liveness : liveness.length === 0 ?
       similarity : `${similarity} · ${liveness}`;
-    return new FaceSearchOverlayVisual(color, label, details);
+    let caption: string = matched && !this.spoofRejected && this.face.similarity !== undefined ?
+      `${this.face.faceId!}=${this.face.similarity.toFixed(2)}` : '';
+    if (caption.length > 0 && this.livenessScore !== undefined && Number.isFinite(this.livenessScore)) {
+      caption += `, Liveness=${this.livenessScore.toFixed(2)}`;
+    }
+    return new FaceSearchOverlayVisual(color, label, details, caption);
   }
 }
 
@@ -109,15 +116,8 @@ export class FaceSearchOverlayState {
     return text;
   }
 
-  livenessScore(): number | undefined {
-    for (const value of this.scores) {
-      if (value !== undefined && value.finalResult && value.livenessScore !== undefined) return value.livenessScore;
-    }
-    return undefined;
-  }
-
-  // Keep ID and both scores tied to one confirmed, unexpired face sample.
-  // 身份和两项评分始终属于同一份已确认且未过期的人脸采样。
+  // Format: 1001=0.92, Liveness=0.97; scores stay tied to one confirmed, unexpired sample.
+  // 五平台统一格式；身份和两项评分始终属于同一份已确认且未过期的采样。
   bestMatchCaption(includeLiveness: boolean): string {
     let best: HeldSearchScore | undefined = undefined;
     for (const value of this.scores) {
@@ -127,7 +127,7 @@ export class FaceSearchOverlayState {
       if (best === undefined || value.face.similarity > best.face.similarity!) best = value;
     }
     if (best === undefined) return '';
-    let text: string = `${best.face.faceId!}, Simi=${best.face.similarity!.toFixed(2)}`;
+    let text: string = `${best.face.faceId!}=${best.face.similarity!.toFixed(2)}`;
     if (includeLiveness && best.livenessScore !== undefined && Number.isFinite(best.livenessScore)) {
       text += `, Liveness=${best.livenessScore.toFixed(2)}`;
     }

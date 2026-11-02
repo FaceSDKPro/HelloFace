@@ -49,6 +49,7 @@ final class FaceSearchOverlayState {
         final long frameId, deadline;
         final String label;
         final String details;
+        final String caption;
         final boolean livenessRejected;
         final boolean finalResult;
         final Float livenessScore;
@@ -74,6 +75,8 @@ final class FaceSearchOverlayState {
                     ? livenessLabel + " " + formatScore(livenessScore) : "";
             details = similarity.isEmpty() ? liveness : liveness.isEmpty()
                     ? similarity : similarity + " · " + liveness;
+            caption = matched && !livenessRejected && face.getSimilarity() != null
+                    ? matchCaption(face, livenessScore, true) : "";
         }
     }
 
@@ -89,6 +92,7 @@ final class FaceSearchOverlayState {
     FaceSearchFace score(int index) { return scores[index] == null ? null : scores[index].face; }
     String label(int index) { return scores[index] == null ? "" : scores[index].label; }
     String details(int index) { return scores[index] == null ? "" : scores[index].details; }
+    String caption(int index) { return scores[index] == null ? "" : scores[index].caption; }
     // Read full, confirmed identities from the same expiring samples as the boxes.
     // 完整身份与人脸框共用同一份到期采样，不能把旧身份留在结果卡片中。
     String resultText() {
@@ -107,8 +111,8 @@ final class FaceSearchOverlayState {
         return text.toString();
     }
 
-    // Select one confirmed sample so ID, similarity and liveness always belong together.
-    // 只选同一份已确认采样，避免最佳身份、相似度和活体分数来自不同的人脸。
+    // Format: 1001=0.92, Liveness=0.97; both scores belong to the same confirmed sample.
+    // 五平台统一格式；身份、相似度和活体分数必须来自同一份已确认采样。
     String bestMatchCaption(boolean includeLiveness) {
         Score best = null;
         for (Score value : scores) {
@@ -119,10 +123,14 @@ final class FaceSearchOverlayState {
             if (best == null || value.face.getSimilarity() > best.face.getSimilarity()) best = value;
         }
         if (best == null) return "";
-        String text = best.face.getFaceId() + String.format(Locale.ROOT, ", Simi=%.2f", best.face.getSimilarity());
-        if (includeLiveness && best.livenessScore != null && !Float.isNaN(best.livenessScore)
-                && !Float.isInfinite(best.livenessScore))
-            text += String.format(Locale.ROOT, ", Liveness=%.2f", best.livenessScore);
+        return matchCaption(best.face, best.livenessScore, includeLiveness);
+    }
+
+    private static String matchCaption(FaceSearchFace face, Float livenessScore, boolean includeLiveness) {
+        String text = face.getFaceId() + String.format(Locale.ROOT, "=%.2f", face.getSimilarity());
+        if (includeLiveness && livenessScore != null && !Float.isNaN(livenessScore)
+                && !Float.isInfinite(livenessScore))
+            text += String.format(Locale.ROOT, ", Liveness=%.2f", livenessScore);
         return text;
     }
 

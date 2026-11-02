@@ -17,6 +17,7 @@ struct FaceSearchOverlayState {
         let color: BoxColor
         let title: String
         let details: String
+        var caption: String? = nil
     }
 
     private struct Score {
@@ -56,7 +57,9 @@ struct FaceSearchOverlayState {
             // Reuse formatted text throughout a score's lifetime instead of formatting floats on every Canvas
             // draw.
             // 评分生命周期内复用文案，不在每次 Canvas 绘制时重复格式化浮点数。
-            box = Box(color: color, title: title, details: details.joined(separator: " · "))
+            box = Box(color: color, title: title, details: details.joined(separator: " · "),
+                      caption: faceID != nil && !livenessRejected
+                        ? FaceSearchOverlayState.matchCaption(face: face, liveness: livenessScore) : nil)
         }
     }
 
@@ -94,8 +97,8 @@ struct FaceSearchOverlayState {
         return nil
     }
 
-    // Choose one confirmed sample; never combine scores from different faces.
-    // 只选同一份已确认采样，不能拼接不同人脸的相似度和活体分数。
+    // Format: 1001=0.92, Liveness=0.97; never combine scores from different faces.
+    // 五平台统一格式；只选同一份已确认采样，不能拼接不同人脸的分数。
     func bestMatchCaption(includeLiveness: Bool) -> String? {
         var best: Score?
         for value in scores {
@@ -104,10 +107,15 @@ struct FaceSearchOverlayState {
                   let similarity = value.face.similarity, similarity.isFinite else { continue }
             if best == nil || similarity > best!.face.similarity! { best = value }
         }
-        guard let best, let faceID = best.face.faceID, let similarity = best.face.similarity else { return nil }
+        guard let best else { return nil }
+        return Self.matchCaption(face: best.face, liveness: includeLiveness ? best.livenessScore : nil)
+    }
+
+    private static func matchCaption(face: FaceSearchFace, liveness: Float?) -> String? {
+        guard let faceID = face.faceID, let similarity = face.similarity, similarity.isFinite else { return nil }
         let locale = Locale(identifier: "en_US_POSIX")
-        var text = faceID + String(format: ", Simi=%.2f", locale: locale, similarity)
-        if includeLiveness, let liveness = best.livenessScore, liveness.isFinite {
+        var text = faceID + String(format: "=%.2f", locale: locale, similarity)
+        if let liveness, liveness.isFinite {
             text += String(format: ", Liveness=%.2f", locale: locale, liveness)
         }
         return text

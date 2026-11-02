@@ -1,4 +1,4 @@
-# HiFace Windows SDK · 0.8.5 Beta
+# HiFace Windows SDK · 0.8.6 Beta
 
 [English](README.md) | 简体中文
 
@@ -21,7 +21,7 @@ cmake --build build --config Release
 自己的 CMake 工程：
 
 ```cmake
-find_package(HiFace 0.8.5 CONFIG REQUIRED COMPONENTS C)
+find_package(HiFace 0.8.6 CONFIG REQUIRED COMPONENTS C)
 target_link_libraries(your_app PRIVATE HiFace::HiFace)
 ```
 
@@ -47,6 +47,10 @@ target_link_libraries(your_app PRIVATE HiFace::HiFace)
 参数和所有权以公共头文件为准。宿主负责图片解码与方向处理；图片采集使用 2..4096 内的偶数 RGBA 宽高。
 相机输入需正确设置平面 stride 和旋转。单个 Session / Database 串行调用，耗时工作放到 UI 线程之外。
 等待在途调用结束后销毁句柄；SDK 分配的结果用对应接口释放。HF1 和数据库未加密。
+
+Demo 的 C++ 数据库适配层要求 ID 非空，ID、分组和标签各自最多 1024 个 UTF-8 字节，
+且不得包含 NUL；路径也不得包含 NUL。非法文本在进入 C 接口前被拒绝，避免操作被截断的
+身份或筛选范围。保存批次为 1–1000 条完整 HF1 记录，更新时间不得为负数。
 
 应用层用法见独立 Demo 的 `source/` 与 `source/integration/`。
 找不到 DLL / `0xc000007b`：检查完整的 x64 DLL；初始化失败：检查状态和日志。

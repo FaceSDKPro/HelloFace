@@ -22,15 +22,10 @@ import { FaceSearchLibraryItem } from './FaceSearchLibraryItem';
 const LOAD_SIZE: number = 100;
 const PREFETCH_REMAINING: number = 10;
 
-/**
- * Face-library management example with exact lookup, paging, deletion, and two bulk-import modes.
- *
- * 人脸库管理示例：精确查询、滚动加载、删除以及两种批量导入。
- */
+/** 人脸库管理示例：精确查询、滚动加载、删除以及两种批量导入。 */
 @Component
 export struct FaceSearchLibraryDemo {
   @Require
-  // Do not deep-copy the shared SDK instance with @Prop.
   // 共享 SDK 实例不能用 @Prop 深拷贝。
   sdk: HiFaceSdk;
   @Require
@@ -42,6 +37,7 @@ export struct FaceSearchLibraryDemo {
   @State private busy: boolean = false;
   @State private lookupMode: boolean = false;
   @State private failed: boolean = false;
+  // 本页显式打开的库由本页关闭；相机搜索使用 SDK 自己管理的连接。
   private database: FaceSearchDatabase | undefined = undefined;
   private lifecycleToken: number = 0;
   private taskToken: number = 0;
@@ -78,12 +74,7 @@ export struct FaceSearchLibraryDemo {
     this.openAndLoad(lifecycle);
   }
 
-  /**
-   * On background entry, stop new input, wait for current extraction and the final save batch, then
-   * close the management connection.
-   *
-   * 切后台停止新输入，等待当前提取和尾批写库结束，再关闭管理连接。
-   */
+  /** 切后台停止新输入，等待当前提取和尾批写库结束，再关闭管理连接。 */
   private stopPage(): void {
     if (!this.active) return;
     this.active = false;
@@ -215,12 +206,7 @@ export struct FaceSearchLibraryDemo {
     .borderRadius(12).width('100%')
   }
 
-  /**
-   * Open an independent management connection on each entry; continuous search uses the SDK's own
-   * connection.
-   *
-   * 每次进入页面打开独立管理连接；连续搜索使用 SDK 自己的连接。
-   */
+  /** 每次进入页面打开独立管理连接；连续搜索使用 SDK 自己的连接。 */
   private async openAndLoad(lifecycle: number): Promise<void> {
     this.busy = true;
     this.failed = false;
@@ -253,11 +239,7 @@ export struct FaceSearchLibraryDemo {
     }
   }
 
-  /**
-   * Clear the old list and read the first 100 records.
-   *
-   * 清空旧列表并读取前 100 条。
-   */
+  /** 清空旧列表并读取前 100 条。 */
   private loadFirstPage(): void {
     if (this.database === undefined) return;
     const token: number = ++this.taskToken;
@@ -269,12 +251,7 @@ export struct FaceSearchLibraryDemo {
     this.loadPage(0, token);
   }
 
-  /**
-   * Recount each page and advance by its raw length; merge by ID to avoid duplicate cards after updates
-   * from another connection.
-   *
-   * 每页重新统计总数并按原始页长推进偏移；按 ID 合并，避免跨连接更新产生重复卡片。
-   */
+  /** 每页重新统计总数并按原始页长推进偏移；按 ID 合并，避免跨连接更新产生重复卡片。 */
   private async loadPage(offset: number, token: number): Promise<void> {
     const database: FaceSearchDatabase | undefined = this.database;
     if (database === undefined || this.busy) return;
@@ -319,11 +296,7 @@ export struct FaceSearchLibraryDemo {
     }
   }
 
-  /**
-   * Prefetch the next batch when item 90, 190, 290, and so on becomes visible.
-   *
-   * 第 90、190、290…条进入可见范围时提前加载下一批。
-   */
+  /** 第 90、190、290…条进入可见范围时提前加载下一批。 */
   private loadMoreIfNeeded(lastVisible: number): void {
     if (this.busy || this.lookupMode || this.entries.length === 0 || !this.canLoadMore) return;
     if (lastVisible >= this.entries.length - PREFETCH_REMAINING - 1) {
@@ -332,11 +305,7 @@ export struct FaceSearchLibraryDemo {
     }
   }
 
-  /**
-   * Look up the complete Face ID exactly; NOT_FOUND is an ordinary empty result.
-   *
-   * 完整 Face ID 精确查询；NOT_FOUND 是正常空结果。
-   */
+  /** 完整 Face ID 精确查询；NOT_FOUND 是正常空结果。 */
   private async lookup(): Promise<void> {
     const database: FaceSearchDatabase | undefined = this.database;
     const query: string = this.faceId.trim();
@@ -403,12 +372,7 @@ export struct FaceSearchLibraryDemo {
     });
   }
 
-  /**
-   * The screen owns only progress and results; the importer handles parsing, download, extraction, and
-   * batched writes.
-   *
-   * 页面只负责进度和结果；解析、下载、提取及分批写库由导入器完成。
-   */
+  /** 页面只负责进度和结果；解析、下载、提取及分批写库由导入器完成。 */
   private startImport(images: boolean): Promise<void> {
     const token: number = this.lifecycleToken;
     const operation: Promise<void> = this.runImport(images).catch((error: Error): void => {
@@ -453,7 +417,6 @@ export struct FaceSearchLibraryDemo {
     };
     const result: HiFaceResult<FaceSearchImportSummary> = images ?
       await importer.importImages(progress) : await importer.importFeatures(progress);
-    // A returning old task must not clear the new screen's importer.
     // 旧任务返回时不能清空新页面导入器。
     if (this.importer === importer) this.importer = undefined;
     if (!this.isTaskActive(token)) return;
@@ -524,11 +487,7 @@ export struct FaceSearchLibraryDemo {
     });
   }
 
-  /**
-   * Deletion is irreversible; show the current ID before executing it.
-   *
-   * 删除是不可恢复的数据操作，先展示当前 ID 再执行。
-   */
+  /** 删除是不可恢复的数据操作，先展示当前 ID 再执行。 */
   private confirmDelete(faceId: string): void {
     if (this.busy) return;
     const lifecycle: number = this.lifecycleToken;
@@ -579,11 +538,7 @@ export struct FaceSearchLibraryDemo {
     return this.active && this.database !== undefined && token === this.taskToken;
   }
 
-  /**
-   * Replacement changes recent ordering; update metadata by ID to avoid duplicate cards during paging.
-   *
-   * recent 排序会因覆盖记录改变；按 ID 更新元数据，避免分页期间出现重复卡片。
-   */
+  /** recent 排序会因覆盖记录改变；按 ID 更新元数据，避免分页期间出现重复卡片。 */
   private mergeEntries(page: FaceSearchLibraryItem[]): FaceSearchLibraryItem[] {
     const merged: FaceSearchLibraryItem[] = this.entries.slice();
     const indexes: Map<string, number> = new Map();

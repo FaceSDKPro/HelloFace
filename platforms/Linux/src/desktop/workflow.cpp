@@ -348,11 +348,17 @@ std::vector<Box> searchBoxes(const HiFaceSearchCameraResultV1& result, bool comp
         if (result.progress == HIFACE_SEARCH_STAGE_EMPTY_GALLERY) box.label = "Empty gallery";
         else if (result.progress == HIFACE_SEARCH_STAGE_FACE_TOO_SMALL) box.label = "Move closer";
         if (completed && result.end_reason == HIFACE_SEARCH_END_SPOOF_DETECTED) box.label = "Liveness rejected";
-        else if (matched) box.label.assign(face.face_id, strnlen(face.face_id, sizeof(face.face_id)));
+        else if (matched) {
+            std::ostringstream caption;
+            caption.imbue(std::locale::classic());
+            caption << box.face_id << '=' << std::fixed << std::setprecision(2) << face.similarity;
+            if (box.liveness) caption << ", Liveness=" << *box.liveness;
+            box.label = caption.str();
+        }
         else if (rejected || (completed && face.has_similarity && !face.threshold_passed)) {
             box.label = "Unknown"; box.search_mark = SearchMark::Rejected;
         }
-        if (completed && face.has_similarity && std::isfinite(face.similarity)) box.label += " " + score(face.similarity);
+        if (!matched && completed && face.has_similarity && std::isfinite(face.similarity)) box.label += " " + score(face.similarity);
         box.points.reserve(HIFACE_FACE_LANDMARK_FLOAT_COUNT / 2);
         for (size_t j = 0; j < HIFACE_FACE_LANDMARK_FLOAT_COUNT; j += 2)
             if (std::isfinite(face.landmarks[j]) && std::isfinite(face.landmarks[j+1]))

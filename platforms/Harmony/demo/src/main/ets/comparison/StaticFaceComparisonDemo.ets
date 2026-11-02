@@ -11,16 +11,10 @@ import { PixelMapResource } from '../ui/PixelMapResource';
 import { DemoErrorUi } from '../ui/DemoErrorUi';
 import { FacePhotoPicker } from './FacePhotoPicker';
 
-/**
- * ArkTS counterpart of Android's two-slot comparison: extract once per image, then compare HF1
- * synchronously.
- *
- * Android 双槽位对比页的 ArkTS 对应实现：每张图片只提取一次特征，再同步比较 HF1。
- */
+/** Android 双槽位对比页的 ArkTS 对应实现：每张图片只提取一次特征，再同步比较 HF1。 */
 @Component
 export struct StaticFaceComparisonDemo {
   @Require
-  // Do not deep-copy the shared SDK instance with @Prop.
   // 共享 SDK 实例不能用 @Prop 深拷贝。
   sdk: HiFaceSdk;
   onExit: () => void = () => {};
@@ -30,7 +24,6 @@ export struct StaticFaceComparisonDemo {
   @State private rightStatus: string = '';
   @State private leftProcessing: boolean = false;
   @State private rightProcessing: boolean = false;
-  // ArkUI observes only readiness; keep face features in nonreactive private fields.
   // ArkUI 只观察就绪状态；实际人脸特征保留为非响应式私有字段。
   @State private leftReady: boolean = false;
   @State private rightReady: boolean = false;
@@ -186,8 +179,6 @@ export struct StaticFaceComparisonDemo {
   }
 
   private async pickPhoto(slot: number): Promise<void> {
-    // Allow independent selection and queuing for both slots, but avoid redundant requests while a slot is
-    // processing.
     // 两个槽位可分别选择和排队处理；同一槽位处理期间避免重复堆积无意义请求。
     if (this.pickerOpen || (slot === 0 ? this.leftProcessing : this.rightProcessing)) {
       return;
@@ -211,8 +202,6 @@ export struct StaticFaceComparisonDemo {
     }
     const generation: number = this.beginSlotProcessing(slot);
     try {
-      // Match Android: show the selected original first, replace it with the 333x333 aligned face on
-      // success, and retain it on failure.
       // 与 Android 一致先显示新选原图；成功后再替换为 333×333 对齐脸，失败时保留所选图片。
       const selectedPreview: image.PixelMap | undefined = await PixelMapResource.createRgba(
         input.rgba.data, input.rgba.width, input.rgba.height);
@@ -309,12 +298,7 @@ export struct StaticFaceComparisonDemo {
     this.clearComparison();
   }
 
-  /**
-   * If reading a new photo fails, retain the existing image and feature and update only the
-   * corresponding error.
-   *
-   * 读取新照片失败时保留槽位原有图片和特征，只更新对应错误提示。
-   */
+  /** 读取新照片失败时保留槽位原有图片和特征，只更新对应错误提示。 */
   private setPickerError(slot: number, message: string): void {
     if (slot === 0) {
       this.leftStatus = message;

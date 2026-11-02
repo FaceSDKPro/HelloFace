@@ -18,8 +18,9 @@ public final class FaceSearchOverlayStateTest {
         assertTrue(state.resultText().contains("Face ID: " + id));
         assertTrue(state.resultText().contains("0.000"));
         assertEquals(Float.valueOf(0f), state.livenessScore());
-        assertEquals(id + ", Simi=0.98, Liveness=0.00", state.bestMatchCaption(true));
-        assertEquals(id + ", Simi=0.98", state.bestMatchCaption(false));
+        assertEquals(id + "=0.98, Liveness=0.00", state.bestMatchCaption(true));
+        assertEquals(state.bestMatchCaption(true), state.caption(0));
+        assertEquals(id + "=0.98", state.bestMatchCaption(false));
         show(state, frame(2), 200);
         assertEquals("", state.resultText());
         assertNull(state.livenessScore());
@@ -44,8 +45,8 @@ public final class FaceSearchOverlayStateTest {
         state.accept(value, 0);
         assertEquals("", state.bestMatchCaption(true));
         state.complete(new FaceSearchResult(FaceSearchResult.EndReason.MATCH_FOUND, .98f, value), 100);
-        assertEquals("best-person, Simi=0.95, Liveness=0.98", state.bestMatchCaption(true));
-        assertEquals("best-person, Simi=0.95", state.bestMatchCaption(false));
+        assertEquals("best-person=0.95, Liveness=0.98", state.bestMatchCaption(true));
+        assertEquals("best-person=0.95", state.bestMatchCaption(false));
         state.expire(1000);
         assertEquals("", state.bestMatchCaption(true));
     }
@@ -201,6 +202,7 @@ public final class FaceSearchOverlayStateTest {
         state.accept(next, 33);
         assertEquals(FaceSearchOverlayState.COLOR_PENDING, state.color(0));
         assertEquals("相似度 0.960", state.details(0));
+        assertEquals("B=0.96", state.caption(0));
         state.complete(new FaceSearchResult(FaceSearchResult.EndReason.MATCH_FOUND, null, next), 40);
         assertEquals(FaceSearchOverlayState.COLOR_MATCHED, state.color(0));
         assertEquals("B", state.label(0));

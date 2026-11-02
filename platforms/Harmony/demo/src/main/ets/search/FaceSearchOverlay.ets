@@ -40,7 +40,8 @@ export class FaceSearchOverlay {
       context.strokeRect(x, y, faceWidth, faceHeight);
 
       if (visual.label.length === 0) continue;
-      FaceSearchOverlay.drawLabel(context, visual.label, visual.details, x, y, width, height);
+      FaceSearchOverlay.drawLabel(context, visual.caption.length > 0 ? visual.caption : visual.label,
+        visual.caption.length > 0 ? '' : visual.details, x, y, width, height);
     }
     context.restore();
   }

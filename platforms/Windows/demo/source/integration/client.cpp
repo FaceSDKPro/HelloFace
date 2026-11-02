@@ -25,6 +25,8 @@ void validateImage(const Image& image) {
 }
 }
 Client::Client(const std::filesystem::path& database) {
+    const auto path = database.u8string();
+    if (path.find('\0') != std::string::npos) throw std::invalid_argument("Database path contains NUL");
     if (hiface_get_api_version_v1() != HIFACE_C_API_VERSION_V1)
         throw std::runtime_error("HiFace DLL/header version mismatch");
     HiFaceRuntimeConfigV1 runtime{sizeof(runtime), HIFACE_C_API_VERSION_V1, 0, 0};
@@ -38,7 +40,6 @@ Client::Client(const std::filesystem::path& database) {
     try {
         check(hiface_session_create_v1(&config, &session_), "create session");
         if (database.has_parent_path()) std::filesystem::create_directories(database.parent_path());
-        const auto path = database.u8string();
         check(hiface_search_open_v1(path.c_str(), &database_), "open face database");
         load(HIFACE_MODEL_DETECTOR);
         load(HIFACE_MODEL_FEATURE);
@@ -315,6 +316,8 @@ std::vector<ImageFaceCapture> Client::captureFaces(const Image& image, uint32_t 
     return result;
 }
 void Client::insertFeature(const std::string& id, const Feature& feature) {
+    if (id.empty() || id.size() > HIFACE_SEARCH_MAX_TEXT_BYTES || id.find('\0') != std::string::npos)
+        throw std::invalid_argument("Invalid face ID");
     std::array<char, HIFACE_FEATURE_TEXT_BUFFER_SIZE> text{};
     check(hiface_feature_encode_text_v1(feature.data(), feature.size(), text.data(), text.size()), "encode HF1");
     HiFaceSearchFeatureEntryV1 entry{sizeof(entry), id.c_str(), "", "", text.data(),

@@ -1,5 +1,5 @@
-import photoAccessHelper from '@ohos.file.photoAccessHelper';
-import image from '@ohos.multimedia.image';
+import { photoAccessHelper } from '@kit.MediaLibraryKit';
+import { image } from '@kit.ImageKit';
 import { fileIo } from '@kit.CoreFileKit';
 import { RgbaImage } from 'hiface';
 import { PixelMapResource } from '../ui/PixelMapResource';

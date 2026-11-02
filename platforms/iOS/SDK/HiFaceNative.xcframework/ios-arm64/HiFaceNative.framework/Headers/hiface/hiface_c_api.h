@@ -65,16 +65,24 @@ typedef struct HiFaceLicenseIdentityV1 {
     char installation_id_sha256[65];
 } HiFaceLicenseIdentityV1;
 typedef HiFaceStatus (HIFACE_CALL *HiFaceLicenseIdentityCallbackV1)(void*, HiFaceLicenseIdentityV1*);
-/* 经硬件 MAC 认证的 256 字节状态；曾激活后缺失不能报告 NOT_FOUND。 */
+/* 当前平台从 SQLite 读取经软件 MAC 和字段一致性校验的 256 字节状态。
+ * 未启用的新库可报告 NOT_FOUND；已启用库的状态缺失、损坏或读取失败必须报错，
+ * 不得按首次启用重置。软件 MAC 不提供硬件防篡改或完整快照防回放保证。
+ */
 typedef HiFaceStatus (HIFACE_CALL *HiFaceLicenseReadStateCallbackV1)(void*, uint8_t*, size_t, size_t*);
-/* journal 覆盖状态与可选签名原文；只在完整持久化后返回 OK。
- * 日常检查点 envelope_size=0，不重写证书；换证原文与状态必须一起恢复。
+/* 当前平台以同一 SQLite 事务提交状态、启用标记与可选证书原文；完整持久化后才返回 OK。
+ * expected_sequence 为 CAS 前置序号，冲突返回 BUSY；不使用独立业务 journal。
+ * 日常检查点 envelope_size=0，保留已有证书；换证原文与状态必须原子提交。
  */
 typedef HiFaceStatus (HIFACE_CALL *HiFaceLicenseCommitStateCallbackV1)(
         void*, uint64_t expected_sequence, const uint8_t* state, size_t state_size,
         const char* envelope, size_t envelope_size);
+/* 从同一 SQLite 库读取经校验的正式证书原文；无正式证书时返回 NOT_FOUND。 */
 typedef HiFaceStatus (HIFACE_CALL *HiFaceLicenseReadEnvelopeCallbackV1)(void*, char*, size_t, size_t*);
-/* 当前系统启动标识的摘要；不是墙钟。不同启动不能比较单调钟大小推断经过时间。 */
+/* 含义由 SDK 私有时钟连续性模式决定：BootIdentity 使用真实系统启动标识摘要；
+ * 五平台当前使用 ResettingUptime，SQLite 适配器返回固定域摘要，Core 校验真实 OS uptime
+ * 的重置与持久时间高水位。该摘要不是墙钟或跨启动计时证据，不能推断关机经过时间。
+ */
 typedef HiFaceStatus (HIFACE_CALL *HiFaceLicenseBootCallbackV1)(void*, uint8_t out_boot_digest[32]);
 typedef struct HiFaceLicenseDeviceProfileV1 {
     uint32_t struct_size;
@@ -811,7 +819,7 @@ HIFACE_API void HIFACE_CALL hiface_set_log_callback_v1(
  *
  * 输出是把原始余弦从 [-1, 1] 线性映射后的 [0, 1] 分数 —— 注意阈值换算：
  * 分数 0.80 对应原始余弦 0.60。这个函数不依赖 session，也不需要任何模型。
- * 三端必须共用它而不是各自实现，否则同一对人脸会在不同平台得到不同分数。
+ * 各平台必须共用它而不是各自实现，否则同一对人脸会在不同平台得到不同分数。
  */
 HIFACE_API HiFaceStatus HIFACE_CALL hiface_feature_compare_v1(
         const float* probe,

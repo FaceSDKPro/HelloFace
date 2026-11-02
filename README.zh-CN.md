@@ -2,13 +2,13 @@
 
 [English](README.md) | 简体中文
 
-**0.8.5 Beta** HelloFace: [https://github.com/FaceSDKPro](https://github.com/FaceSDKPro)
+**0.8.6 Beta** HelloFace: [https://github.com/FaceSDKPro](https://github.com/FaceSDKPro)
 
-Android、iOS、Harmony、Windows 和 Linux SDK 与 Demo 统一更新至 0.8.5。
+Android、iOS、Harmony、Windows 和 Linux SDK 与 Demo 统一更新至 0.8.6。
 
 ### 离线人脸检测、采集、活体、1:1 比对及 1:N/M:N 搜索。
 
-![HelloFace](AboutHelloFace.png)
+![HelloFace](image/AboutHelloFace.png)
 
 | 平台 | 环境 | 接入说明 |
 |---|---|---|
@@ -35,6 +35,8 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 - 人脸搜索识别要求摄像头成像清晰；室外环境下，摄像头宽动态范围须大于 100 dB。
 - Windows/Linux 桌面与摄像头待真机摄像头验证；移动端运行需配置自己的应用签名。
 
+数据处理与隐私：[中文说明](Doc/DATA_PROCESSING_AND_PRIVACY.zh-CN.md) · [English](Doc/DATA_PROCESSING_AND_PRIVACY.md)
+
 其他平台在完善支持中，有问题请提 issues。
 
 邮箱联系：[FaceAISDK.Service@gmail.com](mailto:FaceAISDK.Service@gmail.com)
@@ -46,11 +48,11 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
   </tr>
   <tr>
     <td align="center">
-      <a href="https://www.pgyer.com/HelloFace"><img src="AndroidAPK.png" alt="Android APK 下载二维码" width="180"></a><br>
+      <a href="https://www.pgyer.com/HelloFace"><img src="image/AndroidAPK.png" alt="Android APK 下载二维码" width="180"></a><br>
       <a href="https://www.pgyer.com/HelloFace">点击或扫码下载</a>
     </td>
     <td align="center">
-      <img src="WeChat.jpg" alt="微信二维码" width="180"><br>
+      <img src="image/WeChat.jpg" alt="微信二维码" width="180"><br>
       扫码联系
     </td>
   </tr>

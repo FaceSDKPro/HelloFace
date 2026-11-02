@@ -55,7 +55,7 @@ SDK正在Beta 迭代公测中，请及时升级SDK版本。主流程与界面验
 
 布局回归覆盖 100/125/150/200% 几何尺寸；实际 Windows 高 DPI、输入法、相机权限/占用/拔插、
 长时间运行、真人识别和照片/视频活体攻击效果仍须真机验收。Wine 与交叉编译检查不能替代这些项目。
-SDK、公开 ABI 与稳定模型发布策略保持固定，本次只修改 Demo 和接入说明。
+修改 Demo 时保持 SDK、公开 ABI 与稳定模型发布策略，构建和设备验收分别记录。
 
 ## 修改与编译
 
@@ -72,10 +72,13 @@ cmake --build build --config Release
 
 ## 构建后的程序包
 
-重新编译 EXE 或替换 DLL 后，使用 `tools/sign_product.py` 更新匹配的 `.hfpackage`；发布密钥保留在构建端。示例：
+重新编译 EXE 或替换 DLL 后，在导出的 Demo 根目录使用包内 `tools/sign_product.py`
+更新匹配的 `.hfpackage`。工具路径相对于该 Demo 根目录；版本读取同包的
+`sdk-metadata.json`，发布密钥保留在构建端。示例：
 
 ```powershell
-python tools/sign_product.py --platform windows --root . --entry bin/hiface_demo.exe --sdk bin/hiface.dll --private-key C:/secure/publisher.pem --product-id com.hiface.demo --version 0.8.0 --replace
+$SdkVersion = (Get-Content -LiteralPath sdk-metadata.json -Raw | ConvertFrom-Json).version
+python tools/sign_product.py --platform windows --root . --entry bin/hiface_demo.exe --sdk bin/hiface.dll --private-key C:/secure/publisher.pem --product-id com.hiface.demo --version $SdkVersion --replace
 ```
 
 CLI 使用自己的 `bin/hiface_cli.exe.hfpackage`，并采用相同产品和发布密钥。SDK 的固定版本、头文件、导入库与 DLL 须匹配。HF1 与人脸数据库未加密，导出反馈前移除个人数据和本机路径。

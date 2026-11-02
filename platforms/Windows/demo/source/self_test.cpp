@@ -38,12 +38,12 @@ void runSelfTest() {
         std::fill(std::begin(best.face_id), std::end(best.face_id), '\0');
         std::copy_n("best-person", 11, best.face_id); best.similarity = .95f;
         update.faces.push_back(best); update.has_liveness = true; update.liveness_score = .98f;
-        require(bestSearchMatchCaption(update, true) == "best-person, Simi=0.95, Liveness=0.98",
+        require(bestSearchMatchCaption(update, true) == "best-person=0.95, Liveness=0.98",
             "Caption must select the highest confirmed match and keep both scores together");
-        require(bestSearchMatchCaption(update, false) == "best-person, Simi=0.95",
+        require(bestSearchMatchCaption(update, false) == "best-person=0.95",
             "Disabled liveness must not appear in the result caption");
         update.liveness_score = 0;
-        require(bestSearchMatchCaption(update, true) == "best-person, Simi=0.95, Liveness=0.00",
+        require(bestSearchMatchCaption(update, true) == "best-person=0.95, Liveness=0.00",
             "A real zero liveness score must not disappear");
         update.end_reason = HIFACE_SEARCH_END_SPOOF_DETECTED;
         require(bestSearchMatchCaption(update, true).empty(), "Spoof rejection must not display a matched caption");

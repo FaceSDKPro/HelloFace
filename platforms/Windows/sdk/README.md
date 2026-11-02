@@ -1,4 +1,4 @@
-# HiFace Windows SDK · 0.8.5 Beta
+# HiFace Windows SDK · 0.8.6 Beta
 
 English | [简体中文](README.zh-CN.md)
 
@@ -22,7 +22,7 @@ cmake --build build --config Release
 In your CMake project:
 
 ```cmake
-find_package(HiFace 0.8.5 CONFIG REQUIRED COMPONENTS C)
+find_package(HiFace 0.8.6 CONFIG REQUIRED COMPONENTS C)
 target_link_libraries(your_app PRIVATE HiFace::HiFace)
 ```
 
@@ -47,6 +47,11 @@ The headers define parameters and ownership. Decode images and handle orientatio
 photo capture accepts even RGBA dimensions from 2 to 4096. Supply camera planes with correct strides and rotation.
 Serialize calls per Session/Database off the UI thread. Wait for active calls before destruction
 and use SDK functions to release SDK-owned results. HF1 and databases are unencrypted.
+
+The Demo's C++ database adapter requires nonempty IDs and at most 1024 UTF-8 bytes
+for each ID, group and tag, with no embedded NUL. Paths also reject NUL. Invalid
+text fails before calling the C API, so it cannot select a truncated ID or scope.
+Save batches contain 1–1000 complete HF1 entries and nonnegative update times.
 
 For application examples, see the separate Demo's `source/` and `source/integration/`.
 Missing DLL / `0xc000007b`: check the complete x64 DLL set. Initialization failure: check status and logs.
