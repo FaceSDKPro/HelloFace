@@ -37,10 +37,21 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 
 Support for other platforms is being improved. If you encounter a problem, please open an issue.
 
-[Releases](https://github.com/FaceSDKPro/HelloFace/releases) · [Android APK builds](https://github.com/FaceSDKPro/HelloFace/actions/workflows/android-demo.yml) · [Issues](https://github.com/FaceSDKPro/HelloFace/issues)
-
 Email: [FaceAISDK.Service@gmail.com](mailto:FaceAISDK.Service@gmail.com)
 
-WeChat contact:
-
-<img src="WeChat.jpg" alt="WeChat QR code" width="200">
+<table>
+  <tr>
+    <th align="center">Download Android APK</th>
+    <th align="center">WeChat contact</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://www.pgyer.com/HelloFace"><img src="AndroidAPK.png" alt="Android APK download QR code" width="180"></a><br>
+      <a href="https://www.pgyer.com/HelloFace">Click or scan to download</a>
+    </td>
+    <td align="center">
+      <img src="WeChat.jpg" alt="WeChat QR code" width="180"><br>
+      Scan to contact
+    </td>
+  </tr>
+</table>
