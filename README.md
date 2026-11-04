@@ -1,18 +1,55 @@
-# HelloFace
+<div align="center">
+  <p><samp>ON-DEVICE FACE AI</samp></p>
+  <h1>HelloFace</h1>
+  <p>Offline face detection, capture, liveness, 1:1 verification and 1:N/M:N search.</p>
+  <p><strong>0.8.6 Beta</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a></p>
+  <p>
+    <img src="https://img.shields.io/badge/COMPUTE-ON--DEVICE-06B6D4?style=flat-square&amp;labelColor=0B1220" alt="Compute: on-device">
+    <img src="https://img.shields.io/badge/SDK-NATIVE-3B82F6?style=flat-square&amp;labelColor=0B1220" alt="SDK: native">
+    <img src="https://img.shields.io/badge/PLATFORMS-5-8B5CF6?style=flat-square&amp;labelColor=0B1220" alt="Platforms: 5">
+  </p>
+  <p>
+    <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
+    &nbsp; / &nbsp;
+    <a href="#get-the-code">Quick start</a> · <a href="#platforms">SDK guides</a>
+  </p>
+</div>
 
-English | [中文](README.zh-CN.md)
+<table width="100%">
+  <tr>
+    <td colspan="2" align="center">
+      <h3>🔒 Offline &amp; Private</h3>
+      <p>Process face data locally, without uploading images or face features to the cloud.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🎯 Complete Face Toolkit</h3>
+      <p>Face detection, feature extraction, liveness detection, 1:1 verification, and 1:N/M:N search.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>⚡ Real-Time Processing</h3>
+      <p>Detect, verify, and search faces in live camera streams.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🌍 Cross-Platform Support</h3>
+      <p>SDKs for Android, iOS, HarmonyOS, Windows, and Linux.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🧩 Easy Integration</h3>
+      <p>Get started with SDK APIs, integration guides, and customizable demos.</p>
+    </td>
+  </tr>
+</table>
 
-**0.8.6 Beta** HelloFace: [https://www.helloface.dev](https://www.helloface.dev)
+<details>
+  <summary><strong>Explore the product overview</strong></summary>
+  <p align="center"><img src="images/AboutHelloFace-EN.png" alt="HelloFace product overview and application scenarios" width="100%"></p>
+</details>
 
-### Offline face detection, capture, liveness, 1:1 verification and 1:N/M:N search.
-
-1. 🔒 **Offline & Private**: Process face data locally, without uploading images or face features to the cloud.
-2. 🎯 **Complete Face Toolkit**: Face detection, feature extraction, liveness detection, 1:1 verification, and 1:N/M:N search.
-3. 🌍 **Cross-Platform Support**: SDKs for Android, iOS, HarmonyOS, Windows, and Linux.
-4. ⚡ **Real-Time Processing**: Detect, verify, and search faces in live camera streams.
-5. 🧩 **Easy Integration**: Get started with SDK APIs, integration guides, and customizable demos.
-
-![HelloFace](images/AboutHelloFace-EN.png)
+## Platforms
 
 | Platform | Requirements | Integration |
 |---|---|---|
@@ -33,6 +70,8 @@ This repository uses Git LFS to manage large files such as SDK binaries. If you 
 git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 ```
 
+## Before you deploy
+
 - The Demo UI on each platform is for SDK demonstration only; you can freely customize the UI and interactions.
 - The SDK is in iterative public Beta testing. Please keep the SDK version up to date.
 - The current model does not support face recognition for people under 12 and must not be used in financial scenarios.
@@ -40,6 +79,8 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 - Windows/Linux desktop and camera workflows await testing with real cameras; mobile apps require your own application signing.
 
 Data processing and privacy: [English](docs/DATA_PROCESSING_AND_PRIVACY.md) · [中文说明](docs/DATA_PROCESSING_AND_PRIVACY.zh-CN.md)
+
+## Connect
 
 Support for other platforms is being improved. If you encounter a problem, please open an issue.
 
