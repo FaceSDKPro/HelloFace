@@ -8,7 +8,7 @@ Android, iOS, Harmony, Windows, and Linux SDKs and Demos are updated to 0.8.6.
 
 ### Offline face detection, capture, liveness, 1:1 verification and 1:N/M:N search.
 
-![HelloFace](image/AboutHelloFace-EN.png)
+![HelloFace](images/AboutHelloFace-EN.png)
 
 | Platform | Requirements | Integration |
 |---|---|---|
@@ -35,7 +35,7 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 - Face search requires clear camera images; outdoor deployments require a camera with a wide dynamic range greater than 100 dB.
 - Windows/Linux desktop and camera workflows await testing with real cameras; mobile apps require your own application signing.
 
-Data processing and privacy: [English](Doc/DATA_PROCESSING_AND_PRIVACY.md) · [中文说明](Doc/DATA_PROCESSING_AND_PRIVACY.zh-CN.md)
+Data processing and privacy: [English](docs/DATA_PROCESSING_AND_PRIVACY.md) · [中文说明](docs/DATA_PROCESSING_AND_PRIVACY.zh-CN.md)
 
 Support for other platforms is being improved. If you encounter a problem, please open an issue.
 
@@ -48,11 +48,11 @@ Email: [FaceAISDK.Service@gmail.com](mailto:FaceAISDK.Service@gmail.com)
   </tr>
   <tr>
     <td align="center">
-      <a href="https://www.pgyer.com/HelloFace"><img src="image/AndroidAPK.png" alt="Android APK download QR code" width="180"></a><br>
+      <a href="https://www.pgyer.com/HelloFace"><img src="images/AndroidAPK.png" alt="Android APK download QR code" width="180"></a><br>
       <a href="https://www.pgyer.com/HelloFace">Click or scan to download</a>
     </td>
     <td align="center">
-      <img src="image/WeChat.jpg" alt="WeChat QR code" width="180"><br>
+      <img src="images/WeChat.jpg" alt="WeChat QR code" width="180"><br>
       Scan to contact
     </td>
   </tr>
