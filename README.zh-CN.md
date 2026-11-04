@@ -2,11 +2,15 @@
 
 [English](README.md) | 简体中文
 
-**0.8.6 Beta** HelloFace: [https://github.com/FaceSDKPro](https://github.com/FaceSDKPro)
-
-Android、iOS、Harmony、Windows 和 Linux SDK 与 Demo 统一更新至 0.8.6。
+**0.8.6 Beta** HelloFace: [https://www.helloface.dev](https://www.helloface.dev)
 
 ### 离线人脸检测、采集、活体、1:1 比对及 1:N/M:N 搜索。
+
+1. 🔒 **离线与隐私**：在本地处理人脸数据，无需将图像或人脸特征上传至云端。
+2. 🎯 **完整人脸功能**：支持人脸检测、特征提取、活体检测、1:1 验证及 1:N/M:N 搜索。
+3. 🌍 **跨平台支持**：提供 Android、iOS、HarmonyOS、Windows 和 Linux SDK。
+4. ⚡ **实时处理**：支持实时相机视频流中的人脸检测、验证与搜索。
+5. 🧩 **便捷接入**：通过 SDK API、接入指南和可自定义的 Demo 快速开始开发。
 
 ![HelloFace](images/AboutHelloFace.png)
 

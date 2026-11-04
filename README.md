@@ -2,11 +2,15 @@
 
 English | [中文](README.zh-CN.md)
 
-**0.8.6 Beta** HelloFace: [https://github.com/FaceSDKPro](https://github.com/FaceSDKPro)
-
-Android, iOS, Harmony, Windows, and Linux SDKs and Demos are updated to 0.8.6.
+**0.8.6 Beta** HelloFace: [https://www.helloface.dev](https://www.helloface.dev)
 
 ### Offline face detection, capture, liveness, 1:1 verification and 1:N/M:N search.
+
+1. 🔒 **Offline & Private**: Process face data locally, without uploading images or face features to the cloud.
+2. 🎯 **Complete Face Toolkit**: Face detection, feature extraction, liveness detection, 1:1 verification, and 1:N/M:N search.
+3. 🌍 **Cross-Platform Support**: SDKs for Android, iOS, HarmonyOS, Windows, and Linux.
+4. ⚡ **Real-Time Processing**: Detect, verify, and search faces in live camera streams.
+5. 🧩 **Easy Integration**: Get started with SDK APIs, integration guides, and customizable demos.
 
 ![HelloFace](images/AboutHelloFace-EN.png)
 
