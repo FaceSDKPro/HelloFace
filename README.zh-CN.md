@@ -30,7 +30,7 @@
   </tr>
   <tr>
     <td align="left" nowrap>🌍 <strong>跨平台支持</strong></td>
-    <td align="left">Android · iOS · HarmonyOS · Windows · Linux。</td>
+    <td align="left">已经支持 Android · iOS · HarmonyOS · Windows · Linux；更多平台请期待或提 <a href="https://github.com/FaceSDKPro/HelloFace/issues">issues</a> 描述需求。</td>
   </tr>
   <tr>
     <td align="left" nowrap>🧩 <strong>便捷接入</strong></td>

@@ -30,7 +30,7 @@
   </tr>
   <tr>
     <td align="left" nowrap>🌍 <strong>Cross-Platform Support</strong></td>
-    <td align="left">Android · iOS · HarmonyOS · Windows · Linux.</td>
+    <td align="left">Supports Android · iOS · HarmonyOS · Windows · Linux. Stay tuned for more platforms, or <a href="https://github.com/FaceSDKPro/HelloFace/issues">open an issue</a> to describe your needs.</td>
   </tr>
   <tr>
     <td align="left" nowrap>🧩 <strong>Easy Integration</strong></td>
