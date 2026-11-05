@@ -7,14 +7,12 @@
 </p>
 
 <div align="center">
-  <h1>
-    <a href="https://www.helloface.dev/zh/">
-      <img src="images/hello-face-icon.webp" alt="" width="51" height="51">
-      <img src="images/helloface-wordmark.svg" alt="HelloFace" width="170" height="51">
-    </a>
-  </h1>
+  <p>
+    <a href="https://www.helloface.dev/zh/"><img src="images/hello-face-icon.webp" alt="" width="51" height="51" align="bottom"><img src="images/helloface-wordmark.svg" alt="HelloFace" width="170" height="40" align="bottom"></a>
+    &nbsp; <strong>0.8.6 Beta</strong>
+  </p>
   <p><strong>离线人脸检测、采集、活体、1:1 比对及 1:N/M:N 搜索。</strong></p>
-  <p><strong>0.8.6 Beta</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a></p>
+  <p>🌍 <strong>官方网站</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a> &nbsp; | &nbsp; <img src="images/github-mark.svg" alt="" width="16" height="16" align="bottom"> <a href="https://github.com/FaceSDKPro/HelloFace">GitHub/FaceSDKPro/HelloFace</a></p>
 </div>
 
 <table>
