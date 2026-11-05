@@ -3,7 +3,12 @@
 </p>
 
 <div align="center">
-  <h1>HelloFace</h1>
+  <h1>
+    <a href="https://www.helloface.dev/">
+      <img src="images/hello-face-icon.webp" alt="" width="64" height="64">
+      <img src="images/helloface-wordmark.svg" alt="HelloFace" width="170" height="64">
+    </a>
+  </h1>
   <p><strong>Offline face detection, capture, liveness, 1:1 verification and 1:N/M:N search.</strong></p>
   <p><strong>0.8.6 Beta</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a></p>
   <p>
