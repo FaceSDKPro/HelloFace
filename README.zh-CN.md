@@ -1,7 +1,10 @@
+<p align="left">
+  <img src="images/technology-badges.svg" alt="本地计算 · 原生 SDK · 五个平台" width="486" height="34">
+</p>
+
 <div align="center">
-  <p><samp>本地计算 &nbsp; · &nbsp; 原生 SDK &nbsp; · &nbsp; 五个平台</samp></p>
   <h1>HelloFace</h1>
-  <p>离线人脸检测、采集、活体、1:1 比对及 1:N/M:N 搜索。</p>
+  <p><strong>离线人脸检测、采集、活体、1:1 比对及 1:N/M:N 搜索。</strong></p>
   <p><strong>0.8.6 Beta</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a></p>
   <p>
     <a href="README.md">English</a> · <strong>简体中文</strong>
@@ -11,11 +14,11 @@
 </div>
 
 | 功能 | 说明 |
-|---|---|
+|:---|:---|
 | 🔒 **离线与隐私** | 在本地处理人脸数据，无需将图像或人脸特征上传至云端。 |
 | 🎯 **完整人脸功能** | 支持人脸检测、特征提取、活体检测、1:1 验证及 1:N/M:N 搜索。 |
-| ⚡ **实时处理** | 支持实时相机视频流中的人脸检测、验证与搜索。 |
-| 🌍 **跨平台支持** | 提供 Android、iOS、HarmonyOS、Windows 和 Linux SDK。 |
+| ⚡ **实时处理** | 实时人脸检测、验证与搜索。 |
+| 🌍 **跨平台** | Android · iOS · HarmonyOS · Windows · Linux。 |
 | 🧩 **便捷接入** | 通过 SDK API、接入指南和可自定义的 Demo 快速开始开发。 |
 
 <details>

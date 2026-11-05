@@ -1,7 +1,10 @@
+<p align="left">
+  <img src="images/technology-badges.svg" alt="On-device · Native SDKs · 5 platforms" width="486" height="34">
+</p>
+
 <div align="center">
-  <p><samp>ON-DEVICE &nbsp; · &nbsp; NATIVE SDKs &nbsp; · &nbsp; 5 PLATFORMS</samp></p>
   <h1>HelloFace</h1>
-  <p>Offline face detection, capture, liveness, 1:1 verification and 1:N/M:N search.</p>
+  <p><strong>Offline face detection, capture, liveness, 1:1 verification and 1:N/M:N search.</strong></p>
   <p><strong>0.8.6 Beta</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a></p>
   <p>
     <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
@@ -11,11 +14,11 @@
 </div>
 
 | Capability | Description |
-|---|---|
+|:---|:---|
 | 🔒 **Offline & Private** | Process face data locally, without uploading images or face features to the cloud. |
 | 🎯 **Complete Face Toolkit** | Face detection, feature extraction, liveness detection, 1:1 verification, and 1:N/M:N search. |
-| ⚡ **Real-Time Processing** | Detect, verify, and search faces in live camera streams. |
-| 🌍 **Cross-Platform Support** | SDKs for Android, iOS, HarmonyOS, Windows, and Linux. |
+| ⚡ **Real-Time** | Live face detection, verification, and search. |
+| 🌍 **Cross-Platform** | Android · iOS · HarmonyOS · Windows · Linux. |
 | 🧩 **Easy Integration** | Get started with SDK APIs, integration guides, and customizable demos. |
 
 <details>

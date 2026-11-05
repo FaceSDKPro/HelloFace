@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="486" height="34" viewBox="0 0 486 34" role="img" aria-labelledby="title desc">
+  <title id="title">On-device · Native SDKs · 5 platforms</title>
+  <desc id="desc">HelloFace runs on-device and provides native SDKs for five platforms.</desc>
+  <defs>
+    <linearGradient id="surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#17263a"/>
+      <stop offset="1" stop-color="#0e1929"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#surface)" stroke="#31465c">
+    <rect x="0.5" y="0.5" width="145" height="32" rx="8"/>
+    <rect x="155.5" y="0.5" width="160" height="32" rx="8"/>
+    <rect x="325.5" y="0.5" width="160" height="32" rx="8"/>
+  </g>
+  <g fill="none" stroke="#70d7d0" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="14" y="10" width="13" height="13" rx="2.5"/>
+    <rect x="18" y="14" width="5" height="5" rx="0.8"/>
+    <path d="M18 7.5v2.5m5-2.5v2.5M18 23v2.5m5-2.5v2.5M11.5 14H14m-2.5 5H14m13-5h2.5M27 19h2.5"/>
+    <path d="m176 11-5 5.5 5 5.5m13-11 5 5.5-5 5.5m-5.5-12-3 13"/>
+    <rect x="340" y="9" width="16" height="12" rx="2"/>
+    <path d="M348 21v4m-4 0h8"/>
+    <rect x="352" y="15" width="6" height="10" rx="1.5" fill="#111f30"/>
+  </g>
+  <g fill="#e4eff9" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Arial, sans-serif" font-size="11.5" font-weight="600" letter-spacing="0.7">
+    <text x="40" y="21">ON-DEVICE</text>
+    <text x="204" y="21">NATIVE SDKs</text>
+    <text x="370" y="21">5 PLATFORMS</text>
+  </g>
+</svg>
