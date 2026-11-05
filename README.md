@@ -1,13 +1,8 @@
 <div align="center">
-  <p><samp>ON-DEVICE FACE AI</samp></p>
+  <p><samp>ON-DEVICE &nbsp; · &nbsp; NATIVE SDKs &nbsp; · &nbsp; 5 PLATFORMS</samp></p>
   <h1>HelloFace</h1>
   <p>Offline face detection, capture, liveness, 1:1 verification and 1:N/M:N search.</p>
   <p><strong>0.8.6 Beta</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a></p>
-  <p>
-    <img src="https://img.shields.io/badge/COMPUTE-ON--DEVICE-06B6D4?style=flat-square&amp;labelColor=0B1220" alt="Compute: on-device">
-    <img src="https://img.shields.io/badge/SDK-NATIVE-3B82F6?style=flat-square&amp;labelColor=0B1220" alt="SDK: native">
-    <img src="https://img.shields.io/badge/PLATFORMS-5-8B5CF6?style=flat-square&amp;labelColor=0B1220" alt="Platforms: 5">
-  </p>
   <p>
     <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
     &nbsp; / &nbsp;
@@ -15,34 +10,13 @@
   </p>
 </div>
 
-<table width="100%">
-  <tr>
-    <td colspan="2" align="center">
-      <h3>🔒 Offline &amp; Private</h3>
-      <p>Process face data locally, without uploading images or face features to the cloud.</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <h3>🎯 Complete Face Toolkit</h3>
-      <p>Face detection, feature extraction, liveness detection, 1:1 verification, and 1:N/M:N search.</p>
-    </td>
-    <td width="50%" valign="top">
-      <h3>⚡ Real-Time Processing</h3>
-      <p>Detect, verify, and search faces in live camera streams.</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <h3>🌍 Cross-Platform Support</h3>
-      <p>SDKs for Android, iOS, HarmonyOS, Windows, and Linux.</p>
-    </td>
-    <td width="50%" valign="top">
-      <h3>🧩 Easy Integration</h3>
-      <p>Get started with SDK APIs, integration guides, and customizable demos.</p>
-    </td>
-  </tr>
-</table>
+| Capability | Description |
+|---|---|
+| 🔒 **Offline & Private** | Process face data locally, without uploading images or face features to the cloud. |
+| 🎯 **Complete Face Toolkit** | Face detection, feature extraction, liveness detection, 1:1 verification, and 1:N/M:N search. |
+| ⚡ **Real-Time Processing** | Detect, verify, and search faces in live camera streams. |
+| 🌍 **Cross-Platform Support** | SDKs for Android, iOS, HarmonyOS, Windows, and Linux. |
+| 🧩 **Easy Integration** | Get started with SDK APIs, integration guides, and customizable demos. |
 
 <details>
   <summary><strong>Explore the product overview</strong></summary>

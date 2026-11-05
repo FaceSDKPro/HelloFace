@@ -1,13 +1,8 @@
 <div align="center">
-  <p><samp>ON-DEVICE FACE AI</samp></p>
+  <p><samp>本地计算 &nbsp; · &nbsp; 原生 SDK &nbsp; · &nbsp; 五个平台</samp></p>
   <h1>HelloFace</h1>
   <p>离线人脸检测、采集、活体、1:1 比对及 1:N/M:N 搜索。</p>
   <p><strong>0.8.6 Beta</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a></p>
-  <p>
-    <img src="https://img.shields.io/badge/COMPUTE-ON--DEVICE-06B6D4?style=flat-square&amp;labelColor=0B1220" alt="本地计算">
-    <img src="https://img.shields.io/badge/SDK-NATIVE-3B82F6?style=flat-square&amp;labelColor=0B1220" alt="原生 SDK">
-    <img src="https://img.shields.io/badge/PLATFORMS-5-8B5CF6?style=flat-square&amp;labelColor=0B1220" alt="五个平台">
-  </p>
   <p>
     <a href="README.md">English</a> · <strong>简体中文</strong>
     &nbsp; / &nbsp;
@@ -15,34 +10,13 @@
   </p>
 </div>
 
-<table width="100%">
-  <tr>
-    <td colspan="2" align="center">
-      <h3>🔒 离线与隐私</h3>
-      <p>在本地处理人脸数据，无需将图像或人脸特征上传至云端。</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <h3>🎯 完整人脸功能</h3>
-      <p>支持人脸检测、特征提取、活体检测、1:1 验证及 1:N/M:N 搜索。</p>
-    </td>
-    <td width="50%" valign="top">
-      <h3>⚡ 实时处理</h3>
-      <p>支持实时相机视频流中的人脸检测、验证与搜索。</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <h3>🌍 跨平台支持</h3>
-      <p>提供 Android、iOS、HarmonyOS、Windows 和 Linux SDK。</p>
-    </td>
-    <td width="50%" valign="top">
-      <h3>🧩 便捷接入</h3>
-      <p>通过 SDK API、接入指南和可自定义的 Demo 快速开始开发。</p>
-    </td>
-  </tr>
-</table>
+| 功能 | 说明 |
+|---|---|
+| 🔒 **离线与隐私** | 在本地处理人脸数据，无需将图像或人脸特征上传至云端。 |
+| 🎯 **完整人脸功能** | 支持人脸检测、特征提取、活体检测、1:1 验证及 1:N/M:N 搜索。 |
+| ⚡ **实时处理** | 支持实时相机视频流中的人脸检测、验证与搜索。 |
+| 🌍 **跨平台支持** | 提供 Android、iOS、HarmonyOS、Windows 和 Linux SDK。 |
+| 🧩 **便捷接入** | 通过 SDK API、接入指南和可自定义的 Demo 快速开始开发。 |
 
 <details>
   <summary><strong>展开产品概览与应用场景</strong></summary>
