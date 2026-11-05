@@ -18,13 +18,32 @@
   </p>
 </div>
 
-| 功能 | 说明 |
-|:---|:---|
-| 🔒 **离线与隐私** | 在本地处理人脸数据，无需将图像或人脸特征上传至云端。 |
-| 🎯 **人脸能力** | 支持人脸检测、特征提取、活体检测、1:1 验证及 1:N/M:N 搜索。 |
-| ⚡ **实时处理** | 实时人脸检测、验证与搜索。 |
-| 🌍 **跨平台** | Android · iOS · HarmonyOS · Windows · Linux。 |
-| 🧩 **便捷接入** | 通过 SDK API、接入指南和可自定义的 Demo 快速开始开发。 |
+<table>
+  <tr>
+    <th align="left" nowrap>功能</th>
+    <th align="left">说明</th>
+  </tr>
+  <tr>
+    <td align="left" nowrap>🔒 <strong>离线与隐私</strong></td>
+    <td align="left">在本地处理人脸数据，无需将图像或人脸特征上传至云端。</td>
+  </tr>
+  <tr>
+    <td align="left" nowrap>🎯 <strong>人脸能力</strong></td>
+    <td align="left">支持人脸检测、特征提取、活体检测、1:1 验证及 1:N/M:N 搜索。</td>
+  </tr>
+  <tr>
+    <td align="left" nowrap>⚡ <strong>实时处理</strong></td>
+    <td align="left">实时人脸检测、验证与搜索。</td>
+  </tr>
+  <tr>
+    <td align="left" nowrap>🌍 <strong>跨平台支持</strong></td>
+    <td align="left">Android · iOS · HarmonyOS · Windows · Linux。</td>
+  </tr>
+  <tr>
+    <td align="left" nowrap>🧩 <strong>便捷接入</strong></td>
+    <td align="left">通过 SDK API、接入指南和可自定义的 Demo 快速开始开发。</td>
+  </tr>
+</table>
 
 <details>
   <summary><strong>展开产品概览与应用场景</strong></summary>

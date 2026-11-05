@@ -18,13 +18,32 @@
   </p>
 </div>
 
-| Capability | Description |
-|:---|:---|
-| 🔒 **Offline & Private** | Process face data locally, without uploading images or face features to the cloud. |
-| 🎯 **Face Toolkit** | Face detection, feature extraction, liveness detection, 1:1 verification, and 1:N/M:N search. |
-| ⚡ **Real-Time** | Live face detection, verification, and search. |
-| 🌍 **Cross-Platform** | Android · iOS · HarmonyOS · Windows · Linux. |
-| 🧩 **Easy Integration** | Get started with SDK APIs, integration guides, and customizable demos. |
+<table>
+  <tr>
+    <th align="left" nowrap>Capability</th>
+    <th align="left">Description</th>
+  </tr>
+  <tr>
+    <td align="left" nowrap>🔒 <strong>Offline &amp; Private</strong></td>
+    <td align="left">Process face data locally, without uploading images or face features to the cloud.</td>
+  </tr>
+  <tr>
+    <td align="left" nowrap>🎯 <strong>Face Toolkit</strong></td>
+    <td align="left">Face detection, feature extraction, liveness detection, 1:1 verification, and 1:N/M:N search.</td>
+  </tr>
+  <tr>
+    <td align="left" nowrap>⚡ <strong>Real-Time Processing</strong></td>
+    <td align="left">Live face detection, verification, and search.</td>
+  </tr>
+  <tr>
+    <td align="left" nowrap>🌍 <strong>Cross-Platform Support</strong></td>
+    <td align="left">Android · iOS · HarmonyOS · Windows · Linux.</td>
+  </tr>
+  <tr>
+    <td align="left" nowrap>🧩 <strong>Easy Integration</strong></td>
+    <td align="left">Get started with SDK APIs, integration guides, and customizable demos.</td>
+  </tr>
+</table>
 
 <details>
   <summary><strong>Explore the product overview</strong></summary>
