@@ -1,5 +1,5 @@
 <p align="left">
-  <img src="images/technology-badges.svg" alt="On-device · Native SDKs · 5 platforms" width="486" height="34">
+  <img src="images/technology-badges.svg" alt="On-device · Native SDKs · 5 platforms" width="382" height="20">
 </p>
 
 <div align="center">
@@ -16,7 +16,7 @@
 | Capability | Description |
 |:---|:---|
 | 🔒 **Offline & Private** | Process face data locally, without uploading images or face features to the cloud. |
-| 🎯 **Complete Face Toolkit** | Face detection, feature extraction, liveness detection, 1:1 verification, and 1:N/M:N search. |
+| 🎯 **Face Toolkit** | Face detection, feature extraction, liveness detection, 1:1 verification, and 1:N/M:N search. |
 | ⚡ **Real-Time** | Live face detection, verification, and search. |
 | 🌍 **Cross-Platform** | Android · iOS · HarmonyOS · Windows · Linux. |
 | 🧩 **Easy Integration** | Get started with SDK APIs, integration guides, and customizable demos. |
