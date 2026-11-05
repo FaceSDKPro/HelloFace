@@ -1,6 +1,6 @@
 <h3 align="left">
   <a href="../../README.md">English</a> · <a href="../../README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português (Brasil)</a><br>
-  <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <strong>日本語</strong> · <a href="README.ko.md">한국어</a>
+  <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <strong>日本語</strong> · <a href="README.ko.md">한국어</a> · <a href="README.ms.md">Bahasa Melayu</a>
 </h3>
 
 <p align="left">

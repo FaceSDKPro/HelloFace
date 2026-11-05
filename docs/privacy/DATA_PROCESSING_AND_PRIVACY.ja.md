@@ -1,7 +1,7 @@
 # データ処理とプライバシーコンプライアンスについて
 
 [English](DATA_PROCESSING_AND_PRIVACY.md) · [简体中文](DATA_PROCESSING_AND_PRIVACY.zh-CN.md) · [Español](DATA_PROCESSING_AND_PRIVACY.es.md) · [Português (Brasil)](DATA_PROCESSING_AND_PRIVACY.pt-BR.md)<br>
-[Français](DATA_PROCESSING_AND_PRIVACY.fr.md) · [Deutsch](DATA_PROCESSING_AND_PRIVACY.de.md) · **日本語** · [한국어](DATA_PROCESSING_AND_PRIVACY.ko.md)
+[Français](DATA_PROCESSING_AND_PRIVACY.fr.md) · [Deutsch](DATA_PROCESSING_AND_PRIVACY.de.md) · **日本語** · [한국어](DATA_PROCESSING_AND_PRIVACY.ko.md) · [Bahasa Melayu](DATA_PROCESSING_AND_PRIVACY.ms.md)
 
 [ホームに戻る](../readme/README.ja.md)
 
