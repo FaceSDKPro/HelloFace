@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="382" height="20" viewBox="0 0 382 20" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="349" height="20" viewBox="0 0 349 20" role="img" aria-labelledby="title desc">
   <title id="title">On-device · Native SDKs · 5 platforms</title>
   <desc id="desc">HelloFace runs on-device and provides native SDKs for five platforms.</desc>
   <defs>
@@ -8,34 +8,34 @@
     </linearGradient>
   </defs>
   <g>
-    <rect width="110" height="20" rx="3" fill="#E34F26"/>
-    <rect x="118" width="128" height="20" rx="3" fill="#239120"/>
-    <rect x="254" width="128" height="20" rx="3" fill="#1572B6"/>
+    <rect width="100" height="20" rx="3" fill="#E34F26"/>
+    <rect x="108" width="118" height="20" rx="3" fill="#239120"/>
+    <rect x="234" width="115" height="20" rx="3" fill="#1572B6"/>
   </g>
   <g fill="url(#shine)">
-    <rect width="110" height="20" rx="3"/>
-    <rect x="118" width="128" height="20" rx="3"/>
-    <rect x="254" width="128" height="20" rx="3"/>
+    <rect width="100" height="20" rx="3"/>
+    <rect x="108" width="118" height="20" rx="3"/>
+    <rect x="234" width="115" height="20" rx="3"/>
   </g>
   <g fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
     <rect x="8" y="5" width="10" height="10" rx="1.5"/>
     <rect x="11" y="8" width="4" height="4" rx="0.5"/>
     <path d="M11 3v2m4-2v2m-4 10v2m4-2v2M6 8h2m-2 4h2m10-4h2m-2 4h2"/>
-    <path d="m130 5-4 5 4 5m12-10 4 5-4 5m-5-11-3 12"/>
-    <rect x="262" y="4" width="12" height="9" rx="1.3"/>
-    <path d="M268 13v3m-3 0h6"/>
-    <rect x="271" y="9" width="5" height="8" rx="1" fill="#1572B6"/>
+    <path d="m120 5-4 5 4 5m12-10 4 5-4 5m-5-11-3 12"/>
+    <rect x="242" y="4" width="12" height="9" rx="1.3"/>
+    <path d="M248 13v3m-3 0h6"/>
+    <rect x="251" y="9" width="5" height="8" rx="1" fill="#1572B6"/>
   </g>
   <g font-family="Verdana, Geneva, DejaVu Sans, sans-serif" font-size="11">
     <g fill="#010101" fill-opacity="0.3">
       <text x="28" y="15">ON-DEVICE</text>
-      <text x="154" y="15">NATIVE SDKs</text>
-      <text x="284" y="15">5 PLATFORMS</text>
+      <text x="144" y="15">NATIVE SDKs</text>
+      <text x="264" y="15">5 PLATFORMS</text>
     </g>
     <g fill="#fff">
       <text x="28" y="14">ON-DEVICE</text>
-      <text x="154" y="14">NATIVE SDKs</text>
-      <text x="284" y="14">5 PLATFORMS</text>
+      <text x="144" y="14">NATIVE SDKs</text>
+      <text x="264" y="14">5 PLATFORMS</text>
     </g>
   </g>
 </svg>

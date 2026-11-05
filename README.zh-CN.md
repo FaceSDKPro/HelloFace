@@ -1,21 +1,20 @@
+<h3 align="left">
+  <a href="README.md">English</a> · <strong>简体中文</strong>
+</h3>
+
 <p align="left">
-  <img src="images/technology-badges.svg" alt="本地计算 · 原生 SDK · 五个平台" width="382" height="20">
+  <img src="images/technology-badges.svg" alt="本地计算 · 原生 SDK · 五个平台" width="349" height="20">
 </p>
 
 <div align="center">
   <h1>
     <a href="https://www.helloface.dev/zh/">
-      <img src="images/hello-face-icon.webp" alt="" width="64" height="64">
-      <img src="images/helloface-wordmark.svg" alt="HelloFace" width="170" height="64">
+      <img src="images/hello-face-icon.webp" alt="" width="51" height="51">
+      <img src="images/helloface-wordmark.svg" alt="HelloFace" width="170" height="51">
     </a>
   </h1>
   <p><strong>离线人脸检测、采集、活体、1:1 比对及 1:N/M:N 搜索。</strong></p>
   <p><strong>0.8.6 Beta</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a></p>
-  <p>
-    <a href="README.md">English</a> · <strong>简体中文</strong>
-    &nbsp; / &nbsp;
-    <a href="#获取代码">快速开始</a> · <a href="#平台接入">SDK 指南</a>
-  </p>
 </div>
 
 <table>
@@ -25,15 +24,11 @@
   </tr>
   <tr>
     <td align="left" nowrap>🔒 <strong>离线与隐私</strong></td>
-    <td align="left">在本地处理人脸数据，无需将图像或人脸特征上传至云端。</td>
+    <td align="left">在本地处理人脸数据，无需将图像或人脸特征上传至云端。 <a href="docs/DATA_PROCESSING_AND_PRIVACY.zh-CN.md"><strong>更多</strong></a></td>
   </tr>
   <tr>
     <td align="left" nowrap>🎯 <strong>人脸能力</strong></td>
     <td align="left">支持人脸检测、特征提取、活体检测、1:1 验证及 1:N/M:N 搜索。</td>
-  </tr>
-  <tr>
-    <td align="left" nowrap>⚡ <strong>实时处理</strong></td>
-    <td align="left">实时人脸检测、验证与搜索。</td>
   </tr>
   <tr>
     <td align="left" nowrap>🌍 <strong>跨平台支持</strong></td>
@@ -42,6 +37,10 @@
   <tr>
     <td align="left" nowrap>🧩 <strong>便捷接入</strong></td>
     <td align="left">通过 SDK API、接入指南和可自定义的 Demo 快速开始开发。</td>
+  </tr>
+  <tr>
+    <td align="left" nowrap>⚡ <strong>实时处理</strong></td>
+    <td align="left">毫秒级别实时人脸检测、验证与搜索。</td>
   </tr>
 </table>
 
@@ -78,8 +77,6 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 - 当前模型不支持12周岁以下儿童人脸识别，不能用于金融相关场景。
 - 人脸搜索识别要求摄像头成像清晰；室外环境下，摄像头宽动态范围须大于 100 dB。
 - Windows/Linux 桌面与摄像头待真机摄像头验证；移动端运行需配置自己的应用签名。
-
-数据处理与隐私：[中文说明](docs/DATA_PROCESSING_AND_PRIVACY.zh-CN.md) · [English](docs/DATA_PROCESSING_AND_PRIVACY.md)
 
 ## 联系我们
 

@@ -1,21 +1,20 @@
+<h3 align="left">
+  <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
+</h3>
+
 <p align="left">
-  <img src="images/technology-badges.svg" alt="On-device · Native SDKs · 5 platforms" width="382" height="20">
+  <img src="images/technology-badges.svg" alt="On-device · Native SDKs · 5 platforms" width="349" height="20">
 </p>
 
 <div align="center">
   <h1>
     <a href="https://www.helloface.dev/">
-      <img src="images/hello-face-icon.webp" alt="" width="64" height="64">
-      <img src="images/helloface-wordmark.svg" alt="HelloFace" width="170" height="64">
+      <img src="images/hello-face-icon.webp" alt="" width="51" height="51">
+      <img src="images/helloface-wordmark.svg" alt="HelloFace" width="170" height="51">
     </a>
   </h1>
   <p><strong>Offline face detection, capture, liveness, 1:1 verification and 1:N/M:N search.</strong></p>
   <p><strong>0.8.6 Beta</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a></p>
-  <p>
-    <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
-    &nbsp; / &nbsp;
-    <a href="#get-the-code">Quick start</a> · <a href="#platforms">SDK guides</a>
-  </p>
 </div>
 
 <table>
@@ -25,15 +24,11 @@
   </tr>
   <tr>
     <td align="left" nowrap>🔒 <strong>Offline &amp; Private</strong></td>
-    <td align="left">Process face data locally, without uploading images or face features to the cloud.</td>
+    <td align="left">Process face data locally, without uploading images or face features to the cloud. <a href="docs/DATA_PROCESSING_AND_PRIVACY.md"><strong>More</strong></a></td>
   </tr>
   <tr>
     <td align="left" nowrap>🎯 <strong>Face Toolkit</strong></td>
     <td align="left">Face detection, feature extraction, liveness detection, 1:1 verification, and 1:N/M:N search.</td>
-  </tr>
-  <tr>
-    <td align="left" nowrap>⚡ <strong>Real-Time Processing</strong></td>
-    <td align="left">Live face detection, verification, and search.</td>
   </tr>
   <tr>
     <td align="left" nowrap>🌍 <strong>Cross-Platform Support</strong></td>
@@ -42,6 +37,10 @@
   <tr>
     <td align="left" nowrap>🧩 <strong>Easy Integration</strong></td>
     <td align="left">Get started with SDK APIs, integration guides, and customizable demos.</td>
+  </tr>
+  <tr>
+    <td align="left" nowrap>⚡ <strong>Real-Time Processing</strong></td>
+    <td align="left">Real-time face detection, verification, and search in milliseconds.</td>
   </tr>
 </table>
 
@@ -78,8 +77,6 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 - The current model does not support face recognition for people under 12 and must not be used in financial scenarios.
 - Face search requires clear camera images; outdoor deployments require a camera with a wide dynamic range greater than 100 dB.
 - Windows/Linux desktop and camera workflows await testing with real cameras; mobile apps require your own application signing.
-
-Data processing and privacy: [English](docs/DATA_PROCESSING_AND_PRIVACY.md) · [中文说明](docs/DATA_PROCESSING_AND_PRIVACY.zh-CN.md)
 
 ## Connect
 
