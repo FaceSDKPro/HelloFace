@@ -1,6 +1,9 @@
 # 数据处理与隐私合规说明
 
-[English](DATA_PROCESSING_AND_PRIVACY.md) | 简体中文 · [返回首页](../README.zh-CN.md)
+[English](DATA_PROCESSING_AND_PRIVACY.md) · **简体中文** · [Español](DATA_PROCESSING_AND_PRIVACY.es.md) · [Português (Brasil)](DATA_PROCESSING_AND_PRIVACY.pt-BR.md)<br>
+[Français](DATA_PROCESSING_AND_PRIVACY.fr.md) · [Deutsch](DATA_PROCESSING_AND_PRIVACY.de.md) · [日本語](DATA_PROCESSING_AND_PRIVACY.ja.md) · [한국어](DATA_PROCESSING_AND_PRIVACY.ko.md)
+
+[返回首页](../../README.zh-CN.md)
 
 适用范围：HelloFace SDK。本说明面向 SDK 集成方，介绍现有数据流程及接入方的数据管理责任，不替代接入方 App 或服务的隐私政策，也不表示任何具体部署已通过合规认证。
 

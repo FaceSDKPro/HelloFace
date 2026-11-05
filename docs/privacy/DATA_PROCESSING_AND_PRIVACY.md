@@ -1,6 +1,9 @@
 # Data Processing and Privacy Compliance
 
-English | [简体中文](DATA_PROCESSING_AND_PRIVACY.zh-CN.md) · [Home](../README.md)
+**English** · [简体中文](DATA_PROCESSING_AND_PRIVACY.zh-CN.md) · [Español](DATA_PROCESSING_AND_PRIVACY.es.md) · [Português (Brasil)](DATA_PROCESSING_AND_PRIVACY.pt-BR.md)<br>
+[Français](DATA_PROCESSING_AND_PRIVACY.fr.md) · [Deutsch](DATA_PROCESSING_AND_PRIVACY.de.md) · [日本語](DATA_PROCESSING_AND_PRIVACY.ja.md) · [한국어](DATA_PROCESSING_AND_PRIVACY.ko.md)
+
+[Home](../../README.md)
 
 Scope: the HelloFace SDK. This document is intended for SDK integrators and describes current data flows and integrators' data management responsibilities. It does not replace the privacy policy of an integrator's app or service and does not indicate that any particular deployment has been certified as compliant.
 

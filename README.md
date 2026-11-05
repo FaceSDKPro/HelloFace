@@ -1,5 +1,6 @@
 <h3 align="left">
-  <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
+  <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a> · <a href="docs/readme/README.es.md">Español</a> · <a href="docs/readme/README.pt-BR.md">Português (Brasil)</a><br>
+  <a href="docs/readme/README.fr.md">Français</a> · <a href="docs/readme/README.de.md">Deutsch</a> · <a href="docs/readme/README.ja.md">日本語</a> · <a href="docs/readme/README.ko.md">한국어</a>
 </h3>
 
 <p align="left">
@@ -26,7 +27,7 @@
   </tr>
   <tr>
     <td align="left" nowrap>🔒 <strong>Offline &amp; Private</strong></td>
-    <td align="left">Process face data locally, without uploading images or face features to the cloud. <a href="docs/DATA_PROCESSING_AND_PRIVACY.md"><strong>More</strong></a></td>
+    <td align="left">Process face data locally, without uploading images or face features to the cloud. <a href="docs/privacy/DATA_PROCESSING_AND_PRIVACY.md"><strong>More</strong></a></td>
   </tr>
   <tr>
     <td align="left" nowrap>🎯 <strong>Face Toolkit</strong></td>
