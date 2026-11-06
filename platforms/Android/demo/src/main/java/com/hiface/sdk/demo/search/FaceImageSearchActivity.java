@@ -28,6 +28,7 @@ import com.hiface.sdk.common.HiFaceError;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.comparison.FacePhotoPicker;
 import com.hiface.sdk.demo.ui.DemoErrorUi;
+import com.hiface.sdk.demo.ui.DemoWindowInsets;
 import com.hiface.sdk.search.FaceSearchConfig;
 import com.hiface.sdk.search.FaceSearchDatabase;
 import com.hiface.sdk.search.FaceSearchMatch;
@@ -73,6 +74,7 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
         sdk = HiFaceSdk.builder(this).lifecycleOwner(this).build();
         picker = new FacePhotoPicker(this, FacePhotoPicker.IMAGE_SEARCH_MAX_DIMENSION_PX);
         setContentView(R.layout.activity_face_image_search);
+        DemoWindowInsets.applyToContent(this);
         status = findViewById(R.id.imageSearchStatus);
         crops = findViewById(R.id.imageSearchCrops);
         strip = findViewById(R.id.imageSearchStrip);

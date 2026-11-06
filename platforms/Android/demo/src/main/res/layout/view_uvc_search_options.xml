@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="wrap_content" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/uvc_search_fixed_mode" android:textSize="14sp" />
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" android:hint="@string/search_ui_group_label" app:helperText="@string/search_ui_scope_help" app:expandedHintEnabled="false">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/uvcSearchGroup"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="text" android:maxLines="1" android:selectAllOnFocus="true" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" android:hint="@string/search_ui_threshold_label" app:helperText="@string/search_ui_threshold_help" app:expandedHintEnabled="false">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/uvcSearchThreshold"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="numberDecimal" android:maxLines="1" android:selectAllOnFocus="true" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" android:hint="@string/search_ui_interval_label" app:helperText="@string/search_ui_interval_help" app:expandedHintEnabled="false">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/uvcSearchInterval"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:maxLines="1" android:selectAllOnFocus="true" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" android:hint="@string/search_ui_timeout_label" app:helperText="@string/search_ui_timeout_help" app:expandedHintEnabled="false">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/uvcSearchTimeout"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:maxLines="1" android:selectAllOnFocus="true" />
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
+</ScrollView>

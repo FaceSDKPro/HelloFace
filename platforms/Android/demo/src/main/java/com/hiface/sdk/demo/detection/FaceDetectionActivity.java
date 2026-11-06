@@ -13,6 +13,7 @@ import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.ui.DemoErrorUi;
 import com.hiface.sdk.demo.camera.CameraBrightnessActivity;
 import com.hiface.sdk.demo.camera.CameraPreviewFragment;
+import com.hiface.sdk.demo.ui.DemoWindowInsets;
 import com.hiface.sdk.detection.FaceDetectionConfig;
 import com.hiface.sdk.detection.FaceDetectionResult;
 
@@ -38,6 +39,7 @@ public final class FaceDetectionActivity extends CameraBrightnessActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_face_detection);
+        DemoWindowInsets.applyToContent(this);
 
         cameraPreview = CameraPreviewFragment.require(
                 getSupportFragmentManager(), R.id.cameraPreview);

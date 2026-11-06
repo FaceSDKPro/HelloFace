@@ -318,7 +318,12 @@ void layout(Ui& ui) {
     auto row=[&](int id,bool labelled=true){
         if(id==primaryAction(ui.page) && ui.page!=Page::Enrollment)return;
         ShowWindow(child(window,id),SW_SHOW);
+        if(id==Silent)SendMessageW(child(window,id),WM_SETFONT,
+            reinterpret_cast<WPARAM>(ui.page==Page::Search?ui.theme.parameter_title:ui.theme.body),TRUE);
         if(labelled&&child(window,id+kLabelOffset)){
+            if(ui.page==Page::Search)y+=16;
+            SendMessageW(child(window,id+kLabelOffset),WM_SETFONT,
+                reinterpret_cast<WPARAM>(ui.page==Page::Search?ui.theme.parameter_title:ui.theme.body),TRUE);
             ShowWindow(child(window,id+kLabelOffset),SW_SHOW);
             move(id+kLabelOffset,8,y-ui.scroll,ui.parameter_width-58,22);
             move(id,8,y+25-ui.scroll,ui.parameter_width-58,34);y+=76;
@@ -336,7 +341,8 @@ void layout(Ui& ui) {
         case Page::Reference:row(PickA,false);row(ImageReference,false);row(GalleryReference,false);row(ImportReference,false);row(ExportFeature,false);row(ExportPreview,false);break;
         case Page::Verification:row(ImportReference,false);row(Threshold);row(Actions,false);row(CustomActions);row(Silent,false);row(Multiple,false);break;
         case Page::Liveness:row(Actions,false);row(CustomActions);row(Multiple,false);row(ExportPreview,false);break;
-        case Page::Search:row(SearchMode,false);row(MaxFaces);row(Silent,false);row(Threshold);row(Interval);row(Timeout);break;
+        case Page::Search:
+            row(SearchMode,false);row(MaxFaces);row(Silent,false);row(Threshold);row(Interval);row(Timeout);break;
         case Page::Enrollment:row(SaveEnrollment,false);row(StartFlow,false);row(PickA,false);row(ImageEnroll,false);break;
         case Page::Comparison:row(Threshold);row(PickA,false);row(PickB,false);break;
         case Page::Gallery:

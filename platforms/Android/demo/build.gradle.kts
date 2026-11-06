@@ -14,6 +14,10 @@ val demoSigning = Properties().apply {
 android {
     namespace = "com.hiface.sdk.demo"
     compileSdk = libs.versions.compileSdk.get().toInt()
+    // The application module owns the final APK strip task. Keep it on the same pinned
+    // NDK as :sdk so AGP never falls back to a missing default strip tool.
+    // 最终 APK 的 strip 由应用模块执行，必须与 :sdk 固定使用同一 NDK。
+    ndkVersion = libs.versions.ndk.get()
 
     buildFeatures {
         buildConfig = true
@@ -23,8 +27,8 @@ android {
         applicationId = "com.hiface.sdk.public"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 8006
-        versionName = "0.8.6"
+        versionCode = 8007
+        versionName = "0.8.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -52,6 +56,14 @@ android {
 
     buildTypes {
         debug {
+            // Keep camera experiments separate from an installed Demo with another signing identity.
+            if (providers.gradleProperty("hifaceRgbIrDevelopment").orNull == "true") {
+                require(providers.gradleProperty("hifaceLicenseAcceptance").orNull != "true") {
+                    "Choose either RGB/IR development or license acceptance"
+                }
+                applicationIdSuffix = ".rgbirdev"
+                versionNameSuffix = "-rgbir-dev"
+            }
             // 真机授权验收单独安装，避免换证/到期测试锁存原 Demo 的认证状态或触及其人脸库。
             if (providers.gradleProperty("hifaceLicenseAcceptance").orNull == "true") {
                 applicationIdSuffix = ".licenseacceptance"
@@ -95,7 +107,10 @@ android {
 }
 
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.6")
+    //Powered By https://github.com/FaceSDKPro/UVCAndroidCamera
+    implementation(files("libs/uvc-android-camera-0.3.2.aar"))
+
+    implementation("io.github.facesdkpro:hiface-android:0.8.7")
 
     implementation(libs.androidx.core)
     implementation(libs.androidx.activity)

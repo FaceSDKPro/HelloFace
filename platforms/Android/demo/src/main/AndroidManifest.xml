@@ -55,6 +55,10 @@
         <activity android:name=".search.FaceImageSearchActivity" android:exported="false"
             android:theme="@style/Theme.HiFace.Content.Soft" />
         <activity android:name=".search.FaceSearchActivity" android:exported="false" android:theme="@style/Theme.HiFace.Search" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".search.uvc.UVCCameraFaceSearchActivity" android:exported="false"
+            android:theme="@style/Theme.HiFace.Search" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".search.uvc.UVCCameraFaceEnrollmentActivity" android:exported="false"
+            android:theme="@style/Theme.HiFace.UvcEnrollment" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".search.FaceSearchEnrollmentActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".search.FaceSearchLibraryActivity" android:exported="false" android:theme="@style/Theme.HiFace.Search" android:windowSoftInputMode="adjustResize" />
     </application>

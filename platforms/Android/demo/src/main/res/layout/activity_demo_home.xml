@@ -109,6 +109,13 @@
             android:layout_marginBottom="11dp" />
 
         <include
+            android:id="@+id/featureUVCCameraFaceSearch"
+            layout="@layout/item_api_feature"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="11dp" />
+
+        <include
             android:id="@+id/featureFaceCompare"
             layout="@layout/item_api_feature"
             android:layout_width="match_parent"

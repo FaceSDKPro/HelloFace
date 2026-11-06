@@ -306,7 +306,7 @@ struct Index {
         this.FeatureCard($r('app.media.ic_home_liveness'), DemoL10n.text("活体检测"),
           DemoL10n.text("随机动作挑战与双模型静默检测"), (): void => this.navigate(DemoPage.LIVENESS))
         this.FeatureCard($r('app.media.ic_search_search'), DemoL10n.text("人脸搜索识别"),
-          DemoL10n.text("识别人脸库中的身份"), (): void => this.navigate(DemoPage.SEARCH))
+          DemoL10n.text("RGB相机搜索识别，1:N搜索活体也用RGB相机"), (): void => this.navigate(DemoPage.SEARCH))
         this.FeatureCard($r('app.media.ic_home_compare'), DemoL10n.text("静态人脸 1:1 对比"),
           DemoL10n.text("比对两张图片中的人脸"), (): void => this.navigate(DemoPage.COMPARISON))
         this.FeatureCard($r('app.media.ic_search_search'), DemoL10n.text("图片人脸搜索识别"),

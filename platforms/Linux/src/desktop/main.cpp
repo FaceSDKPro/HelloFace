@@ -90,13 +90,14 @@ int main(int argc, char** argv) {
             if (restart) break;
             const auto paint_start = performance_log ? monotonicMilliseconds() : 0;
             const auto paint_now = monotonicMilliseconds();
-            const bool painted = !state->search_idle || user_command || paint_now >= next_idle_paint;
+            const bool search_idle = state->search_idle || (state->rgbir && state->rgbir->idle);
+            const bool painted = !search_idle || user_command || paint_now >= next_idle_paint;
             if (painted) { window.paint(*state); next_idle_paint = paint_now + kSearchIdlePreviewIntervalMs; }
             if (performance_log && painted) {
                 paint_ms += monotonicMilliseconds() - paint_start; ++paints;
                 if (monotonicMilliseconds() - last_performance_log >= 5000) {
                     std::fprintf(stderr, "[Performance] preview=%.1f recognition=%.1f analysis_ms=%.1f paint_ms=%.1f faces=%zu search_idle=%d ready=%d connected=%d failed=%d status=%s\n",
-                        state->fps, state->analysis_fps, state->milliseconds, double(paint_ms) / paints, state->liveBoxes().size(), state->search_idle,
+                        state->fps, state->analysis_fps, state->milliseconds, double(paint_ms) / paints, state->liveBoxes().size(), search_idle,
                         state->ready, state->connected, state->failed, state->status.c_str());
                     last_performance_log = monotonicMilliseconds(); paint_ms = 0; paints = 0;
                 }
@@ -111,7 +112,7 @@ int main(int argc, char** argv) {
             next_preview += 40; // 25 FPS UI/preview clock, independent from recognition. / UI 与预览时钟为 25 FPS，独立于识别。
             // Wake at the 100 ms idle paint deadline too, avoiding 25 Hz polling rounding it to 120 ms.
             // 同时按待机 100 ms 绘制截止时间唤醒，避免 25 Hz 轮询将它量化成 120 ms。
-            if (state->search_idle) next_preview = std::min(next_preview, next_idle_paint);
+            if (search_idle) next_preview = std::min(next_preview, next_idle_paint);
             const auto now = monotonicMilliseconds();
             if (next_preview <= now) next_preview = now;
             else std::this_thread::sleep_for(std::chrono::milliseconds(next_preview - now));

@@ -44,9 +44,13 @@ private:
     void button(Rect rect, const std::string& label, const std::string& action, int style = 0, bool enabled = true, Font font = Font::Body);
     void field(Rect rect, const std::string& key, const std::string& label, const std::string& initial = "", bool enabled = true, Font font = Font::Body);
     void toggle(int x, int y, int width, const std::string& key, const std::string& label, bool enabled = true, Font font = Font::Body);
+    void rotationButtons(Rect rect, const std::string& selected, bool enabled);
     void picture(Rect rect, const Image* image, const CameraFrame* camera, bool mirror, const std::vector<Box>& boxes, bool fill = false);
     void empty(Rect rect, const std::string& title, const std::string& hint);
     void home(const ViewState& state, Rect body);
+    void uvcCameraFaceSearch(const ViewState& state, Rect bounds);
+    void uvcSettingsDialog(const ViewState& state);
+    void handleUvcSettings(const std::string& action, const ViewState& state);
     void startupFailure(const ViewState& state);
     void supportFooter(const ViewState& state);
     ErrorPresentation errorPresentation(const ViewState& state) const;
@@ -121,6 +125,10 @@ private:
     bool error_details_ = false, startup_home_ = false;
     bool confirming_ = false, browsing_ = false, enrolling_ = false;
     bool settings_pending_ = false, camera_menu_ = false;
+    enum class UvcSettingsTab { camera, search, display };
+    UvcSettingsTab uvc_settings_tab_ = UvcSettingsTab::camera;
+    bool uvc_settings_open_ = false, uvc_settings_pending_ = false;
+    uint64_t uvc_settings_attempt_ = 0;
     uint64_t settings_attempt_ = 0;
     Command pending_;
     std::string overlay_return_focus_, browser_error_;

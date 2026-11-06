@@ -1,6 +1,23 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "RGB相机搜索识别，1:N搜索活体也用RGB相机" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RGB camera search and recognition; 1:N liveness also uses the RGB camera"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RGB相机搜索识别，1:N搜索活体也用RGB相机"
+          }
+        }
+      }
+    },
     " · 已适配" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1257,7 +1274,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Face Search"
+            "value" : "Face Search and Recognition"
           }
         },
         "zh-Hans" : {

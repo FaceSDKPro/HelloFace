@@ -1,8 +1,12 @@
 #include "app.h"
 #include "lighting.h"
 #include "frame_pool.h"
+#include "camera_recovery.h"
 #include "navigation.h"
 #include "search_power.h"
+#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
+#include "desktop_search.h"
+#endif
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
@@ -94,6 +98,16 @@ void DesktopApp::post(Command command) {
 }
 std::shared_ptr<const ViewState> DesktopApp::snapshot() {
     std::lock_guard<std::mutex> lock(mutex_);
+#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
+    // RGB/IR updates arrive independently of the workflow. A newer revision
+    // also covers clearing the dual-camera snapshot when the user presses Stop.
+    if (!capture_state_.active && state_->ready && (rgbir_view_ || state_->visual_revision != visual_revision_)) {
+        auto view = std::make_shared<ViewState>(*state_);
+        view->rgbir = rgbir_view_;
+        view->visual_revision = visual_revision_;
+        return view;
+    }
+#endif
     if (!capture_state_.active) return state_;
     auto view = std::make_shared<ViewState>(*state_);
     if (capture_state_.active) {
@@ -419,9 +433,38 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
         const auto fixture = std::filesystem::path(assets) / "features_10000.json";
         const std::string demo_features = std::filesystem::exists(fixture) ? fixture.string() : "";
         std::filesystem::create_directories(data);
-        // Only this worker creates or calls SDK/database resources; V4L2 belongs to captureLoop().
-        // 仅此工作线程创建和调用 SDK/数据库资源；V4L2 由 captureLoop() 持有。
+        // The ordinary workflow owns its SDK and database handles on this
+        // thread. Dual-camera search opens separate handles for its worker.
         FaceWorkflow workflow(models, database);
+        RgbIrSettings rgbir_settings;
+        uint64_t rgbir_settings_attempt = 0;
+        std::string rgbir_settings_error;
+        try { rgbir_settings = loadRgbIrSettings(database); }
+        catch (const DemoError& error) { rgbir_settings_error = error.message; }
+        catch (const std::exception&) { rgbir_settings_error = "Cannot read dual-camera settings."; }
+        SearchBacklight backlight;
+#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
+        std::unique_ptr<rgbir::DesktopSearch> dual_search;
+        const auto publish_rgbir = [this](std::shared_ptr<const RgbIrView> view) {
+            std::lock_guard<std::mutex> lock(mutex_);
+            rgbir_view_ = std::move(view);
+            ++visual_revision_;
+        };
+        const auto stop_rgbir = [&] {
+            // Join outside mutex_: the capture thread may still be publishing.
+            // After the join, no frame from this run can replace the cleared view.
+            dual_search.reset();
+            publish_rgbir(nullptr);
+        };
+        const auto start_rgbir = [&] {
+            if (smoke || !rgbir_settings.hasDevices()) return;
+            // Hand off the global backlight before the dual-camera worker starts.
+            backlight.restore();
+            const char* stats = std::getenv("HIFACE_RGBIR_STATS");
+            dual_search = std::make_unique<rgbir::DesktopSearch>(database, rgbir_settings, publish_rgbir,
+                stats && std::string_view(stats) == "1");
+        };
+#endif
         const char* fixed_env = std::getenv("HIFACE_FIXED_CAMERA_DEVICE");
         const std::string fixed_camera = fixed_env ? fixed_env : "";
         require(fixed_camera.empty() || fixed_camera == device, "The configured board camera differs from the startup device");
@@ -442,7 +485,9 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
         uint32_t gallery_offset = 0;
         int next_index = 0;
         SearchPowerPolicy search_power;
-        SearchBacklight backlight;
+        CameraRecovery camera_recovery;
+        std::string camera_failure_message;
+        bool resume_search_after_camera_failure = false;
         int64_t analysis_fps_start = monotonicMilliseconds(), next_analysis = analysis_fps_start, last_publish = 0;
         uint64_t analyzed_sequence = 0;
         uint32_t analysis_frames = 0;
@@ -479,7 +524,12 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
             std::vector<Command> commands;
             { std::lock_guard<std::mutex> lock(mutex_); commands.swap(commands_); }
             bool workflow_updated = !commands.empty();
-            if (!commands.empty()) search_power.reset();
+            if (!commands.empty()) {
+                search_power.reset();
+                camera_recovery.reset();
+                camera_failure_message.clear();
+                resume_search_after_camera_failure = false;
+            }
             for (const auto& command : commands) {
                 if(command.type=="gallery-more" && (page!="gallery" || workflow.importing())){++gallery_attempt;continue;}
                 const bool comparison_command = command.type == "preview-photo";
@@ -511,6 +561,9 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                         } else if (!returning_to_photo) {
                             suspended_photo.reset(); suspended_report.reset(); suspended_photo_path.clear();
                         }
+#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
+                        if (page == RgbIrSearchPage::route) stop_rgbir();
+#endif
                         workflow.clearPageResults(); page = v.at(0); analysis_fps = 0; analysis_frames = 0;
                         comparison_completed[0] = comparison_generations_[0]; comparison_completed[1] = comparison_generations_[1];
                         if (returning_to_photo) {
@@ -529,9 +582,18 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                         if (page == "image-search") workflow.status = workflow.photoSearchSummary();
                         if (page == "camera-settings") workflow.status = "Camera preferences save automatically. Open a camera feature to use them.";
                         if (page == "home") workflow.status = "Choose a feature from Home to begin.";
+                        if (page == RgbIrSearchPage::route) {
+                            workflow.status = RgbIrSearchPage::status;
+#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
+                            start_rgbir();
+#endif
+                        }
                         if (page == "images") workflow.status = "Choose two photos to compare. Photo comparison does not perform liveness.";
                         if (page == "settings") workflow.status = "Edit this feature's settings, apply to save, then go back.";
                     } else if (command.type == "image-search") {
+#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
+                        if (page == RgbIrSearchPage::route) stop_rgbir();
+#endif
                         page = "image-search"; configureCapture(device, workflow.settings(), false);
                         workflow.searchPhoto(v.at(0), [&] { return stopping_ || command.request_id != photo_generation_; });
                     } else if (command.type == "cancel-image-search") { workflow.clearPhotoSearch(); workflow.status = "Photo search cancelled.";
@@ -562,6 +624,33 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                         analysis_fps_start = next_analysis = monotonicMilliseconds();
                     }
                     else if (command.type == "settings") { workflow.applySettings(parseSettings(command.fields)); }
+#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
+                    else if (command.type == "uvc-toggle") {
+                        if (page == RgbIrSearchPage::route) {
+                            const auto view = snapshot()->rgbir;
+                            const bool running = dual_search && (!view || view->running);
+                            stop_rgbir();
+                            if (!running) start_rgbir();
+                        }
+                    }
+#endif
+                    else if (command.type == "uvc-save-settings") {
+                        ++rgbir_settings_attempt;
+                        try {
+                            require(page == RgbIrSearchPage::route, "Open the dual-camera search page to apply these settings.");
+                            const auto next = parseRgbIrSettings(command.fields);
+                            saveRgbIrSettings(database, next);
+                            rgbir_settings = next;
+                            rgbir_settings_error.clear();
+                        } catch (const DemoError& error) { rgbir_settings_error = error.message; }
+                        catch (const std::exception&) { rgbir_settings_error = "Cannot save dual-camera settings."; }
+#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
+                        if (rgbir_settings_error.empty()) {
+                            stop_rgbir();
+                            start_rgbir();
+                        }
+#endif
+                    }
                     else if (command.type == "confirm-enrollment") { workflow.confirmEnrollment(v.at(0), v.at(1), v.at(2), v.size() > 3 && v.at(3) == "replace"); }
                     else if (command.type == "capture-reference") workflow.selectCapturedReference(v.at(0));
                     else if (command.type == "preview-photo") {
@@ -591,6 +680,12 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 } catch (const DemoError& error) {
                     failed = true; workflow.status = error.message;
                     system_error = error.sdk_status_known ? storageError(database, error.status) : 0;
+                    if (!error.sdk_status_known && captureSnapshot().error == error.message) {
+                        camera_failure_message = error.message;
+                        resume_search_after_camera_failure = workflow.mode() == 'S' ||
+                            (command.type == "page" && cameraPage(page) && demoPage(page)->camera_mode == 'S') ||
+                            (command.type == "action" && !command.values.empty() && command.values[0] == "S");
+                    }
                     if (command.type == "action" && !command.values.empty()) workflow.showFlowError(command.values[0][0], error);
                     if (command.type == "page" && !command.values.empty() && cameraPage(command.values[0]))
                         workflow.showFlowError(demoPage(command.values[0])->camera_mode, error);
@@ -607,6 +702,42 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 } catch (const DemoError& error) { failed = true; workflow.status += " | " + error.message; }
                 catch (const std::exception& error) { failed = true; workflow.cancelImport(); workflow.status = error.what(); }
             }
+            const auto recovery_capture = captureSnapshot();
+            const auto recovery_now = monotonicMilliseconds();
+            const bool recovery_eligible = !smoke_ && cameraPage(page) && recovery_capture.active &&
+                !workflow.importing() && !workflow.pendingEnrollment() && !workflow.resultPending();
+            if (!recovery_eligible) camera_recovery.reset();
+            else {
+                const bool fresh = recovery_capture.ready && recovery_capture.frame && recovery_capture.analysis_frame &&
+                    recovery_now - recovery_capture.last_frame_ms < 3000 && recovery_now - recovery_capture.last_analysis_ms < 3000;
+                // Give a newly opened ISP stream its existing three-second warmup.
+                const bool warming = recovery_capture.ready && !recovery_capture.frame && recovery_now - recovery_capture.last_frame_ms < 3000;
+                if (!warming && camera_recovery.retry(recovery_now, fresh)) {
+                    std::fprintf(stderr, "[CameraRecovery] Reopening current camera, attempt=%u\n", camera_recovery.attempt());
+                    try {
+                        connect(false);
+                        // Clear only the error originating in this camera. A license,
+                        // model, database or flow-result failure is never retried here.
+                        if (!camera_failure_message.empty() && workflow.status == camera_failure_message) {
+                            failed = false; system_error = 0;
+                            if (resume_search_after_camera_failure) {
+                                try { workflow.action('S'); }
+                                catch (const DemoError& error) {
+                                    failed = true;
+                                    system_error = error.sdk_status_known ? storageError(database, error.status) : 0;
+                                    workflow.showFlowError('S', error);
+                                }
+                            } else workflow.status = "Camera reconnected.";
+                            camera_failure_message.clear();
+                            resume_search_after_camera_failure = false;
+                        }
+                        std::fprintf(stderr, "[CameraRecovery] Camera reopened; mode=%c\n", workflow.mode());
+                    } catch (const DemoError& error) {
+                        std::fprintf(stderr, "[CameraRecovery] %s\n", error.message.c_str());
+                    }
+                    workflow_updated = true;
+                }
+            }
             const bool analyze = cameraPage(page) && workflow.mode() != 'P' && !workflow.importing() && !workflow.pendingEnrollment() && !workflow.resultPending();
             const auto power_capture = captureSnapshot();
             const bool power_enabled = analyze && workflow.mode() == 'S' && !failed && power_capture.ready &&
@@ -617,6 +748,9 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 const auto latest = captureSnapshot();
                 const auto now = monotonicMilliseconds();
                 if (!latest.error.empty()) {
+                    if (camera_failure_message.empty())
+                        resume_search_after_camera_failure = workflow.mode() == 'S';
+                    camera_failure_message = latest.error;
                     failed = true;
                     workflow.showFlowError(workflow.mode(), DemoError{latest.error});
                 } else if (latest.ready && latest.analysis_frame && latest.analysis_sequence != analyzed_sequence && now >= next_analysis) {
@@ -685,6 +819,12 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 state->demo_features = demo_features;
                 state->mode = workflow.mode(); state->count = workflow.gallery_count; state->filtered_count = workflow.filtered_count; state->gallery_offset = workflow.gallery_offset;
                 state->settings = workflow.settings(); state->milliseconds = workflow.inference_ms;
+                state->rgbir_settings = rgbir_settings;
+#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
+                state->rgbir_available = true;
+#endif
+                state->rgbir_settings_attempt = rgbir_settings_attempt;
+                state->rgbir_settings_error = rgbir_settings_error;
                 state->fps = capture.fps; state->analysis_fps = analysis_fps; state->frame = capture.frame;
                 state->preview_sequence = capture.sequence;
                 state->camera_stalled = capture.active && capture.ready && (!capture.frame || !capture.analysis_frame ||

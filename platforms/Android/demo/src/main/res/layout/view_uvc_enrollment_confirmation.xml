@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="wrap_content" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
+        <ImageView android:id="@+id/uvcEnrollPhoto" android:layout_width="144dp" android:layout_height="144dp"
+            android:layout_gravity="center_horizontal" android:scaleType="centerCrop" android:contentDescription="@string/search_ui_capture_preview" />
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" android:hint="@string/search_ui_id_label" app:helperText="@string/search_ui_id_help">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/uvcEnrollId" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:inputType="text" android:maxLines="1" android:imeOptions="actionNext" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" android:hint="@string/search_ui_group_label" app:helperText="@string/search_ui_enroll_scope_help">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/uvcEnrollGroup" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:inputType="text" android:maxLines="1" android:imeOptions="actionDone" />
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="wrap_content" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:paddingStart="24dp" android:paddingEnd="24dp" android:paddingTop="12dp" android:paddingBottom="16dp">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/uvc_search_setup_hint"
+            android:textSize="13sp" android:textColor="@color/text_on_dark_secondary" android:layout_marginBottom="16dp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/uvc_search_rgb_camera" android:textAppearance="@style/TextAppearance.HiFace.Search.ParameterTitle" />
+        <Spinner android:id="@+id/uvcRgbDevice" android:layout_width="match_parent" android:layout_height="48dp" android:saveEnabled="false" android:contentDescription="@string/uvc_search_rgb_camera" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/uvc_search_ir_camera" android:textAppearance="@style/TextAppearance.HiFace.Search.ParameterTitle" />
+        <Spinner android:id="@+id/uvcIrDevice" android:layout_width="match_parent" android:layout_height="48dp" android:saveEnabled="false" android:contentDescription="@string/uvc_search_ir_camera" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:baselineAligned="false">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/uvc_search_rgb_rotation" android:textSize="13sp" />
+                <Spinner android:id="@+id/uvcRgbRotation" android:layout_width="match_parent" android:layout_height="48dp" android:contentDescription="@string/uvc_search_rgb_rotation" />
+            </LinearLayout>
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/uvc_search_ir_rotation" android:textSize="13sp" />
+                <Spinner android:id="@+id/uvcIrRotation" android:layout_width="match_parent" android:layout_height="48dp" android:contentDescription="@string/uvc_search_ir_rotation" />
+            </LinearLayout>
+        </LinearLayout>
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" android:hint="@string/uvc_search_threshold_label" app:helperText="@string/uvc_search_threshold_help">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/uvcThreshold"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="numberDecimal"
+                android:selectAllOnFocus="true" android:imeOptions="actionDone" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.checkbox.MaterialCheckBox android:id="@+id/uvcDebug" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:minHeight="56dp" android:layout_marginTop="12dp" android:text="@string/uvc_debug_enable" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/uvcRefresh" style="@style/Widget.HiFace.Search.Secondary"
+            android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="8dp" android:text="@string/uvc_search_refresh_devices" />
+    </LinearLayout>
+</ScrollView>

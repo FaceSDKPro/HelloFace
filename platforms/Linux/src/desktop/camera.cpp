@@ -9,8 +9,10 @@
 #include <fcntl.h>
 #include <linux/videodev2.h>
 #include <poll.h>
+#include <string_view>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <unistd.h>
 namespace hiface_linux_demo {
 namespace {
@@ -19,8 +21,8 @@ int request(int fd, unsigned long code, void* value) {
     do { result = ioctl(fd, code, value); } while (result < 0 && errno == EINTR);
     return result;
 }
-void cameraCheck(bool okay, const std::string& operation) {
-    require(okay, operation + ": " + std::strerror(errno));
+void cameraCheck(bool okay, std::string_view operation) {
+    if (!okay) throw DemoError{std::string(operation) + ": " + std::strerror(errno)};
 }
 
 // Minimal ABI copied from Rockchip's Apache-2.0 im2d headers. Keeping this
@@ -134,6 +136,26 @@ RgaPreview& rgaPreview() {
     static RgaPreview instance;
     return instance;
 }
+void convertCameraFrame(const uint8_t* pixels, size_t size, int width, int height, int stride, uint32_t format,
+                        HiFaceYuvRangeV1 range, HiFaceYuvMatrixV1 matrix, bool infrared, int rotation,
+                        CameraFrame& frame, bool preview) {
+    if (infrared) {
+        infraredFrame(pixels, size, width, height, stride, format == V4L2_PIX_FMT_YUYV, rotation, frame);
+        return;
+    }
+    if (format == V4L2_PIX_FMT_YUYV)
+        yuyvFrame(pixels, size, width, height, stride, range, matrix, frame, preview);
+    else if (format == V4L2_PIX_FMT_NV12 || format == V4L2_PIX_FMT_NV21)
+        nv12Frame(pixels, size, width, height, stride, format == V4L2_PIX_FMT_NV21, range, matrix, frame, preview);
+    else {
+        const auto image = decodeJpeg(pixels, size);
+        require(image.width == width && image.height == height, "Camera JPEG dimensions differ from negotiated video size");
+        rgbaFrame(image, frame, preview);
+    }
+    if (rotation == 270) rotateFrameCounterClockwise(frame);
+    else if (rotation == 90) rotateFrameClockwise(frame);
+    else if (rotation == 180) rotateFrame180(frame);
+}
 }
 Camera::~Camera() { close(); }
 void Camera::close() noexcept {
@@ -148,16 +170,35 @@ void Camera::close() noexcept {
     fd_ = -1; type_ = 0; plane_count_ = 0;
 }
 void Camera::open(const std::string& device, int width, int height, int fps, bool prefer_mjpeg) {
+    openStream(device, width, height, fps, prefer_mjpeg, false);
+}
+void Camera::openRgbIr(const std::string& device, RgbIrCameraRole role, int rotation) {
+    const bool infrared = role == RgbIrCameraRole::infrared;
+    openStream(device, 640, 480, 30, !infrared, infrared, rotation);
+}
+void Camera::verifyDistinct(const Camera& rgb, const Camera& ir) {
+    struct stat rgb_device{}, ir_device{};
+    cameraCheck(fstat(rgb.fd_, &rgb_device) == 0, "Inspect opened RGB camera");
+    cameraCheck(fstat(ir.fd_, &ir_device) == 0, "Inspect opened IR camera");
+    require(rgb_device.st_rdev != ir_device.st_rdev, "RGB and IR resolved to the same opened video device");
+}
+void Camera::openStream(const std::string& device, int width, int height, int fps,
+                        bool prefer_mjpeg, bool infrared, int degrees) {
     close();
+    infrared_ = infrared;
     try {
-        const char* rotation = std::getenv("HIFACE_CAMERA_ROTATE");
+        const char* rotation_key = infrared ? "HIFACE_IR_CAMERA_ROTATE" : "HIFACE_CAMERA_ROTATE";
+        const char* rotation = degrees < 0 ? std::getenv(rotation_key) : nullptr;
         rotation_ = Rotation::none;
-        if (rotation && (!std::strcmp(rotation, "left") || !std::strcmp(rotation, "ccw") || !std::strcmp(rotation, "90ccw")))
+        if (degrees >= 0) {
+            require(degrees <= 270 && degrees % 90 == 0, "Invalid RGB/IR camera rotation");
+            rotation_ = static_cast<Rotation>(degrees);
+        } else if (rotation && (!std::strcmp(rotation, "left") || !std::strcmp(rotation, "ccw") || !std::strcmp(rotation, "90ccw")))
             rotation_ = Rotation::counter_clockwise;
         else if (rotation && (!std::strcmp(rotation, "right") || !std::strcmp(rotation, "cw") || !std::strcmp(rotation, "90cw")))
             rotation_ = Rotation::clockwise;
         require(!rotation || !*rotation || rotation_ != Rotation::none,
-            "HIFACE_CAMERA_ROTATE must be left/ccw/90ccw or right/cw/90cw");
+            std::string(rotation_key) + " must be left/ccw/90ccw or right/cw/90cw");
         fd_ = ::open(device.c_str(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
         cameraCheck(fd_ >= 0, "Cannot open " + device + " (check video-device permission)");
         v4l2_capability capability{};
@@ -168,10 +209,11 @@ void Camera::open(const std::string& device, int width, int height, int fps, boo
             "Device is not a streaming camera");
         type_ = multiplanar ? V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : V4L2_BUF_TYPE_VIDEO_CAPTURE;
         bool supported = false;
-        for (uint32_t wanted : prefer_mjpeg ? std::vector<uint32_t>{V4L2_PIX_FMT_MJPEG, V4L2_PIX_FMT_YUYV,
-                                                 V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21}
-                                           : std::vector<uint32_t>{V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_MJPEG,
-                                                 V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21}) {
+        const std::array<uint32_t, 4> formats = infrared
+            ? std::array<uint32_t, 4>{V4L2_PIX_FMT_GREY, V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21}
+            : std::array<uint32_t, 4>{prefer_mjpeg ? V4L2_PIX_FMT_MJPEG : V4L2_PIX_FMT_YUYV,
+                prefer_mjpeg ? V4L2_PIX_FMT_YUYV : V4L2_PIX_FMT_MJPEG, V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21};
+        for (uint32_t wanted : formats) {
             v4l2_format format{};
             format.type = type_;
             if (multiplanar) {
@@ -198,13 +240,14 @@ void Camera::open(const std::string& device, int width, int height, int fps, boo
                 ? V4L2_MAP_YCBCR_ENC_DEFAULT(colorspace) : raw_encoding;
             const auto quantization = raw_quantization == V4L2_QUANTIZATION_DEFAULT
                 ? V4L2_MAP_QUANTIZATION_DEFAULT(false, colorspace, encoding) : raw_quantization;
-            require(wanted == V4L2_PIX_FMT_MJPEG || encoding == V4L2_YCBCR_ENC_601 || encoding == V4L2_YCBCR_ENC_709,
+            require(infrared || wanted == V4L2_PIX_FMT_MJPEG || encoding == V4L2_YCBCR_ENC_601 || encoding == V4L2_YCBCR_ENC_709,
                 "Camera YUV matrix must be BT.601 or BT.709");
             range_ = quantization == V4L2_QUANTIZATION_FULL_RANGE ? HIFACE_YUV_RANGE_FULL : HIFACE_YUV_RANGE_VIDEO;
             matrix_ = encoding == V4L2_YCBCR_ENC_709 ? HIFACE_YUV_MATRIX_BT709 : HIFACE_YUV_MATRIX_BT601;
             supported = true; break;
         }
-        require(supported, "Camera must support YUYV, MJPEG, NV12 or NV21 streaming");
+        require(supported, infrared ? "IR camera must support GREY, YUYV, NV12 or NV21 streaming"
+            : "Camera must support YUYV, MJPEG, NV12 or NV21 streaming");
         require(width_ >= 2 && height_ >= 2 && !(width_ & 1) && !(height_ & 1)
             && width_ <= 1920 && height_ <= 1080, "Camera resolution exceeds 1920x1080");
         v4l2_streamparm parameters{}; parameters.type = type_;
@@ -240,20 +283,51 @@ void Camera::open(const std::string& device, int width, int height, int fps, boo
         cameraCheck(request(fd_, VIDIOC_STREAMON, &type_) == 0, "Start camera");
         streaming_ = true;
         description_ = device + "  " + std::to_string(width_) + "x" + std::to_string(height_) +
-            (format_ == V4L2_PIX_FMT_YUYV ? " YUYV" : format_ == V4L2_PIX_FMT_MJPEG ? " MJPEG" :
+            (format_ == V4L2_PIX_FMT_GREY ? " GREY" : format_ == V4L2_PIX_FMT_YUYV ? " YUYV" : format_ == V4L2_PIX_FMT_MJPEG ? " MJPEG" :
                 format_ == V4L2_PIX_FMT_NV12 ? " NV12" : " NV21");
         if (has_rate) description_ += " " + std::to_string(double(negotiated.parm.capture.timeperframe.denominator)
             / negotiated.parm.capture.timeperframe.numerator) + " FPS";
         else description_ += " (requested " + std::to_string(fps) + " FPS)";
-        if (rotation_ != Rotation::none)
+        if (rotation_ == Rotation::half) description_ += " CW180";
+        else if (rotation_ != Rotation::none)
             description_ += " -> " + std::to_string(height_) + "x" + std::to_string(width_) +
                 (rotation_ == Rotation::counter_clockwise ? " CCW90" : " CW90");
     } catch (...) { close(); throw; }
 }
-bool Camera::read(CameraFrame& frame) { return readFrame(frame, 0, 0, false); }
-bool Camera::readAnalysis(CameraFrame& frame) { return readFrame(frame, 0, 0, true); }
+bool Camera::read(CameraFrame& frame) { return readFrame(&frame, 0, 0, false); }
+bool Camera::readAnalysis(CameraFrame& frame) { return readFrame(&frame, 0, 0, true); }
+bool Camera::readRaw(RawCameraFrame& frame) { return readFrame(nullptr, 0, 0, true, &frame); }
+void Camera::decodeAnalysis(const RawCameraFrame& raw, CameraFrame& frame) {
+    convertCameraFrame(raw.bytes.data(), raw.bytes.size(), raw.width, raw.height, raw.stride, raw.format,
+        raw.range, raw.matrix, raw.infrared, raw.rotation, frame, false);
+    frame.monotonic_timestamp_ms = raw.monotonic_timestamp_ms;
+}
+void Camera::decodePreview(const RawCameraFrame& raw, CameraFrame& frame) {
+    convertCameraFrame(raw.bytes.data(), raw.bytes.size(), raw.width, raw.height, raw.stride, raw.format,
+        raw.range, raw.matrix, raw.infrared, raw.rotation, frame, true);
+    // Core consumes the original gray plane. Expand it only for the desktop renderer.
+    if (raw.infrared) {
+        frame.rgba.resize(frame.gray.size() * 4);
+        auto* pixel = frame.rgba.data();
+        for (const auto gray : frame.gray) {
+            pixel[0] = pixel[1] = pixel[2] = gray;
+            pixel[3] = 255;
+            pixel += 4;
+        }
+    }
+    frame.monotonic_timestamp_ms = raw.monotonic_timestamp_ms;
+}
 bool Camera::readPreview(CameraFrame& frame, int output_width, int output_height) {
-    return readFrame(frame, output_width, output_height, false);
+    return readFrame(&frame, output_width, output_height, false);
+}
+unsigned Camera::waitForFrames(const Camera& rgb, const Camera& ir, int timeout_ms) {
+    pollfd streams[] = {{rgb.fd_, POLLIN, 0}, {ir.fd_, POLLIN, 0}};
+    const int count = poll(streams, 2, timeout_ms);
+    if (count < 0 && errno == EINTR) return 0;
+    if (count < 0) cameraCheck(false, "Wait for RGB/IR cameras");
+    if (streams[0].revents & (POLLERR | POLLHUP | POLLNVAL)) throw DemoError{"RGB camera disconnected"};
+    if (streams[1].revents & (POLLERR | POLLHUP | POLLNVAL)) throw DemoError{"IR camera disconnected"};
+    return (streams[0].revents & POLLIN ? 1u : 0u) | (streams[1].revents & POLLIN ? 2u : 0u);
 }
 bool Camera::waitForFrame(int timeout_ms) {
     if (!streaming_) return false;
@@ -271,8 +345,8 @@ bool Camera::requestFrameRate(int fps) {
     parameters.parm.capture.timeperframe = {1, static_cast<uint32_t>(fps)};
     return request(fd_, VIDIOC_S_PARM, &parameters) == 0;
 }
-bool Camera::readFrame(CameraFrame& frame, int preview_width, int preview_height, bool analysis_only) {
-    if (!waitForFrame(0)) return false;
+bool Camera::readFrame(CameraFrame* frame, int preview_width, int preview_height, bool analysis_only, RawCameraFrame* raw) {
+    if (raw ? !streaming_ : !waitForFrame(0)) return false;
     const bool multiplanar = type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     v4l2_buffer buffer{}; buffer.type = type_; buffer.memory = V4L2_MEMORY_MMAP;
     std::array<v4l2_plane, VIDEO_MAX_PLANES> planes{};
@@ -302,29 +376,43 @@ bool Camera::readFrame(CameraFrame& frame, int preview_width, int preview_height
         cameraCheck(request(fd_, VIDIOC_QBUF, &buffer) == 0, "Return damaged camera frame");
         return false;
     }
+    const auto bytesused = multiplanar ? planes[0].bytesused : buffer.bytesused;
+    const auto offset = multiplanar ? planes[0].data_offset : 0;
+    const bool valid_payload = bytesused > offset && bytesused <= buffers_[buffer.index].size;
+    if (raw && !valid_payload) {
+        cameraCheck(request(fd_, VIDIOC_QBUF, &buffer) == 0, "Return truncated camera frame");
+        return false;
+    }
     try {
-        const auto bytesused = multiplanar ? planes[0].bytesused : buffer.bytesused;
-        require(bytesused > 0 && bytesused <= buffers_[buffer.index].size, "Truncated camera buffer");
-        const auto* pixels = static_cast<const uint8_t*>(buffers_[buffer.index].data);
-        if (preview_width > 0 && preview_height > 0) {
+        if (!valid_payload) throw DemoError{"Truncated camera buffer"};
+        const auto* pixels = static_cast<const uint8_t*>(buffers_[buffer.index].data) + offset;
+        const auto payload = bytesused - offset;
+        const int64_t timestamp =
+            (buffer.flags & V4L2_BUF_FLAG_TIMESTAMP_MASK) == V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC
+            ? static_cast<int64_t>(buffer.timestamp.tv_sec) * 1000 + buffer.timestamp.tv_usec / 1000 : 0;
+        if (raw) {
+            raw->bytes.assign(pixels, pixels + payload);
+            raw->width = width_;
+            raw->height = height_;
+            raw->stride = stride_;
+            raw->rotation = static_cast<int>(rotation_);
+            raw->format = format_;
+            raw->infrared = infrared_;
+            raw->range = range_;
+            raw->matrix = matrix_;
+            raw->monotonic_timestamp_ms = timestamp;
+        } else if (!infrared_ && preview_width > 0 && preview_height > 0) {
             require(format_ == V4L2_PIX_FMT_NV12 || format_ == V4L2_PIX_FMT_NV21,
                 "RGA preview requires an NV12 or NV21 camera stream");
             const int rotation = rotation_ == Rotation::clockwise ? kRgaRotate90
                 : rotation_ == Rotation::counter_clockwise ? kRgaRotate270 : 0;
-            rgaPreview().convert(pixels, buffers_[buffer.index].dma_fd, width_, height_, stride_, format_ == V4L2_PIX_FMT_NV21,
-                range_, matrix_, preview_width, preview_height, rotation, frame);
-        } else if (format_ == V4L2_PIX_FMT_YUYV)
-            yuyvFrame(pixels, bytesused, width_, height_, stride_, range_, matrix_, frame, !analysis_only);
-        else if (format_ == V4L2_PIX_FMT_NV12 || format_ == V4L2_PIX_FMT_NV21)
-            nv12Frame(pixels, bytesused, width_, height_, stride_, format_ == V4L2_PIX_FMT_NV21,
-                range_, matrix_, frame, !analysis_only);
-        else {
-            const auto image = decodeJpeg(pixels, bytesused);
-            require(image.width == width_ && image.height == height_, "Camera JPEG dimensions differ from negotiated video size");
-            rgbaFrame(image, frame);
+            rgaPreview().convert(pixels, offset ? -1 : buffers_[buffer.index].dma_fd, width_, height_, stride_,
+                format_ == V4L2_PIX_FMT_NV21, range_, matrix_, preview_width, preview_height, rotation, *frame);
+        } else {
+            convertCameraFrame(pixels, payload, width_, height_, stride_, format_, range_, matrix_,
+                infrared_, static_cast<int>(rotation_), *frame, !analysis_only || format_ == V4L2_PIX_FMT_MJPEG);
         }
-        if (!preview_width && rotation_ == Rotation::counter_clockwise) rotateFrameCounterClockwise(frame);
-        else if (!preview_width && rotation_ == Rotation::clockwise) rotateFrameClockwise(frame);
+        if (frame) frame->monotonic_timestamp_ms = timestamp;
     } catch (...) { request(fd_, VIDIOC_QBUF, &buffer); throw; }
     cameraCheck(request(fd_, VIDIOC_QBUF, &buffer) == 0, "Return camera buffer");
     return true;

@@ -7,6 +7,7 @@ import androidx.lifecycle.Lifecycle;
 
 import com.hiface.sdk.HiFaceSdk;
 import com.hiface.sdk.demo.R;
+import com.hiface.sdk.demo.ui.DemoWindowInsets;
 import com.hiface.sdk.demo.ui.FaceCaptureOverlayView;
 
 /**
@@ -25,6 +26,7 @@ public abstract class CameraFlowActivity extends CameraBrightnessActivity {
     protected void onCreate(@Nullable Bundle state) {
         super.onCreate(state);
         setContentView(R.layout.activity_face_capture);
+        DemoWindowInsets.applyToContent(this);
         findViewById(R.id.backButton).setOnClickListener(v -> finish());
         cameraPreview = CameraPreviewFragment.require(getSupportFragmentManager(), R.id.cameraPreview);
         captureOverlay = findViewById(R.id.captureOverlay);

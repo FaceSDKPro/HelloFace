@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:padding="16dp">
+    <!-- 行高随字号缩放，避免中英文字体度量变化牵动预览尺寸；参数只在设置中展示。 -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:background="@drawable/bg_search_card" android:padding="12dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical" android:baselineAligned="false">
+            <TextView android:id="@+id/uvcStatus" android:layout_width="0dp" android:layout_weight="1" android:layout_height="44sp"
+                android:lines="2" android:ellipsize="end" android:gravity="center_vertical"
+                android:textColor="@android:color/white" android:textSize="15sp" android:accessibilityLiveRegion="polite" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/uvcRetry"
+                style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="wrap_content"
+                android:layout_height="32dp" android:minHeight="0dp" android:minWidth="0dp"
+                android:paddingTop="0dp" android:paddingBottom="0dp" android:insetTop="0dp" android:insetBottom="0dp"
+                android:text="@string/search_ui_retry_short" android:textSize="12sp" android:textAllCaps="false" android:visibility="gone" />
+        </LinearLayout>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:text="@string/uvc_search_latest_result"
+            android:textSize="12sp" android:textColor="@color/text_on_dark_secondary" />
+        <TextView android:id="@+id/uvcResult" android:layout_width="match_parent" android:layout_height="30sp"
+            android:lines="1" android:ellipsize="middle" android:gravity="center_vertical" android:text="@string/uvc_search_no_result"
+            android:fontFamily="sans-serif-medium" android:textSize="18sp" android:textColor="@android:color/white" android:accessibilityLiveRegion="polite" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:baselineAligned="false">
+        <com.google.android.material.button.MaterialButton android:id="@+id/uvcStart" style="@style/Widget.HiFace.Search.Primary"
+            android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="2" android:layout_marginEnd="8dp"
+            android:text="@string/uvc_search_start" app:icon="@drawable/ic_search_search" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/uvcStop" style="@style/Widget.HiFace.Search.Secondary"
+            android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="1" android:text="@string/uvc_search_stop" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:baselineAligned="false">
+        <com.google.android.material.button.MaterialButton android:id="@+id/uvcEnroll" style="@style/Widget.HiFace.Search.Secondary"
+            android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginEnd="4dp"
+            android:text="@string/uvc_search_enroll" app:icon="@drawable/ic_search_add" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/uvcLibrary" style="@style/Widget.HiFace.Search.Secondary"
+            android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginStart="4dp"
+            android:text="@string/search_manage" app:icon="@drawable/ic_search_library" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/uvcDebugPanel" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:orientation="horizontal" android:visibility="gone" android:baselineAligned="false"
+        android:background="@drawable/bg_search_card" android:padding="8dp">
+        <FrameLayout android:layout_width="112dp" android:layout_height="144dp" android:background="@android:color/black">
+            <TextureView android:id="@+id/uvcIrPreview" android:layout_width="match_parent" android:layout_height="match_parent"
+                android:contentDescription="@string/uvc_debug_ir_preview" />
+            <com.hiface.sdk.demo.search.uvc.InfraredDebugOverlayView android:id="@+id/uvcIrOverlay"
+                android:layout_width="match_parent" android:layout_height="match_parent" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_gravity="bottom|start" android:layout_margin="6dp" android:text="@string/uvc_search_ir_camera"
+                android:textColor="@android:color/white" android:textSize="11sp" />
+        </FrameLayout>
+        <ScrollView android:layout_width="0dp" android:layout_weight="1" android:layout_height="144dp" android:fillViewport="true">
+            <TextView android:id="@+id/uvcDiagnostics" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:paddingStart="10dp" android:paddingEnd="10dp" android:textSize="11sp" android:textColor="@color/text_on_dark_secondary" android:textIsSelectable="true" />
+        </ScrollView>
+    </LinearLayout>
+</LinearLayout>

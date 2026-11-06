@@ -16,7 +16,7 @@ enum CameraDemoMode: String, CaseIterable, Identifiable {
         case .capture: DemoL10n.text("采集正脸并保存特征")
         case .verification: DemoL10n.text("选择 Face ID，活体通过后验证")
         case .liveness: DemoL10n.text("随机动作挑战与双模型静默检测")
-        case .search: DemoL10n.text("识别人脸库中的身份")
+        case .search: DemoL10n.text("RGB相机搜索识别，1:N搜索活体也用RGB相机")
         }
     }
 

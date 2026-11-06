@@ -76,6 +76,46 @@ HiFaceYuv420FrameV1 CameraFrame::view() const {
     frame.range = range; frame.matrix = matrix;
     return frame;
 }
+void infraredFrame(const uint8_t* bytes, size_t size, int width, int height, int stride,
+                   bool yuyv, int rotation, CameraFrame& frame) {
+    const int pixel_stride = yuyv ? 2 : 1;
+    require(bytes && width >= 2 && height >= 2 && !(width & 1) && !(height & 1)
+        && width <= 1920 && height <= 1080 && stride >= width * pixel_stride
+        && size >= static_cast<size_t>(stride) * (height - 1) + width * pixel_stride,
+        "Invalid infrared frame");
+    require(rotation >= 0 && rotation <= 270 && rotation % 90 == 0, "Unsupported infrared rotation");
+    const bool swap = rotation == 90 || rotation == 270;
+    frame.width = swap ? height : width;
+    frame.height = swap ? width : height;
+    frame.i420.clear();
+    frame.rgba.clear();
+    frame.gray.resize(static_cast<size_t>(width) * height);
+    for (int y = 0; y < height; ++y) {
+        const auto* row = bytes + static_cast<size_t>(y) * stride;
+        if (!rotation && !yuyv) {
+            std::memcpy(frame.gray.data() + static_cast<size_t>(y) * width, row, width);
+            continue;
+        }
+        for (int x = 0; x < width; ++x) {
+            const int out_x = rotation == 90 ? height - 1 - y : rotation == 270 ? y : rotation == 180 ? width - 1 - x : x;
+            const int out_y = rotation == 90 ? x : rotation == 270 ? width - 1 - x : rotation == 180 ? height - 1 - y : y;
+            frame.gray[static_cast<size_t>(out_y) * frame.width + out_x] = row[x * pixel_stride];
+        }
+    }
+}
+void rotateFrame180(CameraFrame& frame) {
+    const size_t count = static_cast<size_t>(frame.width) * frame.height;
+    require(frame.i420.size() == count * 3 / 2 && (frame.rgba.empty() || frame.rgba.size() == count * 4),
+        "Invalid camera frame for rotation");
+    auto y = frame.i420.begin(), u = y + count, v = u + count / 4;
+    std::reverse(y, u);
+    std::reverse(u, v);
+    std::reverse(v, frame.i420.end());
+    if (!frame.rgba.empty())
+        for (size_t i = 0; i < count / 2; ++i)
+            std::swap_ranges(frame.rgba.begin() + 4 * i, frame.rgba.begin() + 4 * (i + 1),
+                frame.rgba.begin() + 4 * (count - 1 - i));
+}
 void yuyvFrame(const uint8_t* bytes, size_t size, int width, int height, int stride,
               HiFaceYuvRangeV1 range, HiFaceYuvMatrixV1 matrix, CameraFrame& frame, bool make_preview) {
     require(bytes && width >= 2 && height >= 2 && !(width & 1) && !(height & 1)
@@ -119,13 +159,13 @@ void nv12Frame(const uint8_t* bytes, size_t size, int width, int height, int str
     }
     if (make_preview) preview(frame); else frame.rgba.clear();
 }
-void rgbaFrame(const Image& image, CameraFrame& frame) {
+void rgbaFrame(const Image& image, CameraFrame& frame, bool make_preview) {
     const int width = image.width, height = image.height;
     require(width >= 2 && height >= 2 && width <= 1920 && height <= 1080 && !(width & 1) && !(height & 1)
         && image.rgba.size() == static_cast<size_t>(width) * height * 4, "Unsupported camera image size");
     frame.width = width; frame.height = height; frame.x11_bgrx = false;
     frame.range = HIFACE_YUV_RANGE_FULL; frame.matrix = HIFACE_YUV_MATRIX_BT601;
-    frame.rgba = image.rgba;
+    if (make_preview) frame.rgba = image.rgba; else frame.rgba.clear();
     const size_t count = static_cast<size_t>(width) * height;
     frame.i420.resize(count * 3 / 2);
     for (int y = 0; y < height; y += 2) for (int x = 0; x < width; x += 2) {

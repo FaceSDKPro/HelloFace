@@ -15,6 +15,7 @@ import com.hiface.sdk.HiFaceSdk;
 import com.hiface.sdk.common.HiFaceError;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.camera.CameraPreviewFragment;
+import com.hiface.sdk.demo.ui.DemoWindowInsets;
 import com.hiface.sdk.search.FaceSearchSessionConfig;
 import com.hiface.sdk.search.FaceSearchFrame;
 import com.hiface.sdk.search.FaceSearchListener;
@@ -62,6 +63,7 @@ public final class FaceSearchActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         restoreConfig(state);
         setContentView(R.layout.activity_face_search);
+        DemoWindowInsets.applyToContent(this);
         bindViews();
         bindActions();
         startSearch();

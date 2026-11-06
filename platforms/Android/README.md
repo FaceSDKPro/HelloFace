@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-SDK / Demo: **0.8.6 Beta**.
+SDK / Demo: **0.8.7 Beta**.
 
 On-device detection, capture, liveness, 1:1 comparison, 1:N/M:N search and face-library management.
 
@@ -14,7 +14,9 @@ Guides: [SDK](docs/SDK.md) · [Demo](docs/DEMO.md).
 
 Use Android Studio, JDK 17, Android SDK 36 / Build Tools 36.0.0, and Java source level 11. Minimum Android version is 6.0 / API 23. The AAR includes native libraries for `arm64-v8a` and `armeabi-v7a`; this Demo does not require an NDK installation. Camera validation requires an ARM phone.
 
-Open this directory, sync dependencies, select `demo`, and run it on a phone. Grant camera access when requested. Application ID: `com.hiface.sdk.public`.
+The Demo loads `demo/libs/uvc-android-camera-0.3.2.aar` directly. The AAR was built from the [UVCAndroidCamera v0.3.2 source](https://github.com/FaceSDKPro/UVCAndroidCamera/tree/v0.3.2) and includes its third-party license texts.
+
+Open this directory, sync dependencies, select `demo`, and run it on a phone. Grant camera access when requested. The application ID is `com.hiface.sdk.public`.
 
 ```sh
 ./gradlew :demo:assembleDebug
@@ -43,7 +45,7 @@ Use the SDK dependency and model compression configuration in the host App modul
 
 ```kotlin
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.6")
+    implementation("io.github.facesdkpro:hiface-android:0.8.7")
 }
 android {
     defaultConfig {

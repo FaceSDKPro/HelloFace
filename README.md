@@ -12,7 +12,7 @@
 <div align="center">
   <p>
     <a href="https://www.helloface.dev/"><img src="images/hello-face-icon.webp" alt="" width="51" height="51" align="bottom"><img src="images/helloface-wordmark.svg" alt="HelloFace" width="170" height="40" align="bottom"></a>
-    &nbsp; <strong>0.8.6 Beta</strong>
+    &nbsp; <strong>0.8.7 Beta</strong>
   </p>
   <p><strong>Offline face detection, capture, liveness, 1:1 verification and 1:N/M:N search.</strong></p>
   <p>🌍 <strong>Official Website</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a> &nbsp; | &nbsp; <img src="images/github-mark.svg" alt="" width="16" height="16" align="bottom"> <strong>GitHub Integration Code</strong> · <a href="https://github.com/FaceSDKPro/HelloFace">FaceSDKPro/HelloFace</a></p>

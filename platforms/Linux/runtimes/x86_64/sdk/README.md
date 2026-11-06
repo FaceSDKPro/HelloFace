@@ -6,6 +6,8 @@ English | [简体中文](README.zh-CN.md)
 Ubuntu 22.04 / glibc 2.35 baseline; Ubuntu 24.04 is a compatibility target.
 The SDK is in iterative public Beta testing. Please keep the SDK version up to date. The current model does not support face recognition for people under 12 and must not be used in financial scenarios. Target-device acceptance is pending.
 
+Persistent runtime state uses `$XDG_STATE_HOME/hiface` when explicitly configured; otherwise it uses the OS account's `~/.local/state/hiface`. Choose a persistent private location before first use and keep it stable. Invalid, temporary or unsafe paths fail without switching to another state directory.
+
 ## Integrate
 
 Use the SDK matching your architecture. `include/hiface/` contains public declarations, `lib/` the shared SDK,
@@ -60,5 +62,5 @@ IR-only FLIR: create a CPU session with feature/landmarks disabled, call
 pixels, row stride, an IR-coordinate face box (x/y + width/height, at least 10x10)
 and a device-calibrated real threshold. `real_score >= real_threshold` passes;
 check status before reading the result. Dimensions may be odd, up to 4096 per side.
-See `examples/infrared_liveness.c` for a complete consumer. This does not capture
+See `../../../examples/image-search/infrared_liveness.c` for a complete consumer. This does not capture
 IR cameras, detect a face, or change the RGB liveness/search flows. Validate actual IR hardware and attacks separately.

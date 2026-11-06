@@ -98,6 +98,11 @@ void DemoUi::button(Rect r, const std::string& label, const std::string& action,
     uint32_t color = primary || navigation ? 0xffffff : destructive ? danger : selected ? accent : ink;
     if (hover) fill = primary ? 0x05624f : navigation ? 0x2b574b : destructive ? 0xffefed : 0xedf5f1;
     if (!enabled) { fill = 0xf0f1f4; line = 0xe5e7ec; color = 0xa0a5af; }
+    if (page_ == RgbIrSearchPage::route) {
+        fill = primary && enabled ? (hover ? 0x9aedd3 : 0x7fe4c3) : hover ? 0x25364a : 0x172233;
+        line = primary && enabled ? fill : selected && enabled ? 0x7fe4c3 : 0x304156;
+        color = enabled ? primary ? 0x0e1522 : 0xecf3fc : 0x8192a7;
+    }
     scene_.box(r, keyboard_focus_ == action ? accent : line, 8); scene_.box({r.x + 1, r.y + 1, r.w - 2, r.h - 2}, fill, 7);
     const int label_width = measure_(label, font);
     text(r.x + std::max(9, (r.w - label_width) / 2), r.y + r.h / 2 + (font == Font::Large ? 6 : 5), label, color, r.w - 18, font);
@@ -106,10 +111,13 @@ void DemoUi::button(Rect r, const std::string& label, const std::string& action,
 void DemoUi::field(Rect r, const std::string& key, const std::string& label, const std::string& initial, bool enabled, Font font) {
     auto& value = values_.emplace(key, initial).first->second;
     const bool large = font == Font::Large;
-    text(r.x, r.y + (large ? 15 : 12), label, muted, r.w, large ? Font::Body : Font::Small);
+    const bool search_parameter = page_ == "settings" && settings_tab_ == "search";
+    const bool uvc = key.rfind("uvc:", 0) == 0;
+    text(r.x, r.y + (large ? 15 : 12), label, uvc ? 0xaebfd3 : search_parameter ? ink : muted, r.w,
+         search_parameter ? Font::Caption : large ? Font::Body : Font::Small);
     const Rect input{r.x, r.y + (large ? 24 : 21), r.w, large ? 42 : 34};
-    scene_.box(input, invalid_field_ == key ? danger : focused_ == key ? accent : border, 7);
-    scene_.box({input.x + 1, input.y + 1, input.w - 2, input.h - 2}, enabled ? surface : 0xf3f4f6, 6);
+    scene_.box(input, invalid_field_ == key ? danger : focused_ == key ? accent : uvc ? 0x304156 : border, 7);
+    scene_.box({input.x + 1, input.y + 1, input.w - 2, input.h - 2}, uvc ? 0x0e1522 : enabled ? surface : 0xf3f4f6, 6);
     auto shown = value; size_t shown_start = 0;
     if (focused_ == key) {
         auto position = std::min(cursor_, value.size()); shown.insert(position, "|");
@@ -121,8 +129,17 @@ void DemoUi::field(Rect r, const std::string& key, const std::string& label, con
         }
         if (select_all_) scene_.box({input.x + 5, input.y + 5, std::min(input.w - 10, measure_(shown, font) + 6), input.h - 10}, 0xc6e9dc, 3);
     }
-    text(input.x + 10, input.y + (large ? 28 : 22), shown, enabled ? ink : muted, input.w - 20, font);
+    text(input.x + 10, input.y + (large ? 28 : 22), shown, uvc ? 0xecf3fc : enabled ? ink : muted, input.w - 20, font);
     const auto bounds = input.intersect(scene_.clip); if (bounds.w && bounds.h) controls_.push_back({bounds, "", key, enabled, shown_start, label, font});
+}
+void DemoUi::rotationButtons(Rect r, const std::string& selected, bool enabled) {
+    constexpr int gap = 8;
+    const int width = (r.w - 3 * gap) / 4;
+    for (int i = 0; i < 4; ++i) {
+        const auto angle = std::to_string(i * 90);
+        button({r.x + i * (width + gap), r.y, width, r.h}, angle + "°", "ui-rotation:" + angle,
+               selected == angle ? 2 : 0, enabled, width < 60 ? Font::Small : Font::Body);
+    }
 }
 void DemoUi::toggle(int x, int y, int width, const std::string& key, const std::string& label, bool enabled, Font font) {
     const bool on = values_[key] == "1";
@@ -197,22 +214,27 @@ void DemoUi::picture(Rect r, const Image* image, const CameraFrame* camera, bool
 }
 void DemoUi::home(const ViewState& s, Rect b) {
     scene_.box(b, background);
-    text(28, 42, s.runtime.app, ink, b.w - 56, Font::Title);
+    text(28, 42, "HelloFace SDK", ink, b.w - 56, Font::Title);
     wrap(28, 70, "Offline | Private | Fast", muted, b.w - 56, 2);
     text(28, 94, deviceInfo(), muted, b.w - 56, Font::Small);
-    const int columns = 1, gap = 11, count = home_page_count;
-    const int rows = (count + columns - 1) / columns;
-    const int w = (b.w - 56 - (columns - 1) * gap) / columns;
-    const int h = 88;
-    home_max_scroll_ = std::max(0, 112 + rows * h + (rows - 1) * gap - (b.h - 124));
+    constexpr int gap = 11, row_height = 76, first_row_y = 112;
+    const int list_bottom = b.h - 116;
+    const int list_end = first_row_y + home_page_count * (row_height + gap) - gap;
+    home_max_scroll_ = std::max(0, list_end + 8 - list_bottom);
     home_scroll_ = std::clamp(home_scroll_, 0, home_max_scroll_);
-    const auto old_clip = scene_.clip; scene_.clip = {0, 100, b.w, b.h - 216};
-    for (int i = 0; i < count; ++i) {
+    const auto old_clip = scene_.clip;
+    scene_.clip = {0, 100, b.w, list_bottom - 100};
+    for (int i = 0; i < home_page_count; ++i) {
         const auto& feature = demo_pages[i];
-        const Rect r{28 + (i % columns) * (w + gap), 112 + (i / columns) * (h + gap) - home_scroll_, w, h};
+        const Rect r{28, first_row_y + i * (row_height + gap) - home_scroll_, b.w - 56, row_height};
+        if (!r.intersect(scene_.clip).h) continue;
         button(r, "", std::string("page:") + feature.route, 0, s.ready && !s.busy && !s.importing);
-        text(r.x + 14, r.y + 30, feature.title, accent, w - 28, Font::Large);
-        wrap(r.x + 14, r.y + 55, feature.description, muted, w - 28, h > 100 ? 3 : 2, Font::Small);
+        const int arrow_x = r.x + r.w - 28, arrow_y = r.y + r.h / 2;
+        scene_.dot(arrow_x, arrow_y, 26, tint);
+        scene_.line(arrow_x - 2, arrow_y - 4, arrow_x + 2, arrow_y, accent, 2);
+        scene_.line(arrow_x + 2, arrow_y, arrow_x - 2, arrow_y + 4, accent, 2);
+        text(r.x + 14, r.y + 27, feature.title, ink, r.w - 60, Font::Large);
+        wrap(r.x + 14, r.y + 48, feature.description, muted, r.w - 60, 2, Font::Small);
     }
     scene_.clip = old_clip;
     supportFooter(s);
@@ -633,6 +655,9 @@ void DemoUi::references(const ViewState& s, Rect b) {
 void DemoUi::resetDraft(const DemoSettings& settings) { for (const auto& f : settingsFields(settings)) values_["setting:" + f.key] = f.value; invalid_field_.clear(); }
 bool DemoUi::settingVisible(const std::string& key) const {
     if (page_ == "camera-settings") return sdkSetting(key);
+    // The RGB/IR dialog can change the shared display angle. Camera and search
+    // drafts are saved separately and must never be applied by this action.
+    if (page_ == RgbIrSearchPage::route) return key == "ui_rotation";
     if (settings_tab_ == "detection") return key == "detection_faces" || key == "detailed";
     if (settings_tab_ == "search") return key.rfind("search_", 0) == 0 || key == "group" || key == "tag";
     return settings_tab_ == "verification" ? key.rfind("verification_", 0) == 0
@@ -643,14 +668,14 @@ void DemoUi::searchSettings(const ViewState& s, Rect b) {
     const bool multi = values_["setting:search_multi"] == "1";
     const bool enabled = !s.busy && !settings_pending_;
     const bool wide = b.w >= 900;
-    const int gap = 16, column = wide ? (b.w - gap) / 2 : b.w;
-    Rect mode{b.x, b.y, column, multi ? 300 : 216};
-    Rect scope{b.x, mode.y + mode.h + gap, column, 164};
+    const int gap = 28, column = wide ? (b.w - gap) / 2 : b.w;
+    Rect mode{b.x, b.y, column, multi ? 316 : 232};
+    Rect scope{b.x, mode.y + mode.h + gap, column, 180};
     Rect parameters{wide ? b.x + column + gap : b.x, wide ? b.y : scope.y + scope.h + gap,
-                    column, 176};
+                    column, 192};
     // Keep every parameter in the scrollable form, with more space between groups.
     // 所有参数直接放入可滚动表单，参数分组之间增加留白。
-    Rect more{parameters.x, parameters.y + parameters.h + 24, column, 176};
+    Rect more{parameters.x, parameters.y + parameters.h + 40, column, 192};
     search_settings_area_ = {b.x, b.y, b.w, std::max(80, b.h - 128)};
     const int content_height = std::max(scope.y + scope.h, more.y + more.h) - b.y;
     search_settings_max_scroll_ = std::max(0, content_height - search_settings_area_.h);
@@ -658,9 +683,9 @@ void DemoUi::searchSettings(const ViewState& s, Rect b) {
     // Keep the Android-style sections scrollable while Apply/Reset stay fixed.
     // 分组表单参考 Android；仅滚动内容，应用/重置固定在底部，校验失败时定位到对应字段。
     if (!search_reveal_field_.empty()) {
-        int top = (search_reveal_field_ == "search_threshold" ? parameters.y : more.y) + 56;
-        if (search_reveal_field_ == "group" || search_reveal_field_ == "tag") top = scope.y + 80;
-        if (search_reveal_field_ == "search_faces") top = mode.y + 216;
+        int top = (search_reveal_field_ == "search_threshold" ? parameters.y : more.y) + 72;
+        if (search_reveal_field_ == "group" || search_reveal_field_ == "tag") top = scope.y + 96;
+        if (search_reveal_field_ == "search_faces") top = mode.y + 232;
         if (top - search_settings_scroll_ < b.y)
             search_settings_scroll_ = top - b.y - 12;
         else if (top + 66 - search_settings_scroll_ > b.y + search_settings_area_.h)
@@ -683,24 +708,24 @@ void DemoUi::searchSettings(const ViewState& s, Rect b) {
     button({mx+mode_width+10,mode.y+48,mode_width,48},"M:N Multiple faces","search-multi",multi?2:0,enabled,Font::Large);
     wrap(mx,mode.y+122,multi?"Search several faces without pose or liveness checks.":
          "Match one face. Liveness is enabled by default.",muted,mw,2,Font::Body);
-    toggle(mx,mode.y+156,mw,"setting:search_liveness",multi?"Liveness unavailable in M:N":"Passive liveness",enabled&&!multi,Font::Large);
-    if (multi) input("search_faces","Maximum faces (1-5)",mx,mode.y+216,mw);
+    toggle(mx,mode.y+172,mw,"setting:search_liveness",multi?"Liveness unavailable in M:N":"Passive liveness",enabled&&!multi,Font::Large);
+    if (multi) input("search_faces","Maximum faces (1-5)",mx,mode.y+232,mw);
 
     section(scope, "Search scope");
     const int sx = scope.x + 20, sw = scope.w - 40, filter_width = (sw - 16) / 2;
     text(sx,scope.y+57,"Leave filters blank to search all faces.",muted,sw,Font::Body);
-    input("group","Group (optional)",sx,scope.y+80,filter_width);
-    input("tag","Tag (optional)",sx+filter_width+16,scope.y+80,filter_width);
+    input("group","Group (optional)",sx,scope.y+96,filter_width);
+    input("tag","Tag (optional)",sx+filter_width+16,scope.y+96,filter_width);
 
     section(parameters, "Recognition settings");
     const int px = parameters.x + 20, pw = parameters.w - 40, half = (pw - 16) / 2;
-    input("search_threshold","Similarity threshold",px,parameters.y+56,pw);
-    text(px,parameters.y+148,"0.75-0.85. Higher values require a closer match.",muted,pw,Font::Body);
+    input("search_threshold","Similarity threshold",px,parameters.y+72,pw);
+    text(px,parameters.y+164,"0.75-0.85. Higher values require a closer match.",muted,pw,Font::Body);
     section(more, "More parameters");
-    input("search_interval","Success interval (ms)",px,more.y+56,half);
-    input("search_timeout","Round timeout (ms)",px+half+16,more.y+56,half);
-    text(px,more.y+148,"0-3000 ms",muted,half,Font::Body);
-    text(px+half+16,more.y+148,"1000-3000 ms",muted,half,Font::Body);
+    input("search_interval","Success interval (ms)",px,more.y+72,half);
+    input("search_timeout","Round timeout (ms)",px+half+16,more.y+72,half);
+    text(px,more.y+164,"0-3000 ms",muted,half,Font::Body);
+    text(px+half+16,more.y+164,"1000-3000 ms",muted,half,Font::Body);
     scene_.clip = old_clip;
     if (search_settings_max_scroll_) {
         const auto area = search_settings_area_;
@@ -762,12 +787,7 @@ void DemoUi::settings(const ViewState& s, Rect b) {
             button({x+half+20,y+70,half,38},"High 1280 x 720","resolution:1",values_["setting:camera_width"]=="1280" && values_["setting:camera_height"]=="720"?2:0,!s.busy);
             t("mirror", "Mirror preview and face overlays", y + 142);
             text(x, y + 214, "UI rotation", ink, 96, Font::Small);
-            const int rw = (w - 108 - 24) / 4;
-            for (int i = 0; i < 4; ++i) {
-                const auto angle = std::to_string(i * 90);
-                button({x + 108 + i * (rw + 8), y + 194, rw, 30}, angle + "°", "ui-rotation:" + angle,
-                       values_["setting:ui_rotation"] == angle ? 2 : 0, !s.busy, rw < 60 ? Font::Small : Font::Body);
-            }
+            rotationButtons({x + 108, y + 194, w - 108, 30}, values_["setting:ui_rotation"], !s.busy && !settings_pending_);
         }
         button({x,y+258,220,32},sdk_advanced_ ? "Back to SDK settings" : "Advanced video settings","sdk-advanced",0,!s.busy);
     }
@@ -785,6 +805,7 @@ void DemoUi::beginOverlay() {
 void DemoUi::dismissOverlay() {
     soft_keyboard_open_ = false;
     confirming_ = browsing_ = enrolling_ = result_dialog_ = metadata_dialog_ = false; notice_.clear(); invalid_field_.clear(); browser_error_.clear(); select_all_ = false;
+    uvc_settings_open_ = false;
     keyboard_focus_ = overlay_return_focus_; focused_ = keyboard_focus_.rfind("field:", 0) == 0 ? keyboard_focus_.substr(6) : ""; cursor_ = values_[focused_].size();
 }
 void DemoUi::confirm(Command pending, const std::string& title, const std::string& message) {
@@ -862,6 +883,7 @@ void DemoUi::submitField(const ViewState& state) {
     else if (field == "device") action = "connect";
     else if (field.rfind("query-",0) == 0) action = "gallery-load";
     else if (metadata_dialog_ && (field == "selected-group" || field == "selected-tag")) return;
+    else if (uvc_settings_open_) action = "uvc-settings-apply";
     else if (field.rfind("setting:",0) == 0 && !settings_pending_ && settingsDirty(state)) action = "settings-apply";
     else if ((field == "photo-a" || field == "photo-b") && !values_[field].empty()) action = "preview:" + field;
     if (action.empty()) { focused_.clear(); return; }
@@ -912,6 +934,8 @@ void DemoUi::back(const ViewState& state) {
     page(parent, state);
 }
 void DemoUi::requestClose(const ViewState& state) {
+    if (uvc_settings_pending_) return;
+    if (uvc_settings_open_) dismissOverlay();
     if (metadata_pending_) { notice_="Wait for the metadata save to finish.";return; }
     if (confirming_ || browsing_ || enrolling_ || metadata_dialog_) dismissOverlay();
     if (state.importing) confirm({"ui-quit", {}, {}}, "Stop import and exit?", "Completed batches are already saved. The current batch will finish before the app closes.");
@@ -938,6 +962,11 @@ void DemoUi::browse(const std::string& target) {
     readDirectory(); focused_ = "browser-path"; keyboard_focus_ = "field:browser-path"; cursor_ = values_[focused_].size(); select_all_ = true;
 }
 void DemoUi::handle(const std::string& action, const ViewState& state) {
+    if (action == "uvc-toggle") {
+        if (page_ == RgbIrSearchPage::route && state.rgbir_available && !state.busy) emit(action, {});
+        return;
+    }
+    if (action.rfind("uvc-", 0) == 0) { handleUvcSettings(action, state); return; }
     if (action == "sdk-advanced") { sdk_advanced_ = !sdk_advanced_; return; }
     if (action == "library-menu") { library_menu_ = !library_menu_; return; }
     if (action == "library-refresh") {
@@ -1044,6 +1073,7 @@ void DemoUi::handle(const std::string& action, const ViewState& state) {
         const int index = std::stoi(action.substr(11)); const char* widths[] = {"640", "1280", "1920"}; const char* heights[] = {"360", "720", "1080"}; values_["setting:camera_width"] = widths[index]; values_["setting:camera_height"] = heights[index]; handle("settings-apply", state); return;
     }
     if (action.rfind("ui-rotation:", 0) == 0) {
+        if (state.busy || settings_pending_) return;
         values_["setting:ui_rotation"] = action.substr(12); handle("settings-apply", state); return;
     }
     if (action.rfind("add-action:", 0) == 0) {
@@ -1176,6 +1206,7 @@ void DemoUi::key(Key key_value, const std::string& value, bool shift, const View
         if (key_value == Key::Tab || key_value >= Key::Page1 && key_value <= Key::Page5) return;
     }
     if (key_value == Key::Escape) {
+        if (uvc_settings_open_) { handleUvcSettings("uvc-settings-cancel", state); return; }
         if (error_details_ || !state.ready && state.failed) { handle("error-back", state); return; }
         if (metadata_pending_) return;
         if (enrolling_ && enrollment_saving_) return;
@@ -1197,7 +1228,7 @@ void DemoUi::key(Key key_value, const std::string& value, bool shift, const View
     }
     if (key_value >= Key::Page1 && key_value <= Key::Page5) {
         if (!state.ready || error_details_) return;
-        if (!confirming_ && !browsing_ && !enrolling_ && !result_dialog_ && !metadata_dialog_) { const char* pages[] = {"camera", "images", "capture", "camera-settings", "image-search"}; page(pages[int(key_value) - int(Key::Page1)], state); }
+        if (!confirming_ && !browsing_ && !enrolling_ && !result_dialog_ && !metadata_dialog_ && !uvc_settings_open_) { const char* pages[] = {"camera", "images", "capture", "camera-settings", "image-search"}; page(pages[int(key_value) - int(Key::Page1)], state); }
         return;
     }
     if (page_ == "settings" && settings_tab_ == "search" && !confirming_ &&
@@ -1234,7 +1265,7 @@ void DemoUi::key(Key key_value, const std::string& value, bool shift, const View
     if (key_value == Key::Enter || key_value == Key::Text && value == " ") {
         for (const auto& c : controls_) if (c.enabled && c.id() == keyboard_focus_ && c.field.empty()) { const auto action = c.action; handle(action, state); return; }
     }
-    if (confirming_ || browsing_ || enrolling_ || result_dialog_ || metadata_dialog_ || error_details_ || !state.ready) return;
+    if (confirming_ || browsing_ || enrolling_ || result_dialog_ || metadata_dialog_ || uvc_settings_open_ || error_details_ || !state.ready) return;
     if(page_=="gallery" && library_tab_=="people") {
         int next=library_scroll_;
         if(key_value==Key::Home)next=0;else if(key_value==Key::End)next=std::max(0,int(state.gallery.size())-gallery_rows_);
@@ -1328,6 +1359,7 @@ void DemoUi::softKeyboard() {
     for(int i=0;i<4;++i) character(left+(6+i)*step,y+310,std::string("-_.@")[i]);
 }
 void DemoUi::modal(const ViewState& state) {
+    if (uvc_settings_open_) { uvcSettingsDialog(state); return; }
     if (browsing_) { browser(); return; }
     if(metadata_dialog_) {
         controls_.clear();const int w=std::min(590,scene_.width-64),h=420,x=(scene_.width-w)/2,y=(scene_.height-h)/2;
@@ -1386,15 +1418,25 @@ const Scene& DemoUi::render(const ViewState& state, int width, int height) {
     if (state.ready && !initialized_) {
         initialized_ = true; values_["device"] = state.device; values_["exchange-path"] = state.data_directory + "/features.json"; resetDraft(state.settings);
         const char* start_search = std::getenv("HIFACE_START_SEARCH");
-        if (start_search && std::string(start_search) == "1") {
-            page_ = "camera"; selected_task_ = "S";
+        const std::string_view start_mode = start_search ? start_search : "";
+        const bool dual_camera = start_mode == "rgbir" && state.rgbir_available;
+        if (start_mode == "1" || dual_camera) {
+            // Queue dual-camera capture only after the SDK and saved settings are ready.
+            page_ = dual_camera ? RgbIrSearchPage::route : "camera";
+            if (!dual_camera) selected_task_ = "S";
             page_history_ = {"home"};
-            emit("page", {"camera"});
+            emit("page", {page_});
         }
     }
     if (settings_pending_ && state.settings_attempt > settings_attempt_) {
         settings_pending_ = false;
         if (!state.failed) { resetDraft(state.settings); if (page_ == "settings" && settings_tab_ == "search") back(state); }
+        else if (uvc_settings_open_ && uvc_settings_tab_ == UvcSettingsTab::display) notice_ = state.status;
+    }
+    if (uvc_settings_pending_ && state.rgbir_settings_attempt > uvc_settings_attempt_ && !state.busy) {
+        uvc_settings_pending_ = false;
+        if (state.rgbir_settings_error.empty()) dismissOverlay();
+        else notice_ = state.rgbir_settings_error;
     }
     if(metadata_pending_ && state.metadata_attempt>metadata_attempt_ && !state.busy) {
         metadata_pending_=false;metadata_error_=state.failed;if(!state.failed){dismissOverlay();clearLibrarySelection();}
@@ -1416,6 +1458,12 @@ const Scene& DemoUi::render(const ViewState& state, int width, int height) {
         flow_result_generation_ = state.flow_result_generation; beginOverlay(); result_dialog_ = true;
     }
     if (page_ == "home") { home(state, {0, 0, width, height}); modal(state); softKeyboard(); return scene_; }
+    if (page_ == RgbIrSearchPage::route) {
+        uvcCameraFaceSearch(state, {0, 0, width, height});
+        modal(state);
+        softKeyboard();
+        return scene_;
+    }
     if (cameraPage(page_)) {
         camera(state, {0, 0, width, height});
         modal(state);

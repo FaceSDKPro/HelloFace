@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-SDK / Demo：**0.8.6 Beta**
+SDK / Demo：**0.8.7 Beta**
 
 支持检测、采集、活体、1:1 比对、1:N/M:N 搜索和人脸库管理，算法在设备端运行。
 
@@ -13,6 +13,8 @@ SDK / Demo：**0.8.6 Beta**
 ## 运行
 
 用 Android Studio 打开本目录，使用 JDK 17、Android SDK 36 / Build Tools 36.0.0，在 ARM 手机运行 `demo`。最低 Android 6.0 / API 23；支持 `arm64-v8a`、`armeabi-v7a`，构建 Demo 无需 NDK。
+
+Demo 直接读取 `demo/libs/uvc-android-camera-0.3.2.aar`。该 AAR 由 [UVCAndroidCamera v0.3.2 源码](https://github.com/FaceSDKPro/UVCAndroidCamera/tree/v0.3.2)构建，并包含第三方许可文本。
 
 ```sh
 ./gradlew :demo:assembleDebug
@@ -41,7 +43,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.6")
+    implementation("io.github.facesdkpro:hiface-android:0.8.7")
 }
 android {
     defaultConfig {

@@ -1,8 +1,7 @@
 package com.hiface.sdk.demo.search;
 
 import android.content.Context;
-import android.content.res.ColorStateList;
-import android.graphics.Color;
+import android.graphics.Typeface;
 import android.text.InputType;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
@@ -49,11 +48,9 @@ final class SearchSettingsDialog {
     private MaterialButtonToggleGroup modes;
     private MaterialButton single;
     private MaterialButton multi;
-    private MaterialButton more;
     private TextView modeHint;
     private TextView liveHint;
     private SwitchMaterial live;
-    private LinearLayout advanced;
     private SearchUi.Input maxFaces;
     private SearchUi.Input group;
     private SearchUi.Input threshold;
@@ -85,6 +82,16 @@ final class SearchSettingsDialog {
         addModeSettings(form);
         addScopeSettings(form);
         addSearchParameters(form);
+        for (SearchUi.Input parameter : new SearchUi.Input[]{maxFaces, group, threshold, interval, timeout}) {
+            parameter.box.setExpandedHintEnabled(false);
+            parameter.box.setHintTextAppearance(R.style.TextAppearance_HiFace_Search_ParameterTitle);
+        }
+        for (View parameter : new View[]{live, maxFaces.box, group.box, threshold.box,
+                interval.box, timeout.box}) {
+            LinearLayout.LayoutParams layout = (LinearLayout.LayoutParams) parameter.getLayoutParams();
+            layout.topMargin = SearchUi.dp(context, 24);
+            parameter.setLayoutParams(layout);
+        }
         modes.addOnButtonCheckedListener((buttons, id, checked) -> {
             if (checked) {
                 updateMode(id == multi.getId());
@@ -96,7 +103,7 @@ final class SearchSettingsDialog {
 
         maxFaces.edit.setNextFocusForwardId(group.edit.getId());
         group.edit.setNextFocusForwardId(threshold.edit.getId());
-        threshold.edit.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        threshold.edit.setNextFocusForwardId(interval.edit.getId());
         interval.edit.setNextFocusForwardId(timeout.edit.getId());
         timeout.edit.setImeOptions(EditorInfo.IME_ACTION_DONE);
         SearchUi.FormScrollView scroll = SearchUi.scroll(form);
@@ -128,7 +135,7 @@ final class SearchSettingsDialog {
      * 创建单人/多人模式、单帧活体开关和多人采样上限控件。
      */
     private void addModeSettings(LinearLayout form) {
-        SearchUi.section(form, R.string.search_ui_mode_section);
+        addSection(form, R.string.search_ui_mode_section);
         modes = new MaterialButtonToggleGroup(context);
         modes.setSingleSelection(true);
         modes.setSelectionRequired(true);
@@ -143,7 +150,8 @@ final class SearchSettingsDialog {
 
         live = new SwitchMaterial(context);
         live.setText(R.string.search_ui_live_switch);
-        live.setTextSize(14);
+        live.setTextSize(15);
+        live.setTypeface(Typeface.DEFAULT_BOLD);
         live.setMinHeight(SearchUi.dp(context, 48));
         form.addView(live);
         liveHint = SearchUi.text(context, R.string.search_ui_live_help, 12, false);
@@ -158,7 +166,7 @@ final class SearchSettingsDialog {
      * 编辑本 Demo 支持的 group 条件；留空表示搜索所有分组。
      */
     private void addScopeSettings(LinearLayout form) {
-        SearchUi.section(form, R.string.search_ui_scope_section);
+        addSection(form, R.string.search_ui_scope_section);
         form.addView(SearchUi.text(context, R.string.search_ui_scope_help, 12, false));
         group = SearchUi.field(form, R.string.search_ui_group_label, current.getGroup(),
                 0, InputType.TYPE_CLASS_TEXT);
@@ -166,44 +174,29 @@ final class SearchSettingsDialog {
     }
 
     /**
-     * Display the similarity threshold and place success interval and round timeout in expandable advanced
-     * settings.
+     * Keep the threshold, success interval and round timeout visible in the scrollable form.
      *
-     * 展示相似度门槛，将成功间隔与单轮超时收进可展开的高级参数区。
+     * 相似度门槛、成功间隔和单轮超时直接显示在可滚动表单中。
      */
     private void addSearchParameters(LinearLayout form) {
-        SearchUi.section(form, R.string.search_ui_parameters);
+        addSection(form, R.string.search_ui_parameters);
         threshold = SearchUi.field(form, R.string.search_ui_threshold_label,
                 String.valueOf(current.getThreshold()), R.string.search_ui_threshold_help,
                 InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        more = new MaterialButton(context);
-        more.setBackgroundTintList(ColorStateList.valueOf(Color.TRANSPARENT));
-        more.setTextColor(context.getColor(R.color.search_accent));
-        more.setStateListAnimator(null);
-        more.setElevation(0);
-        more.setIconTint(ColorStateList.valueOf(context.getColor(R.color.search_accent)));
-        more.setText(R.string.search_ui_more_parameters);
-        more.setTextSize(12);
-        more.setAllCaps(false);
-        more.setMinHeight(SearchUi.dp(context, 48));
-        more.setIconResource(R.drawable.ic_search_chevron);
-        more.setIconSize(SearchUi.dp(context, 18));
-        more.setIconGravity(MaterialButton.ICON_GRAVITY_TEXT_END);
-        form.addView(more);
-
-        advanced = new LinearLayout(context);
-        advanced.setOrientation(LinearLayout.VERTICAL);
-        advanced.setVisibility(View.GONE);
-        form.addView(advanced);
-        interval = SearchUi.field(advanced, R.string.search_ui_interval_label,
+        interval = SearchUi.field(form, R.string.search_ui_interval_label,
                 String.valueOf(current.getSearchIntervalMillis()),
                 R.string.search_ui_interval_help, InputType.TYPE_CLASS_NUMBER);
-        timeout = SearchUi.field(advanced, R.string.search_ui_timeout_label,
+        timeout = SearchUi.field(form, R.string.search_ui_timeout_label,
                 String.valueOf(current.getSearchTimeoutMillis()),
                 R.string.search_ui_timeout_help, InputType.TYPE_CLASS_NUMBER);
         interval.box.setSuffixText(context.getString(R.string.search_ui_millis));
         timeout.box.setSuffixText(context.getString(R.string.search_ui_millis));
-        more.setOnClickListener(v -> showAdvanced(advanced.getVisibility() != View.VISIBLE));
+    }
+
+    private void addSection(LinearLayout form, @StringRes int label) {
+        TextView title = SearchUi.section(form, label);
+        title.setTextSize(15);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
     }
 
     /**
@@ -219,16 +212,6 @@ final class SearchSettingsDialog {
         liveHint.setText(many ? R.string.search_ui_live_disabled : R.string.search_ui_live_help);
         modeHint.setText(many ? R.string.search_ui_multi_hint : R.string.search_ui_single_hint);
         maxFaces.box.setVisibility(many ? View.VISIBLE : View.GONE);
-    }
-
-    /**
-     * Toggle advanced-settings visibility while preserving entered draft values.
-     *
-     * 切换高级参数区的可见性，保留已经填写的草稿值。
-     */
-    private void showAdvanced(boolean visible) {
-        advanced.setVisibility(visible ? View.VISIBLE : View.GONE);
-        more.setSelected(visible);
     }
 
     /**
@@ -267,7 +250,6 @@ final class SearchSettingsDialog {
         threshold.box.setError(null);
         if (!interval.integerIn(0, 3000, R.string.search_ui_error_interval)
                 || !timeout.integerIn(1000, 3000, R.string.search_ui_error_timeout)) {
-            showAdvanced(true);
             return null;
         }
         boolean many = modes.getCheckedButtonId() == multi.getId();

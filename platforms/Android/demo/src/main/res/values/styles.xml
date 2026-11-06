@@ -70,6 +70,11 @@
         <item name="strokeWidth">1dp</item>
     </style>
 
+    <style name="TextAppearance.HiFace.Search.ParameterTitle" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
     <style name="Widget.HiFace.Search.Field"
         parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
         <item name="boxStrokeColor">@color/search_field_stroke</item>

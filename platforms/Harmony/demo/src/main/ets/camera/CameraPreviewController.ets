@@ -247,7 +247,7 @@ export class CameraPreviewController {
       this.lastFrameAt = systemDateTime.getUptime(systemDateTime.TimeType.STARTUP);
       this.lastAnalysisFrameAt = -1;
       this.frameWatchdog = setInterval(() => {
-        if (token === this.generation && this.active && this.frameTask === undefined &&
+        if (token === this.generation && this.active && !this.analysisPaused && this.frameTask === undefined &&
           this.consumerTask === undefined &&
           systemDateTime.getUptime(systemDateTime.TimeType.STARTUP) - this.lastFrameAt >= 8000) {
           this.failCamera(DemoL10n.text("相机未收到分析帧，请重试"));
@@ -302,6 +302,7 @@ export class CameraPreviewController {
   resumeAnalysis(): void {
     this.analysisPaused = false;
     this.lastAnalysisFrameAt = -1;
+    this.lastFrameAt = systemDateTime.getUptime(systemDateTime.TimeType.STARTUP);
   }
 
   private updateApplicationFrameInterval(): void {

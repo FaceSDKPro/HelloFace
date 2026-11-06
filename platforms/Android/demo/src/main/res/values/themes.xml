@@ -1,8 +1,8 @@
 <resources>
     <style name="Theme.HiFace" parent="Theme.AppCompat.Light.NoActionBar">
-        <item name="android:windowBackground">@color/api_background</item>
-        <item name="android:statusBarColor">@color/api_background</item>
-        <item name="android:navigationBarColor">@color/api_background</item>
+        <item name="android:windowBackground">@color/home_background</item>
+        <item name="android:statusBarColor">@color/home_background</item>
+        <item name="android:navigationBarColor">@color/home_background</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
 
@@ -64,5 +64,13 @@
         <item name="android:textColorPrimary">@android:color/white</item>
         <item name="android:textColorSecondary">@color/text_on_dark_secondary</item>
         <item name="colorPrimary">@color/search_accent</item>
+    </style>
+    <!-- UVC 录入沿用普通采集的白色圆框，表单使用 Material 输入控件。 -->
+    <style name="Theme.HiFace.UvcEnrollment" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:statusBarColor">@android:color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="colorPrimary">@color/content_accent</item>
+        <item name="colorSecondary">@color/content_accent</item>
     </style>
 </resources>

@@ -2,7 +2,7 @@
 agp = "8.13.2"
 compileSdk = "36"
 minSdk = "23"
-targetSdk = "34"
+targetSdk = "36"
 ndk = "29.0.14206865"
 core = "1.16.0"
 appcompat = "1.7.0"

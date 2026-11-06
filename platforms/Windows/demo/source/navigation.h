@@ -9,7 +9,7 @@ inline constexpr PageInfo page_info[] = {
     {L"人脸采集", L"采集人脸并保存参考特征", true},
     {L"动态 1:1 验证", L"基准比对、动作挑战和静默活体", true},
     {L"活体检测", L"动作挑战与静默活体检测", true},
-    {L"人脸搜索", L"在人脸库中进行 1:N / M:N 识别", true},
+    {L"人脸搜索识别", L"RGB相机搜索识别，1:N搜索活体也用RGB相机", true},
     {L"图片人脸搜索", L"本地图片逐脸搜索，无需摄像头", false},
     {L"双图片 1:1 比对", L"选择两张图片，比较最大人脸", false},
     {L"人脸库管理", L"人员维护、分页、JSON 和图片导入", false},
@@ -20,8 +20,8 @@ inline constexpr PageInfo page_info[] = {
 inline constexpr int kPageCount = int(sizeof(page_info) / sizeof(page_info[0]));
 inline constexpr int kFeatureCount = 8;
 inline constexpr int kBackControl = 900, kParametersControl = 901, kHomePreviousControl = 902, kHomeNextControl = 903;
-// Android's eight primary features. Enrollment/library are child destinations.
-// 首页与 Android 一致，仅八项；录入、人脸库由所属功能页进入。
+// Eight primary features. Enrollment/library are child destinations.
+// 首页保留八项；录入、人脸库由所属功能页进入。
 inline constexpr Page feature_pages[] = {Page::Detection, Page::Reference, Page::Verification, Page::Liveness,
     Page::Search, Page::Comparison, Page::ImageSearch, Page::CameraSettings};
 // Route inventory for validation, not a global navigation sidebar.

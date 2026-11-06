@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@android:color/white">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="64dp" android:gravity="center_vertical" android:paddingStart="12dp" android:paddingEnd="12dp">
+        <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/backButton"
+            style="@style/Widget.HiFace.NavigationButton.OnLight" android:contentDescription="@string/cd_back" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:layout_marginStart="12dp" android:layout_marginEnd="12dp" android:text="@string/uvc_enroll_title" android:textColor="@color/api_primary"
+            android:textSize="20sp" android:fontFamily="sans-serif-medium" />
+        <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/uvcEnrollSettings"
+            style="@style/Widget.HiFace.NavigationButton.OnLight" android:src="@drawable/ic_search_settings"
+            android:contentDescription="@string/uvc_enroll_camera_settings" />
+    </LinearLayout>
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <TextureView android:id="@+id/uvcEnrollPreview" android:layout_width="match_parent" android:layout_height="match_parent"
+            android:contentDescription="@string/uvc_search_rgb_camera" />
+        <com.hiface.sdk.demo.ui.FaceCaptureOverlayView android:id="@+id/uvcEnrollOverlay"
+            android:layout_width="match_parent" android:layout_height="match_parent" />
+    </FrameLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical"
+        android:padding="16dp" android:baselineAligned="false">
+        <TextView android:id="@+id/uvcEnrollStatus" android:layout_width="0dp" android:layout_weight="1" android:layout_height="48sp"
+            android:lines="2" android:ellipsize="end" android:gravity="center_vertical" android:textSize="14sp"
+            android:textColor="@color/api_primary" android:text="@string/uvc_enroll_opening" android:accessibilityLiveRegion="polite" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/uvcEnrollRetry"
+            style="@style/Widget.HiFace.Search.Primary" android:layout_width="wrap_content" android:layout_height="48dp"
+            android:layout_marginStart="12dp" android:text="@string/search_ui_retry_short" android:visibility="invisible" />
+    </LinearLayout>
+</LinearLayout>

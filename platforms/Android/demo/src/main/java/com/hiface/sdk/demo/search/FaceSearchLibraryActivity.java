@@ -25,6 +25,7 @@ import com.hiface.sdk.common.HiFaceError;
 import com.hiface.sdk.common.HiFaceErrorCode;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.search.FaceSearchStore.Person;
+import com.hiface.sdk.demo.ui.DemoWindowInsets;
 
 import java.util.Collections;
 import java.util.List;
@@ -75,6 +76,7 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         setContentView(R.layout.activity_face_search_library);
+        DemoWindowInsets.applyToContent(this);
         bindViews();
         bindActions();
     }

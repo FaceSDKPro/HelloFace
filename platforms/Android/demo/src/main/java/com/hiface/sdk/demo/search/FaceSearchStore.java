@@ -53,10 +53,11 @@ import java.util.concurrent.TimeUnit;
  * integration.
  *
  * Demo 录入和库管理的存储入口：每个页面实例一个句柄，后台串行读写，结果统一回到主线程。
+ * 存储与采集来源无关，公开最小录入入口供不同相机页面复用，避免重复实现覆盖与取消规则。
  * 两份批量清单只从 Demo assets 读取，不属于 SDK AAR 的资源或公开协议。
  * 图片清单仅供演示；业务接入时请换成已获授权的人脸测试图片 URL，并使用 CDN 加速。
  */
-final class FaceSearchStore implements AutoCloseable {
+public final class FaceSearchStore implements AutoCloseable {
     static final int FEATURE_DEMO_COUNT = 10_000;
     static final int IMAGE_DEMO_COUNT = 1000;
     private static final int DEMO_SCHEMA_VERSION = 1;
@@ -71,7 +72,7 @@ final class FaceSearchStore implements AutoCloseable {
     private static final int MAX_IMAGE_DIMENSION = 1_080;
     private static final String TAG = "FaceSearchImport";
 
-    interface Callback<T> {
+    public interface Callback<T> {
         void onResult(HiFaceResult<T> result);
     }
 
@@ -98,7 +99,7 @@ final class FaceSearchStore implements AutoCloseable {
      *
      * 使旧任务失效：跳过尚未开始的工作并抑制结果回调；已提交的数据库批次保持有效。
      */
-    static final class Request<T> {
+    public static final class Request<T> {
         private volatile boolean cancelled;
         private volatile boolean stopRequested;
         private volatile int savedCount;
@@ -152,7 +153,7 @@ final class FaceSearchStore implements AutoCloseable {
          * 取消后续工作及待交付回调；已经执行的 SQL 或图片推理自然结束。
          */
         @MainThread
-        synchronized void cancel() {
+        public synchronized void cancel() {
             cancelled = true;
             releaseLocked();
         }
@@ -361,7 +362,7 @@ final class FaceSearchStore implements AutoCloseable {
      *
      * 为页面创建串行数据库线程，任务结果统一投递到主线程。
      */
-    FaceSearchStore(Context context) {
+    public FaceSearchStore(Context context) {
         this(Executors.newSingleThreadExecutor(task -> new Thread(task, "HiFaceDemo-Database")),
                 mainThreadDispatcher(),
                 databaseOpener(context), context.getApplicationContext().getAssets());
@@ -487,7 +488,7 @@ final class FaceSearchStore implements AutoCloseable {
      * 将本次采集的 HF1 文本排入数据库线程；布尔值只表示页面是否已经确认覆盖重复 ID。
      */
     @MainThread
-    Request<Boolean> save(String faceId, String feature, String group, boolean overwriteConfirmed,
+    public Request<Boolean> save(String faceId, String feature, String group, boolean overwriteConfirmed,
             Callback<Boolean> callback) {
         return execute((db, request) -> saveFeature(db, faceId, feature, group, overwriteConfirmed, request), callback);
     }

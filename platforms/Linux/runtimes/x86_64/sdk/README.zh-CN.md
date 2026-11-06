@@ -6,6 +6,8 @@
 运行基线为 Ubuntu 22.04 / glibc 2.35，兼容目标为 Ubuntu 24.04。
 SDK正在Beta 迭代公测中，请及时升级SDK版本。当前模型不支持12周岁以下儿童人脸识别，不能用于金融相关场景。目标设备验收待完成。
 
+持久运行状态在显式配置时使用 `$XDG_STATE_HOME/hiface`，否则使用系统账号主目录下的 `~/.local/state/hiface`。首次使用前选定持久私有目录并保持稳定；无效、临时或不安全路径会报错，不自动切换状态目录。
+
 ## 接入
 
 使用与目标架构一致的 SDK。`include/hiface/` 是公共声明，`lib/` 是共享库，
@@ -64,5 +66,5 @@ JPEG/PNG 解码和摄像头适配见独立 Demo。
 支持奇数尺寸，每边最大 4096；宿主提供该 IR 图像内的人脸框（左上角加宽高，至少 10×10）和
 目标摄像头标定的真人阈值。成功返回后，`real_score >= real_threshold` 才通过；失败不能放行。
 
-完整 C 消费示例为 `examples/infrared_liveness.c`。SDK 不管理 IR 摄像头采集、IR 人脸检测或补光，
+完整 C 消费示例为 `../../../examples/image-search/infrared_liveness.c`。SDK 不管理 IR 摄像头采集、IR 人脸检测或补光，
 此入口不改变 RGB 相机活体和搜索流程。

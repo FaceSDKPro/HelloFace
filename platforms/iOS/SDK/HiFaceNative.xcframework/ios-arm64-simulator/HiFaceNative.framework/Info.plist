@@ -15,9 +15,9 @@
     <key>CFBundlePackageType</key>
     <string>FMWK</string>
     <key>CFBundleVersion</key>
-    <string>13</string>
+    <string>14</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.8.6</string>
+    <string>0.8.7</string>
     <key>MinimumOSVersion</key>
     <string>15.0</string>
     <key>CFBundleSupportedPlatforms</key>

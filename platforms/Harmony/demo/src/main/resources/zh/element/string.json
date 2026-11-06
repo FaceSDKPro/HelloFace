@@ -10,7 +10,7 @@
     },
     {
       "name": "entryability_label",
-      "value": "HiFace演示"
+      "value": "HiFaceDemo"
     },
     {
       "name": "camera_permission_reason",
@@ -1867,6 +1867,10 @@
     {
       "name": "demo_a9d3ae030658",
       "value": "识别人脸库中的身份"
+    },
+    {
+      "name": "demo_b10dde60bef5",
+      "value": "RGB相机搜索识别，1:N搜索活体也用RGB相机"
     },
     {
       "name": "demo_f881633852d8",

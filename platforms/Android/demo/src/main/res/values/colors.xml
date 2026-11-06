@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 首页品牌色。 -->
+    <!-- 首页背景取自 Logo 的深青绿色。 -->
+    <color name="home_background">#023F42</color>
+
+    <!-- 共用品牌色。 -->
     <color name="api_background">#3C0740</color>
     <color name="api_primary">#67AD5B</color>
     <color name="api_feature_icon">#FFFFFF</color>

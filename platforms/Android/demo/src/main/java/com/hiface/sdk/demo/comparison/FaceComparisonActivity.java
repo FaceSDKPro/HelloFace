@@ -17,6 +17,7 @@ import com.hiface.sdk.capture.FaceCaptureResult;
 import com.hiface.sdk.common.HiFaceResult;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.ui.DemoErrorUi;
+import com.hiface.sdk.demo.ui.DemoWindowInsets;
 
 /**
  * Select two images from the system gallery and compare faces offline, one to one.
@@ -39,6 +40,7 @@ public final class FaceComparisonActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_face_comparison);
+        DemoWindowInsets.applyToContent(this);
 
         bindViews();
         bindActions();

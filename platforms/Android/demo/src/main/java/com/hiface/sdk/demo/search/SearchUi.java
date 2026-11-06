@@ -183,13 +183,14 @@ final class SearchUi {
         return view;
     }
 
-    static void section(LinearLayout form, @StringRes int label) {
+    static TextView section(LinearLayout form, @StringRes int label) {
         Context context = form.getContext();
         TextView view = text(context, label, 14, true);
         LinearLayout.LayoutParams params = rowParams();
         params.topMargin = dp(context, 18);
         params.bottomMargin = dp(context, 8);
         form.addView(view, params);
+        return view;
     }
 
     /**

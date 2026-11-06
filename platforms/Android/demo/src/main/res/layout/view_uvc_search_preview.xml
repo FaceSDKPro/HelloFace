@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent"
+    android:layout_height="match_parent" app:cardCornerRadius="20dp" app:cardElevation="0dp"
+    app:cardBackgroundColor="@android:color/black" app:strokeColor="@color/search_border" app:strokeWidth="1dp">
+    <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent">
+        <TextureView android:id="@+id/uvcPreview" android:layout_width="match_parent" android:layout_height="match_parent" />
+        <com.hiface.sdk.demo.search.FaceSearchOverlayView android:id="@+id/uvcOverlay"
+            android:layout_width="match_parent" android:layout_height="match_parent" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_gravity="top|start" android:layout_margin="12dp" android:paddingStart="12dp" android:paddingEnd="12dp"
+            android:paddingTop="6dp" android:paddingBottom="6dp" android:background="@drawable/bg_search_pill"
+            android:text="@string/uvc_search_preview_label" android:textColor="@android:color/white" android:textSize="11sp" />
+    </FrameLayout>
+</com.google.android.material.card.MaterialCardView>

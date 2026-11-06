@@ -1,8 +1,8 @@
 #pragma once
+#include "form_field.h"
 #include "sdk_helpers.h"
 
 namespace hiface_linux_demo {
-struct FormField { std::string key, label, value; };
 struct DemoSettings {
     uint32_t detection_faces = 10;
     bool detailed = true, allow_multiple = true, verification_liveness = true;

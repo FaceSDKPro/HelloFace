@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 
 import com.hiface.sdk.demo.R;
+import com.hiface.sdk.demo.ui.DemoWindowInsets;
 
 /**
  * Two device settings shared by all Demo camera screens; changes save automatically.
@@ -19,6 +20,7 @@ public final class CameraSettingsActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera_settings);
+        DemoWindowInsets.applyToContent(this);
         findViewById(R.id.backButton).setOnClickListener(view -> finish());
 
         CameraSettings settings = CameraSettings.load();

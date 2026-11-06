@@ -1,5 +1,7 @@
 #pragma once
 #include "workflow.h"
+#include "rgbir/settings.h"
+#include "rgbir/page.h"
 #include "error_ui.h"
 #include <atomic>
 #include <condition_variable>
@@ -51,6 +53,11 @@ struct ViewState {
     uint32_t gallery_offset = 0;
     double milliseconds = 0, fps = 0, analysis_fps = 0;
     DemoSettings settings;
+    RgbIrSettings rgbir_settings;
+    bool rgbir_available = false;
+    std::shared_ptr<const RgbIrView> rgbir;
+    uint64_t rgbir_settings_attempt = 0;
+    std::string rgbir_settings_error;
     std::shared_ptr<CameraFrame> frame;
     std::shared_ptr<Image> image_first, image_second, aligned_preview;
     std::vector<Box> boxes;
@@ -112,6 +119,7 @@ private:
     std::condition_variable work_changed_;
     std::vector<Command> commands_;
     std::shared_ptr<const ViewState> state_ = std::make_shared<ViewState>();
+    std::shared_ptr<const RgbIrView> rgbir_view_;
     CaptureRequest capture_request_;
     CaptureState capture_state_;
     uint64_t capture_completed_ = 0;

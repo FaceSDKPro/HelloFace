@@ -22,6 +22,8 @@ import com.hiface.sdk.demo.camera.CameraSettingsActivity;
 import com.hiface.sdk.demo.detection.FaceDetectionActivity;
 import com.hiface.sdk.demo.liveness.FaceLivenessActivity;
 import com.hiface.sdk.demo.search.FaceSearchActivity;
+import com.hiface.sdk.demo.search.uvc.UVCCameraFaceSearchActivity;
+import com.hiface.sdk.demo.ui.DemoWindowInsets;
 import com.hiface.sdk.demo.verification.FaceEnrollmentActivity;
 import com.hiface.sdk.demo.verification.FaceVerificationActivity;
 
@@ -36,6 +38,7 @@ public final class DemoHomeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_demo_home);
+        DemoWindowInsets.applyToContent(this);
         TextView deviceInfo = findViewById(R.id.deviceInfoText);
         String deviceInfoText = Build.VERSION.RELEASE + "/" + Build.MODEL + "/" + Build.BOARD;
         deviceInfo.setText(deviceInfoText);
@@ -67,6 +70,9 @@ public final class DemoHomeActivity extends AppCompatActivity {
                 FaceLivenessActivity.class);
         bindFeatureCard(R.id.featureFaceSearch, android.R.drawable.ic_menu_search,
                 R.string.feature_face_search, R.string.feature_face_search_desc, FaceSearchActivity.class);
+        bindFeatureCard(R.id.featureUVCCameraFaceSearch, android.R.drawable.ic_menu_camera,
+                R.string.feature_uvc_camera_face_search, R.string.feature_uvc_camera_face_search_desc,
+                UVCCameraFaceSearchActivity.class);
         bindFeatureCard(R.id.featureFaceCompare, android.R.drawable.ic_menu_gallery,
                 R.string.feature_face_compare, R.string.feature_face_compare_desc,
                 FaceComparisonActivity.class);

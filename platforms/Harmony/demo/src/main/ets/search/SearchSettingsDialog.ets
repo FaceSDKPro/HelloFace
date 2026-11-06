@@ -23,12 +23,10 @@ export struct SearchSettingsDialog {
   @State private draftThresholdText: string = '0.80';
   @State private draftIntervalText: string = `${DEMO_SUCCESS_INTERVAL_MILLIS}`;
   @State private draftTimeoutText: string = '3000';
-  @State private searchAdvancedVisible: boolean = false;
   @State private searchSettingsError: string = '';
 
   aboutToAppear(): void {
     this.setSearchSettingsDraft(this.initialConfig);
-    this.searchAdvancedVisible = false;
   }
 
   build() {
@@ -48,11 +46,12 @@ export struct SearchSettingsDialog {
               DemoL10n.text("识别最大的人脸；默认开启静默活体。") : DemoL10n.text("搜索多人，不检测头姿与活体。"))
               .fontSize(12).fontColor(DemoTheme.textOnDarkSecondary).width('100%')
             Row() {
-              Text(DemoL10n.text("活体检测")).fontSize(14).fontColor('#FFFFFF').layoutWeight(1)
+              Text(DemoL10n.text("活体检测")).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF').layoutWeight(1)
               Toggle({ type: ToggleType.Switch, isOn: this.draftSearchLiveness })
                 .enabled(this.draftSearchMode === FaceSearchMode.SINGLE_FACE).selectedColor(DemoTheme.searchAccent)
                 .onChange((value: boolean) => { this.draftSearchLiveness = value; })
             }.width('100%').height(48)
+              .margin({ top: 12 })
               .opacity(this.draftSearchMode === FaceSearchMode.SINGLE_FACE ? 1 : 0.45)
             Text(this.draftSearchMode === FaceSearchMode.SINGLE_FACE ?
               DemoL10n.text("1:N 默认开启，可手动关闭。") : DemoL10n.text("活体检测仅适用于 1:N 模式。"))
@@ -74,16 +73,11 @@ export struct SearchSettingsDialog {
             this.SearchField(DemoL10n.text("相似度阈值"), this.draftThresholdText,
               DemoL10n.text("0.75–0.85，数值越高，匹配要求越严格。"),
               (value: string): void => { this.draftThresholdText = value; }, InputType.NUMBER_DECIMAL)
-            Button(this.searchAdvancedVisible ? DemoL10n.text("收起高级参数") : DemoL10n.text("更多参数：间隔与超时")).height(48).fontSize(12)
-              .fontColor(DemoTheme.searchAccent).backgroundColor(Color.Transparent)
-              .onClick(() => { this.searchAdvancedVisible = !this.searchAdvancedVisible; })
-            if (this.searchAdvancedVisible) {
-              this.SearchField(DemoL10n.text("成功后的间隔"), this.draftIntervalText,
-                DemoL10n.text("0–3000 毫秒，默认 0；匹配成功后等待，不控制帧率。"),
-                (value: string): void => { this.draftIntervalText = value; })
-              this.SearchField(DemoL10n.text("每轮搜索超时"), this.draftTimeoutText, DemoL10n.text("1000–3000 毫秒；超时后开始下一轮。"),
-                (value: string): void => { this.draftTimeoutText = value; })
-            }
+            this.SearchField(DemoL10n.text("成功后的间隔"), this.draftIntervalText,
+              DemoL10n.text("0–3000 毫秒，默认 0；匹配成功后等待，不控制帧率。"),
+              (value: string): void => { this.draftIntervalText = value; })
+            this.SearchField(DemoL10n.text("每轮搜索超时"), this.draftTimeoutText, DemoL10n.text("1000–3000 毫秒；超时后开始下一轮。"),
+              (value: string): void => { this.draftTimeoutText = value; })
             if (this.searchSettingsError.length > 0) {
               Text(this.searchSettingsError).fontSize(12).fontColor(DemoTheme.searchError).width('100%')
             }
@@ -120,21 +114,21 @@ export struct SearchSettingsDialog {
 
   @Builder
   private SectionTitle(title: string) {
-    Text(title).fontSize(14).fontWeight(FontWeight.Medium).fontColor('#FFFFFF')
-      .padding({ top: 6 }).width('100%')
+    Text(title).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+      .padding({ top: 16 }).width('100%')
   }
 
   @Builder
   private SearchField(label: string, value: string, hint: string, change: (value: string) => void,
     inputType: InputType = InputType.Number) {
     Column({ space: 6 }) {
-      Text(label).fontSize(14).fontColor('#FFFFFF').width('100%')
+      Text(label).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF').width('100%')
       TextInput({ text: value }).height(52).fontSize(14).type(inputType).fontColor('#FFFFFF')
         .backgroundColor('#243247').borderRadius(12).border({ width: 1, color: DemoTheme.searchBorder })
         .caretColor(DemoTheme.searchAccent).enterKeyType(EnterKeyType.Done)
         .onSubmit(() => this.dismissKeyboard()).onChange(change)
       Text(hint).fontSize(12).fontColor(DemoTheme.textOnDarkSecondary).width('100%')
-    }.width('100%')
+    }.width('100%').margin({ top: 12 })
   }
 
   private resetSearchSettingsDraft(): void {
