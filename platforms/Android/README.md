@@ -14,7 +14,7 @@ Guides: [SDK](docs/SDK.md) · [Demo](docs/DEMO.md).
 
 Use Android Studio, JDK 17, Android SDK 36 / Build Tools 36.0.0, and Java source level 11. Minimum Android version is 6.0 / API 23. The AAR includes native libraries for `arm64-v8a` and `armeabi-v7a`; this Demo does not require an NDK installation. Camera validation requires an ARM phone.
 
-The Demo loads `demo/libs/uvc-android-camera-0.3.2.aar` directly. The AAR was built from the [UVCAndroidCamera v0.3.2 source](https://github.com/FaceSDKPro/UVCAndroidCamera/tree/v0.3.2) and includes its third-party license texts.
+The Demo loads `demo/libs/uvc-android-camera-0.5.0.aar` directly. The [UVCAndroidCamera 0.5.0 release](https://github.com/FaceSDKPro/UVCAndroidCamera/releases/tag/v0.5.0) includes third-party license texts and defaults paired capture to Middle at 15 FPS per camera. Select High with `DualCameraConfig.defaults(DualCameraConfig.Mode.HIGH)`.
 
 Open this directory, sync dependencies, select `demo`, and run it on a phone. Grant camera access when requested. The application ID is `com.hiface.sdk.public`.
 

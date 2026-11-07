@@ -108,7 +108,7 @@ android {
 
 dependencies {
     //Powered By https://github.com/FaceSDKPro/UVCAndroidCamera
-    implementation(files("libs/uvc-android-camera-0.3.2.aar"))
+    implementation(files("libs/uvc-android-camera-0.5.0.aar"))
 
     implementation("io.github.facesdkpro:hiface-android:0.8.7")
 

@@ -14,7 +14,7 @@ SDK / Demo：**0.8.7 Beta**
 
 用 Android Studio 打开本目录，使用 JDK 17、Android SDK 36 / Build Tools 36.0.0，在 ARM 手机运行 `demo`。最低 Android 6.0 / API 23；支持 `arm64-v8a`、`armeabi-v7a`，构建 Demo 无需 NDK。
 
-Demo 直接读取 `demo/libs/uvc-android-camera-0.3.2.aar`。该 AAR 由 [UVCAndroidCamera v0.3.2 源码](https://github.com/FaceSDKPro/UVCAndroidCamera/tree/v0.3.2)构建，并包含第三方许可文本。
+Demo 直接读取 `demo/libs/uvc-android-camera-0.5.0.aar`。该 [UVCAndroidCamera 0.5.0 发布包](https://github.com/FaceSDKPro/UVCAndroidCamera/releases/tag/v0.5.0)包含第三方许可文本，默认 Middle 双路 15 FPS。High 使用 `DualCameraConfig.defaults(DualCameraConfig.Mode.HIGH)` 选择。
 
 ```sh
 ./gradlew :demo:assembleDebug
