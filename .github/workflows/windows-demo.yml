@@ -55,8 +55,8 @@ jobs:
               Get-Content -LiteralPath $Log.FullName | Select-String -Pattern "HiFaceModels|HiFaceEngine" |
                 ForEach-Object { Write-Output $_.Line }
             }
-            $RuntimeRoot = Join-Path $env:LOCALAPPDATA "HiFace/Runtime"
-            $Stores = @(Get-ChildItem -LiteralPath $RuntimeRoot -Filter "runtime.db" -Recurse -File -ErrorAction SilentlyContinue)
+            $RuntimeRoot = Join-Path $env:LOCALAPPDATA "HiFace/RuntimeV1"
+            $Stores = @(Get-ChildItem -LiteralPath $RuntimeRoot -Filter "runtime_v1.db" -Recurse -File -ErrorAction SilentlyContinue)
             Write-Output ("Authorization store count: " + $Stores.Count)
             throw "Portable Demo self-test failed"
           }
