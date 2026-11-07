@@ -1,14 +1,13 @@
 #include "demo_service.h"
 #include "data_exchange.h"
 #include "win_util.h"
-#include <fstream>
 #include <iostream>
 
 namespace {
 using namespace hiface_demo;
 void usage() {
     std::cout << "HiFace Windows x64 / CPU\n"
-        "  hiface_cli self-test MODEL_DIR\n"
+        "  hiface_cli self-test\n"
         "  hiface_cli detect IMAGE [--detailed]\n"
         "  hiface_cli capture IMAGE FEATURE.hf1 [PREVIEW.png]\n"
         "  hiface_cli compare IMAGE_A IMAGE_B\n"
@@ -27,14 +26,6 @@ void usage() {
         "Images: JPEG/PNG/BMP/TIFF via Windows WIC. HF1 uses the shared Core codec.\n"
         "enroll rejects duplicate IDs; upsert/import-json overwrite by Face ID.\n";
 }
-std::string readFeature(const std::filesystem::path& path) {
-    std::ifstream file(path, std::ios::binary | std::ios::ate);
-    if (!file || file.tellg() <= 0 || file.tellg() > HIFACE_FEATURE_TEXT_LENGTH + 16) throw std::runtime_error("Cannot read HF1 file");
-    file.seekg(0); std::string text((std::istreambuf_iterator<char>(file)), {});
-    if (text.compare(0, 3, "\xef\xbb\xbf") == 0) text.erase(0, 3);
-    while (!text.empty() && (text.back() == '\r' || text.back() == '\n' || text.back() == ' ')) text.pop_back();
-    decodeFeature(text); return text;
-}
 }
 int wmain(int argc, wchar_t** argv) {
     using namespace hiface_demo;
@@ -45,7 +36,7 @@ int wmain(int argc, wchar_t** argv) {
         SetConsoleOutputCP(CP_UTF8); ComApartment com; initializeLog("cli");
         if (command == L"self-test" && argc == 2) { testWindowsImageDecoder(); runSelfTest(); return 0; }
         if (command == L"compare-features" && argc == 4) {
-            const auto score = compareFeatureText(readFeature(argv[2]), readFeature(argv[3]));
+            const auto score = compareFeatureText(readFeatureFile(argv[2]), readFeatureFile(argv[3]));
             std::cout << "similarity=" << score << '\n'; return 0;
         }
         if (command == L"image-search" && argc == 4) {
@@ -61,6 +52,8 @@ int wmain(int argc, wchar_t** argv) {
             }
             return 0;
         }
+        // Metadata commands open only the database; inference is created only for image work.
+        // 资料管理只开数据库；仅图片能力创建推理会话。
         const bool database_command = command == L"count" || command == L"list" || command == L"get" || command == L"delete"
             || command == L"metadata" || command == L"import-json" || command == L"export-json";
         if (database_command) {
@@ -101,8 +94,7 @@ int wmain(int argc, wchar_t** argv) {
                 << " confidence=" << detail.face.confidence << " mesh=" << detail.mesh.size() << " poseValid=" << detail.face.pose_valid << " metricsValid=" << detail.face.metrics_valid << '\n';
         } else if (command == L"capture") {
             const auto result = sdk.captureWithPreview(readImage(argv[2]));
-            std::ofstream file(std::filesystem::path(argv[3]), std::ios::binary); file << result.text << '\n'; file.close();
-            if (!file) throw std::runtime_error("Cannot write HF1 output");
+            writeFeatureFile(argv[3], result.text);
             if (argc == 5) writeImage(argv[4], result.preview);
             std::cout << "captured=1 featureFormat=HF1 alignedSide=" << result.preview.width << '\n';
         } else if (command == L"compare") {

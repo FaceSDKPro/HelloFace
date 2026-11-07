@@ -170,8 +170,8 @@ void Camera::close() noexcept {
     if (fd_ >= 0) ::close(fd_);
     fd_ = -1; type_ = 0; plane_count_ = 0;
 }
-void Camera::open(const std::string& device, int width, int height, int fps, bool prefer_mjpeg) {
-    openStream(device, width, height, fps, prefer_mjpeg, false);
+void Camera::open(const std::string& device, int width, int height, int fps, bool prefer_mjpeg, int rotation) {
+    openStream(device, width, height, fps, prefer_mjpeg, false, rotation);
 }
 void Camera::openRgbIr(const std::string& device, RgbIrCameraRole role, int rotation) {
     const bool infrared = role == RgbIrCameraRole::infrared;

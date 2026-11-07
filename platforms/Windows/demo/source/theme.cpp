@@ -35,8 +35,8 @@ void label(HDC dc, const wchar_t* value, RECT rectangle, HFONT font, COLORREF co
     const auto old = SelectObject(dc, font); SetBkMode(dc, TRANSPARENT); SetTextColor(dc, color);
     DrawTextW(dc, value, -1, &rectangle, format | DT_NOPREFIX); SelectObject(dc, old);
 }
-Theme::Theme() { background = CreateSolidBrush(colors::background); surface = CreateSolidBrush(colors::surface); setDpi(96); }
-Theme::~Theme() { DeleteObject(body); DeleteObject(title); DeleteObject(small); DeleteObject(result); DeleteObject(parameter_title); DeleteObject(background); DeleteObject(surface); }
+Theme::Theme() { background = CreateSolidBrush(colors::background); surface = CreateSolidBrush(colors::surface); home_background = CreateSolidBrush(home_colors::background); setDpi(96); }
+Theme::~Theme() { DeleteObject(body); DeleteObject(title); DeleteObject(small); DeleteObject(result); DeleteObject(parameter_title); DeleteObject(background); DeleteObject(surface); DeleteObject(home_background); }
 int Theme::px(int value) const { return MulDiv(value, static_cast<int>(dpi), 96); }
 void Theme::setDpi(UINT value) {
     dpi = value; DeleteObject(body); DeleteObject(title); DeleteObject(small); DeleteObject(result); DeleteObject(parameter_title);
@@ -70,6 +70,18 @@ void Theme::button(const DRAWITEMSTRUCT& item, bool primary, bool selected, bool
     wchar_t text[256]{}; GetWindowTextW(item.hwndItem, text, 256);
     if (navigation) area.left += px(16);
     label(item.hDC, text, area, body, text_color, (navigation ? DT_LEFT : DT_CENTER) | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+    if (item.itemState & ODS_FOCUS) { InflateRect(&area, -px(4), -px(4)); DrawFocusRect(item.hDC, &area); }
+}
+void Theme::homeButton(const DRAWITEMSTRUCT& item, bool secondary) const {
+    const bool enabled = !(item.itemState & ODS_DISABLED);
+    const bool active = enabled && ((item.itemState & ODS_SELECTED) || GetPropW(item.hwndItem, L"HiFaceHover"));
+    RECT area = item.rcItem; fill(item.hDC, area, home_colors::background);
+    InflateRect(&area, -1, -1);
+    card(item.hDC, area, active ? home_colors::hover : home_colors::surface,
+         active ? home_colors::hover_line : home_colors::line, px(10));
+    wchar_t text[256]{}; GetWindowTextW(item.hwndItem, text, 256);
+    label(item.hDC, text, area, body, secondary || !enabled ? home_colors::surface_secondary : home_colors::text,
+          DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
     if (item.itemState & ODS_FOCUS) { InflateRect(&area, -px(4), -px(4)); DrawFocusRect(item.hDC, &area); }
 }
 }

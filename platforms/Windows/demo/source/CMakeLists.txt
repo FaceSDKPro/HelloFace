@@ -38,6 +38,9 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING AND EXISTS "${CMAKE_CURRENT_SOURCE
     add_test(NAME hiface_windows_search_power_test COMMAND hiface_windows_search_power_test)
 endif()
 add_executable(hiface_demo WIN32 main.cpp app.cpp camera.cpp camera_preferences.cpp theme.cpp image_search_view.cpp)
+# Embed the supplied App icon for Explorer, shortcuts and the taskbar.
+target_sources(hiface_demo PRIVATE app_icon.rc)
+set_property(SOURCE app_icon.rc APPEND PROPERTY OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/app.ico")
 target_compile_definitions(hiface_demo PRIVATE HIFACE_DEMO_SDK_VERSION="${hiface_demo_sdk_version}")
 if(MSVC)
     target_sources(hiface_demo PRIVATE app.manifest)

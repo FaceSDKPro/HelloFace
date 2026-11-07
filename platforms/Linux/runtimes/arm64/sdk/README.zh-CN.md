@@ -68,3 +68,22 @@ JPEG/PNG 解码和摄像头适配见独立 Demo。
 
 完整 C 消费示例为 `../../../examples/image-search/infrared_liveness.c`。SDK 不管理 IR 摄像头采集、IR 人脸检测或补光，
 此入口不改变 RGB 相机活体和搜索流程。
+
+## RGB／IR 配对人脸搜索（0.8.8）
+
+Linux 正式库同时导出配对搜索，声明位于 `include/hiface/hiface_rgbir.h`，
+由 `hiface_linux.h` 引入。加载内置模型及红外模型后，调用
+`hiface_session_search_start_rgbir_v1`，选择 1:N、`need_liveness=0`，
+由每次采样必需的 IR 校验替代 RGB 静默活体。明确设置 IR 真人阈值、帧对时差／帧龄限制，
+以及按目标双摄标定的归一化 RGB 到 IR 单应矩阵。
+
+每个帧对调用 `hiface_session_search_prepare_rgbir_v1`，传入归正、未镜像的 RGB YUV420
+和真实 IR GRAY8 数据。两路使用同源单调时钟，帧对及各路序号递增，打开的两路流使用固定来源 ID；
+两个缓冲保留至 prepare 返回。`FRAME_SKIPPED` 不产生 batch；其余成功采样沿用
+resolve → complete → read → destroy 生命周期，并额外调用
+`hiface_search_batch_read_infrared_v1`。只有当前批次为 `MATCH_FOUND`、
+`HIFACE_SEARCH_IR_PASSED` 且有有效 IR 分数、身份匹配通过时才可放行。
+缺帧、过期、重放、多人、双摄几何错位或 IR 拒绝均不能退回 RGB 搜索或复用旧活体结果。
+
+嵌入式 Demo 的 `src/desktop/rgbir/` 直接调用上述公开接口；普通横屏桌面保留 RGB 单摄导航，
+双摄页仅在嵌入式模式显示。几何检查不等于硬件同步或跨光谱身份核验，须按实际双摄标定和验收。

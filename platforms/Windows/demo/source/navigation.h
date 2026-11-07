@@ -5,8 +5,8 @@ namespace hiface_demo {
 enum class Page { Detection, Reference, Verification, Liveness, Search, ImageSearch, Comparison, Gallery, CameraSettings, Enrollment, Home };
 struct PageInfo { const wchar_t* title; const wchar_t* description; bool camera; };
 inline constexpr PageInfo page_info[] = {
-    {L"实时人脸检测", L"人脸框、五点、468 点与头姿", true},
-    {L"人脸采集", L"采集人脸并保存参考特征", true},
+    {L"实时人脸检测", L"五点与双眼、鼻、嘴、脸部轮廓", true},
+    {L"人脸采集", L"采集预览、确认 Face ID 后保存基准", true},
     {L"动态 1:1 验证", L"基准比对、动作挑战和静默活体", true},
     {L"活体检测", L"动作挑战与静默活体检测", true},
     {L"人脸搜索识别", L"RGB相机搜索识别，1:N搜索活体也用RGB相机", true},
@@ -19,6 +19,7 @@ inline constexpr PageInfo page_info[] = {
 };
 inline constexpr int kPageCount = int(sizeof(page_info) / sizeof(page_info[0]));
 inline constexpr int kFeatureCount = 8;
+inline constexpr int kStatusControl = 950;
 inline constexpr int kBackControl = 900, kParametersControl = 901, kHomePreviousControl = 902, kHomeNextControl = 903;
 // Eight primary features. Enrollment/library are child destinations.
 // 首页保留八项；录入、人脸库由所属功能页进入。
@@ -31,6 +32,9 @@ inline constexpr Page navigation_pages[] = {Page::Home, Page::Detection, Page::R
 static_assert(sizeof(feature_pages) / sizeof(Page) == kFeatureCount);
 static_assert(sizeof(navigation_pages) / sizeof(Page) == kPageCount);
 inline bool usesCamera(Page page) { return page_info[static_cast<std::size_t>(page)].camera; }
+inline bool startsCameraOnEntry(Page page, bool parameters_valid = true) {
+    return parameters_valid && usesCamera(page) && page != Page::CameraSettings && page != Page::Verification;
+}
 inline int homeIndex(Page page) {
     for (int i = 0; i < kFeatureCount; ++i) if (feature_pages[i] == page) return i;
     return -1;

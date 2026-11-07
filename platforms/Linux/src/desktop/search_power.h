@@ -16,10 +16,19 @@ inline constexpr int64_t kSearchIdlePreviewIntervalMs = 1000 / kSearchIdlePrevie
 // 只观察成功完成的检测；跳帧、错误和断流不能证明持续无人脸。
 class SearchPowerPolicy {
 public:
+    static constexpr int64_t freshness_ms = 3000;
+    void expire(int64_t now) {
+        if (now < 0 || (last_frame_ >= 0 && (now < last_frame_ || now - last_frame_ >= freshness_ms))) reset();
+    }
+    void observeFrame(int64_t captured, int64_t completed, bool has_face) {
+        expire(completed);
+        if (captured < 0 || completed < captured || completed - captured >= freshness_ms) { reset(); return; }
+        observe(captured, has_face);
+    }
     void observe(int64_t now, bool has_face) {
-        if (now < 0) { reset(); return; }
-        if (last_frame_ >= 0 && (now < last_frame_ || now - last_frame_ >= 3000)) reset();
-        else if (last_frame_ >= 0 && now - last_frame_ >= kSearchLightFreshnessMs) light_.reset();
+        expire(now);
+        if (now < 0 || now == last_frame_) return;
+        if (last_frame_ >= 0 && now - last_frame_ >= kSearchLightFreshnessMs) light_.reset();
         last_frame_ = now;
         if (has_face) no_face_since_ = -1;
         else if (no_face_since_ < 0) no_face_since_ = now;

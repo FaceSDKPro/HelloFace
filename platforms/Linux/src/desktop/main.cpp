@@ -75,6 +75,7 @@ int main(int argc, char** argv) {
         if (!smoke && start_search && std::string(start_search) == "1")
             app.post({"page", {"camera"}, {}});
         unsigned smoke_frames = 0;
+        const unsigned smoke_pages_available=smokePageCount(embeddedDisplay());
         const bool performance_log = std::getenv("HIFACE_PERF_LOG") != nullptr;
         const auto start = monotonicMilliseconds();
         int64_t next_preview = start, next_idle_paint = start, last_performance_log = start, paint_ms = 0;
@@ -105,8 +106,8 @@ int main(int argc, char** argv) {
             if (smoke) {
                 require(monotonicMilliseconds() - start < 60000, "Desktop smoke test timed out during initialization");
                 if (state->ready) {
-                    if (++smoke_frames % 5 == 0) window.smokePage(smoke_frames / 5);
-                    if (smoke_frames == (smoke_page_count + 1) * 5) { std::cout << "Desktop smoke test passed: home and all " << (smoke_page_count - 1) << " feature pages rendered\n"; return 0; }
+                    if (++smoke_frames % 5 == 0) window.smokePage((smoke_frames/5)%smoke_pages_available);
+                    if (smoke_frames == (smoke_pages_available + 1) * 5) { std::cout << "Desktop smoke test passed: home and all " << (smoke_pages_available - 1) << " feature pages rendered\n"; return 0; }
                 }
             }
             next_preview += 40; // 25 FPS UI/preview clock, independent from recognition. / UI 与预览时钟为 25 FPS，独立于识别。

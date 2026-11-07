@@ -4,9 +4,7 @@
 #include "camera_recovery.h"
 #include "navigation.h"
 #include "search_power.h"
-#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
-#include "desktop_search.h"
-#endif
+#include "rgbir/desktop_search.h"
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
@@ -61,30 +59,45 @@ DesktopApp::~DesktopApp() {
     if (worker_.joinable()) worker_.join();
     if (capture_worker_.joinable()) capture_worker_.join();
 }
+namespace {
+bool cancellable(const Command& command) {
+    const auto& type=command.type;
+    return type=="page" || type=="preview-photo" || type=="image-search" || type=="cancel-image-search" ||
+        type=="gallery" || type=="gallery-more" || type=="connect" || type=="restart-camera" || type=="next" || type=="image" || type=="action" || type=="pause";
+}
+}
 void DesktopApp::post(Command command) {
     std::lock_guard<std::mutex> lock(mutex_);
     work_changed_.notify_one();
+    if(command.type=="page") {
+        // Navigation supersedes queued read-only work, never admitted database writes.
+        // 切页丢弃旧的只读任务；已接受的数据库写入仍按顺序完成。
+        commands_.erase(std::remove_if(commands_.begin(),commands_.end(),[](const Command& queued){
+            return cancellable(queued);
+        }),commands_.end());
+        command.page_generation=++page_generation_;
+        ++comparison_generations_[0];++comparison_generations_[1];
+        auto pending=std::make_shared<ViewState>(*state_);pending->busy=true;pending->can_cancel=true;pending->failed=false;pending->visual_revision=++visual_revision_;
+        pending->status="Changing page...";state_=std::move(pending);commands_.push_back(std::move(command));return;
+    }
+    command.page_generation=page_generation_;
     if (command.type == "preview-photo") {
         const int slot = command.values.at(0) == "first" ? 0 : 1;
         command.request_id = ++comparison_generations_[slot];
         commands_.erase(std::remove_if(commands_.begin(), commands_.end(), [&](const Command& queued) {
             return queued.type == "preview-photo" && queued.values.at(0) == command.values.at(0);
         }), commands_.end());
-        auto pending = std::make_shared<ViewState>(*state_); pending->busy = true; pending->comparison_similarity.reset();
+        auto pending = std::make_shared<ViewState>(*state_); pending->busy = pending->can_cancel = true; pending->comparison_similarity.reset();
         (slot == 0 ? pending->comparison_first_processing : pending->comparison_second_processing) = true;
         pending->visual_revision = ++visual_revision_; state_ = std::move(pending);
         commands_.push_back(std::move(command)); return;
-    }
-    if (command.type == "page") {
-        ++comparison_generations_[0]; ++comparison_generations_[1];
-        commands_.erase(std::remove_if(commands_.begin(), commands_.end(), [](const Command& queued) { return queued.type == "preview-photo"; }), commands_.end());
     }
     if (command.type == "image-search" || command.type == "cancel-image-search") {
         command.request_id = ++photo_generation_;
         commands_.erase(std::remove_if(commands_.begin(), commands_.end(), [](const Command& queued) { return queued.type == "image-search" || queued.type == "cancel-image-search"; }), commands_.end());
         auto pending = std::make_shared<ViewState>(*state_);
         pending->visual_revision = ++visual_revision_;
-        pending->photo_search_generation = command.request_id; pending->photo_search_busy = pending->busy = true; pending->failed = false;
+        pending->photo_search_generation = command.request_id; pending->photo_search_busy = pending->busy = pending->can_cancel = true; pending->failed = false;
         pending->search_photo.reset(); pending->photo_search.reset(); pending->search_photo_path.clear();
         pending->status = command.type == "image-search" ? "Queued photo search..." : "Cancelling photo search..."; state_ = std::move(pending);
         commands_.push_back(std::move(command)); return;
@@ -92,13 +105,13 @@ void DesktopApp::post(Command command) {
     // Bound repeated key presses while a model call is in flight.
     // 模型调用执行期间限制重复按键产生的任务数量。
     if (commands_.size() < 32) {
-        auto pending = std::make_shared<ViewState>(*state_); pending->busy = true; pending->visual_revision = ++visual_revision_;
+        auto pending = std::make_shared<ViewState>(*state_); pending->busy = true; pending->can_cancel = cancellable(command); pending->visual_revision = ++visual_revision_;
+        if(writesData(command)){++pending_writes_;pending->writes_pending=true;}
         state_ = std::move(pending); commands_.push_back(std::move(command));
     }
 }
 std::shared_ptr<const ViewState> DesktopApp::snapshot() {
     std::lock_guard<std::mutex> lock(mutex_);
-#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
     // RGB/IR updates arrive independently of the workflow. A newer revision
     // also covers clearing the dual-camera snapshot when the user presses Stop.
     if (!capture_state_.active && state_->ready && (rgbir_view_ || state_->visual_revision != visual_revision_)) {
@@ -107,7 +120,6 @@ std::shared_ptr<const ViewState> DesktopApp::snapshot() {
         view->visual_revision = visual_revision_;
         return view;
     }
-#endif
     if (!capture_state_.active) return state_;
     auto view = std::make_shared<ViewState>(*state_);
     if (capture_state_.active) {
@@ -150,6 +162,7 @@ void DesktopApp::configureCapture(const std::string& device, const DemoSettings&
     capture_request_.device = device;
     capture_request_.width = settings.camera_width;
     capture_request_.height = settings.camera_height;
+    capture_request_.rotation = settings.camera_rotation;
     capture_request_.fps = std::clamp(settings.camera_fps, 20, kPreviewFps);
     capture_request_.mjpeg = settings.camera_mjpeg;
     const char* preview_device = std::getenv("HIFACE_PREVIEW_DEVICE");
@@ -213,13 +226,13 @@ void DesktopApp::captureLoop() {
                         next.description = "Synthetic frame / desktop smoke test";
                         next.frame = std::move(frame);
                     } else {
-                        camera.open(request.device, request.width, request.height, request.fps, request.mjpeg);
+                        camera.open(request.device, request.width, request.height, request.fps, request.mjpeg, request.rotation);
                         next.ready = true;
                         next.description = camera.description();
                         const bool wants_dual = !request.preview_device.empty() && request.preview_device != request.device;
                         if (wants_dual) try {
                             preview_camera.open(request.preview_device, request.preview_width,
-                                request.preview_height, request.fps, false);
+                                request.preview_height, request.fps, false, request.rotation);
                             next.dual_preview = true;
                             next.description = "Preview: " + preview_camera.description() + " -> " +
                                 std::to_string(request.preview_output_width) + "x" +
@@ -417,9 +430,13 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
         if (!version.empty() && version.size() <= 48 && version.find_first_not_of("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.+-") == version.npos)
             runtime.actual_sdk = version;
     };
+    uint64_t active_page_generation = 0;
     auto publish = [&](std::shared_ptr<ViewState> state) {
         state->runtime = runtime;
         std::lock_guard<std::mutex> lock(mutex_);
+        if(state->ready && active_page_generation != page_generation_) return;
+        if(!state->ready && state->failed)pending_writes_=0; // The worker is terminating; no queued operation can start.
+        state->writes_pending=pending_writes_>0;
         state->visual_revision = ++visual_revision_;
         if (state->ready && state->photo_search_generation != photo_generation_) {
             state->photo_search_generation = photo_generation_; state->photo_search_busy = state->busy = true;
@@ -436,14 +453,14 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
         // The ordinary workflow owns its SDK and database handles on this
         // thread. Dual-camera search opens separate handles for its worker.
         FaceWorkflow workflow(models, database);
+        const bool embedded=embeddedDisplay();
         RgbIrSettings rgbir_settings;
         uint64_t rgbir_settings_attempt = 0;
         std::string rgbir_settings_error;
-        try { rgbir_settings = loadRgbIrSettings(database); }
+        try { if(embedded)rgbir_settings = loadRgbIrSettings(database); }
         catch (const DemoError& error) { rgbir_settings_error = error.message; }
         catch (const std::exception&) { rgbir_settings_error = "Cannot read dual-camera settings."; }
         SearchBacklight backlight;
-#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
         std::unique_ptr<rgbir::DesktopSearch> dual_search;
         const auto publish_rgbir = [this](std::shared_ptr<const RgbIrView> view) {
             std::lock_guard<std::mutex> lock(mutex_);
@@ -457,14 +474,13 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
             publish_rgbir(nullptr);
         };
         const auto start_rgbir = [&] {
-            if (smoke || !rgbir_settings.hasDevices()) return;
+            if (!embedded || smoke || !rgbir_settings.hasDevices()) return;
             // Hand off the global backlight before the dual-camera worker starts.
             backlight.restore();
             const char* stats = std::getenv("HIFACE_RGBIR_STATS");
             dual_search = std::make_unique<rgbir::DesktopSearch>(database, rgbir_settings, publish_rgbir,
                 stats && std::string_view(stats) == "1");
         };
-#endif
         const char* fixed_env = std::getenv("HIFACE_FIXED_CAMERA_DEVICE");
         const std::string fixed_camera = fixed_env ? fixed_env : "";
         require(fixed_camera.empty() || fixed_camera == device, "The configured board camera differs from the startup device");
@@ -514,6 +530,12 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
             return !capture.active || !capture.ready || !capture.frame || !capture.analysis_frame ||
                 now - capture.last_frame_ms > 3000 || now - capture.last_analysis_ms > 3000;
         };
+        auto start_page_camera = [&] {
+            const auto* feature=demoPage(page);
+            if(!feature || !feature->camera_mode)return;
+            if(feature->camera_mode=='S' && workflow.mode()=='P')workflow.enterPausedSearch();
+            else if(feature->camera_mode!='D')workflow.action(feature->camera_mode);
+        };
         workflow.status = "Choose a feature from Home to begin.";
         auto gallery = [&](bool append = false) {
             ++gallery_attempt;
@@ -530,6 +552,8 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 resume_search_after_camera_failure = false;
             }
             for (const auto& command : commands) {
+                if(cancellable(command) && command.page_generation != page_generation_) continue;
+                if(command.type=="page"){active_page_generation=command.page_generation;photo_generation=photo_generation_;}
                 if(command.type=="gallery-more" && (page!="gallery" || workflow.importing())){++gallery_attempt;continue;}
                 const bool comparison_command = command.type == "preview-photo";
                 const int comparison_slot = comparison_command && command.values.at(0) == "second" ? 1 : 0;
@@ -541,15 +565,16 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 if (command.type == "confirm-enrollment") ++enrollment_attempt;
                 if (command.type == "metadata") ++metadata_attempt;
                 auto working = std::make_shared<ViewState>(*snapshot());
-                working->busy = true; working->failed = false; working->status = command.type == "image-search" ? "Detecting and searching every face..." : command.type == "image" ? "Processing photo" : command.type == "import" ? "Reading import source" : "Applying request";
+                working->busy = true; working->can_cancel = cancellable(command); working->failed = false; working->status = command.type == "image-search" ? "Detecting and searching every face..." : command.type == "image" ? "Processing photo" : command.type == "import" ? "Reading import source" : "Applying request";
                 publish(working);
                 try {
                     failed = false; system_error = 0;
                     const auto& v = command.values;
+                    if(command.type.rfind("uvc-",0)==0)require(embedded,"Dual-camera controls are available only in the embedded Demo");
                     if (workflow.importing()) require(command.type == "cancel-import" || command.type == "gallery",
                         "Stop the import before another operation");
                     if (command.type == "page") {
-                        require(v.at(0) == "home" || demoPage(v.at(0)), "Unknown feature page");
+                        require(v.at(0) == "home" || pageAvailable(v.at(0),embedded), "Feature page is unavailable in this Demo mode");
                         search_power.reset();
                         if(page=="gallery" && v.at(0)!="gallery") {
                             workflow.gallery_rows.clear();workflow.gallery_has_more=false;workflow.gallery_next_offset=0;
@@ -561,9 +586,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                         } else if (!returning_to_photo) {
                             suspended_photo.reset(); suspended_report.reset(); suspended_photo_path.clear();
                         }
-#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
                         if (page == RgbIrSearchPage::route) stop_rgbir();
-#endif
                         workflow.clearPageResults(); page = v.at(0); analysis_fps = 0; analysis_frames = 0;
                         comparison_completed[0] = comparison_generations_[0]; comparison_completed[1] = comparison_generations_[1];
                         if (returning_to_photo) {
@@ -573,7 +596,10 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                         if (cameraPage(page)) {
                             connect();
                             const auto mode = demoPage(page)->camera_mode;
-                            if (mode != 'D') workflow.action(mode);
+                            if (mode != 'D') {
+                                if (mode == 'S' && v.size() > 1 && v[1] == "paused") workflow.enterPausedSearch();
+                                else workflow.action(mode);
+                            }
                         } else configureCapture(device, workflow.settings(), false);
                         if (page == "gallery") {
                             gallery_offset = 0; gallery_id.clear(); gallery_group.clear(); gallery_tag.clear(); gallery();
@@ -584,38 +610,45 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                         if (page == "home") workflow.status = "Choose a feature from Home to begin.";
                         if (page == RgbIrSearchPage::route) {
                             workflow.status = RgbIrSearchPage::status;
-#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
                             start_rgbir();
-#endif
                         }
                         if (page == "images") workflow.status = "Choose two photos to compare. Photo comparison does not perform liveness.";
                         if (page == "settings") workflow.status = "Edit this feature's settings, apply to save, then go back.";
                     } else if (command.type == "image-search") {
-#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
                         if (page == RgbIrSearchPage::route) stop_rgbir();
-#endif
                         page = "image-search"; configureCapture(device, workflow.settings(), false);
-                        workflow.searchPhoto(v.at(0), [&] { return stopping_ || command.request_id != photo_generation_; });
+                        workflow.searchPhoto(v.at(0), [&] { return stopping_ || command.request_id != photo_generation_ || command.page_generation != page_generation_; });
                     } else if (command.type == "cancel-image-search") { workflow.clearPhotoSearch(); workflow.status = "Photo search cancelled.";
                     } else if (command.type == "action") {
                         search_power.reset();
                         if (v.at(0).at(0) != 'X' && camera_needs_reconnect()) connect(false);
                         workflow.action(v.at(0).at(0));
                     } else if (command.type == "connect") {
+                        require(!v.at(0).empty(), "Choose a camera device before connecting");
                         require(fixed_camera.empty() || v.at(0) == fixed_camera, "This board uses the fixed camera " + fixed_camera);
-                        device = v.at(0); connect(false);
+                        const bool photo=bool(workflow.image_first);
+                        device = v.at(0); connect(photo);if(photo)start_page_camera();
+                    } else if(command.type=="restart-camera") {
+                        const bool paused=workflow.mode()=='P';
+                        connect();
+                        if(paused && page=="camera")workflow.enterPausedSearch();else start_page_camera();
                     }
                     else if (command.type == "next") {
                         if (!fixed_camera.empty()) {
                             device = fixed_camera; connect(false);
                         } else {
+                            const auto previous_device=device;
                             bool connected = false;
                             for (int i = 0; i < 64; ++i) {
                                 next_index = (next_index + 1) % 64; device = "/dev/video" + std::to_string(next_index);
                                 if (!std::filesystem::exists(device)) continue;
-                                try { connect(false); connected = true; break; } catch (const DemoError&) {}
+                                try { const bool photo=bool(workflow.image_first);connect(photo);if(photo)start_page_camera();connected = true; break; } catch (const DemoError&) {}
                             }
-                            if (!connected) workflow.status = "No usable camera. Connect the USB device to Ubuntu and check /dev/video* permissions.";
+                            if (!connected) {
+                                device=previous_device;
+                                try { connect(false);workflow.status="No other usable camera. The previous camera is selected."; }
+                                catch(const DemoError& error){failed=true;workflow.status="No usable camera. "+error.message;}
+                            }
                         }
                     } else if (command.type == "mirror") workflow.toggleMirror();
                     else if (command.type == "pause") {
@@ -626,7 +659,6 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                         analysis_fps_start = next_analysis = monotonicMilliseconds();
                     }
                     else if (command.type == "settings") { workflow.applySettings(parseSettings(command.fields)); }
-#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
                     else if (command.type == "uvc-toggle") {
                         if (page == RgbIrSearchPage::route) {
                             const auto view = snapshot()->rgbir;
@@ -635,7 +667,6 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                             if (!running) start_rgbir();
                         }
                     }
-#endif
                     else if (command.type == "uvc-save-settings") {
                         ++rgbir_settings_attempt;
                         try {
@@ -646,12 +677,10 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                             rgbir_settings_error.clear();
                         } catch (const DemoError& error) { rgbir_settings_error = error.message; }
                         catch (const std::exception&) { rgbir_settings_error = "Cannot save dual-camera settings."; }
-#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
                         if (rgbir_settings_error.empty()) {
                             stop_rgbir();
                             start_rgbir();
                         }
-#endif
                     }
                     else if (command.type == "confirm-enrollment") { workflow.confirmEnrollment(v.at(0), v.at(1), v.at(2), v.size() > 3 && v.at(3) == "replace"); }
                     else if (command.type == "capture-reference") workflow.selectCapturedReference(v.at(0));
@@ -696,6 +725,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 catch (const std::filesystem::filesystem_error& error) { failed = true; system_error = error.code().value(); workflow.status = error.what(); }
                 catch (const std::exception& error) { failed = true; workflow.status = error.what(); }
                 catch (...) { failed = true; workflow.status = "Unexpected command failure"; }
+                if(writesData(command))--pending_writes_;
             }
             if (workflow.importing()) {
                 try {
@@ -741,6 +771,9 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 }
             }
             const bool analyze = cameraPage(page) && workflow.mode() != 'P' && !workflow.importing() && !workflow.pendingEnrollment() && !workflow.resultPending();
+            // A live camera with skipped detections must not keep an old idle decision.
+            // 即使相机仍在出帧，连续未完成检测也要撤销旧的待机判断。
+            search_power.expire(monotonicMilliseconds());
             const auto power_capture = captureSnapshot();
             const bool power_enabled = analyze && workflow.mode() == 'S' && !failed && power_capture.ready &&
                 power_capture.frame && power_capture.analysis_frame && monotonicMilliseconds() - power_capture.last_analysis_ms < 3000 &&
@@ -765,7 +798,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                         // 下方一次性发布框、身份和本帧活体结果；中途发布 Searching 会导致逐帧闪烁。
                         const bool processed = workflow.process(*latest.analysis_frame);
                         if (processed) {
-                            if (power_enabled) search_power.observe(latest.last_analysis_ms, !workflow.boxes.empty());
+                            if (power_enabled) search_power.observeFrame(latest.last_analysis_ms, monotonicMilliseconds(), !workflow.boxes.empty());
                             ++analysis_frames;
                             overlay_width = latest.analysis_frame->width; overlay_height = latest.analysis_frame->height;
                             overlay_frame_ms = latest.last_analysis_ms; overlay_generation = latest.generation;
@@ -781,7 +814,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
             const auto white_light_until = power_enabled && !failed && search_power.lightOn()
                 ? overlay_frame_ms + kSearchLightFreshnessMs : 0;
             setCapturePolicy(search_power.idle(), white_light_until);
-            backlight.update(power_enabled && !failed, search_power.idle());
+            backlight.update(embedded && power_enabled && !failed, search_power.idle());
             if (!analyze || workflow.pendingEnrollment() || workflow.resultPending()) { analysis_fps = 0; analysis_frames = 0; }
             const auto now = monotonicMilliseconds();
             if (now - analysis_fps_start >= 1000) {
@@ -824,9 +857,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 state->mode = workflow.mode(); state->count = workflow.gallery_count; state->filtered_count = workflow.filtered_count; state->gallery_offset = workflow.gallery_offset;
                 state->settings = workflow.settings(); state->milliseconds = workflow.inference_ms;
                 state->rgbir_settings = rgbir_settings;
-#ifdef HIFACE_LINUX_RGBIR_DEVELOPMENT
-                state->rgbir_available = true;
-#endif
+                state->rgbir_available = embedded;
                 state->rgbir_settings_attempt = rgbir_settings_attempt;
                 state->rgbir_settings_error = rgbir_settings_error;
                 state->fps = capture.fps; state->analysis_fps = analysis_fps; state->frame = capture.frame;

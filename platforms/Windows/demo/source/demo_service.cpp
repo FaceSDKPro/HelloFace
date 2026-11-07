@@ -99,37 +99,20 @@ CaptureResult DemoService::captureEnrollmentImage(const Image& image) {
 }
 DemoService::DemoService(const std::filesystem::path& database)
     : client_(database), database_(database) {}
-void DemoService::beginFlow(const FlowOptions& options) {
-    client_.beginFlow(options); enrollment_id_.clear();
-}
-void DemoService::beginEnrollment(const std::string& id, const std::string& group, const std::string& tag) {
-    if (id.empty() || id.size() > HIFACE_SEARCH_MAX_TEXT_BYTES || id.find('\0') != std::string::npos
-        || group.size() > HIFACE_SEARCH_MAX_TEXT_BYTES || tag.size() > HIFACE_SEARCH_MAX_TEXT_BYTES
-        || group.find('\0') != std::string::npos || tag.find('\0') != std::string::npos)
-        throw std::runtime_error("Enter a person ID and metadata of at most 1024 UTF-8 bytes");
-    if (database_.contains(id)) throw SdkError(HIFACE_STATUS_ALREADY_EXISTS, "Person ID already exists");
-    client_.beginFlow(FlowOptions{});
-    enrollment_id_ = id; enrollment_group_ = group; enrollment_tag_ = tag;
-}
-void DemoService::cancelEnrollment() { client_.cancelFlow(); enrollment_id_.clear(); }
+void DemoService::beginFlow(const FlowOptions& options) { client_.beginFlow(options); }
+void DemoService::cancelFlow() { client_.cancelFlow(); }
+// Translate structured SDK outcomes; never persist a person while processing a frame.
+// 逐帧调用只解释 SDK 状态，人员保存必须由确认命令执行。
 Update DemoService::process(const CameraFrame& frame, const std::function<bool()>& current) {
     Update update;
     static_cast<hiface::FrameUpdate&>(update) = client_.process(frame, current);
-    update.enrolling = update.flow_active;
-    if (update.cancelled) { enrollment_id_.clear(); update.message = u8"已取消"; return update; }
+    if (update.cancelled) { update.message = u8"已取消"; return update; }
     if (update.skipped) return update;
     if (update.result) {
         const auto& result = *update.result;
         update.message = outcomeText(result.metadata.outcome);
         if (result.metadata.flags & HIFACE_FLOW_RESULT_HAS_LIVENESS) update.message += u8" | 活体=" + std::to_string(result.metadata.liveness_score);
         if (result.metadata.flags & HIFACE_FLOW_RESULT_HAS_SIMILARITY) update.message += u8" | 相似度=" + std::to_string(result.metadata.similarity);
-        const auto id = enrollment_id_; enrollment_id_.clear();
-        if (!id.empty()) {
-            if (current && !current()) { update.result.reset(); update.message = u8"已取消"; return update; }
-            if (!update.matched || result.feature.empty()) throw std::runtime_error("Guided capture rejected enrollment");
-            database_.save({{id, enrollment_group_, enrollment_tag_, result.feature, 0}}, false);
-            update.saved = true; update.message = u8"录入成功: " + id;
-        }
     } else if (update.flow_active) update.message = progressText(update.event);
     else if (update.paused) update.message = u8"搜索已暂停";
     else if (!update.searching) update.message = u8"检测到 " + std::to_string(update.faces.size()) + u8" 张人脸";

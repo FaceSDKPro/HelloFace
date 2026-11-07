@@ -1,10 +1,14 @@
 #include "hiface/frame.hpp"
 #include <algorithm>
 #include <stdexcept>
+#include <utility>
 
 namespace hiface {
 Image CameraFrame::displayBgra(bool mirror) const {
-    const auto raw = previewBgra();
+    auto raw = previewBgra();
+    // Default preview already has the required orientation: transfer its pixels.
+    // 默认方向无需再分配、逐像素复制；旋转和镜像仅作用于展示。
+    if (!rotation_degrees && !mirror) return {width, height, std::move(raw)};
     const bool quarter = rotation_degrees == 90 || rotation_degrees == 270;
     Image image{quarter ? height : width, quarter ? width : height, std::vector<uint8_t>(raw.size())};
     for (int y = 0; y < height; ++y) for (int x = 0; x < width; ++x) {
@@ -27,6 +31,9 @@ HiFaceYuv420FrameV1 CameraFrame::view() const {
         || (rotation_degrees != 0 && rotation_degrees != 90 && rotation_degrees != 180 && rotation_degrees != 270)
         || nv12.size() != static_cast<size_t>(width) * height * 3 / 2)
         throw std::runtime_error("Invalid NV12 frame geometry, size or color specification");
+    // NV12 stores interleaved UV: both views use pixel stride 2; V starts one byte after U.
+    // Views borrow nv12, which must stay alive for the entire SDK call.
+    // NV12 的 UV 交错存储，像素步长均为 2；V 比 U 晚一字节，底层数据须存活至调用结束。
     const size_t y_bytes = static_cast<size_t>(width) * height;
     HiFaceYuv420FrameV1 result{};
     result.struct_size = sizeof(result);

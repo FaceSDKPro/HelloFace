@@ -69,9 +69,14 @@ public:
     void pauseSearch(bool paused);
     void configureDetection(uint32_t max_faces, bool detailed);
     void useSearch(bool enabled);
+    // Starts one capture/action/verification flow; cancels search until completion.
+    // 启动一次采集/动作/验证，期间停止搜索；参考特征在调用内复制。
     void beginFlow(const FlowOptions& options);
     void cancelFlow();
     bool flowActive() const { return flow_active_; }
+    // Feed one frame on the owning worker. current() suppresses a stale flow result
+    // after cancellation/navigation; returned images, meshes and features are owned copies.
+    // 在持有者线程喂一帧；current() 拦截取消/离页后的旧结果，返回数据持有独立副本。
     FrameUpdate process(const CameraFrame& frame, const std::function<bool()>& is_current = {});
     std::vector<HiFaceFaceV1> detect(const Image& image);
     FrameUpdate detectDetailed(const Image& image, uint32_t max_faces, bool detailed);
@@ -84,6 +89,8 @@ public:
         uint32_t maximum = HIFACE_MAX_FACES, bool previews = true);
     void insertFeature(const std::string& id, const Feature& feature);
     std::vector<std::pair<std::string, float>> query(const Feature& feature);
+    // Borrowed handle; do not destroy it or use it concurrently with this Client.
+    // 借用句柄，不得由调用方销毁或与 Client 并发访问。
     HiFaceSessionHandle nativeHandle() const { return session_; }
     uint64_t count() const;
 private:
@@ -98,5 +105,6 @@ private:
     HiFaceFlowModeV1 flow_mode_ = HIFACE_FLOW_GUIDED_CAPTURE;
     std::array<bool, 5> loaded_{};
     void stopFlow();
+    void completeFlow(FrameUpdate& update, const std::function<bool()>& current);
 };
 }

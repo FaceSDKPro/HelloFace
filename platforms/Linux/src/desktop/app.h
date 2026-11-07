@@ -14,11 +14,20 @@ struct Command {
     std::vector<std::string> values;
     std::vector<FormField> fields;
     uint64_t request_id = 0;
+    uint64_t page_generation = 0;
 };
+inline bool writesData(const Command& command) {
+    const auto& type=command.type;
+    return type=="confirm-enrollment" || type=="settings" || type=="metadata" || type=="delete" ||
+        type=="import" || type=="export" || type=="mirror" || type=="capture-reference" ||
+        type=="reference" || type=="clear-reference" || type=="uvc-save-settings";
+}
 // UI reads published snapshots; mutable SDK/database state stays on the workflow thread.
 // UI 读取已发布的状态快照；可变的 SDK 和数据库状态留在工作流线程。
 struct ViewState {
     bool ready = false, importing = false, connected = false, busy = false, failed = false;
+    bool can_cancel = false;
+    bool writes_pending = false;
     bool camera_stalled = false, search_idle = false;
     std::string fixed_camera_device;
     HiFaceStatus initialization_status = HIFACE_STATUS_OK;
@@ -93,7 +102,7 @@ private:
         bool open = false, search_idle = false;
         int64_t white_light_until = 0;
         std::string device, preview_device;
-        int width = 640, height = 360, fps = 25;
+        int width = 640, height = 480, fps = 25, rotation = 0;
         int preview_width = 1280, preview_height = 720;
         int preview_output_width = 576, preview_output_height = 1024;
         bool mjpeg = false;
@@ -113,6 +122,10 @@ private:
     void run(const std::string& models, const std::string& database, std::string device, bool smoke, const std::string& assets);
     std::atomic<bool> stopping_{false};
     std::atomic<uint64_t> photo_generation_{0};
+    std::atomic<uint64_t> page_generation_{0};
+    // Count queued and executing writes independently of the latest navigation/read request.
+    // 待执行和执行中的写入独立计数，切页或读取请求不能提前解除关闭保护。
+    std::atomic<unsigned> pending_writes_{0};
     std::atomic<uint64_t> comparison_generations_[2]{};
     bool smoke_ = false;
     std::mutex mutex_;

@@ -7,6 +7,18 @@ Ubuntu 22.04 / glibc 2.35 baseline; Ubuntu 24.04 compatibility target. X11 or Wa
 **The SDK is in iterative public Beta testing. Please keep the SDK version up to date. The current model does not support face recognition for people under 12 and must not be used in financial scenarios.**
 Target-device desktop, fonts, USB camera and recognition acceptance remains pending; cross-builds are not device acceptance.
 
+## Landscape desktop behavior
+
+Ordinary Linux desktops open a resizable landscape window (960×600 logical minimum where the screen permits); a 1280×720 monitor is not treated as a kiosk. Home has eight single-camera/image feature entries, using four columns on wide windows and two on compact windows. RGB/IR search is exclusive to the embedded profile; ordinary desktop has no dual-camera card, settings or route. Camera pages keep the preview beside status/results and place actions below it. The face library uses compact ID/group/tag/updated-time columns; portrait board layouts remain available.
+
+`HIFACE_DISPLAY_MODE=desktop|embedded|auto` explicitly selects the display behavior. Auto follows the build profile, rather than monitor size or rotation variables. Explicit embedded deployments select `HIFACE_DISPLAY_MODE=embedded`; the ordinary desktop always keeps its UI landscape. T92P builds use embedded mode by default. Ordinary desktops never change the global screen backlight. Startup scaling follows `Xft.dpi`; `HIFACE_UI_SCALE=1.5` can override it (1–3, capped to keep the window usable on the screen). Scaling needs `libXrender.so.1`.
+
+Use arrow keys and Enter on Home, Ctrl+O to choose a photo, F5 to refresh the library/repeat photo search, Ctrl+C to copy a selected photo-search/comparison result, and Esc to return. Ctrl+F5 retains the image-search page shortcut. Returning from search settings preserves a previously paused search. Back supersedes queued read-only work; admitted saves are completed before navigation.
+
+Desktop feature pages provide Home and Ctrl+Home. Returning Home restores the original card focus, and left/right arrows stop at grid edges. Startup shows loading, details and retry states. An empty verification-reference picker can launch capture and return to reference selection. Search also stays paused when returning from library management or enrollment.
+
+Use camera restores live input after photo detection; interrupted cameras can reconnect directly, and guided workflows can restart or stop. Invalid photos/paths retain the last usable photo. Click a face inside a search photo to select its result, or blank space to choose another photo. Copying results or a complete Face ID shows Copied. Ctrl+O in comparison prefers the empty second slot. Settings scroll on short windows; the file picker supports arrows, Home/End, paging and Enter. The library can launch enrollment/import directly and enrollment returns to it. Going Home during import confirms stopping first. Capture fields lock during saving; closing waits for all admitted writes.
+
 ## Run from HelloFace
 
 ```bash
@@ -24,7 +36,7 @@ runtime=runtimes/x86_64  # ARM64: runtimes/arm64
 HIFACE_CAMERA_ROTATE=left ./run-demo.sh /dev/video2
 
 # Keep Xorg landscape and rotate the full-screen portrait UI inside HiFace:
-HIFACE_DISPLAY_ROTATE=left ./run-demo.sh /dev/video2
+HIFACE_DISPLAY_MODE=embedded HIFACE_DISPLAY_ROTATE=left ./run-demo.sh /dev/video2
 
 # Kiosk/service mode: open Face search and start continuous search after SDK initialization:
 HIFACE_START_SEARCH=1 ./run-demo.sh /dev/video2
@@ -52,12 +64,14 @@ On Ubuntu, desktop runtime tools can be installed with `sudo apt install libx11-
 No Qt, OpenCV or compiler is required to run prebuilt programs. Launch in a graphical desktop terminal;
 headless systems can use self-tests and the CLI. Camera support is V4L2 single-plane or multiplanar MMAP with
 YUYV/MJPEG/NV12/NV21 (packed in one buffer plane),
-requesting 640×360 at 25 FPS by default; the driver negotiates actual parameters.
+requesting 640×480 at 25 FPS on ordinary desktops (640×360 for embedded displays); the driver negotiates actual parameters.
 Set `HIFACE_CAMERA_ROTATE=left` (aliases: `ccw`, `90ccw`) to turn a landscape sensor frame into
-360×640 before both rendering and face analysis. Use `right` (aliases: `cw`, `90cw`) for the opposite direction.
-Open **SDK Settings**, select a clockwise **UI rotation** (0°, 90°, 180° or 270°); the choice saves automatically. The complete interface, camera preview, face boxes and landmarks rotate together; mouse/touch coordinates follow the same transform. The angle is saved in `settings.conf` and restored on restart. Existing `HIFACE_DISPLAY_ROTATE` aliases remain startup defaults when no angle is saved; numeric `0`, `90`, `180` and `270` are also supported. Runtime rotation requires `libXrender.so.1`.
+a portrait frame before both rendering and face analysis (480×640 on desktop defaults, 360×640 on board defaults). Use `right` (aliases: `cw`, `90cw`) for the opposite direction.
+On ordinary desktops, **SDK Settings** saves 640×480 / 1280×720 / 1920×1080 presets, mirror and **Camera rotation** automatically. Camera rotation affects preview and analysis together while desktop controls remain upright. A saved angle overrides the startup `HIFACE_CAMERA_ROTATE` default; the two are not added.
 
-Set `HIFACE_DISPLAY_ROTATE=left` to rotate the entire portrait interface and input mapping inside the HiFace window.
+In embedded mode, open **SDK Settings**, select a clockwise **UI rotation** (0°, 90°, 180° or 270°); the choice saves automatically. The complete interface, camera preview, face boxes and landmarks rotate together; mouse/touch coordinates follow the same transform. The angle is saved in `settings.conf` and restored on restart. Existing `HIFACE_DISPLAY_ROTATE` aliases remain startup defaults when no angle is saved; numeric `0`, `90`, `180` and `270` are also supported. Runtime rotation requires `libXrender.so.1`.
+
+In embedded mode, set `HIFACE_DISPLAY_ROTATE=left` to rotate the entire portrait interface and input mapping inside the HiFace window.
 Keep the Xorg output at `normal`; combining it with `xrandr --rotate` can trigger DRM `flip timeout` failures.
 
 On Rockchip boards, a separate full-resolution ISP path can feed the display while recognition stays at 640x360:
@@ -71,7 +85,7 @@ HIFACE_PREVIEW_OUTPUT_WIDTH=576 HIFACE_PREVIEW_OUTPUT_HEIGHT=1024 \
 
 The optional preview path uses the board's `librga.so.2` for one-pass NV12/NV21 scaling, color conversion and camera rotation. RGA emits the X11-native BGRX order, and local X servers use MIT-SHM image upload when available, avoiding a full-frame CPU channel swap and socket copy. Both optimizations retain portable fallbacks. If the second ISP path or RGA is unavailable, the Demo falls back to the recognition stream without failing startup.
 
-Desktop Linux builds use the camera without a board lighting controller. On a T92P Buildroot installation, enable the board backend with `-DHIFACE_LINUX_T92P_LIGHTING=ON` in the development checkout and use the board startup service. The backend controls J3 white illumination for RGB capture and can control J19 infrared illumination in a dual-camera development build.
+Desktop Linux builds use the camera without a board lighting controller. On a T92P Buildroot installation, enable the board backend with `-DHIFACE_LINUX_T92P_LIGHTING=ON` in the development checkout and use the board startup service. The backend controls J3 white illumination for RGB capture and can control J19 infrared illumination in embedded dual-camera mode.
 
 Check device permissions instead of running the Demo as root. After joining the `video` group, log out fully and back in.
 
@@ -79,23 +93,23 @@ Check device permissions instead of running the Demo as root. After joining the 
 
 Live Detection draws only the detector's five landmarks and selected lip, eye, face-outline and nose contours. Connections and the 1.4x eye-contour scale match Android. Eyebrows, the dense 468-point cloud, face boxes, confidence and pose labels are hidden. Camera search and image search retain their own identity boxes and result labels.
 
-Home follows Android with nine vertically ordered feature cards: detection, capture, verification, liveness, face search and recognition, dual-camera face search, photo comparison, image search and SDK Settings. Dual-camera search currently opens a separate page showing that RGB + IR search is not connected yet. Enrollment and Face library open from Face Search; Image Search also opens Face library. Every page has a Back button at the top. Child pages return to the feature that opened them, and top-level features return Home. Scrolling uses the wheel or Page Up/Down. Opening an implemented camera feature connects the selected device and automatically starts its workflow. Leaving closes the camera and cancels the current flow. No camera is opened on startup.
+Ordinary desktop follows Android feature order with eight cards: detection, capture, verification, liveness, RGB face search, photo comparison, image search and SDK Settings. Embedded mode adds dual-camera RGB/IR search as its sixth entry and keeps its nine-entry scrolling home. Only embedded mode can open RGB/IR settings or start its backend; ordinary mode does not read or rewrite `rgbir.conf`. Enrollment and Face library open from Face Search; Image Search also opens Face library. Every page has a Back button at the top. Child pages return to the feature that opened them, and top-level features return Home. Scrolling uses the wheel or Page Up/Down. Opening an implemented camera feature connects the selected device and automatically starts its workflow. Leaving closes the camera and cancels the current flow. No camera is opened on startup.
 
 | Page | Features |
 |---|---|
 | F1 Face search | Continuous 1:N/M:N; use Home for the other independent camera features |
 | F2 Photo comparison | Two-photo comparison with input previews; detection/reference/enrollment photos belong to their own feature pages |
 | F3 Face Capture | Capture a reference feature; search enrollment and library management stay inside Face Search |
-| F4 SDK Settings | Video format, FPS, mirror and UI rotation; feature parameters belong to their own Settings entry |
-| F5 Image search | Up to ten faces, independent status, Top-1 ID/score, aligned thumbnails and selectable boxes |
+| F4 SDK Settings | Video format, FPS, mirror and camera/display rotation; feature parameters belong to their own Settings entry |
+| Ctrl+F5 Image search | Up to ten faces, independent status, Top-1 ID/score, aligned thumbnails and selectable boxes |
 
 Mouse operation: left-click feature cards, Back, buttons, switches and input fields; use the wheel to scroll Home and select photo-search results. Clicks do not require a preceding pointer-motion event, including after resizing or rotating the UI. Left-click also gives the window keyboard focus for text entry in embedded sessions without a window manager.
 
-Small embedded displays enable a built-in keyboard when a text field is clicked. It supports letters, digits, common symbols, case switching, Delete, Clear and Space using only a mouse or touch. Keyboard Done only hides the keyboard; use the page's save/confirm button to submit. Escape hides the keyboard before dismissing the form. Input follows UI rotation. Set `HIFACE_SOFT_KEYBOARD=1` to enable it on larger desktops, `0` to disable it, or `auto` for the default. Hardware keyboards remain supported; Chinese input requires system fonts and an XIM input method.
+Embedded mode enables a built-in keyboard when a text field is clicked. It supports letters, digits, common symbols, case switching, Delete, Clear and Space using only a mouse or touch. Keyboard Done only hides the keyboard; use the page's save/confirm button to submit. Escape hides the keyboard before dismissing the form. Input follows UI rotation. Set `HIFACE_SOFT_KEYBOARD=1` to enable it on larger desktops, `0` to disable it, or `auto` for the default. Hardware keyboards remain supported; Chinese input requires system fonts and an XIM input method.
 
-The Demo supplies its own black-and-white arrow, without a cursor-theme/font dependency. `HIFACE_MOUSE_CURSOR=auto` (default) uses a software cursor on small/embedded displays and an X11 cursor on regular desktops. The software cursor remains visible inside the Demo even when the X server uses `-nocursor` or a hardware cursor is unavailable. Its hotspot stays aligned with clicks at all four UI rotations. Move outside the window to return to the desktop cursor.
+Ordinary desktops use the system cursor and hardware keyboard. `HIFACE_MOUSE_CURSOR=auto` (default) uses a built-in software cursor only in embedded mode; it does not infer the mode from screen resolution. The software cursor remains visible inside the Demo even when the X server uses `-nocursor` or a hardware cursor is unavailable. Its hotspot stays aligned with clicks at all four UI rotations. Move outside the window to return to the desktop cursor.
 
-The arrow is mirrored horizontally and rotates with the UI, with its tip retained as the click hotspot. Software and native X11 cursors share the same rotated pixels and hotspot; button assignments and pointer coordinates are unchanged.
+The arrow is mirrored horizontally and rotates with the UI, with its tip retained as the click hotspot. Embedded software and native X11 cursors share the same rotated pixels and hotspot; button assignments and pointer coordinates are unchanged.
 
 ```sh
 # Force the embedded-friendly software cursor, or use system for a native X11 cursor.
@@ -104,7 +118,7 @@ HIFACE_MOUSE_CURSOR=software ./run-demo.sh /dev/video0
 
 Camera keys choose pages: D detection, C capture, L liveness, V verify, E enroll, S search, P pause/resume,
 X cancel, M mirror, N reconnect, Q quit. Text inputs support UTF-8, Tab/Shift+Tab, copy/paste and Enter submit.
-Back returns to the previous page, cancelling an active photo search or confirming that an import should stop first. Esc closes a dialog/input/menu before returning. F1..F5 switch primary features; dialogs retain focus. Settings preserve drafts and ask before discarding changes. Camera Menu contains only device and current-feature options.
+Back returns to the previous page, cancelling an active photo search or confirming that an import should stop first. Esc closes a dialog/input/menu before returning. F1..F4 and Ctrl+F5 switch primary features; dialogs retain focus. Settings preserve drafts and ask before discarding changes. Camera Menu contains only device and current-feature options.
 Detection, liveness, verification and face search expose only their own feature settings. Face Capture requires preview confirmation and a Face ID, saves only its HF1 reference in a separate captured-ID store, and returns Home. Verification first selects a captured ID before opening its camera; an empty store asks the user to capture first. Choose Face ID changes that reference. Original HF1 text is retained without requantization. Returning from Face library to Image Search restores the existing photo and results.
 Search enrollment stages a preview and ID/group/tag. An existing ID requires a separate Replace confirmation; keeping it preserves the draft. Capture updates an existing reference ID like Android. Batch replacement and deletion require confirmation.
 Liveness defaults to three distinct random actions and verification to two; retries choose a fresh sequence. Each has independent settings. Custom sequences allow up to four actions, including repeats; empty actions mean silent liveness. Verification enables silent liveness by default. Action instructions stay centered above the circle until the step changes; remaining seconds are not displayed. Results and failures offer Retry and Close.
@@ -113,10 +127,13 @@ Liveness defaults to three distinct random actions and verification to two; retr
 The full-screen search page captures and previews the newest frame at 25 FPS. Recognition consumes only the newest
 available frame on a separate worker and is capped at 8 FPS, so slow inference does not stall preview. The overlay
 reports actual Preview FPS, Recognition FPS and last inference time separately.
+The absence countdown uses capture timestamps, matching the Windows desktop policy. Stale results, SDK-skipped
+frames and stream interruptions do not establish absence. Three seconds without a new completed detection,
+pause, navigation, reconnect or errors reset idle. Ordinary desktops do not change system brightness.
 After ten continuous seconds of completed detections without a face, search reduces preview conversion,
 and rendering to 10 FPS while analysis scheduling remains capped at 5 FPS. The camera is asked to lower its capture rate without
 reopening; unsupported drivers keep streaming while processing remains throttled. Any detected face restores
-the active cadence, including an unknown or rejected face. A single writable sysfs backlight uses 90% brightness
+the active cadence, including an unknown or rejected face. In embedded mode only, a single writable sysfs backlight uses 90% brightness
 during active search and 10% while idle; leaving search, pausing, errors and orderly shutdown restore its original
 brightness. Missing permissions or multiple backlight devices leave brightness unchanged. Other camera workflows
 retain their own cadence; actual board power savings depend on the camera, display and platform.
@@ -208,7 +225,14 @@ Review diagnostics before sharing them. Do not publish user photos, databases, r
 Model files are protected runtime assets, not training/source models. Keep SDK/runtime and Demo dependency notices.
 [SDK support](https://github.com/FaceSDKPro/HelloFace/issues).
 
-SDK Settings automatically saves resolution presets, mirror and UI rotation. Exact dimensions, FPS and video format are under Advanced video settings; manual edits use Apply typed values. These preferences do not change workflow settings. Detection, guided capture and enrollment accept a photo through their Menu; selecting it closes the live camera.
+SDK Settings automatically saves resolution presets, mirror and camera rotation (whole-UI rotation in embedded mode). Exact dimensions, FPS and video format are under Advanced video settings; manual edits use Apply typed values. These preferences do not change workflow settings. Detection, guided capture and enrollment accept a photo through their Menu; selecting it closes the live camera.
 Enrollment first captures a preview, then requires an ID and explicit confirmation. Duplicate search IDs require another replacement confirmation and retain the editable draft when declined; retake, cancellation or leaving discards it. Enrollment does not replace the verification reference.
-Photo comparison extracts and caches each photo when selected; Compare uses those features and shows only the similarity percentage. Face library uses full-width person cards with per-record Edit and Delete actions, a single exact-ID query, and 100-row batches appended while scrolling or dragging. Clearing a query restores the list; metadata dialogs support the on-screen keyboard and retry after errors. Its top-right Menu contains refresh, confirmed imports and HF1 exchange; Back from exchange returns to the list, and JSON export includes the full library. Portrait image search uses a large photo with a horizontal result strip.
+Photo comparison extracts and caches each photo when selected; Compare uses those features and shows only the similarity percentage. Face library uses a compact desktop table or full-width embedded cards with per-record Edit and Delete actions, a single exact-ID query, and 100-row batches appended while scrolling or dragging. Clearing a query restores the list; metadata dialogs support the on-screen keyboard and retry after errors. Its top-right Menu contains refresh, confirmed imports and HF1 exchange; Back from exchange returns to the list, and JSON export includes the full library. Portrait image search uses a large photo with a horizontal result strip.
 Pending enrollment pauses analysis. Page changes discard old images/search results, and changing the reference clears unrelated previews.
+
+The embedded RGB/IR page uses the public paired-search API in SDK 0.8.8. Set
+`HIFACE_DISPLAY_MODE=embedded`, select distinct RGB and IR devices and rotations
+in its Settings, then start search. The ordinary desktop remains landscape and
+RGB-only. A fresh pair and a current IR pass are required for every match;
+missing frames, multiple faces and geometric misalignment do not use RGB fallback.
+Camera calibration and target-hardware acceptance remain required.

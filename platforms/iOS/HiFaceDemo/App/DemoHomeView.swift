@@ -27,20 +27,20 @@ struct DemoHomeView: View {
                             Text("HiFace SDK").font(.title2.weight(.bold))
                             Text(DemoL10n.text("离线｜数据安全｜高效"))
                                 .font(.caption)
-                                .foregroundStyle(.white.opacity(0.75))
+                                .foregroundStyle(DemoTheme.homeSecondaryText)
                         }
                         Spacer()
                         Button { openWebsite() } label: {
                             Image(systemName: "info.circle")
                                 .font(.title3)
                                 .frame(width: 44, height: 44)
-                                .background(.white.opacity(0.15), in: Circle())
+                                .background(DemoTheme.homeSurface, in: Circle())
                         }
                         .accessibilityLabel(aboutTitle)
                     }
                     Text(DemoDeviceInfo.copyText)
                         .font(.caption)
-                        .foregroundStyle(.white.opacity(0.75))
+                        .foregroundStyle(DemoTheme.homeSecondaryText)
                         .multilineTextAlignment(.trailing)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                         .fixedSize(horizontal: false, vertical: true)
@@ -72,7 +72,7 @@ struct DemoHomeView: View {
                     .buttonStyle(HomeFeatureButtonStyle())
                     Button(aboutTitle) { openWebsite() }
                         .font(.caption)
-                        .foregroundStyle(.white.opacity(0.75))
+                        .foregroundStyle(DemoTheme.homeSecondaryText)
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .padding(.top, 14)
                 }
@@ -80,8 +80,8 @@ struct DemoHomeView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 20)
             }
-            .background(DemoTheme.home.ignoresSafeArea())
-            .foregroundStyle(.white)
+            .background(DemoTheme.homeBackground.ignoresSafeArea())
+            .foregroundStyle(DemoTheme.homeText)
             .buttonStyle(.plain)
             .navigationBarHidden(true)
             .overlay(alignment: .bottom) {
@@ -173,30 +173,34 @@ private struct DemoCard: View {
         HStack(spacing: 11) {
             Image(systemName: icon)
                 .font(.title3.weight(.medium))
-                .symbolRenderingMode(.hierarchical)
+                .symbolRenderingMode(.monochrome)
                 .frame(width: iconSize, height: iconSize)
-                .background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 10))
+                .foregroundStyle(DemoTheme.homeText)
+                .background(DemoTheme.homeSurface, in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(DemoTheme.homeBorder))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.callout.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
                 Text(subtitle)
                     .font(.footnote)
-                    .foregroundStyle(.white.opacity(0.75))
+                    .foregroundStyle(DemoTheme.homeSecondaryText)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(DemoTheme.homeArrow)
+                .frame(width: 28, height: 28)
+                .background(DemoTheme.homeArrowSurface, in: Circle())
                 .accessibilityHidden(true)
         }
         .padding(.horizontal, 11)
         .padding(.vertical, 9)
         .frame(minHeight: 68)
-        .background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(.white.opacity(0.24)))
+        .background(DemoTheme.homeSurface, in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(DemoTheme.homeBorder))
         .contentShape(RoundedRectangle(cornerRadius: 14))
         .accessibilityElement(children: .combine)
     }

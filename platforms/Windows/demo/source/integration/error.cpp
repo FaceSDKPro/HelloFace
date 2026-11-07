@@ -14,12 +14,12 @@ const char* statusName(HiFaceStatus status) {
         case HIFACE_STATUS_NOT_FOUND: return "record not found";
         case HIFACE_STATUS_IMAGE_NO_FACE: return "no face in image";
         case HIFACE_STATUS_IMAGE_FACE_TOO_SMALL: return "face too small; move closer";
-        case HIFACE_STATUS_LICENSE_MISSING:
-        case HIFACE_STATUS_LICENSE_INVALID:
-        case HIFACE_STATUS_LICENSE_NOT_YET_VALID:
-        case HIFACE_STATUS_LICENSE_EXPIRED: return "SDK unavailable; update to the latest version or contact support";
-        case HIFACE_STATUS_LICENSE_FEATURE_DENIED: return "feature unavailable";
-        case HIFACE_STATUS_LICENSE_CLOCK_INVALID: return "device time invalid; correct the system clock and retry";
+        case HIFACE_STATUS_LICENSE_MISSING: return "SDK authorization missing; update the SDK or contact support";
+        case HIFACE_STATUS_LICENSE_INVALID: return "SDK authorization invalid; check the application package and contact support";
+        case HIFACE_STATUS_LICENSE_NOT_YET_VALID: return "SDK authorization not yet valid; check the system date or contact support";
+        case HIFACE_STATUS_LICENSE_EXPIRED: return "SDK authorization expired; update the SDK or contact support";
+        case HIFACE_STATUS_LICENSE_FEATURE_DENIED: return "feature not included in SDK authorization";
+        case HIFACE_STATUS_LICENSE_CLOCK_INVALID: return "device time invalid; check the system clock and contact support if the error persists";
         default: return "see diagnostic log";
     }
 }

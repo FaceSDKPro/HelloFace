@@ -36,6 +36,9 @@ target_link_libraries(your_app PRIVATE HiFace::HiFace)
 配置 CPU → 创建 Session → 用 `hiface_windows_session_load_model_v1` 加载所需能力
 → `hiface_session_prepare_loaded_models_v1` → 处理图片 → 释放结果与 Session。
 结构体先设置 `struct_size`，逐次检查返回状态。
+并发启动可能返回 `BUSY`。初始化放在后台线程；Demo 的 C++ Client 最多追加三次
+100/300/900 ms 退避重试，每次先释放失败句柄。到期、时钟、身份等持久错误保留原码，
+不重试、不重置授权。
 
 | 功能 | 接口 |
 | --- | --- |

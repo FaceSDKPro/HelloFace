@@ -1,0 +1,2 @@
+// Demo launcher icon; shared by MSVC and MinGW builds.
+101 ICON "app.ico"

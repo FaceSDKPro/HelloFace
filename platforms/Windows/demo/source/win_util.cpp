@@ -69,6 +69,37 @@ void writeLog(const std::string& message) noexcept {
         }
     } catch (...) { /* Logging must not interrupt capture or cross a C callback. / 日志不能中断采集，异常不能越过 C 回调边界。 */ }
 }
+std::string readFeatureFile(const std::filesystem::path& path) {
+    std::ifstream input(path, std::ios::binary | std::ios::ate);
+    if (!input) throw std::runtime_error("Cannot read HF1 file");
+    const auto size = input.tellg();
+    if (size <= 0 || size > HIFACE_FEATURE_TEXT_LENGTH + 16) throw std::runtime_error("Invalid HF1 file size");
+    input.seekg(0);
+    // Read only the observed, bounded size even if the file grows concurrently.
+    // 仅读取已检查的长度；读取期间文件增长也不会形成无界分配。
+    std::string text(static_cast<size_t>(size), '\0');
+    if (!input.read(text.data(), static_cast<std::streamsize>(text.size())))
+        throw std::runtime_error("Cannot read complete HF1 file");
+    if (input.peek() != std::char_traits<char>::eof()) throw std::runtime_error("HF1 file changed while reading");
+    if (text.compare(0, 3, "\xef\xbb\xbf") == 0) text.erase(0, 3);
+    while (!text.empty() && (text.back() == '\r' || text.back() == '\n' || text.back() == ' ')) text.pop_back();
+    decodeFeature(text);
+    return text;
+}
+void writeFeatureFile(const std::filesystem::path& path, const std::string& text) {
+    decodeFeature(text);
+    auto temporary = path;
+    temporary += L".tmp-" + std::to_wstring(GetCurrentProcessId())
+        + L"-" + std::to_wstring(std::chrono::steady_clock::now().time_since_epoch().count());
+    struct Cleanup {
+        std::filesystem::path path;
+        ~Cleanup() { std::error_code ignored; std::filesystem::remove(path, ignored); }
+    } cleanup{temporary};
+    std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
+    output << text << '\n'; output.close();
+    if (!output || !MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+        throw std::runtime_error("Cannot save HF1 file");
+}
 void checkHr(HRESULT status, const char* operation) {
     if (SUCCEEDED(status)) return;
     std::ostringstream message;

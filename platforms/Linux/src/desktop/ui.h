@@ -14,7 +14,7 @@ struct Control {
     Font font = Font::Body;
     std::string id() const { return field.empty() ? action : "field:" + field; }
 };
-enum class Key { Text, Escape, Enter, Backspace, Delete, Left, Right, Up, Down, Home, End, PreviousPage, NextPage, Tab, SelectAll, Page1, Page2, Page3, Page4, Page5 };
+enum class Key { Text, Escape, Enter, Backspace, Delete, Left, Right, Up, Down, Home, End, PreviousPage, NextPage, Tab, SelectAll, OpenPhoto, Refresh, Copy, HomePage, Page1, Page2, Page3, Page4, Page5 };
 class DemoUi {
 public:
     using Measure = std::function<int(const std::string&, Font)>;
@@ -45,7 +45,7 @@ private:
     void button(Rect rect, const std::string& label, const std::string& action, int style = 0, bool enabled = true, Font font = Font::Body);
     void field(Rect rect, const std::string& key, const std::string& label, const std::string& initial = "", bool enabled = true, Font font = Font::Body);
     void toggle(int x, int y, int width, const std::string& key, const std::string& label, bool enabled = true, Font font = Font::Body);
-    void rotationButtons(Rect rect, const std::string& selected, bool enabled);
+    void rotationButtons(Rect rect, const std::string& selected, bool enabled, const std::string& action = "ui-rotation:");
     static Rect fitImage(Rect frame, int width, int height, bool fill = false);
     void picture(Rect rect, const Image* image, const CameraFrame* camera, bool mirror, const std::vector<Box>& boxes, bool fill = false);
     void empty(Rect rect, const std::string& title, const std::string& hint);
@@ -57,6 +57,7 @@ private:
     void supportFooter(const ViewState& state, bool version_link);
     ErrorPresentation errorPresentation(const ViewState& state) const;
     void camera(const ViewState& state, Rect body);
+    void desktopCamera(const ViewState& state, Rect body);
     static constexpr int search_result_height = 78, search_control_gap = 12,
         search_button_height = 46, search_bottom_padding = 14;
     void searchResults(const ViewState& state, Rect panel);
@@ -77,6 +78,8 @@ private:
     void back(const ViewState& state);
     void pageHeader(const ViewState& state, const std::string& title, bool camera);
     void selectImageFace(int index, const ViewState& state);
+    void imagePhotoControls(Rect preview, const ViewState& state, bool enabled);
+    std::string resultText(const ViewState& state) const;
     void clearLibrarySelection();
     void loadMoreGallery(const ViewState& state);
     void softKeyboard();
@@ -100,6 +103,8 @@ private:
     std::vector<std::string> page_history_;
     std::string focused_, keyboard_focus_, notice_, invalid_field_;
     int home_scroll_ = 0, home_max_scroll_ = 0;
+    std::string home_focus_;
+    std::string observed_device_;
     int gallery_rows_ = 10;
     int library_scroll_ = 0;
     Rect library_area_;
@@ -116,6 +121,8 @@ private:
     bool sdk_advanced_ = false;
     int search_settings_scroll_ = 0, search_settings_max_scroll_ = 0;
     Rect search_settings_area_;
+    Rect feature_settings_area_;
+    int feature_settings_scroll_ = 0, feature_settings_max_scroll_ = 0;
     std::string search_reveal_field_;
     bool library_menu_ = false;
     bool soft_keyboard_enabled_ = false, soft_keyboard_open_ = false;
@@ -131,8 +138,10 @@ private:
     bool running_ = true, initialized_ = false, select_all_ = false, content_enabled_ = true;
     bool error_details_ = false, startup_home_ = false;
     bool website_toast_visible_ = false;
+    bool copied_ = false;
     bool confirming_ = false, browsing_ = false, enrolling_ = false;
     bool settings_pending_ = false, camera_menu_ = false;
+    bool search_was_paused_ = false;
     enum class UvcSettingsTab { camera, search, display };
     UvcSettingsTab uvc_settings_tab_ = UvcSettingsTab::camera;
     bool uvc_settings_open_ = false, uvc_settings_pending_ = false;
@@ -141,7 +150,7 @@ private:
     Command pending_;
     std::string overlay_return_focus_, browser_error_;
     std::string confirm_title_, confirm_message_, browser_target_, browser_directory_;
-    int browser_offset_ = 0;
+    int browser_offset_ = 0, browser_rows_ = 8;
     std::vector<std::filesystem::directory_entry> browser_entries_;
 };
 }

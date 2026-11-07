@@ -37,6 +37,9 @@ See [model_consumer.cpp](../examples/model_consumer.cpp) for the complete lifecy
 configure CPU → create Session → load capabilities with `hiface_windows_session_load_model_v1`
 → `hiface_session_prepare_loaded_models_v1` → process images → release results and Session.
 Initialize each structure's `struct_size` and check return codes.
+Concurrent startup can return `BUSY`. Initialize off the UI thread; the Demo's C++ Client retries
+initialization at most three times after 100/300/900 ms, releasing failed handles before each retry.
+It preserves expiry, clock, identity and other persistent errors without retrying or resetting authorization.
 
 - Detection: `hiface_session_process_rgba_v1`.
 - Capture: `hiface_session_capture_rgba_v1`; multiple faces: `hiface_session_capture_faces_rgba_v1`.

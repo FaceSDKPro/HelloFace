@@ -46,15 +46,20 @@ dependencyResolutionManagement {
         // candidate AAR.
         // 发布工作流可指向隔离的本地仓库，验证 Demo 确实只消费待发布 AAR。
         sdkRepository?.let { repositoryUrl ->
-            maven {
-                name = "HiFaceSdkOverride"
-                url = uri(repositoryUrl)
-                content {
+            exclusiveContent {
+                forRepository {
+                    maven {
+                        name = "HiFaceSdkOverride"
+                        url = uri(repositoryUrl)
+                    }
+                }
+                filter {
                     includeModule("io.github.facesdkpro", "hiface-android")
                 }
             }
         }
         mavenCentral()
+
 
 
     }

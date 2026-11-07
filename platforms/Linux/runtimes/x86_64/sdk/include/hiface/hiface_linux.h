@@ -2,6 +2,9 @@
 #define HIFACE_LINUX_H
 
 #include <hiface/hiface_c_api.h>
+#include <hiface/hiface_rgbir.h>
+
+#define HIFACE_LINUX_HAS_RGBIR_SEARCH_V1 1
 
 #ifdef __cplusplus
 extern "C" {

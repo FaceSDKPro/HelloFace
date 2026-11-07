@@ -65,6 +65,7 @@ public:
     void cancelImport();
     bool importing() const { return importing_; }
     void pauseSearch();
+    void enterPausedSearch();
     void toggleMirror();
     char mode() const { return mode_; }
     std::string status = "Ready. Look at the camera.";

@@ -12,6 +12,10 @@
 进入 `demo/`，先运行 `self_test.bat`，看到 `RESULT: PASS` 后运行 `run_demo.bat`。
 保留完整目录，无需安装开发工具或下载模型。
 
+Demo 采用横屏桌面布局：宽窗口四列、紧凑窗口两列。相机操作位于预览上方，参数位于可收起侧栏，确认操作固定在下方。
+
+单独的精简 Demo ZIP 双击 `HelloFace.bat` 启动，仅携带 GUI、运行 DLL、签名旁车、许可和简短说明。源码、CLI、自检及合成数据放在可选开发包中。
+
 ## 编译 Demo
 
 安装 Visual Studio 2022 的 C++ 桌面工具、CMake 3.22.1+ 和 Python `cryptography`。将固定使用的 Ed25519 PKCS#8 发布者 PEM 保存在本目录外，然后执行：

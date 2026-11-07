@@ -12,8 +12,8 @@ set_target_properties(HiFace::HiFace PROPERTIES
   IMPORTED_SONAME_RELEASE "libhiface.so.1"
   )
 
-list(APPEND _cmake_import_check_targets HiFace::HiFace )
-list(APPEND _cmake_import_check_files_for_HiFace::HiFace "${_IMPORT_PREFIX}/lib/libhiface.so.0.8.8" )
+list(APPEND _IMPORT_CHECK_TARGETS HiFace::HiFace )
+list(APPEND _IMPORT_CHECK_FILES_FOR_HiFace::HiFace "${_IMPORT_PREFIX}/lib/libhiface.so.0.8.8" )
 
 # Commands beyond this point should not need to know the version.
 set(CMAKE_IMPORT_FILE_VERSION)

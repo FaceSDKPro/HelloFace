@@ -31,4 +31,9 @@ for name in HiFace HiFaceNative; do
     sdk_build=$build
 done
 
+if [ "$#" -ge 3 ]; then
+    script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+    python3 "$script_dir/verify-sdk.py" "$products" "$3" "${4:-iphoneos}"
+fi
+
 echo "Verified both binary SDK products: $expected_version (build $sdk_build)."

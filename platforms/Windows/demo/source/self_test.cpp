@@ -1,6 +1,9 @@
 #include "demo_service.h"
 #include "data_exchange.h"
 #include "enrollment_draft.h"
+#ifdef _WIN32
+#include "win_util.h"
+#endif
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -94,6 +97,22 @@ void runSelfTest() {
         double norm = 0;
         for (float value : feature) { require(std::isfinite(value), "Nonfinite feature"); norm += double(value) * value; }
         require(std::abs(norm - 1) < 1e-5, "Feature must be normalized");
+#ifdef _WIN32
+        // GUI import/export and CLI share the same bounded reader and atomic writer.
+        const auto file = temporary.path / std::filesystem::u8path("参考 文件.hf1");
+        const auto raw = encodeFeature(feature);
+        writeFeatureFile(file, raw);
+        require(readFeatureFile(file) == raw, "HF1 file roundtrip failed");
+        bool rejected = false;
+        try { writeFeatureFile(file, "invalid"); } catch (const std::exception&) { rejected = true; }
+        require(rejected && readFeatureFile(file) == raw, "Rejected export must retain the original HF1 file");
+        { std::ofstream output(file, std::ios::binary); output << "\xef\xbb\xbf" << raw << " \r\n"; }
+        require(readFeatureFile(file) == raw, "HF1 reader must accept BOM and trailing whitespace");
+        { std::ofstream output(file, std::ios::binary); output << std::string(HIFACE_FEATURE_TEXT_LENGTH + 17, 'x'); }
+        rejected = false;
+        try { (void)readFeatureFile(file); } catch (const std::exception&) { rejected = true; }
+        require(rejected, "Oversized HF1 input must be rejected");
+#endif
         sdk.insertFeature(u8"测试人员_001", feature);
         bool duplicate = false;
         try { sdk.insertFeature(u8"测试人员_001", feature); }
@@ -102,13 +121,13 @@ void runSelfTest() {
         CameraFrame camera{112, 112, HIFACE_YUV_RANGE_VIDEO, HIFACE_YUV_MATRIX_BT601,
             std::vector<uint8_t>(112 * 112 * 3 / 2, 128)};
         require(sdk.process(camera).faces.empty(), "Expected no face in synthetic NV12");
-        sdk.beginEnrollment("cancelled");
-        require(sdk.enrolling(), "Guided enrollment did not start");
-        require(sdk.process(camera).enrolling, "No-face frame should keep guided capture active");
-        sdk.cancelEnrollment(); sdk.cancelEnrollment();
-        require(!sdk.enrolling() && sdk.count() == 1, "Cancellation must not insert a person");
-        sdk.beginEnrollment("closed-request");
-        require(!sdk.process(camera, [] { return false; }).enrolling && sdk.count() == 1,
+        sdk.beginFlow(FlowOptions{});
+        require(sdk.flowActive(), "Guided enrollment did not start");
+        require(sdk.process(camera).flow_active, "No-face frame should keep guided capture active");
+        sdk.cancelFlow(); sdk.cancelFlow();
+        require(!sdk.flowActive() && sdk.count() == 1, "Cancellation must not insert a person");
+        sdk.beginFlow(FlowOptions{});
+        require(!sdk.process(camera, [] { return false; }).flow_active && sdk.count() == 1,
             "Closed request must release enrollment admission without writing a person");
         sdk.setLiveness(true); sdk.process(camera); sdk.setLiveness(false);
         auto capture_config = flowConfig(FlowOptions{});
@@ -118,19 +137,19 @@ void runSelfTest() {
         require(flowConfig(flow).mode == HIFACE_FLOW_ACTION_LIVENESS && flowConfig(flow).final_capture_timeout_ms == 3000,
             "Zero-action liveness must retain the Core silent-liveness final stage");
         sdk.useSearch(false); sdk.configureDetection(10, true);
-        sdk.beginFlow(flow); require(sdk.process(camera).enrolling, "Silent liveness must accept camera frames"); sdk.cancelEnrollment();
+        sdk.beginFlow(flow); require(sdk.process(camera).flow_active, "Silent liveness must accept camera frames"); sdk.cancelFlow();
         flow.actions = {HIFACE_ACTION_BLINK, HIFACE_ACTION_BLINK, HIFACE_ACTION_NOD_HEAD, HIFACE_ACTION_MOUTH_OPEN};
-        sdk.beginFlow(flow); sdk.process(camera); sdk.cancelEnrollment();
+        sdk.beginFlow(flow); sdk.process(camera); sdk.cancelFlow();
         flow.kind = FlowKind::Verification; flow.reference = encodeFeature(feature);
         require(flowConfig(flow, &feature).mode == HIFACE_FLOW_FACE_AUTHENTICATION, "Verification with liveness mode mismatch");
-        sdk.beginFlow(flow); sdk.process(camera); sdk.cancelEnrollment();
+        sdk.beginFlow(flow); sdk.process(camera); sdk.cancelFlow();
         flow.silent_liveness = false;
         require(flowConfig(flow, &feature).mode == HIFACE_FLOW_FACE_VERIFICATION, "Verification without liveness mode mismatch");
-        sdk.beginFlow(flow); require(!sdk.process(camera, [] { return false; }).enrolling, "Cancelled verification stayed active");
+        sdk.beginFlow(flow); require(!sdk.process(camera, [] { return false; }).flow_active, "Cancelled verification stayed active");
         bool invalid = false;
         flow.actions.push_back(HIFACE_ACTION_BLINK);
         try { sdk.beginFlow(flow); } catch (const std::exception&) { invalid = true; }
-        require(invalid && !sdk.enrolling(), "More than four actions must fail before acquiring the flow slot");
+        require(invalid && !sdk.flowActive(), "More than four actions must fail before acquiring the flow slot");
         SearchOptions search; search.multi_face = true;
         invalid = false; try { sdk.configureSearch(search); } catch (const std::exception&) { invalid = true; }
         require(invalid, "M:N with liveness must be rejected");

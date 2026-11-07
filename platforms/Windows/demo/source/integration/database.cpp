@@ -1,5 +1,4 @@
 #include "hiface/database.hpp"
-#include "hiface/client.hpp"
 #include <memory>
 namespace hiface {
 namespace {
@@ -13,6 +12,8 @@ void validateText(const std::string& text, bool required = false) {
 }
 using Results = std::unique_ptr<HiFaceSearchResultsOpaque, decltype(&hiface_search_results_destroy_v1)>;
 std::vector<Person> copyResults(HiFaceSearchResultsHandle raw) {
+    // Copy borrowed C strings before releasing the result handle.
+    // 在释放结果句柄前复制 C 字符串，列表/详情不依赖 SDK 缓冲的寿命。
     Results results(raw, hiface_search_results_destroy_v1);
     std::vector<Person> people;
     for (uint32_t i = 0; i < hiface_search_results_count_v1(raw); ++i) {
@@ -63,6 +64,9 @@ Person Database::get(const std::string& id) const {
 void Database::save(const std::vector<Person>& people, bool overwrite) {
     if (people.empty() || people.size() > HIFACE_SEARCH_MAX_BATCH_ENTRIES)
         throw std::invalid_argument("Gallery batch must contain 1-1000 entries");
+    // Build and validate the complete batch before calling the atomic SDK write.
+    // reserve keeps entry addresses stable until the synchronous C call returns.
+    // 先验证完整批次，再执行 SDK 原子写入；reserve 保证 C 结构指针在调用期间稳定。
     std::vector<HiFaceSearchFeatureEntryV1> entries;
     std::vector<const HiFaceSearchFeatureEntryV1*> pointers;
     entries.reserve(people.size()); pointers.reserve(people.size());

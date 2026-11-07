@@ -27,6 +27,7 @@ struct CaptureState {
     HRESULT failure = S_OK;
     bool format_changed = false;
     ComPtr<IMFSample> latest;
+    std::chrono::steady_clock::time_point captured_at;
     ComPtr<IMFSourceReader> reader;
     uint64_t captured = 0;
 };
@@ -54,7 +55,10 @@ public:
             }
             if (flags & (MF_SOURCE_READERF_CURRENTMEDIATYPECHANGED | MF_SOURCE_READERF_NATIVEMEDIATYPECHANGED))
                 state_->format_changed = true;
-            if (sample) { state_->latest = sample; ++state_->captured; } // keep only latest / 仅保留最新帧。
+            if (sample) {
+                state_->latest = sample; state_->captured_at = std::chrono::steady_clock::now();
+                ++state_->captured;
+            } // keep only latest / 仅保留最新帧。
             reader = state_->reader;
             state_->changed.notify_one();
         }
@@ -236,7 +240,8 @@ Camera::~Camera() = default;
 uint64_t Camera::capturedFrames() const {
     std::lock_guard<std::mutex> lock(impl_->state->mutex); return impl_->state->captured;
 }
-bool Camera::next(CameraFrame& frame, std::chrono::milliseconds timeout) {
+bool Camera::next(CameraFrame& frame, std::chrono::milliseconds timeout,
+    std::chrono::steady_clock::time_point* captured_at) {
     ComPtr<IMFSample> sample;
     ComPtr<IMFSourceReader> reader;
     bool format_changed = false;
@@ -248,6 +253,7 @@ bool Camera::next(CameraFrame& frame, std::chrono::milliseconds timeout) {
         checkHr(impl_->state->failure, "Camera disconnected or capture failed");
         if (!impl_->state->latest) return false;
         sample = std::move(impl_->state->latest);
+        if (captured_at) *captured_at = impl_->state->captured_at;
         format_changed = impl_->state->format_changed; impl_->state->format_changed = false;
         reader = impl_->state->reader;
     }

@@ -4,6 +4,11 @@
  * 与 Android res/values/colors.xml 对应的 Demo 语义色，系统控件使用 ArkUI。
  */
 export class DemoTheme {
+  static readonly homeBackground: string = '#023F42';
+  static readonly textOnDark: string = '#FFFFFF';
+  static readonly borderOnDark: string = '#3DFFFFFF';
+  static readonly homeArrowSurface: string = '#14FFFFFF';
+  static readonly homeArrow: string = '#99FFFFFF';
   static readonly brand: string = '#3C0740';
   static readonly primary: string = '#67AD5B';
   static readonly contentBackground: string = '#F5F5F7';

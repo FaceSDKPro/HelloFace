@@ -273,7 +273,8 @@ struct Index {
         this.ReferencePicker()
       }
     }
-    .width('100%').height('100%').backgroundColor(DemoTheme.brand)
+    .width('100%').height('100%')
+    .backgroundColor(this.activePage === DemoPage.HOME ? DemoTheme.homeBackground : DemoTheme.brand)
   }
 
   @Builder
@@ -282,7 +283,7 @@ struct Index {
       Column() {
         Row() {
           Column({ space: 2 }) {
-            Text('HelloFace SDK').fontSize(18).fontWeight(FontWeight.Medium).fontColor('#FFFFFF')
+            Text('HelloFace SDK').fontSize(18).fontWeight(FontWeight.Medium).fontColor(DemoTheme.textOnDark)
             Text(DemoL10n.text("离线｜数据安全｜高效")).fontSize(11).fontColor(DemoTheme.textOnDarkSecondary)
           }.alignItems(HorizontalAlign.Start).layoutWeight(1)
           Button({ type: ButtonType.Normal }) {
@@ -295,7 +296,7 @@ struct Index {
           .gesture(LongPressGesture({ repeat: false, duration: 500 })
             .onAction((): void => this.copyDeviceInfo()))
         if (this.sdkFailed) {
-          Button(this.sdkState).fontSize(13).fontColor('#FFFFFF')
+          Button(this.sdkState).fontSize(13).fontColor(DemoTheme.textOnDark)
             .width('100%').backgroundColor(DemoTheme.surfaceOnDark).margin({ bottom: 12 })
             .enabled(!this.sdkInitializing).onClick(() => this.initializeSdk())
         }
@@ -325,15 +326,18 @@ struct Index {
   @Builder
   private FeatureCard(icon: Resource, title: string, description: string, action: () => void) {
     Row({ space: 11 }) {
-      Image(icon).width(36).height(36).padding(8).borderRadius(10)
+      Image(icon).width(36).height(36).padding(8).borderRadius(12)
+        .border({ width: 1, color: DemoTheme.borderOnDark })
         .backgroundColor(DemoTheme.surfaceOnDark)
       Column({ space: 2 }) {
-        Text(title).fontSize(15).fontWeight(FontWeight.Medium).fontColor('#FFFFFF')
+        Text(title).fontSize(15).fontWeight(FontWeight.Medium).fontColor(DemoTheme.textOnDark)
         Text(description).fontSize(12).fontColor(DemoTheme.textOnDarkSecondary)
       }.alignItems(HorizontalAlign.Start).layoutWeight(1)
-      Text('›').fontSize(24).fontColor(DemoTheme.textOnDarkSecondary)
+      Text('›').fontSize(24).fontColor(DemoTheme.homeArrow)
+        .width(28).height(28).textAlign(TextAlign.Center).borderRadius(14)
+        .backgroundColor(DemoTheme.homeArrowSurface)
     }.width('100%').constraintSize({ minHeight: 68 }).padding({ left: 11, right: 11, top: 9, bottom: 9 })
-    .backgroundColor(DemoTheme.surfaceOnDark).border({ width: 1, color: '#3DFFFFFF' }).borderRadius(14)
+    .backgroundColor(DemoTheme.surfaceOnDark).border({ width: 1, color: DemoTheme.borderOnDark }).borderRadius(14)
     .margin({ bottom: 11 }).onClick(action)
   }
 

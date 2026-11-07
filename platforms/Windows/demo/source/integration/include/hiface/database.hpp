@@ -3,7 +3,6 @@
 #include "hiface/error.hpp"
 #include <array>
 #include <filesystem>
-#include <functional>
 #include <string>
 
 namespace hiface {
@@ -29,6 +28,8 @@ public:
     std::vector<Person> list(uint32_t offset = 0, uint32_t limit = 100,
         const std::string& group = {}, const std::string& tag = {}, bool features = false, bool recent = false) const;
     Person get(const std::string& id) const;
+    // One atomic batch: overwrite=false rejects existing IDs; true updates them.
+    // 单次原子批量写入；false 拒绝已有 ID，true 按 ID 新增或覆盖。
     void save(const std::vector<Person>& people, bool overwrite);
     uint64_t remove(const std::string& id);
     void updateMetadata(const std::string& id, const std::string& group, const std::string& tag);

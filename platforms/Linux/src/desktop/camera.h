@@ -48,7 +48,7 @@ public:
     ~Camera();
     Camera(const Camera&) = delete;
     Camera& operator=(const Camera&) = delete;
-    void open(const std::string& device, int width = 640, int height = 360, int fps = 30, bool prefer_mjpeg = false);
+    void open(const std::string& device, int width = 640, int height = 360, int fps = 30, bool prefer_mjpeg = false, int rotation = -1);
     // Configured streams pass degrees. A negative value keeps the CLI rotation environment variables.
     void openRgbIr(const std::string& device, RgbIrCameraRole role, int rotation);
     static void verifyDistinct(const Camera& rgb, const Camera& ir);

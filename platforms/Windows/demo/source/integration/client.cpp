@@ -4,9 +4,16 @@
 #include <algorithm>
 #include <chrono>
 #include <memory>
+#include <thread>
 #include "hiface/hiface_windows.h"
 namespace hiface {
 namespace {
+// Scratch references are cleared on success, cancellation and exceptions.
+// 临时参考特征在成功、取消和异常退出时都清理；返回结果另持有自身数据。
+struct ClearFeature {
+    Feature& value;
+    ~ClearFeature() { value.fill(0); }
+};
 int64_t nowMilliseconds() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
@@ -24,6 +31,9 @@ void validateImage(const Image& image) {
         throw std::runtime_error("Expected an even-sized, tightly packed RGBA image, at most 4096x4096");
 }
 }
+// Configure CPU, open the gallery and load only detection/feature capabilities.
+// Flow/search-specific models are loaded lazily by their start methods.
+// 创建 CPU 会话并打开人脸库；动作/活体能力到实际使用时再加载。
 Client::Client(const std::filesystem::path& database) {
     const auto path = database.u8string();
     if (path.find('\0') != std::string::npos) throw std::invalid_argument("Database path contains NUL");
@@ -37,16 +47,27 @@ Client::Client(const std::filesystem::path& database) {
     config.enable_feature = config.enable_landmark = 1;
     config.eye_closed_ear_threshold = HIFACE_DEFAULT_EYE_CLOSED_EAR_THRESHOLD;
     config.mouth_open_mar_threshold = HIFACE_DEFAULT_MOUTH_OPEN_MAR_THRESHOLD;
-    try {
-        check(hiface_session_create_v1(&config, &session_), "create session");
-        if (database.has_parent_path()) std::filesystem::create_directories(database.parent_path());
-        check(hiface_search_open_v1(path.c_str(), &database_), "open face database");
-        load(HIFACE_MODEL_DETECTOR);
-        load(HIFACE_MODEL_FEATURE);
-        startSearch();
-    } catch (...) {
+    auto clear = [&] {
         hiface_search_close_v1(database_); hiface_session_destroy_v1(session_);
-        throw;
+        database_ = nullptr; session_ = nullptr; loaded_.fill(false);
+    };
+    constexpr int delays[] = {100, 300, 900};
+    for (unsigned attempt = 0;; ++attempt) {
+        try {
+            check(hiface_session_create_v1(&config, &session_), "create session");
+            if (database.has_parent_path()) std::filesystem::create_directories(database.parent_path());
+            check(hiface_search_open_v1(path.c_str(), &database_), "open face database");
+            load(HIFACE_MODEL_DETECTOR);
+            load(HIFACE_MODEL_FEATURE);
+            startSearch();
+            break;
+        } catch (const Error& error) {
+            clear();
+            if (error.status != HIFACE_STATUS_BUSY || attempt >= 3) throw;
+            // Release failed handles before a bounded retry, off the UI thread.
+            // 仅重试临时占用；先释放失败句柄，后台退避期间不持有会话或数据库。
+            std::this_thread::sleep_for(std::chrono::milliseconds(delays[attempt]));
+        } catch (...) { clear(); throw; }
     }
 }
 Client::~Client() {
@@ -154,6 +175,7 @@ void Client::configureDetection(uint32_t max_faces, bool detailed) {
 void Client::beginFlow(const FlowOptions& options) {
     if (flow_active_) throw std::runtime_error("A camera flow is already running; cancel it first");
     Feature reference{};
+    ClearFeature clear{reference};
     if (options.kind == FlowKind::Verification) reference = decodeFeature(options.reference);
     const auto config = flowConfig(options, options.kind == FlowKind::Verification ? &reference : nullptr);
     load(HIFACE_MODEL_LANDMARKS);
@@ -162,7 +184,6 @@ void Client::beginFlow(const FlowOptions& options) {
     }
     check(hiface_session_search_stop_v1(session_), "stop search for flow");
     const auto status = hiface_session_face_flow_start_v1(session_, &config, nowMilliseconds());
-    std::fill(reference.begin(), reference.end(), 0);
     if (status != HIFACE_STATUS_OK) { startSearch(); check(status, "start camera flow"); }
     flow_mode_ = config.mode; flow_active_ = true;
 }
@@ -185,6 +206,34 @@ void copyFace(FrameUpdate& update, const HiFaceFaceV1& face) {
     update.details.push_back(std::move(detail));
 }
 }
+// Copy the SDK-owned result before stopping the flow. A page change may still
+// cancel publication; required result flags are checked before exposing data.
+// 停止流程前复制 SDK 结果；旧页面取消后不发布，必要标志缺失时不伪造成功。
+void Client::completeFlow(FrameUpdate& update, const std::function<bool()>& current) {
+    FlowResult completed; completed.metadata.struct_size = sizeof(completed.metadata);
+    Feature feature{};
+    ClearFeature clear{feature};
+    completed.preview = {HIFACE_ALIGNED_PREVIEW_SIDE, HIFACE_ALIGNED_PREVIEW_SIDE, std::vector<uint8_t>(HIFACE_ALIGNED_PREVIEW_RGBA_BYTES)};
+    check(hiface_session_face_flow_copy_result_v1(session_, &completed.metadata, feature.data(), feature.size(),
+        completed.preview.rgba.data(), completed.preview.rgba.size()), "copy flow result");
+    const auto mode = flow_mode_;
+    stopFlow();
+    if (current && !current()) { startSearch(); update.flow_active = false; update.cancelled = true; return; }
+    const auto flags = completed.metadata.flags;
+    if (!(flags & HIFACE_FLOW_RESULT_HAS_PREVIEW)) completed.preview = {};
+    if (flags & HIFACE_FLOW_RESULT_HAS_FEATURE) {
+        if (completed.metadata.feature_count != feature.size()) throw std::runtime_error("Incomplete flow feature");
+        completed.feature = encodeFeature(feature);
+    }
+    const bool compared = completed.metadata.outcome == HIFACE_FLOW_OUTCOME_PASSED || completed.metadata.outcome == HIFACE_FLOW_OUTCOME_NOT_MATCHED;
+    if ((mode == HIFACE_FLOW_GUIDED_CAPTURE && (!(flags & HIFACE_FLOW_RESULT_HAS_FEATURE) || !(flags & HIFACE_FLOW_RESULT_HAS_PREVIEW)))
+        || ((mode == HIFACE_FLOW_FACE_VERIFICATION || mode == HIFACE_FLOW_FACE_AUTHENTICATION) && compared && !(flags & HIFACE_FLOW_RESULT_HAS_SIMILARITY))
+        || ((mode == HIFACE_FLOW_ACTION_LIVENESS || mode == HIFACE_FLOW_FACE_AUTHENTICATION) && compared && !(flags & HIFACE_FLOW_RESULT_HAS_LIVENESS)))
+        throw std::runtime_error("Core flow result is missing required data");
+    update.matched = completed.metadata.outcome == HIFACE_FLOW_OUTCOME_PASSED;
+    update.result = std::move(completed); update.flow_active = false;
+    startSearch();
+}
 FrameUpdate Client::process(const CameraFrame& input, const std::function<bool()>& current) {
     const auto frame = input.view();
     FrameUpdate update; update.flow_active = flow_active_; update.paused = search_paused_;
@@ -192,6 +241,8 @@ FrameUpdate Client::process(const CameraFrame& input, const std::function<bool()
         if (flow_active_ && current && !current()) {
             cancelFlow(); update.flow_active = false; update.cancelled = true; return update;
         }
+        // Detection and guided/action flows share the Core camera pipeline.
+        // 检测与采集/动作流程复用 Core 相机管线；返回前拷贝借用的 mesh 数据。
         std::vector<HiFaceFaceV1> faces(detection_max_);
         auto result = frameResult(faces.data(), detection_max_);
         HiFaceDetectionRequestV1 request{sizeof(request), HIFACE_C_API_VERSION_V1, detection_max_, detailed_ ? 1u : 0u};
@@ -203,32 +254,13 @@ FrameUpdate Client::process(const CameraFrame& input, const std::function<bool()
         update.event = event;
         if (event.kind == HIFACE_FLOW_EVENT_ERROR) { cancelFlow(); check(event.flow_status, "camera flow"); }
         if (event.kind == HIFACE_FLOW_EVENT_RESULT_AVAILABLE) {
-            FlowResult completed; completed.metadata.struct_size = sizeof(completed.metadata);
-            Feature feature{};
-            completed.preview = {HIFACE_ALIGNED_PREVIEW_SIDE, HIFACE_ALIGNED_PREVIEW_SIDE, std::vector<uint8_t>(HIFACE_ALIGNED_PREVIEW_RGBA_BYTES)};
-            check(hiface_session_face_flow_copy_result_v1(session_, &completed.metadata, feature.data(), feature.size(),
-                completed.preview.rgba.data(), completed.preview.rgba.size()), "copy flow result");
-            const auto mode = flow_mode_;
-            stopFlow();
-            if (current && !current()) { startSearch(); update.flow_active = false; update.cancelled = true; return update; }
-            const auto flags = completed.metadata.flags;
-            if (!(flags & HIFACE_FLOW_RESULT_HAS_PREVIEW)) completed.preview = {};
-            if (flags & HIFACE_FLOW_RESULT_HAS_FEATURE) {
-                if (completed.metadata.feature_count != feature.size()) throw std::runtime_error("Incomplete flow feature");
-                completed.feature = encodeFeature(feature);
-            }
-            const bool compared = completed.metadata.outcome == HIFACE_FLOW_OUTCOME_PASSED || completed.metadata.outcome == HIFACE_FLOW_OUTCOME_NOT_MATCHED;
-            if ((mode == HIFACE_FLOW_GUIDED_CAPTURE && (!(flags & HIFACE_FLOW_RESULT_HAS_FEATURE) || !(flags & HIFACE_FLOW_RESULT_HAS_PREVIEW)))
-                || ((mode == HIFACE_FLOW_FACE_VERIFICATION || mode == HIFACE_FLOW_FACE_AUTHENTICATION) && compared && !(flags & HIFACE_FLOW_RESULT_HAS_SIMILARITY))
-                || ((mode == HIFACE_FLOW_ACTION_LIVENESS || mode == HIFACE_FLOW_FACE_AUTHENTICATION) && compared && !(flags & HIFACE_FLOW_RESULT_HAS_LIVENESS)))
-                throw std::runtime_error("Core flow result is missing required data");
-            update.matched = completed.metadata.outcome == HIFACE_FLOW_OUTCOME_PASSED;
-            std::fill(feature.begin(), feature.end(), 0);
-            update.result = std::move(completed); update.flow_active = false;
-            startSearch();
+            completeFlow(update, current);
         }
         return update;
     }
+    // Search has three stages: prepare frames, resolve against the gallery, then
+    // complete liveness/interval state. The batch owns all borrowed C result pointers.
+    // 搜索依次准备帧、查询人脸库、完成本轮；结果指针只在 batch 存活期间有效。
     HiFaceSearchBatchHandle raw = nullptr;
     const auto status = hiface_session_search_prepare_yuv420_v1(session_, database_, &frame, nowMilliseconds(), &raw);
     if (status == HIFACE_STATUS_FRAME_SKIPPED) { update.skipped = true; return update; }
@@ -318,9 +350,8 @@ std::vector<ImageFaceCapture> Client::captureFaces(const Image& image, uint32_t 
 void Client::insertFeature(const std::string& id, const Feature& feature) {
     if (id.empty() || id.size() > HIFACE_SEARCH_MAX_TEXT_BYTES || id.find('\0') != std::string::npos)
         throw std::invalid_argument("Invalid face ID");
-    std::array<char, HIFACE_FEATURE_TEXT_BUFFER_SIZE> text{};
-    check(hiface_feature_encode_text_v1(feature.data(), feature.size(), text.data(), text.size()), "encode HF1");
-    HiFaceSearchFeatureEntryV1 entry{sizeof(entry), id.c_str(), "", "", text.data(),
+    const auto text = encodeFeature(feature);
+    HiFaceSearchFeatureEntryV1 entry{sizeof(entry), id.c_str(), "", "", text.c_str(),
         HIFACE_FEATURE_TEXT_LENGTH, 0, HIFACE_FEATURE_SPACE_ID};
     const HiFaceSearchFeatureEntryV1* entries[] = {&entry};
     check(hiface_search_insert_v1(database_, entries, 1), "insert person");

@@ -1,5 +1,7 @@
 #include "window.h"
+#include "app_icon.h"
 #include "ui.h"
+#include "desktop_layout.h"
 #include <X11/Xlib.h>
 #include <algorithm>
 #include <array>
@@ -15,6 +17,7 @@
 #include <sys/shm.h>
 #include <sys/wait.h>
 #include <utility>
+#include <sstream>
 
 extern char** environ;
 
@@ -36,7 +39,7 @@ struct SharedMemorySegmentInfo {
     Bool read_only;
 };
 constexpr int kPictOpSrc = 1;
-RenderFixed fixed(int value) { return static_cast<RenderFixed>(static_cast<int64_t>(value) * 65536); }
+RenderFixed fixed(double value) { return static_cast<RenderFixed>(std::llround(value * 65536)); }
 }
 struct DesktopWindow::Impl {
     void* library = nullptr; void* render_library = nullptr; void* xext_library = nullptr; Display* display = nullptr; Window window = 0; Pixmap back_buffer = 0; GC gc = nullptr; Visual* visual = nullptr; XImage* image = nullptr;
@@ -47,6 +50,9 @@ struct DesktopWindow::Impl {
     Atom delete_window = 0, clipboard = 0, utf8 = 0, paste_property = 0, targets = 0, atom_type = 0, string_type = 0;
     int depth = 0, width = 1060, height = 740, physical_width = 1060, physical_height = 740;
     int min_width = 600, min_height = 540, buffer_width = 0, buffer_height = 0;
+    bool embedded = false;
+    int available_width = 1060, available_height = 740;
+    double scale = 1;
     int rotation = 0, buffer_rotation = -1;
     Cursor mouse_cursor = 0;
     int pointer_x = -1, pointer_y = -1;
@@ -70,6 +76,7 @@ struct DesktopWindow::Impl {
     FN(XDrawSegments); FN(XFillRectangles); FN(XFillArcs); FN(XSetLineAttributes);
     FN(XSetErrorHandler); FN(XNextRequest);
     FN(XCreateBitmapFromData); FN(XCreatePixmapCursor); FN(XDefineCursor); FN(XFreeCursor); FN(XQueryPointer); FN(XSetInputFocus);
+    FN(XUndefineCursor); FN(XResourceManagerString);
 #undef FN
     RenderPictFormat* (*XRenderFindVisualFormat_fn)(Display*, Visual*) = nullptr;
     RenderPicture (*XRenderCreatePicture_fn)(Display*, Drawable, const RenderPictFormat*, unsigned long, const RenderPictureAttributes*) = nullptr;
@@ -98,6 +105,7 @@ struct DesktopWindow::Impl {
         LOAD(XSetClipRectangles); LOAD(XSetClipMask);
         LOAD(XSetErrorHandler); LOAD(XNextRequest);
         LOAD(XCreateBitmapFromData); LOAD(XCreatePixmapCursor); LOAD(XDefineCursor); LOAD(XFreeCursor); LOAD(XQueryPointer); LOAD(XSetInputFocus);
+        LOAD(XUndefineCursor); LOAD(XResourceManagerString);
 #undef LOAD
         lookup = reinterpret_cast<decltype(lookup)>(dlsym(library, "XLookupString")); require(lookup, "Missing X11 keyboard support");
         display = XOpenDisplay_fn(nullptr); require(display, "Cannot open DISPLAY. Start from an Ubuntu desktop terminal (X11 or XWayland).");
@@ -113,26 +121,49 @@ struct DesktopWindow::Impl {
         }
         const int screen = XDefaultScreen_fn(display); visual = XDefaultVisual_fn(display, screen); depth = XDefaultDepth_fn(display, screen); require(depth == 24 || depth == 32, "This Demo requires a 24/32-bit desktop visual");
         const int screen_width = XDisplayWidth_fn(display, screen), screen_height = XDisplayHeight_fn(display, screen);
-        rotation = initialUiRotation();
-        const bool embedded_display = screen_width <= 1280 || screen_height <= 720;
-        physical_width = embedded_display ? screen_width : std::max(960, std::min(physical_width, screen_width - 48));
-        physical_height = embedded_display ? screen_height : std::max(700, std::min(physical_height, screen_height - 80));
+        embedded = embeddedDisplay();
+        rotation = embedded ? initialUiRotation() : 0;
+        available_width = std::max(1,screen_width-48);available_height=std::max(1,screen_height-80);
+        if (!embedded) {
+            double dpi = 96;
+            if(const char* resources=XResourceManagerString_fn(display)) {
+                std::istringstream lines(resources);std::string line;
+                while(std::getline(lines,line))if(line.rfind("Xft.dpi:",0)==0){std::istringstream value(line.substr(8));double requested=0;if(value>>requested && std::isfinite(requested) && requested>=72 && requested<=384)dpi=requested;}
+            }
+            scale=dpi/96;
+            if(const char* requested=std::getenv("HIFACE_UI_SCALE")) {
+                size_t end=0;try{scale=std::stod(requested,&end);}catch(...){throw DemoError{"HIFACE_UI_SCALE must be between 1 and 3"};}
+                require(end==std::strlen(requested) && std::isfinite(scale) && scale>=1 && scale<=3,"HIFACE_UI_SCALE must be between 1 and 3");
+            }
+            scale=std::clamp(scale,1.0,std::max(1.0,std::min(available_width/960.0,available_height/600.0)));
+            const auto size=landscapeSize(int(physical_width*scale),int(physical_height*scale),available_width,available_height,scale);
+            physical_width=size.width;physical_height=size.height;
+        } else { physical_width=screen_width;physical_height=screen_height; }
         updateLogicalSize();
         min_width = std::min(min_width, width); min_height = std::min(min_height, height);
-        const int window_x = embedded_display ? 0 : 20, window_y = embedded_display ? 0 : 20;
+        const int window_x = embedded ? 0 : 20, window_y = embedded ? 0 : 20;
         window = XCreateSimpleWindow_fn(display, XRootWindow_fn(display, screen), window_x, window_y, physical_width, physical_height, 0, 0, pixel(0xf5f5f7)); require(window, "Cannot create window");
+        // X11 stores format-32 properties in native unsigned longs (also on LP64).
+        // Embedded panels have no launcher/taskbar and keep their existing display.
+        if (!embedded) {
+            std::vector<unsigned long> icon{appIconSize, appIconSize};
+            icon.insert(icon.end(), std::begin(appIconPixels), std::end(appIconPixels));
+            XChangeProperty_fn(display, window, XInternAtom_fn(display, "_NET_WM_ICON", False),
+                XInternAtom_fn(display, "CARDINAL", False), 32, PropModeReplace,
+                reinterpret_cast<const unsigned char*>(icon.data()), static_cast<int>(icon.size()));
+        }
         XStoreName_fn(display, window, "HiFace - Linux Demo"); XSelectInput_fn(display, window, ExposureMask | KeyPressMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask | StructureNotifyMask | FocusChangeMask | PropertyChangeMask);
-        initializeCursor(embedded_display);
+        initializeCursor(embedded);
         delete_window = XInternAtom_fn(display, "WM_DELETE_WINDOW", False); clipboard = XInternAtom_fn(display, "CLIPBOARD", False); utf8 = XInternAtom_fn(display, "UTF8_STRING", False);
         paste_property = XInternAtom_fn(display, "HIFACE_PASTE", False); targets = XInternAtom_fn(display, "TARGETS", False); atom_type = XInternAtom_fn(display, "ATOM", False); string_type = XInternAtom_fn(display, "STRING", False);
         XSetWMProtocols_fn(display, window, &delete_window, 1); gc = XCreateGC_fn(display, window, 0, nullptr); require(gc, "Cannot create graphics context");
-        if (embedded_display || rotation != 0) {
+        if (embedded) {
             const Atom wm_state = XInternAtom_fn(display, "_NET_WM_STATE", False);
             const Atom fullscreen = XInternAtom_fn(display, "_NET_WM_STATE_FULLSCREEN", False);
             XChangeProperty_fn(display, window, wm_state, atom_type, 32, PropModeReplace,
                 reinterpret_cast<const unsigned char*>(&fullscreen), 1);
         }
-        if (rotation != 0) ensureRotationRenderer();
+        if (rotation != 0 || scale != 1) ensureRotationRenderer();
         // The target Buildroot image ships the X11 misc bitmap font family,
         // not Helvetica. Name its installed aliases first so kiosk typography
         // retains the requested pixel sizes instead of silently using `fixed`.
@@ -155,6 +186,11 @@ struct DesktopWindow::Impl {
         updateCursor();
     }
     void updateCursor() {
+        if (!software_cursor && !embedded && rotation == 0) {
+            XUndefineCursor_fn(display,window);
+            if(mouse_cursor){XFreeCursor_fn(display,mouse_cursor);mouse_cursor=0;}
+            return;
+        }
         const auto& bitmap = mouseCursorBitmap(rotation);
         const std::array<uint8_t, MouseCursorBitmap::stride * MouseCursorBitmap::height> blank{};
         const auto& source_bits = software_cursor ? blank : bitmap.source;
@@ -208,11 +244,11 @@ struct DesktopWindow::Impl {
     }
     void updateLogicalSize() {
         const bool swap = DisplayTransform{rotation}.swapsAxes();
-        width = swap ? physical_height : physical_width;
-        height = swap ? physical_width : physical_height;
+        width = int(std::ceil((swap ? physical_height : physical_width)/scale));
+        height = int(std::ceil((swap ? physical_width : physical_height)/scale));
     }
     void syncRotation(const ViewState& state) {
-        if (!state.ready || rotation == state.settings.ui_rotation) return;
+        if (!embedded || !state.ready || rotation == state.settings.ui_rotation) return;
         if (state.settings.ui_rotation) ensureRotationRenderer();
         rotation = state.settings.ui_rotation;
         updateCursor();
@@ -347,12 +383,12 @@ struct DesktopWindow::Impl {
             if (back_buffer) XFreePixmap_fn(display, back_buffer);
             back_buffer = XCreatePixmap_fn(display, window, width, height, depth); require(back_buffer, "Cannot create back buffer");
             buffer_width = width; buffer_height = height; buffer_rotation = rotation;
-            if (rotation != 0) {
+            if (rotation != 0 || scale != 1) {
                 auto* format = XRenderFindVisualFormat_fn(display, visual);
                 source_picture = XRenderCreatePicture_fn(display, back_buffer, format, 0, nullptr);
                 require(source_picture, "Cannot create rotated scene source");
                 RenderTransform transform{};
-                const auto matrix = DisplayTransform{rotation, width, height}.inverseMatrix();
+                const auto matrix = ScaledDisplayTransform{{rotation,width,height},scale}.inverseMatrix();
                 for (int i = 0; i < 9; ++i) transform.matrix[i / 3][i % 3] = fixed(matrix[i]);
                 XRenderSetPictureTransform_fn(display, source_picture, &transform);
             }
@@ -394,7 +430,7 @@ struct DesktopWindow::Impl {
             else { XSetForeground_fn(display, gc, pixel(d.color)); if (fonts[size_t(d.font)]) Xutf8DrawString_fn(display, back_buffer, fonts[size_t(d.font)], gc, d.bounds.x, d.bounds.y, d.text.c_str(), d.text.size()); else XDrawString_fn(display, back_buffer, gc, d.bounds.x, d.bounds.y, d.text.c_str(), d.text.size()); }
         }
         XSetClipMask_fn(display, gc, None);
-        if (rotation == 0) XCopyArea_fn(display, back_buffer, window, gc, 0, 0, width, height, 0, 0);
+        if (rotation == 0 && scale == 1) XCopyArea_fn(display, back_buffer, window, gc, 0, 0, width, height, 0, 0);
         else XRenderComposite_fn(display, kPictOpSrc, source_picture, 0, destination_picture,
             0, 0, 0, 0, 0, 0, physical_width, physical_height);
         if (software_cursor && pointer_inside) {
@@ -416,14 +452,16 @@ struct DesktopWindow::Impl {
         if (count < 0 || count > int(sizeof(buffer))) count = 0;
         const bool ctrl = event.state & ControlMask, shift = event.state & ShiftMask;
         if (ctrl && (symbol == 'v' || symbol == 'V') && !ui.focusedField().empty()) { paste_target = ui.focusedField(); XConvertSelection_fn(display, clipboard, utf8, paste_property, window, event.time); return; }
-        if (ctrl && (symbol == 'c' || symbol == 'C')) { const auto text = ui.selectedText(); if (!text.empty()) { clipboard_text = text; XSetSelectionOwner_fn(display, clipboard, window, event.time); } return; }
+        if (ctrl && (symbol == 'c' || symbol == 'C')) { const auto text = ui.selectedText(); if (!text.empty()) { clipboard_text = text; XSetSelectionOwner_fn(display, clipboard, window, event.time); } else ui.key(Key::Copy,"",shift,state);return; }
         Key key = Key::Text;
         if (ctrl && (symbol == 'a' || symbol == 'A')) key = Key::SelectAll;
+        else if (ctrl && (symbol == 'o' || symbol == 'O')) key = Key::OpenPhoto;
+        else if (ctrl && symbol == 0xff50) key = Key::HomePage;
         else switch (symbol) {
             case 0xff1b: key = Key::Escape; break; case 0xff0d: key = Key::Enter; break; case 0xff08: key = Key::Backspace; break; case 0xffff: key = Key::Delete; break;
             case 0xff51: key = Key::Left; break; case 0xff53: key = Key::Right; break; case 0xff52: key = Key::Up; break; case 0xff54: key = Key::Down; break; case 0xff55: key = Key::PreviousPage; break; case 0xff56: key = Key::NextPage; break; case 0xff50: key = Key::Home; break; case 0xff57: key = Key::End; break;
             case 0xff09: case 0xfe20: key = Key::Tab; break;
-            case 0xffbe: key = Key::Page1; break; case 0xffbf: key = Key::Page2; break; case 0xffc0: key = Key::Page3; break; case 0xffc1: key = Key::Page4; break; case 0xffc2: key = Key::Page5; break;
+            case 0xffbe: key = Key::Page1; break; case 0xffbf: key = Key::Page2; break; case 0xffc0: key = Key::Page3; break; case 0xffc1: key = Key::Page4; break; case 0xffc2: key = ctrl ? Key::Page5 : Key::Refresh; break;
             default: if (ctrl) return;
         }
         if (key != Key::Text || count) ui.key(key, std::string(buffer, count), shift, state);
@@ -438,7 +476,7 @@ struct DesktopWindow::Impl {
         XSendEvent_fn(display, request.requestor, False, 0, &reply); XFlush_fn(display);
     }
     std::pair<int, int> logicalPoint(int x, int y) const {
-        return DisplayTransform{rotation, width, height}.logicalPoint(x, y);
+        return ScaledDisplayTransform{{rotation,width,height},scale}.logicalPoint(x,y);
     }
 };
 DesktopWindow::DesktopWindow() : impl_(new Impl) { impl_->initialize(); }
@@ -480,6 +518,13 @@ std::vector<Command> DesktopWindow::events(const ViewState& state) {
             const int min_physical_height = swap ? ui.min_width : ui.min_height;
             ui.physical_width = std::max(min_physical_width, event.xconfigure.width);
             ui.physical_height = std::max(min_physical_height, event.xconfigure.height);
+            if(!ui.embedded && ui.rotation==0){
+                // Accept the window manager's maximized work area; initial margins are not resize limits.
+                // 接受窗口管理器的最大化工作区，不能把启动时的边距当成缩放上限。
+                const auto size=landscapeSize(event.xconfigure.width,event.xconfigure.height,
+                    std::max(ui.available_width,event.xconfigure.width),std::max(ui.available_height,event.xconfigure.height),ui.scale);
+                ui.physical_width=size.width;ui.physical_height=size.height;
+            }
             ui.updateLogicalSize();
             if (ui.physical_width != event.xconfigure.width || ui.physical_height != event.xconfigure.height)
                 ui.XResizeWindow_fn(ui.display, ui.window, ui.physical_width, ui.physical_height);
@@ -546,7 +591,7 @@ std::vector<Command> DesktopWindow::events(const ViewState& state) {
         }
         if (command.type != "settings") return false;
         try {
-            if (parseSettings(command.fields).ui_rotation) ui.ensureRotationRenderer();
+            if (parseSettings(command.fields).ui_rotation && ui.embedded) ui.ensureRotationRenderer();
             return false;
         } catch (const DemoError& error) { ui.ui.rejectSettings(error.message); return true; }
     }), commands.end());

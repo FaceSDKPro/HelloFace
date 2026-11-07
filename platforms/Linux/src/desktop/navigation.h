@@ -25,12 +25,13 @@ inline constexpr DemoPage demo_pages[] = {
     {"settings", "Feature settings", "Adjust parameters, then apply to save", 0},
     {"references", "Select a Face ID", "Choose a reference saved by Face Capture", 0},
 };
-// The same nine primary entries as Android. Enrollment/library/settings are
-// children of their feature pages, rather than additional Home destinations.
-// 首页与 Android 一致，共九项；录入、人脸库和功能参数由所属功能页进入。
+// Embedded keeps Android's nine entries; ordinary desktop omits RGB/IR entirely.
+// 嵌入式保留九项入口；普通桌面仅八项，不展示双目占位页。
 inline constexpr int home_page_count = 9;
-inline bool homePage(std::string_view route) {
-    for (int i = 0; i < home_page_count; ++i) if (demo_pages[i].route == route) return true;
+inline int homePageCount(bool embedded) { return embedded ? home_page_count : home_page_count-1; }
+inline const DemoPage& homePageAt(int index,bool embedded) { return demo_pages[index+(!embedded && index>=5?1:0)]; }
+inline bool homePage(std::string_view route,bool embedded=true) {
+    for (int i = 0; i < homePageCount(embedded); ++i) if (homePageAt(i,embedded).route == route) return true;
     return false;
 }
 inline const DemoPage* demoPage(std::string_view route) {
@@ -41,10 +42,14 @@ inline bool cameraPage(std::string_view route) {
     const auto* page = demoPage(route);
     return page && page->camera_mode;
 }
+inline bool pageAvailable(std::string_view route,bool embedded) {
+    return demoPage(route) && (embedded || route!=RgbIrSearchPage::route);
+}
 inline constexpr const char* smoke_pages[] = {
     "camera", "images", "gallery", "settings", "image-search", "home",
     "detection", "capture", "verification", "liveness", "enrollment", "camera-settings", "references",
     RgbIrSearchPage::route
 };
 inline constexpr unsigned smoke_page_count = sizeof(smoke_pages) / sizeof(smoke_pages[0]);
+inline unsigned smokePageCount(bool embedded) { return smoke_page_count-(embedded?0:1); }
 }

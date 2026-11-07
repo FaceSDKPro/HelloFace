@@ -49,17 +49,20 @@ void rotateFrame90(CameraFrame& frame, bool clockwise) {
         "Camera rotation requires even dimensions");
     const int source_width = frame.width, source_height = frame.height;
     const size_t count = static_cast<size_t>(source_width) * source_height;
-    require(frame.i420.size() == count * 3 / 2, "Invalid I420 frame for camera rotation");
+    require(frame.i420.empty() || frame.i420.size() == count * 3 / 2, "Invalid I420 frame for camera rotation");
     require(frame.rgba.empty() || frame.rgba.size() == count * 4, "Invalid RGBA preview for camera rotation");
+    require(!frame.i420.empty() || !frame.rgba.empty(), "Empty camera frame for rotation");
     const auto i420_source = std::move(frame.i420);
     const auto rgba_source = std::move(frame.rgba);
     frame.i420.resize(i420_source.size());
     if (!rgba_source.empty()) frame.rgba.resize(rgba_source.size());
-    rotatePlane90(i420_source.data(), source_width, source_height, frame.i420.data(), clockwise);
-    rotatePlane90(i420_source.data() + count, source_width / 2, source_height / 2,
-        frame.i420.data() + count, clockwise);
-    rotatePlane90(i420_source.data() + count * 5 / 4, source_width / 2, source_height / 2,
-        frame.i420.data() + count * 5 / 4, clockwise);
+    if(!i420_source.empty()) {
+        rotatePlane90(i420_source.data(), source_width, source_height, frame.i420.data(), clockwise);
+        rotatePlane90(i420_source.data() + count, source_width / 2, source_height / 2,
+            frame.i420.data() + count, clockwise);
+        rotatePlane90(i420_source.data() + count * 5 / 4, source_width / 2, source_height / 2,
+            frame.i420.data() + count * 5 / 4, clockwise);
+    }
     if (!rgba_source.empty())
         rotateRgba90(rgba_source.data(), source_width, source_height, frame.rgba.data(), clockwise);
     frame.width = source_height;
@@ -105,12 +108,14 @@ void infraredFrame(const uint8_t* bytes, size_t size, int width, int height, int
 }
 void rotateFrame180(CameraFrame& frame) {
     const size_t count = static_cast<size_t>(frame.width) * frame.height;
-    require(frame.i420.size() == count * 3 / 2 && (frame.rgba.empty() || frame.rgba.size() == count * 4),
+    require(frame.width>=2 && frame.height>=2 && !(frame.width&1) && !(frame.height&1) &&
+        (frame.i420.empty() || frame.i420.size() == count * 3 / 2) && (frame.rgba.empty() || frame.rgba.size() == count * 4) &&
+        (!frame.i420.empty() || !frame.rgba.empty()),
         "Invalid camera frame for rotation");
-    auto y = frame.i420.begin(), u = y + count, v = u + count / 4;
-    std::reverse(y, u);
-    std::reverse(u, v);
-    std::reverse(v, frame.i420.end());
+    if(!frame.i420.empty()) {
+        auto y = frame.i420.begin(), u = y + count, v = u + count / 4;
+        std::reverse(y, u);std::reverse(u, v);std::reverse(v, frame.i420.end());
+    }
     if (!frame.rgba.empty())
         for (size_t i = 0; i < count / 2; ++i)
             std::swap_ranges(frame.rgba.begin() + 4 * i, frame.rgba.begin() + 4 * (i + 1),

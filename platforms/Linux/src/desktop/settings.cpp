@@ -9,6 +9,27 @@
 #include <sstream>
 
 namespace hiface_linux_demo {
+int initialCameraRotation() {
+    const char* value=std::getenv("HIFACE_CAMERA_ROTATE");
+    const std::string angle=value?value:"";
+    if(angle.empty() || angle=="0" || angle=="none")return 0;
+    if(angle=="left" || angle=="ccw" || angle=="90ccw" || angle=="270")return 270;
+    if(angle=="right" || angle=="cw" || angle=="90cw" || angle=="90")return 90;
+    if(angle=="180")return 180;
+    throw DemoError{"HIFACE_CAMERA_ROTATE must be 0/90/180/270, left/ccw/90ccw or right/cw/90cw"};
+}
+bool embeddedDisplay() {
+    const char* value = std::getenv("HIFACE_DISPLAY_MODE");
+    const std::string mode = value ? value : "auto";
+    require(mode == "auto" || mode == "desktop" || mode == "embedded",
+            "HIFACE_DISPLAY_MODE must be auto, desktop or embedded");
+    if (mode != "auto") return mode == "embedded";
+#if HIFACE_LINUX_EMBEDDED_DISPLAY
+    return true;
+#else
+    return false;
+#endif
+}
 bool useSoftwareMouseCursor(const std::string& mode, bool embedded_display) {
     require(mode.empty() || mode == "auto" || mode == "software" || mode == "system",
             "HIFACE_MOUSE_CURSOR must be auto, software or system");
@@ -64,6 +85,7 @@ std::vector<FormField> settingsFields(const DemoSettings& s) {
         {"camera_fps", "Requested camera FPS (1..60)", std::to_string(s.camera_fps)},
         {"camera_mjpeg", "Prefer MJPEG (0 = YUYV, 1 = MJPEG)", boolean(s.camera_mjpeg)},
         {"mirror", "Mirror preview only (0/1)", boolean(s.mirror)},
+        {"camera_rotation", "Clockwise camera rotation (0/90/180/270)", std::to_string(s.camera_rotation)},
         {"ui_rotation", "Clockwise UI rotation (0/90/180/270)", std::to_string(s.ui_rotation)}
     };
 }
@@ -102,6 +124,9 @@ DemoSettings parseSettings(const std::vector<FormField>& fields) {
     s.camera_fps = integer("camera_fps", 1, 60); s.camera_mjpeg = integer("camera_mjpeg", 0, 1); s.mirror = integer("mirror", 0, 1);
     s.ui_rotation = integer("ui_rotation", 0, 270);
     require(s.ui_rotation % 90 == 0, "ui_rotation must be 0, 90, 180 or 270");
+    if(!embeddedDisplay())s.ui_rotation=0;
+    s.camera_rotation = integer("camera_rotation", 0, 270);
+    require(s.camera_rotation % 90 == 0, "camera_rotation must be 0, 90, 180 or 270");
     auto parseActions = [&](const std::string& key, std::vector<HiFaceFlowActionV1>& output) {
         std::istringstream actions(values[key]); std::string action;
         while (std::getline(actions, action, ',')) {
@@ -120,7 +145,7 @@ DemoSettings parseSettings(const std::vector<FormField>& fields) {
 }
 DemoSettings loadSettings(const std::string& file) {
     DemoSettings defaults;
-    defaults.ui_rotation = initialUiRotation();
+    defaults.ui_rotation = embeddedDisplay()?initialUiRotation():0;
     auto fields = settingsFields(defaults);
     std::ifstream input(file);
     if (!std::filesystem::exists(file)) return defaults;

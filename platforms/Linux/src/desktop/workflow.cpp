@@ -183,6 +183,11 @@ void FaceWorkflow::selectCapturedReference(const std::string& id) {
 void FaceWorkflow::pauseSearch() {
     require(mode_ == 'S' || mode_ == 'P', "Start search before pausing");
     if (mode_ == 'P') { action('S'); return; }
+    enterPausedSearch();
+}
+void FaceWorkflow::enterPausedSearch() {
+    // Restore the user's pause without briefly starting recognition or warming its cache.
+    // 恢复用户暂停状态，不先启动识别或预热搜索缓存。
     stop(); check(hiface_search_release_memory_v1(database_.handle), "release search cache");
     mode_ = 'P'; status = "Search paused";
 }
@@ -417,18 +422,23 @@ void FaceWorkflow::imageOperation(const std::string& operation, const std::strin
         status = "Similarity " + percent.str() + "% (photo comparison; no liveness)";
         return;
     }
-    require(!importing_, "Stop the import before processing an image"); stop();
-    image_first.reset(); image_second.reset(); aligned_preview.reset(); image_matches.clear(); boxes.clear();
-    image_first = std::make_shared<Image>(readImage(first.c_str()));
+    require(!importing_, "Stop the import before processing an image");
+    require(operation=="detect" || operation=="reference" || operation=="enroll" || operation=="search", "Unknown image operation");
+    // Decode before discarding the last usable photo; a cancelled/broken selection must be retryable.
+    // 先读新照片再替换旧结果，坏图或错误路径不应清空上一次可用照片。
+    auto selected_image=std::make_shared<Image>(readImage(first.c_str()));
+    stop();
     if (operation == "detect") {
         std::array<HiFaceFaceV1, HIFACE_MAX_FACES> faces{};
         HiFaceDetectionRequestV1 request{sizeof(request), HIFACE_C_API_VERSION_V1, settings_.detection_faces, settings_.detailed ? 1u : 0u};
         HiFaceFrameResultV1 result{}; result.struct_size = sizeof(result); result.faces = faces.data(); result.capacity = faces.size();
-        check(hiface_session_process_rgba_v1(session_.handle, image_first->rgba.data(), image_first->rgba.size(), image_first->width, image_first->height, &request, &result), "detect image");
+        check(hiface_session_process_rgba_v1(session_.handle, selected_image->rgba.data(), selected_image->rgba.size(), selected_image->width, selected_image->height, &request, &result), "detect image");
+        image_first=std::move(selected_image);image_second.reset();aligned_preview.reset();image_matches.clear();
         boxes = detectionBoxes(faces.data(), result.count); status = "Photo faces: " + std::to_string(result.count); return;
     }
     std::vector<uint8_t> preview;
-    const auto feature = captureFeature(session_, *image_first, &preview);
+    const auto feature = captureFeature(session_, *selected_image, &preview);
+    image_first=std::move(selected_image);image_second.reset();image_matches.clear();
     aligned_preview = std::make_shared<Image>(Image{HIFACE_ALIGNED_PREVIEW_SIDE, HIFACE_ALIGNED_PREVIEW_SIDE, std::move(preview)});
     if (operation == "reference") {
         enrollment_.stage(feature); pending_capture_kind_ = 'C'; ++enrollment_generation_;

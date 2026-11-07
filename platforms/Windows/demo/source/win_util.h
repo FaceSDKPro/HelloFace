@@ -15,6 +15,10 @@ void writeLog(const std::string& message) noexcept;
 std::filesystem::path logDirectory();
 Image readImage(const std::filesystem::path& path, bool fit_to_sdk_limit = false);
 void writeImage(const std::filesystem::path& path, const Image& image);
+// Read a bounded HF1 file; save by atomic replacement so a failed export keeps the old file.
+// HF1 读入有长度限制；写出原子替换，失败时保留已有文件。
+std::string readFeatureFile(const std::filesystem::path& path);
+void writeFeatureFile(const std::filesystem::path& path, const std::string& text);
 void testWindowsImageDecoder();
 class ComApartment {
 public:

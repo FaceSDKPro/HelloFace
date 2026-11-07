@@ -1,4 +1,5 @@
 #include "data_exchange.h"
+#include "enrollment_draft.h"
 #include <algorithm>
 #include <chrono>
 #include <fstream>
@@ -7,6 +8,47 @@
 #include <windows.h>
 #endif
 namespace hiface_demo {
+void GalleryListing::reset(const Gallery& database, const std::string& query, const std::string& group, const std::string& tag) {
+    GalleryListing fresh;
+    fresh.query_ = normalizeMetadata(query); fresh.group_ = normalizeMetadata(group); fresh.tag_ = normalizeMetadata(tag);
+    fresh.total = database.count();
+    if (!fresh.query_.empty()) {
+        try {
+            auto person = database.get(fresh.query_);
+            person.feature.clear(); // Never put HF1 payloads into UI snapshots.
+            fresh.people.push_back(std::move(person));
+        } catch (const SdkError& error) {
+            if (error.status != HIFACE_STATUS_NOT_FOUND) throw;
+        }
+        fresh.filtered = fresh.people.size(); fresh.next = static_cast<uint32_t>(fresh.people.size());
+    } else {
+        fresh.filtered = database.count(fresh.group_, fresh.tag_); fresh.more = fresh.filtered > 0;
+        fresh.append(database);
+    }
+    *this = std::move(fresh);
+}
+void GalleryListing::append(const Gallery& database) {
+    if (!more || !query_.empty()) return;
+    auto batch = database.list(next, 100, group_, tag_);
+    // Read before mutating the cursor so a failed append can be retried.
+    const auto count = database.count(group_, tag_);
+    for (auto& person : batch) {
+        person.feature.clear();
+        // Keep an ID index across pages: repeatedly scanning all loaded rows is
+        // quadratic for large libraries. Overlapping pages still update one row.
+        // 跨页维护 ID 索引，避免大库反复扫描；重叠分页仍只更新已有一行。
+        const auto found = positions_.find(person.id);
+        if (found != positions_.end()) people[found->second] = std::move(person);
+        else {
+            const auto id = person.id;
+            people.push_back(std::move(person));
+            try { positions_.emplace(id, people.size() - 1); }
+            catch (...) { people.pop_back(); throw; }
+        }
+    }
+    next += static_cast<uint32_t>(batch.size()); filtered = count;
+    more = !batch.empty() && next < filtered;
+}
 namespace {
 // The interchange format is Android's JSON envelope, parsed without a runtime
 // dependency. Bounds, escaped Unicode, duplicate keys and trailing input matter

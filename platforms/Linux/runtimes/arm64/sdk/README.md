@@ -64,3 +64,27 @@ and a device-calibrated real threshold. `real_score >= real_threshold` passes;
 check status before reading the result. Dimensions may be odd, up to 4096 per side.
 See `../../../examples/image-search/infrared_liveness.c` for a complete consumer. This does not capture
 IR cameras, detect a face, or change the RGB liveness/search flows. Validate actual IR hardware and attacks separately.
+
+## Paired RGB/IR face search (0.8.8)
+
+The public Linux library also exports paired search, declared in
+`include/hiface/hiface_rgbir.h` (included by `hiface_linux.h`). Load the built-in
+models and the infrared model, then call `hiface_session_search_start_rgbir_v1`
+with 1:N search and `need_liveness=0`. RGB silent liveness is replaced by the
+required IR check. Set the IR threshold, pair skew/age limits and the calibrated
+normalized RGB-to-IR homography explicitly.
+
+For each pair call `hiface_session_search_prepare_rgbir_v1` with upright,
+unmirrored RGB YUV420 and real GRAY8 IR pixels. Use one monotonic clock, increasing
+pair/frame sequences and a source ID fixed for the opened streams. Keep both
+buffers valid until prepare returns. Handle `FRAME_SKIPPED` without a batch;
+otherwise use the existing resolve → complete → read → destroy lifecycle and
+also call `hiface_search_batch_read_infrared_v1`. Authorize only a current
+`MATCH_FOUND` with `HIFACE_SEARCH_IR_PASSED`, a valid IR score and a passing
+identity result. Missing/stale/replayed IR, multiple faces, geometric mismatch or
+IR rejection cannot fall back to RGB-only search or reuse an earlier IR pass.
+
+The embedded Demo uses these public functions in `src/desktop/rgbir/`.
+Ordinary landscape desktop mode keeps RGB-only navigation; select embedded mode
+for the dual-camera page. Geometry checks are not hardware synchronization or
+cross-spectral identity verification. Calibrate and validate each camera rig.
