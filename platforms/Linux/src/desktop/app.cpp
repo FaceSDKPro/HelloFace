@@ -119,7 +119,6 @@ std::shared_ptr<const ViewState> DesktopApp::snapshot() {
         view->frame = capture_state_.frame;
         view->fps = capture_state_.fps;
         view->preview_sequence = capture_state_.sequence;
-        view->lighting = capture_state_.lighting;
         if (!capture_state_.ready || !view->overlayFresh(monotonicMilliseconds(), capture_state_.last_frame_ms, capture_request_.generation, view->frame.get())) {
             view->camera_boxes.reset(); view->boxes.clear();
             if (view->mode == 'S' && !view->failed && !view->busy && view->overlay_frame_ms > 0) {
@@ -147,6 +146,7 @@ void DesktopApp::configureCapture(const std::string& device, const DemoSettings&
     const uint64_t generation = ++capture_request_.generation;
     capture_request_.open = open;
     capture_request_.search_idle = false;
+    capture_request_.white_light_until = 0;
     capture_request_.device = device;
     capture_request_.width = settings.camera_width;
     capture_request_.height = settings.camera_height;
@@ -163,18 +163,17 @@ void DesktopApp::configureCapture(const std::string& device, const DemoSettings&
     if (stopping_) return;
     if (open && !capture_state_.error.empty()) throw DemoError{capture_state_.error};
 }
-void DesktopApp::setSearchIdle(bool idle) {
+void DesktopApp::setCapturePolicy(bool idle, int64_t white_light_until) {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (capture_request_.search_idle == idle) return;
+    if (capture_request_.search_idle == idle && capture_request_.white_light_until == white_light_until) return;
     capture_request_.search_idle = idle;
+    capture_request_.white_light_until = white_light_until;
     capture_changed_.notify_all();
 }
 void DesktopApp::captureLoop() {
     Camera camera, preview_camera;
     CameraFramePool preview_pool, analysis_pool;
     CameraLighting lighting;
-    const char* light_device_env = std::getenv("HIFACE_LIGHT_CAMERA_DEVICE");
-    const std::string light_device = light_device_env ? light_device_env : "/dev/video31";
     uint64_t handled = 0;
     bool idle_applied = false;
     int64_t fps_start = monotonicMilliseconds(), next_synthetic = fps_start, next_analysis_capture = fps_start;
@@ -191,7 +190,8 @@ void DesktopApp::captureLoop() {
             }
         }
         if (changed) {
-            lighting.stop();
+            lighting.setActive(false);
+            lighting.bindCamera(request.open && !smoke_ ? request.device : "");
             camera.close();
             preview_camera.close();
             CaptureState next;
@@ -263,11 +263,13 @@ void DesktopApp::captureLoop() {
             ready = capture_state_.active && capture_state_.ready;
         }
         if (!ready) {
-            lighting.stop();
+            const bool light_off = lighting.setActive(false);
             std::unique_lock<std::mutex> lock(mutex_);
-            capture_changed_.wait(lock, [&] {
+            const auto requested = [&] {
                 return stopping_ || capture_request_.generation != handled;
-            });
+            };
+            if (light_off) capture_changed_.wait(lock, requested);
+            else capture_changed_.wait_for(lock, std::chrono::milliseconds(250), requested);
             continue;
         }
 
@@ -286,18 +288,18 @@ void DesktopApp::captureLoop() {
             }
             const auto preview_interval = request.search_idle ? kSearchIdlePreviewIntervalMs : kPreviewIntervalMs;
             const auto analysis_interval = request.search_idle ? int64_t(HIFACE_IDLE_FRAME_INTERVAL_MS) : kAnalysisIntervalMs;
+            lighting.setActive(!smoke_ && request.white_light_until > cadence_now);
             // Both active and idle capture have deadlines. Sleep until the next
             // due stream instead of polling every millisecond between frames.
             // 活跃和待机采集都有截止时间；等待下一路到期，避免帧间每毫秒轮询。
             if (cadence_now < std::min(next_preview_capture, next_analysis_capture)) {
                 std::unique_lock<std::mutex> lock(mutex_);
                 capture_changed_.wait_for(lock, std::chrono::milliseconds(std::min(next_preview_capture, next_analysis_capture) - cadence_now), [&] {
-                    return stopping_ || capture_request_.generation != handled || capture_request_.search_idle != idle_applied;
+                    return stopping_ || capture_request_.generation != handled || capture_request_.search_idle != idle_applied ||
+                        capture_request_.white_light_until != request.white_light_until;
                 });
                 continue;
             }
-            const bool lighting_active = !smoke_ && request.device == light_device;
-            lighting.update(nullptr, lighting_active);
             std::shared_ptr<CameraFrame> frame, analysis_frame;
             const auto now = monotonicMilliseconds();
             if (smoke_) {
@@ -352,11 +354,9 @@ void DesktopApp::captureLoop() {
                 }
             }
             const auto captured = monotonicMilliseconds();
-            if (analysis_frame) lighting.update(analysis_frame.get(), lighting_active);
             if (frame) ++frames;
             std::lock_guard<std::mutex> lock(mutex_);
             if (capture_request_.generation != handled || !capture_state_.active) continue;
-            capture_state_.lighting = lighting.status();
             if (frame) {
                 capture_state_.frame = std::move(frame);
                 capture_state_.last_frame_ms = captured;
@@ -376,7 +376,7 @@ void DesktopApp::captureLoop() {
                 fps_start = captured;
             }
         } catch (const DemoError& error) {
-            lighting.stop();
+            lighting.setActive(false);
             camera.close();
             preview_camera.close();
             std::lock_guard<std::mutex> lock(mutex_);
@@ -386,7 +386,7 @@ void DesktopApp::captureLoop() {
             capture_state_.error = error.message;
             capture_state_.description = "Camera disconnected";
         } catch (const std::exception& error) {
-            lighting.stop();
+            lighting.setActive(false);
             camera.close();
             preview_camera.close();
             std::lock_guard<std::mutex> lock(mutex_);
@@ -525,7 +525,6 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
             { std::lock_guard<std::mutex> lock(mutex_); commands.swap(commands_); }
             bool workflow_updated = !commands.empty();
             if (!commands.empty()) {
-                search_power.reset();
                 camera_recovery.reset();
                 camera_failure_message.clear();
                 resume_search_after_camera_failure = false;
@@ -551,6 +550,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                         "Stop the import before another operation");
                     if (command.type == "page") {
                         require(v.at(0) == "home" || demoPage(v.at(0)), "Unknown feature page");
+                        search_power.reset();
                         if(page=="gallery" && v.at(0)!="gallery") {
                             workflow.gallery_rows.clear();workflow.gallery_has_more=false;workflow.gallery_next_offset=0;
                         }
@@ -598,6 +598,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                         workflow.searchPhoto(v.at(0), [&] { return stopping_ || command.request_id != photo_generation_; });
                     } else if (command.type == "cancel-image-search") { workflow.clearPhotoSearch(); workflow.status = "Photo search cancelled.";
                     } else if (command.type == "action") {
+                        search_power.reset();
                         if (v.at(0).at(0) != 'X' && camera_needs_reconnect()) connect(false);
                         workflow.action(v.at(0).at(0));
                     } else if (command.type == "connect") {
@@ -618,6 +619,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                         }
                     } else if (command.type == "mirror") workflow.toggleMirror();
                     else if (command.type == "pause") {
+                        search_power.reset();
                         if (workflow.mode() == 'P' && camera_needs_reconnect()) connect(false);
                         workflow.pauseSearch(); overlay_frame_ms = 0;
                         analysis_fps = 0; analysis_frames = 0;
@@ -763,7 +765,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                         // 下方一次性发布框、身份和本帧活体结果；中途发布 Searching 会导致逐帧闪烁。
                         const bool processed = workflow.process(*latest.analysis_frame);
                         if (processed) {
-                            if (power_enabled) search_power.observe(monotonicMilliseconds(), !workflow.boxes.empty());
+                            if (power_enabled) search_power.observe(latest.last_analysis_ms, !workflow.boxes.empty());
                             ++analysis_frames;
                             overlay_width = latest.analysis_frame->width; overlay_height = latest.analysis_frame->height;
                             overlay_frame_ms = latest.last_analysis_ms; overlay_generation = latest.generation;
@@ -776,8 +778,10 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                     next_analysis = begin + search_power.analysisInterval();
                 }
             }
-            setSearchIdle(search_power.idle());
-            backlight.update(power_enabled, search_power.idle());
+            const auto white_light_until = power_enabled && !failed && search_power.lightOn()
+                ? overlay_frame_ms + kSearchLightFreshnessMs : 0;
+            setCapturePolicy(search_power.idle(), white_light_until);
+            backlight.update(power_enabled && !failed, search_power.idle());
             if (!analyze || workflow.pendingEnrollment() || workflow.resultPending()) { analysis_fps = 0; analysis_frames = 0; }
             const auto now = monotonicMilliseconds();
             if (now - analysis_fps_start >= 1000) {
@@ -813,7 +817,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 state->photo_search_generation = photo_generation;
                 state->search_photo = workflow.search_photo; state->photo_search = workflow.photo_search; state->search_photo_path = workflow.search_photo_path;
                 state->import_saved = workflow.import_saved; state->import_failed = workflow.import_failed; state->import_processed = workflow.import_processed; state->import_total = workflow.import_total;
-                state->status = workflow.status; state->camera = capture.description; state->lighting = capture.lighting;
+                state->status = workflow.status; state->camera = capture.description;
                 state->device = device; state->reference = workflow.reference_id; state->data_directory = data.string();
                 state->fixed_camera_device = fixed_camera;
                 state->demo_features = demo_features;

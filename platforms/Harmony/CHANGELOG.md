@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.8.8]
+
+- Authorization state uses hiface-runtime-v1/runtime_v1.db; prototype state is never read, migrated or deleted.
+- 本地候选准备中；构建、验收及发布批准待完成。
+
 ## [0.8.7]
 
 - 本地候选准备中；构建、验收及发布批准待完成。

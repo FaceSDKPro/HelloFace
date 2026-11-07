@@ -26,19 +26,22 @@ final class UvcEnrollmentConfirmation {
         View form = owner.getLayoutInflater().inflate(R.layout.view_uvc_enrollment_confirmation, null, false);
         ImageView photo = form.findViewById(R.id.uvcEnrollPhoto);
         Bitmap bitmap = state.pending.getAlignedFace();
-        photo.setImageBitmap(bitmap); // UVC 图像不做前置相机镜像，也不保存图片文件。
+        photo.setImageBitmap(bitmap);
         id = form.findViewById(R.id.uvcEnrollId);
         group = form.findViewById(R.id.uvcEnrollGroup);
-        id.setText(state.faceId); group.setText(state.group);
-        id.setNextFocusForwardId(group.getId());
+        id.setText(state.faceId);
+        group.setText(state.group);
+        // 弹窗随页面重建，输入草稿留在 ViewModel 中。
         TextWatcher draft = new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                state.faceId = id.getText().toString(); state.group = group.getText().toString();
+                state.faceId = id.getText().toString();
+                state.group = group.getText().toString();
             }
             @Override public void afterTextChanged(Editable s) {}
         };
-        id.addTextChangedListener(draft); group.addTextChangedListener(draft);
+        id.addTextChangedListener(draft);
+        group.addTextChangedListener(draft);
         dialog = new MaterialAlertDialogBuilder(owner).setTitle(R.string.search_ui_confirm_title).setView(form)
                 .setCancelable(false).setNeutralButton(android.R.string.cancel, (d, w) -> listener.cancel())
                 .setNegativeButton(R.string.search_recapture, (d, w) -> listener.retake())
@@ -47,12 +50,18 @@ final class UvcEnrollmentConfirmation {
             photo.setImageDrawable(null);
             bitmap.recycle();
         });
+        // 校验失败保留表单，保存期间由页面禁用提交和重拍。
         dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             String value = id.getText().toString().trim();
-            if (value.isEmpty()) { id.setError(owner.getString(R.string.enroll_face_id_required)); return; }
+            if (value.isEmpty()) {
+                id.setError(owner.getString(R.string.enroll_face_id_required));
+                return;
+            }
+            String scope = group.getText().toString().trim();
             id.setError(null);
-            id.setText(value); group.setText(group.getText().toString().trim());
-            listener.save(value, group.getText().toString());
+            id.setText(value);
+            group.setText(scope);
+            listener.save(value, scope);
         }));
     }
 
@@ -61,7 +70,8 @@ final class UvcEnrollmentConfirmation {
     boolean isShowing() { return dialog.isShowing(); }
 
     void setSaving(boolean saving) {
-        id.setEnabled(!saving); group.setEnabled(!saving);
+        id.setEnabled(!saving);
+        group.setEnabled(!saving);
         for (int button : new int[]{AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE, AlertDialog.BUTTON_NEUTRAL})
             dialog.getButton(button).setEnabled(!saving);
     }

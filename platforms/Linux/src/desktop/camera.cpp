@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <dlfcn.h>
 #include <fcntl.h>
+#include <filesystem>
 #include <linux/videodev2.h>
 #include <poll.h>
 #include <string_view>
@@ -174,7 +175,15 @@ void Camera::open(const std::string& device, int width, int height, int fps, boo
 }
 void Camera::openRgbIr(const std::string& device, RgbIrCameraRole role, int rotation) {
     const bool infrared = role == RgbIrCameraRole::infrared;
-    openStream(device, 640, 480, 30, !infrared, infrared, rotation);
+    const char* wide_device = std::getenv("HIFACE_RGBIR_WIDE_RGB_DEVICE");
+    std::error_code error;
+    const bool wide_rgb = !infrared && wide_device && *wide_device &&
+        std::filesystem::equivalent(device, wide_device, error);
+    openStream(device, 640, wide_rgb ? 360 : 480, 30, !infrared, infrared, rotation);
+    if (wide_rgb && (width_ != 640 || height_ != 360)) {
+        close();
+        throw DemoError{"Board RGB camera did not negotiate 640x360: " + description_};
+    }
 }
 void Camera::verifyDistinct(const Camera& rgb, const Camera& ir) {
     struct stat rgb_device{}, ir_device{};
@@ -302,19 +311,19 @@ void Camera::decodeAnalysis(const RawCameraFrame& raw, CameraFrame& frame) {
         raw.range, raw.matrix, raw.infrared, raw.rotation, frame, false);
     frame.monotonic_timestamp_ms = raw.monotonic_timestamp_ms;
 }
+void CameraFrame::expandInfraredRgba() {
+    rgba.resize(gray.size() * 4);
+    auto* pixel = rgba.data();
+    for (const auto intensity : gray) {
+        pixel[0] = pixel[1] = pixel[2] = intensity;
+        pixel[3] = 255;
+        pixel += 4;
+    }
+}
 void Camera::decodePreview(const RawCameraFrame& raw, CameraFrame& frame) {
     convertCameraFrame(raw.bytes.data(), raw.bytes.size(), raw.width, raw.height, raw.stride, raw.format,
         raw.range, raw.matrix, raw.infrared, raw.rotation, frame, true);
-    // Core consumes the original gray plane. Expand it only for the desktop renderer.
-    if (raw.infrared) {
-        frame.rgba.resize(frame.gray.size() * 4);
-        auto* pixel = frame.rgba.data();
-        for (const auto gray : frame.gray) {
-            pixel[0] = pixel[1] = pixel[2] = gray;
-            pixel[3] = 255;
-            pixel += 4;
-        }
-    }
+    if (raw.infrared) frame.expandInfraredRgba();
     frame.monotonic_timestamp_ms = raw.monotonic_timestamp_ms;
 }
 bool Camera::readPreview(CameraFrame& frame, int output_width, int output_height) {

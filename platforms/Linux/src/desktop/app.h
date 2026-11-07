@@ -47,7 +47,7 @@ struct ViewState {
     std::shared_ptr<const ImageSearchReport> photo_search;
     std::string search_photo_path;
     uint32_t import_saved = 0, import_failed = 0, import_processed = 0, import_total = 0;
-    std::string status = "Starting SDK...", camera, device = "/dev/video0", reference, data_directory, demo_features, lighting;
+    std::string status = "Starting SDK...", camera, device = "/dev/video0", reference, data_directory, demo_features;
     char mode = 'D';
     uint64_t count = 0, filtered_count = 0;
     uint32_t gallery_offset = 0;
@@ -91,6 +91,7 @@ private:
     struct CaptureRequest {
         uint64_t generation = 0;
         bool open = false, search_idle = false;
+        int64_t white_light_until = 0;
         std::string device, preview_device;
         int width = 640, height = 360, fps = 25;
         int preview_width = 1280, preview_height = 720;
@@ -102,12 +103,12 @@ private:
         uint64_t sequence = 0, analysis_sequence = 0, generation = 0;
         int64_t last_frame_ms = 0, last_analysis_ms = 0;
         double fps = 0;
-        std::string description = "Camera disconnected", error, lighting;
+        std::string description = "Camera disconnected", error;
         std::shared_ptr<CameraFrame> frame, analysis_frame;
     };
     void captureLoop();
     void configureCapture(const std::string& device, const DemoSettings& settings, bool open);
-    void setSearchIdle(bool idle);
+    void setCapturePolicy(bool idle, int64_t white_light_until);
     CaptureState captureSnapshot();
     void run(const std::string& models, const std::string& database, std::string device, bool smoke, const std::string& assets);
     std::atomic<bool> stopping_{false};

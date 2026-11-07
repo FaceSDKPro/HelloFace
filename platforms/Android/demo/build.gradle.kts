@@ -10,6 +10,7 @@ val demoSigningFile = layout.projectDirectory.file("signing.properties").asFile
 val demoSigning = Properties().apply {
     if (demoSigningFile.isFile) demoSigningFile.reader(Charsets.UTF_8).use { load(it) }
 }
+val googlePlayBuild = providers.gradleProperty("hiface.googlePlay").orNull == "true"
 
 android {
     namespace = "com.hiface.sdk.demo"
@@ -25,10 +26,12 @@ android {
 
     defaultConfig {
         applicationId = "com.hiface.sdk.public"
-        minSdk = libs.versions.minSdk.get().toInt()
+        // Play automatic protection requires Android 7. The SDK and other Demo builds keep Android 6.
+        val sdkMinimum = libs.versions.minSdk.get().toInt()
+        minSdk = if (googlePlayBuild) maxOf(24, sdkMinimum) else sdkMinimum
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 8007
-        versionName = "0.8.7"
+        versionCode = 8008
+        versionName = "0.8.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -110,7 +113,7 @@ dependencies {
     //Powered By https://github.com/FaceSDKPro/UVCAndroidCamera
     implementation(files("libs/uvc-android-camera-0.5.0.aar"))
 
-    implementation("io.github.facesdkpro:hiface-android:0.8.7")
+    implementation("io.github.facesdkpro:hiface-android:0.8.8")
 
     implementation(libs.androidx.core)
     implementation(libs.androidx.activity)

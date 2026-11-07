@@ -71,9 +71,8 @@ HIFACE_PREVIEW_OUTPUT_WIDTH=576 HIFACE_PREVIEW_OUTPUT_HEIGHT=1024 \
 
 可选预览通道通过设备上的 `librga.so.2` 一次完成 NV12/NV21 缩放、颜色转换和摄像头旋转。RGA 直接输出 X11 原生 BGRX 排列，本地 X Server 支持时使用 MIT-SHM 上传，避免整帧 CPU 通道交换和套接字复制；两项优化均保留通用回退路径。第二路 ISP 或 RGA 不可用时，Demo 会自动回退到识别流，不影响启动。
 
-T92P 的 J3 白光与 J19 红外灯分开控制，J4 三色灯用于状态提示。RGB 模式采用白光自动补光，红外保持关闭。板级启动脚本以 root 运行 `boards/t92p-lighting.sh prepare`，再为 Demo 设置 `HIFACE_LIGHT_PWM_PATH=/sys/class/pwm/pwmchip0/pwm0` 与 `HIFACE_LIGHT_SENSOR_DEVICE=/dev/v4l-subdev5`（需按 `cv2002_720` 传感器名称确认）。应用只获得白光 duty/enable 的权限，不以 root 运行；服务停止时运行同一脚本的 `off`。
+桌面 Linux 构建使用通用相机流程，不启用板载灯控。T92P Buildroot 部署从开发仓库构建时显式加上 `-DHIFACE_LINUX_T92P_LIGHTING=ON`，并使用板级启动服务。板级适配层控制 RGB 采集的 J3 白光，也可为双目调试版控制 J19 红外灯。
 
-自动策略沿用厂商 1 ms PWM 周期，以 CV2002 的曝光比例、0.3 dB/单位模拟增益及中央画面亮度估计暗光需求，并非独立照度计的 lux。持续暗光 2 秒后以每 0.5 秒 5% 渐亮至 25%；亮暗阈值分离，至少点亮 15 秒且持续明亮 6 秒才渐灭。相机停止、帧中断或传感器读数失败时关闭白光，避免补光反馈造成频繁闪烁。未配置环境变量的设备不启用板级灯控。
 权限不足时检查 `/dev/video*` 的访问权限；加入 `video` 组后需完整注销再登录，不必用 root 启动 Demo。
 
 ## 桌面功能

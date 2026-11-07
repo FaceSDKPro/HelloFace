@@ -34,6 +34,7 @@ public:
     void requestClose(const ViewState& state);
     void pageForSmoke(unsigned index);
     void reportError(const std::string& message) { notice_ = message; }
+    void showWebsiteToast(bool visible) { website_toast_visible_ = visible; }
     void setSoftKeyboardEnabled(bool enabled) { soft_keyboard_enabled_ = enabled; if (!enabled) soft_keyboard_open_ = false; }
     void rejectSettings(const std::string& message) { settings_pending_ = false; reportError(message); }
     const std::vector<Control>& controls() const { return controls_; }
@@ -45,6 +46,7 @@ private:
     void field(Rect rect, const std::string& key, const std::string& label, const std::string& initial = "", bool enabled = true, Font font = Font::Body);
     void toggle(int x, int y, int width, const std::string& key, const std::string& label, bool enabled = true, Font font = Font::Body);
     void rotationButtons(Rect rect, const std::string& selected, bool enabled);
+    static Rect fitImage(Rect frame, int width, int height, bool fill = false);
     void picture(Rect rect, const Image* image, const CameraFrame* camera, bool mirror, const std::vector<Box>& boxes, bool fill = false);
     void empty(Rect rect, const std::string& title, const std::string& hint);
     void home(const ViewState& state, Rect body);
@@ -52,10 +54,15 @@ private:
     void uvcSettingsDialog(const ViewState& state);
     void handleUvcSettings(const std::string& action, const ViewState& state);
     void startupFailure(const ViewState& state);
-    void supportFooter(const ViewState& state);
+    void supportFooter(const ViewState& state, bool version_link);
     ErrorPresentation errorPresentation(const ViewState& state) const;
     void camera(const ViewState& state, Rect body);
+    static constexpr int search_result_height = 78, search_control_gap = 12,
+        search_button_height = 46, search_bottom_padding = 14;
     void searchResults(const ViewState& state, Rect panel);
+    void drawSearchResults(Rect panel, const char* mode, std::string summary, bool red);
+    void drawSearchScores(Rect panel, const char* mode, CameraSearchScores scores,
+                          float similarity_threshold, std::optional<float> liveness_threshold);
     void photos(const ViewState& state, Rect body);
     void imageSearch(const ViewState& state, Rect body);
     void library(const ViewState& state, Rect body);
@@ -123,6 +130,7 @@ private:
     size_t cursor_ = 0;
     bool running_ = true, initialized_ = false, select_all_ = false, content_enabled_ = true;
     bool error_details_ = false, startup_home_ = false;
+    bool website_toast_visible_ = false;
     bool confirming_ = false, browsing_ = false, enrolling_ = false;
     bool settings_pending_ = false, camera_menu_ = false;
     enum class UvcSettingsTab { camera, search, display };

@@ -19,9 +19,15 @@
 
 namespace {
 using namespace hiface_demo;
+constexpr wchar_t kWebsiteUrl[] = L"https://helloface.pages.dev/";
+constexpr UINT_PTR kWebsiteToastTimer = 1;
+
+bool chineseUi() {
+    return PRIMARYLANGID(GetUserDefaultUILanguage()) == LANG_CHINESE;
+}
+
 std::wstring aboutTitle() {
-    const bool chinese = PRIMARYLANGID(GetUserDefaultUILanguage()) == LANG_CHINESE;
-    return std::wstring(chinese ? L"关于 HelloFace SDK " : L"About HelloFace SDK ") + widen(HIFACE_DEMO_SDK_VERSION);
+    return std::wstring(chineseUi() ? L"关于 HelloFace SDK " : L"About HelloFace SDK ") + widen(HIFACE_DEMO_SDK_VERSION);
 }
 enum Control {
     Device = 100, RefreshDevices, Open, Close, Mode, Resolution, Rotation, Mirror, Apply, Logs, Help,
@@ -31,7 +37,7 @@ enum Control {
     RefreshGallery, PreviousPage, NextPage, DeletePerson, UpdatePerson, ImportJson, ExportJson,
     ImportImages, PickSearchImage, SearchImageAgain, GoGallery, SearchGuide, SaveEnrollment, ReleaseMemory, People, Status, Metrics, Primary,
     SearchResults, SearchCaption, CopySearch, Back = kBackControl, Parameters = kParametersControl, HomePrevious = kHomePreviousControl, HomeNext = kHomeNextControl,
-    ParameterPane = 5000, NavBase = 6000, HomeBase = 7000
+    HomeVersion = 4998, WebsiteToast, ParameterPane = 5000, NavBase = 6000, HomeBase = 7000
 };
 constexpr int kLabelOffset = 1000;
 RECT workingArea(HWND window) {
@@ -254,14 +260,18 @@ void layout(Ui& ui) {
     const bool pane_visible=!home&&!camera_settings&&ui.page!=Page::ImageSearch&&(!hasFeatureParameters(ui.page)||ui.parameters_open);
     move(Back,24,22,86);ShowWindow(child(window,Back),home?SW_HIDE:SW_SHOW);
     move(Logs,width-370,22,90);move(Help,width-270,22,250);
+    move(HomeVersion, width - 270, height - 48, 250);
+    ShowWindow(child(window, HomeVersion), home ? SW_SHOW : SW_HIDE);
+    move(WebsiteToast, width / 2 - 180, height - 110, 360);
     ShowWindow(ui.pane,pane_visible?SW_SHOW:SW_HIDE);
     ShowWindow(child(window,Primary),home||camera_settings?SW_HIDE:SW_SHOW);
     ShowWindow(child(window,Cancel),home||camera_settings?SW_HIDE:SW_SHOW);
     for(int id=PersonId;id<=ReleaseMemory;++id){ShowWindow(child(window,id),SW_HIDE);ShowWindow(child(window,id+kLabelOffset),SW_HIDE);}
     for(int id:{Device,RefreshDevices,Open,Close,Resolution,Rotation,Mirror,Apply,People,Enroll,GoGallery,Parameters,SearchImageAgain,HomePrevious,HomeNext,SearchResults,SearchCaption,CopySearch})ShowWindow(child(window,id),SW_HIDE);
     for(int i=0;i<kFeatureCount;++i)ShowWindow(child(window,HomeBase+i),SW_HIDE);
-    move(Status,ui.main_left+8,height-67,width-ui.main_left-32,32);
-    move(Metrics,ui.main_left+8,height-32,width-ui.main_left-32,24);
+    const int status_width = width - ui.main_left - 32 - (home ? 250 : 0);
+    move(Status,ui.main_left+8,height-67,status_width,32);
+    move(Metrics,ui.main_left+8,height-32,status_width,24);
     if(home){
         const auto view=homeGeometry(ui);ui.home_scroll=view.clampScroll(ui.home_scroll);
         for(int i=0;i<kFeatureCount;++i){
@@ -664,6 +674,9 @@ void create(Ui& ui) {
     button(ui, HomePrevious, L"上一屏"); button(ui, HomeNext, L"下一屏");
     button(ui, Primary, L"开始");
     combo(ui, Device, {}); button(ui, RefreshDevices, L"刷新"); button(ui, Open, L"打开摄像头"); button(ui, Close, L"关闭摄像头"); button(ui, Logs, L"打开日志"); button(ui, Help, aboutTitle().c_str());
+    button(ui, HomeVersion, aboutTitle().c_str());
+    const auto toast = control(ui, L"STATIC", L"", WebsiteToast, SS_CENTER | SS_CENTERIMAGE);
+    ShowWindow(toast, SW_HIDE);
     combo(ui, Resolution, {L"640×480", L"1280×720", L"1920×1080"}); combo(ui, Rotation, {L"旋转 0°", L"旋转 90°", L"旋转 180°", L"旋转 270°"});
     control(ui, L"BUTTON", L"镜像预览", Mirror, BS_AUTOCHECKBOX | WS_TABSTOP); button(ui, Apply, L"应用参数");
     field(ui, PersonId, L"人员 ID", L"person-001"); field(ui, Group, L"分组", L""); field(ui, Tag, L"标签", L"");
@@ -708,7 +721,7 @@ void create(Ui& ui) {
         const auto field = child(window, HomeBase+i);
         SetWindowPos(field, after, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE); after = field;
     }
-    const int tab_order[] = {Enroll, GoGallery, Parameters, Device, RefreshDevices, Open, Close, Resolution, Rotation, Mirror, Apply, ParameterPane, Primary, SearchImageAgain, Cancel, SearchResults, People, Logs, Help};
+    const int tab_order[] = {Enroll, GoGallery, Parameters, Device, RefreshDevices, Open, Close, Resolution, Rotation, Mirror, Apply, ParameterPane, Primary, SearchImageAgain, Cancel, SearchResults, People, Logs, Help, HomeVersion};
     for (const int id : tab_order) {
         const auto field = child(window, id); SetWindowPos(field, after, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE); after = field;
     }
@@ -795,20 +808,25 @@ void action(Ui& ui, int id, int notification) {
         case Logs:
             if (reinterpret_cast<INT_PTR>(ShellExecuteW(window, L"open", logDirectory().c_str(), nullptr, nullptr, SW_SHOWNORMAL)) <= 32) throw std::runtime_error("Cannot open log directory");
             break;
-        case Help: MessageBoxW(window,
-            L"首页仅保留 Android 的八个纵向入口；录入、人脸库从人脸搜索页进入。\n"
-            L"各页顶部“返回”回到上一级；参数设置在本功能内打开。\n\n"
-            L"人脸录入先采集、核对预览和 ID，再确认保存；重拍、取消或离页不会写入人脸库。\n"
-            L"先运行 self_test.bat；相机功能先选择设备并打开，再开始本轮流程。更改参数后点“应用参数”。\n"
-            L"1:1 验证先用相机、图片或人脸库 ID 建立基准；基准会在本机保存。\n"
-            L"图片人脸搜索支持最多 10 张脸、全库 Top-1 / 0.80、不执行活体；点击缩略图或人脸框可选择。\n"
-            L"图片搜索快捷键：Ctrl+O 选图、F5 重新搜索、Esc 返回上一级；结果详情可选中复制，Ctrl+A 全选。\n"
-            L"人脸库支持分组/标签、每页100条、删除、原始HF1 JSON导入导出、本地图片批量提取。\n"
-            L"图片导入使用文件名（不含扩展名）作ID；JSON和批量图片按ID覆盖，取消保留已保存数据。\n"
-            L"分辨率为协商目标；镜像只影响显示。应用参数后保存分辨率、旋转和镜像，重启仍可使用。\n"
-            L"SDK参数设置只预览，不执行人脸分析；切换独立页面会关闭相机并取消当前流程。\n\n"
-            L"数据与日志：%LOCALAPPDATA%\\HiFaceDemo\n"
-            L"Windows 10/11 x64、CPU 开发候选版；真人识别和摄像头兼容性需要真机确认。", aboutTitle().c_str(), MB_OK); break;
+        case Help: case HomeVersion: {
+            const auto toast = child(window, WebsiteToast);
+            SHELLEXECUTEINFOW launch{};
+            launch.cbSize = sizeof(launch);
+            launch.fMask = SEE_MASK_FLAG_NO_UI;
+            launch.hwnd = window;
+            launch.lpVerb = L"open";
+            launch.lpFile = kWebsiteUrl;
+            launch.nShow = SW_SHOWNORMAL;
+            if (ShellExecuteExW(&launch)) {
+                KillTimer(window, kWebsiteToastTimer);
+                ShowWindow(toast, SW_HIDE);
+            } else {
+                setText(window, WebsiteToast, std::wstring(chineseUi() ? L"更多：" : L"More: ") + kWebsiteUrl);
+                SetWindowPos(toast, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+                SetTimer(window, kWebsiteToastTimer, 3000, nullptr);
+            }
+            break;
+        }
         case StartFlow:
             if (ui.page == Page::Reference && ui.app.current()->has_reference && MessageBoxW(window, L"本次成功采集后将替换当前 1:1 基准，继续？", L"替换基准", MB_YESNO | MB_ICONQUESTION) != IDYES) break;
             ++ui.app.generation; submit(ui, Action::StartFlow); break;
@@ -926,6 +944,11 @@ LRESULT CALLBACK windowProcedure(HWND window, UINT message, WPARAM wparam, LPARA
                 const auto* bounds = reinterpret_cast<RECT*>(lparam); SetWindowPos(window, nullptr, bounds->left, bounds->top, bounds->right - bounds->left, bounds->bottom - bounds->top, SWP_NOZORDER | SWP_NOACTIVATE); layout(*ui); return 0;
             }
             case WM_ERASEBKGND: return 1;
+            case WM_TIMER:
+                if (wparam != kWebsiteToastTimer) break;
+                KillTimer(window, kWebsiteToastTimer);
+                ShowWindow(child(window, WebsiteToast), SW_HIDE);
+                return 0;
             case kRevealFocusedControl: {
                 const int id = GetDlgCtrlID(reinterpret_cast<HWND>(lparam));
                 if (ui->page == Page::Home && id >= HomeBase && id < HomeBase + kFeatureCount)
@@ -961,7 +984,7 @@ LRESULT CALLBACK windowProcedure(HWND window, UINT message, WPARAM wparam, LPARA
                 const auto dc = reinterpret_cast<HDC>(wparam); const auto control = reinterpret_cast<HWND>(lparam);
                 const auto state = ui->app.current();
                 SetTextColor(dc, GetDlgCtrlID(control) == Status && (state->error || state->fatal) ? colors::error : GetDlgCtrlID(control) == Metrics ? colors::muted : colors::ink);
-                const bool panel = GetParent(control) == ui->pane;
+                const bool panel = GetParent(control) == ui->pane || GetDlgCtrlID(control) == WebsiteToast;
                 SetBkColor(dc, panel || message == WM_CTLCOLOREDIT ? colors::surface : colors::background);
                 return reinterpret_cast<LRESULT>(panel || message == WM_CTLCOLOREDIT ? ui->theme.surface : ui->theme.background);
             }

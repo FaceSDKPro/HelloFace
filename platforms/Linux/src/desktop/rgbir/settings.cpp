@@ -33,7 +33,7 @@ std::vector<FormField> rgbIrSettingsFields(const RgbIrSettings& s) {
         {"ir_device", "IR camera device", s.ir_device},
         {"rgb_rotation", "RGB rotation (clockwise)", std::to_string(s.rgb_rotation)},
         {"ir_rotation", "IR rotation (clockwise)", std::to_string(s.ir_rotation)},
-        {"ir_threshold", "IR liveness threshold (0, 1]", decimal(s.ir_threshold)},
+        {"ir_threshold", "IR liveness threshold (0.60–0.80)", decimal(s.ir_threshold)},
         {"group", "Search group (empty = all)", s.group},
         {"similarity", "Identity similarity (0.75–0.85)", decimal(s.similarity)},
         {"interval_ms", "Success interval (0–3000 ms)", std::to_string(s.interval_ms)},
@@ -41,7 +41,8 @@ std::vector<FormField> rgbIrSettingsFields(const RgbIrSettings& s) {
     };
 }
 
-RgbIrSettings parseRgbIrSettings(const std::vector<FormField>& fields) {
+namespace {
+RgbIrSettings parseFields(const std::vector<FormField>& fields) {
     std::map<std::string, std::string> values;
     for (const auto& field : fields) {
         if (field.value.find_first_of("\r\n") != std::string::npos || field.value.find('\0') != std::string::npos ||
@@ -86,14 +87,18 @@ RgbIrSettings parseRgbIrSettings(const std::vector<FormField>& fields) {
     }
     s.rgb_rotation = rotation("rgb_rotation");
     s.ir_rotation = rotation("ir_rotation");
-    constexpr auto ir_threshold_error = "IR liveness threshold must be greater than 0 and at most 1.";
-    s.ir_threshold = static_cast<float>(number("ir_threshold", 0, 1, false, ir_threshold_error));
-    if (s.ir_threshold <= 0) throw RgbIrSettingError{"ir_threshold", ir_threshold_error};
+    s.ir_threshold = static_cast<float>(number("ir_threshold", rgbir_min_ir_threshold,
+        rgbir_max_ir_threshold, false, rgbir_ir_threshold_error));
     s.group = values.at("group");
     s.similarity = number("similarity", .75, .85, false, "Identity similarity must be between 0.75 and 0.85.");
     s.interval_ms = number("interval_ms", 0, 3000, true, "Success interval must be a whole number from 0 to 3000 ms.");
     s.timeout_ms = number("timeout_ms", 1000, 3000, true, "Round timeout must be a whole number from 1000 to 3000 ms.");
     return s;
+}
+}
+
+RgbIrSettings parseRgbIrSettings(const std::vector<FormField>& fields) {
+    return parseFields(fields);
 }
 
 void verifyRgbIrDevices(const RgbIrSettings& settings) {
@@ -137,7 +142,7 @@ RgbIrSettings loadRgbIrSettings(const std::string& database) {
         field->value = value;
     }
     require(input.eof(), "Cannot read dual-camera settings.");
-    return parseRgbIrSettings(fields);
+    return parseFields(fields);
 }
 
 void saveRgbIrSettings(const std::string& database, const RgbIrSettings& settings) {

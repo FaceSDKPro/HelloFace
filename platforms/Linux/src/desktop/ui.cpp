@@ -1,5 +1,6 @@
 #include "ui.h"
 #include <algorithm>
+#include <clocale>
 #include <cstdlib>
 #include <cmath>
 #include <iomanip>
@@ -10,6 +11,7 @@ namespace {
 constexpr uint32_t background = 0xf5f5f7, surface = 0xffffff, ink = 0x242029, muted = 0x69636f, border = 0xe1e5eb;
 constexpr uint32_t accent = 0x077a63, tint = 0xe6f4ef, danger = 0xb33d37, dark = 0x172233;
 constexpr uint32_t technology_green = 0x00f5a0;
+constexpr char websiteUrl[] = "https://helloface.pages.dev/";
 const std::string& deviceInfo() {
     static const std::string value = [] {
         struct utsname system{};
@@ -22,13 +24,6 @@ bool settingsPage(const std::string& page) { return page == "settings" || page =
 std::string trimText(const std::string& value) {
     const auto first = value.find_first_not_of(" \t\r\n\f\v");
     return first == std::string::npos ? "" : value.substr(first, value.find_last_not_of(" \t\r\n\f\v") - first + 1);
-}
-Rect fitImage(Rect frame, int width, int height, bool fill = false) {
-    if (width <= 0 || height <= 0) return {};
-    const double scale = fill ? std::max(double(frame.w) / width, double(frame.h) / height)
-                             : std::min(double(frame.w) / width, double(frame.h) / height);
-    const int w = std::max(1, int(width * scale)), h = std::max(1, int(height * scale));
-    return {frame.x + (frame.w - w) / 2, frame.y + (frame.h - h) / 2, w, h};
 }
 std::string number(double value, int decimals = 1) { std::ostringstream s; s << std::fixed << std::setprecision(decimals) << value; return s.str(); }
 const char* modeName(char mode) {
@@ -161,6 +156,14 @@ void DemoUi::empty(Rect r, const std::string& title, const std::string& hint) {
     text(r.x + std::max(12, (r.w - measure_(title, Font::Body)) / 2), r.y + r.h / 2 + 12, title, 0xdce5ee, r.w - 24);
     text(r.x + std::max(12, (r.w - measure_(hint, Font::Small)) / 2), r.y + r.h / 2 + 38, hint, 0x90a2b7, r.w - 24, Font::Small);
 }
+Rect DemoUi::fitImage(Rect frame, int width, int height, bool fill) {
+    if (width <= 0 || height <= 0) return {};
+    const double scale = fill ? std::max(double(frame.w) / width, double(frame.h) / height)
+                             : std::min(double(frame.w) / width, double(frame.h) / height);
+    const int w = std::max(fill ? frame.w : 1, int(width * scale));
+    const int h = std::max(fill ? frame.h : 1, int(height * scale));
+    return {frame.x + (frame.w - w) / 2, frame.y + (frame.h - h) / 2, w, h};
+}
 void DemoUi::picture(Rect r, const Image* image, const CameraFrame* camera, bool mirror, const std::vector<Box>& boxes, bool fill) {
     const int iw = image ? image->width : camera ? camera->width : 0, ih = image ? image->height : camera ? camera->height : 0;
     const auto* data = image ? &image->rgba : camera ? &camera->rgba : nullptr;
@@ -214,7 +217,8 @@ void DemoUi::picture(Rect r, const Image* image, const CameraFrame* camera, bool
 }
 void DemoUi::home(const ViewState& s, Rect b) {
     scene_.box(b, background);
-    text(28, 42, "HelloFace SDK", ink, b.w - 56, Font::Title);
+    text(28, 42, "HelloFace SDK", ink, b.w - 188, Font::Title);
+    button({b.w - 142, 16, 114, 34}, "About", "website-about");
     wrap(28, 70, "Offline | Private | Fast", muted, b.w - 56, 2);
     text(28, 94, deviceInfo(), muted, b.w - 56, Font::Small);
     constexpr int gap = 11, row_height = 76, first_row_y = 112;
@@ -237,12 +241,27 @@ void DemoUi::home(const ViewState& s, Rect b) {
         wrap(r.x + 14, r.y + 48, feature.description, muted, r.w - 60, 2, Font::Small);
     }
     scene_.clip = old_clip;
-    supportFooter(s);
-    if (!s.ready && s.failed) button({b.w - 142, 16, 114, 34}, "Retry", "error-retry", 1);
+    supportFooter(s, true);
+    if (!s.ready && s.failed) button({b.w - 142, 56, 114, 34}, "Retry", "error-retry", 1);
+    if (website_toast_visible_) {
+        const char* locale = std::setlocale(LC_CTYPE, nullptr);
+        const bool chinese = locale && std::string_view(locale).rfind("zh", 0) == 0;
+        const std::string message = std::string(chinese ? "更多：" : "More: ") + websiteUrl;
+        const int width = std::min(b.w - 32, measure_(message, Font::Body) + 32);
+        const int x = (b.w - width) / 2;
+        scene_.box({x, b.h - 160, width, 36}, dark, 8);
+        text(x + 16, b.h - 137, message, surface, width - 32, Font::Body, true);
+    }
 }
-void DemoUi::supportFooter(const ViewState& state) {
+void DemoUi::supportFooter(const ViewState& state, bool version_link) {
     const int width = scene_.width, bottom = scene_.height;
-    text(28, bottom - 84, "Demo " + state.runtime.demo + " | " + sdkLabel(state.runtime), muted, width - 56, Font::Small);
+    const std::string version = "Demo " + state.runtime.demo + " | " + sdkLabel(state.runtime);
+    if (version_link) {
+        const int version_width = std::min(width - 32, measure_(version, Font::Small) + 24);
+        button({16, bottom - 103, version_width, 28}, version, "website-version", 0, true, Font::Small);
+    } else {
+        text(28, bottom - 84, version, muted, width - 56, Font::Small);
+    }
     text(28, bottom - 58, supportEmail, accent, width - 56, Font::Small);
     text(28, bottom - 30, projectUrl, accent, width - 194, Font::Small);
     button({width - 142, bottom - 54, 114, 34}, "Exit Demo", "quit", 0);
@@ -273,7 +292,7 @@ void DemoUi::startupFailure(const ViewState& state) {
     button({x + 24, by, bw, 38}, "Retry", "error-retry", 1);
     button({x + 24 + bw + gap, by, bw, 38}, "Back", "error-back", 0);
     button({x + 24 + (bw + gap) * 2, by, bw, 38}, "Copy diagnostics", "error-copy", 0);
-    supportFooter(state);
+    supportFooter(state, false);
 }
 void DemoUi::pageHeader(const ViewState& state, const std::string& title, bool camera_view) {
     const int width = scene_.width;
@@ -315,8 +334,8 @@ void DemoUi::camera(const ViewState& s, Rect b) {
     const bool search_page = page_ == "camera";
     // Preserve the two caption rows; halve only the bottom padding (28 -> 14 px).
     // 保留固定两行状态，仅将底部留白减半（28 -> 14 像素）。
-    const int bottom_padding = search_page ? 14 : 28;
-    const int result_height = 78 + 12 + 46 + bottom_padding;
+    const int bottom_padding = search_page ? search_bottom_padding : 28;
+    const int result_height = search_result_height + search_control_gap + search_button_height + bottom_padding;
     Rect preview = b;
     if (search_page) preview.h = std::max(80, b.h - result_height);
     static const std::vector<Box> no_boxes;
@@ -377,15 +396,15 @@ void DemoUi::camera(const ViewState& s, Rect b) {
         text(preview.x, preview.y - 8, "Aligned capture", 0xffffff, preview.w, Font::Small);
     }
 
-    const int controls_y = b.y + b.h - bottom_padding - 46;
-    if (search_page) searchResults(s, {b.x, b.y + b.h - result_height, b.w, 78});
+    const int controls_y = b.y + b.h - bottom_padding - search_button_height;
+    if (search_page) searchResults(s, {b.x, b.y + b.h - result_height, b.w, search_result_height});
     else {
         scene_.box({b.x, b.y + b.h - 164, b.w, 164}, dark);
         text(b.x + 18, b.y + b.h - 137, modeName(s.mode), technology_green, b.w - 36, Font::Large);
         wrap(b.x + 18, b.y + b.h - 108, friendly(s.status), 0xffffff, b.w - 36, 2, Font::Body);
     }
     if (search_page) {
-        scene_.box({b.x, controls_y - 10, b.w, 46 + bottom_padding + 10}, dark);
+        scene_.box({b.x, controls_y - 10, b.w, search_button_height + bottom_padding + 10}, dark);
         const bool reconnect = !s.connected || s.camera_stalled;
         const bool start_search = reconnect || s.mode != 'S';
         const int count = start_search ? 4 : 3, gap = 6;
@@ -393,7 +412,7 @@ void DemoUi::camera(const ViewState& s, Rect b) {
         const Font font = start_search ? Font::Body : Font::Large;
         int x = b.x + 12;
         auto action = [&](const std::string& label, const std::string& id, bool enabled, int style = 4) {
-            button({x, controls_y, action_width, 46}, label, id, style, enabled, font);
+            button({x, controls_y, action_width, search_button_height}, label, id, style, enabled, font);
             x += action_width + gap;
         };
         action("Enroll", "page:enrollment", content_enabled_);
@@ -410,7 +429,6 @@ void DemoUi::camera(const ViewState& s, Rect b) {
         button({b.x + 36 + action_width * 2, controls_y, action_width, 46}, camera_menu_ ? "Close menu" : "Menu", "camera-menu", 4,
             s.ready && !s.importing, Font::Large);
     }
-    if (!search_page && !s.lighting.empty()) text(b.x + 18, b.y + b.h - 8, s.lighting, 0xc2ceda, b.w - 36, Font::Small);
 
     }
     if (!camera_menu_) return;
@@ -818,36 +836,50 @@ void DemoUi::selectImageFace(int index, const ViewState& state) {
     focused_.clear(); keyboard_focus_ = "image-face:" + std::to_string(selected_image_face_); select_all_ = false;
 }
 void DemoUi::searchResults(const ViewState& s, Rect panel) {
-    scene_.box(panel, dark);
-    std::string mode = s.settings.search_multi ? "M:N | Liveness off" :
-        s.settings.search_liveness ? "1:N | Liveness on" : "1:N | Liveness off";
-    std::string status = s.failed ? errorPresentation(s).summary : friendly(s.status);
-    const auto live_suffix = status.find(" | liveness ");
-    if (live_suffix != std::string::npos) status.resize(live_suffix);
-    std::string summary;
-    const Box* best = nullptr;
-    const auto& boxes = s.liveBoxes();
+    const bool liveness_enabled = !s.settings.search_multi && s.settings.search_liveness;
+    const char* mode = s.settings.search_multi ? "M:N | Liveness off" :
+        liveness_enabled ? "1:N | Liveness on" : "1:N | Liveness off";
+    CameraSearchScores scores;
     if (!s.failed && s.connected && !s.camera_stalled && s.mode == 'S') {
-        for (const auto& box : boxes) {
-            if (!box.matched || box.search_mark != SearchMark::Matched || box.face_id.empty()
-                    || !box.similarity || !std::isfinite(*box.similarity)) continue;
+        const Box* best = nullptr;
+        for (const auto& box : s.liveBoxes()) {
+            // The SDK supplies one frame-level liveness score in 1:N mode.
+            if (liveness_enabled && box.liveness && std::isfinite(*box.liveness)) scores.liveness = box.liveness;
+            if (!box.similarity || !std::isfinite(*box.similarity)) continue;
             if (!best || *box.similarity > *best->similarity) best = &box;
         }
+        if (best) {
+            scores.similarity = best->similarity;
+            if (liveness_enabled)
+                scores.liveness = best->liveness && std::isfinite(*best->liveness) ? best->liveness : std::nullopt;
+            if (best->matched && best->search_mark == SearchMark::Matched) scores.face_id = best->face_id;
+        }
     }
-    // Format: 1001=0.92, Liveness=0.97; summarize the best confirmed match from one sample.
-    // 五平台统一格式；第二行的身份、相似度和活体分数来自同一份已确认采样。
-    if (best) {
-        summary = best->face_id + "=" + number(*best->similarity, 2);
-        if (!s.settings.search_multi && s.settings.search_liveness && best->liveness && std::isfinite(*best->liveness))
-            summary += ", Liveness=" + number(*best->liveness, 2);
+    if (scores.available()) {
+        const auto threshold = liveness_enabled ? std::optional<float>(HIFACE_DEFAULT_SILENT_LIVENESS_THRESHOLD) : std::nullopt;
+        drawSearchScores(panel, mode, std::move(scores), s.settings.search_threshold, threshold);
+    } else {
+        drawSearchResults(panel, mode, s.failed ? errorPresentation(s).summary : friendly(s.status), s.failed);
     }
-    if (summary.empty()) summary = status;
+}
+void DemoUi::drawSearchScores(Rect panel, const char* mode, CameraSearchScores scores,
+                              float similarity_threshold, std::optional<float> liveness_threshold) {
+    auto caption = scores.caption(liveness_threshold.has_value());
+    // Keep both scores visible when a long Face ID would crowd them out.
+    if (!scores.face_id.empty() && measure_(caption, Font::Result) > panel.w - 36) {
+        scores.face_id.clear();
+        caption = scores.caption(liveness_threshold.has_value());
+    }
+    drawSearchResults(panel, mode, std::move(caption), !scores.exceeds(similarity_threshold, liveness_threshold));
+}
+void DemoUi::drawSearchResults(Rect panel, const char* mode, std::string summary, bool red) {
+    scene_.box(panel, dark);
     std::replace(summary.begin(), summary.end(), '\n', ' ');
     std::replace(summary.begin(), summary.end(), '\r', ' ');
     // Keep the two row baselines fixed, with a larger result line.
     // 两行基线保持固定，结果行使用更大字号。
     text(panel.x + 18, panel.y + 24, mode, technology_green, panel.w - 36, Font::Caption);
-    text(panel.x + 18, panel.y + 65, summary, s.failed ? 0xff7777 : best ? technology_green : 0xffffff,
+    text(panel.x + 18, panel.y + 65, summary, red ? 0xff7777 : 0xffffff,
          panel.w - 36, Font::Result);
 }
 void DemoUi::scroll(int steps, int x, int y, const ViewState& state) {
@@ -1010,6 +1042,7 @@ void DemoUi::handle(const std::string& action, const ViewState& state) {
     if (action.rfind("image-faces-prev:", 0) == 0) { selectImageFace(std::max(0, image_face_offset_ - image_face_rows_), state); return; }
     if (action.rfind("image-faces-next:", 0) == 0) { selectImageFace(image_face_offset_ + image_face_rows_, state); return; }
     if (action == "image-photo") { browse("search-path"); return; }
+    if (action == "website-about" || action == "website-version") { emit("open-website", {websiteUrl}); return; }
     if (action == "error-details") { error_details_ = true; focused_.clear(); keyboard_focus_.clear(); return; }
     if (action == "error-copy") { emit("copy-text", {diagnosticText(state.runtime, errorPresentation(state))}); return; }
     if (action == "error-back") { error_details_ = false; startup_home_ = true; return; }

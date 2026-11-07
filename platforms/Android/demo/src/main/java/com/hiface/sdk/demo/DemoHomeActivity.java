@@ -1,8 +1,10 @@
 package com.hiface.sdk.demo;
 
+import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -33,6 +35,7 @@ import com.hiface.sdk.demo.verification.FaceVerificationActivity;
  * Demo 首页：SDK 功能与相机设置入口。
  */
 public final class DemoHomeActivity extends AppCompatActivity {
+    private static final String WEBSITE_URL = "https://helloface.pages.dev/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,10 +87,29 @@ public final class DemoHomeActivity extends AppCompatActivity {
         String aboutTitle = getString(R.string.api_about, BuildConfig.VERSION_NAME);
         ((TextView) findViewById(R.id.aboutText)).setText(aboutTitle);
         findViewById(R.id.aboutButton).setContentDescription(aboutTitle);
-        View.OnClickListener showAbout = ignored -> Toast.makeText(
-                getApplicationContext(), R.string.api_about_message, Toast.LENGTH_SHORT).show();
-        findViewById(R.id.aboutButton).setOnClickListener(showAbout);
-        findViewById(R.id.aboutText).setOnClickListener(showAbout);
+        View.OnClickListener openWebsite = ignored -> openWebsite();
+        findViewById(R.id.aboutButton).setOnClickListener(openWebsite);
+        findViewById(R.id.aboutText).setOnClickListener(openWebsite);
+        findViewById(R.id.privacyPolicyButton).setOnClickListener(view -> openPrivacyPolicy());
+    }
+
+    private void openWebsite() {
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(WEBSITE_URL))
+                .addCategory(Intent.CATEGORY_BROWSABLE);
+        try {
+            startActivity(intent);
+        } catch (ActivityNotFoundException | SecurityException exception) {
+            Toast.makeText(this, getString(R.string.api_about_message, WEBSITE_URL), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void openPrivacyPolicy() {
+        Uri policy = Uri.parse(getString(R.string.privacy_policy_url));
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, policy));
+        } catch (ActivityNotFoundException | SecurityException exception) {
+            Toast.makeText(this, R.string.privacy_policy_no_browser, Toast.LENGTH_LONG).show();
+        }
     }
 
     /**

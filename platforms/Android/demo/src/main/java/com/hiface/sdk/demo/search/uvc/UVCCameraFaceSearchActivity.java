@@ -15,6 +15,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
@@ -48,8 +49,6 @@ import com.hiface.sdk.search.FaceSearchResult;
 import com.hiface.sdk.search.FaceSearchSession;
 import com.hiface.sdk.search.FaceSearchSessionConfig;
 import com.hiface.sdk.search.InfraredSearchInfo;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * 双目搜索接入页：管理采集和搜索会话；设备表单、结果展示及亮度策略各自独立。
@@ -69,9 +68,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
     private UvcCameraSettings cameraSettings;
     private UvcCameraSettings.Selection capture;
     private TextureView preview, irPreview;
-    private Surface previewSurface, irPreviewSurface;
-    // TextureView 销毁时仍可能有 native 帧在途，等 UVC onClosed 后再释放对应纹理。
-    private final List<SurfaceTexture> retiredTextures = new ArrayList<>();
+    private final UvcPreviewSurfaces surfaces = new UvcPreviewSurfaces();
     private InfraredDebugOverlayView irOverlay;
     private TextView diagnostics;
     private final RgbIrSearchStats stats = new RgbIrSearchStats();
@@ -83,7 +80,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
     private FaceSearchOverlayView overlay;
     private TextView status;
     // requested 是用户运行意图，退到后台仍保留；running 表示当前会话允许接收回调。
-    private boolean started, requested, permissionPending, closing;
+    private boolean started, requested, permissionPending;
     private volatile boolean running;
     private volatile long generation, lastPairAt;
 
@@ -174,7 +171,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
             }
             @Override public boolean onSurfaceTextureDestroyed(SurfaceTexture texture) {
                 if (cameras != null) {
-                    retiredTextures.add(texture);
+                    surfaces.retain(texture);
                     stopCapture(false);
                     return false;
                 }
@@ -202,7 +199,6 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
     private void showSettingsMenu(View anchor) {
         PopupMenu menu = new PopupMenu(this, anchor);
         menu.inflate(R.menu.uvc_search_settings);
-        menu.getMenu().findItem(R.id.uvcCameraSettings).setEnabled(canEditCameras());
         menu.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == R.id.uvcSearchSettings) showSearchSettings();
             else if (item.getItemId() == R.id.uvcCameraSettings) showCameraSettings();
@@ -213,7 +209,11 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
 
     /** 设备与预览参数只在空闲时修改，运行中的搜索参数可单独应用。 */
     private void showCameraSettings() {
-        if (canEditCameras()) cameraSettings.show(() -> {
+        if (!canEditCameras()) {
+            Toast.makeText(this, R.string.uvc_search_settings_running, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        cameraSettings.show(() -> {
             show(cameraSettings.setupHint());
             offerRetry(false);
         });
@@ -239,7 +239,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
     }
 
     private void refreshDevices() {
-        if (cameras != null || closing) return;
+        if (cameras != null) return;
         try {
             show(cameraSettings.refreshDevices());
         } catch (RuntimeException error) {
@@ -280,15 +280,15 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
             // IR 是显式模式。SDK 不通过关闭 RGB 活体来隐式放行，也不会使用旧 IR 通过结果。
             search = sdk.search().startCameraSearch(
                     UvcSearchSettingsDialog.withInfrared(searchOptions, capture.infrared), searchListener(epoch));
-            previewSurface = new Surface(preview.getSurfaceTexture());
-            if (cameraSettings.debugEnabled()) irPreviewSurface = new Surface(irPreview.getSurfaceTexture());
+            Surface rgbSurface = surfaces.open(preview);
+            Surface irSurface = cameraSettings.debugEnabled() ? surfaces.open(irPreview) : null;
             running = true;
             displayPolicy.start();
             lastPairAt = SystemClock.elapsedRealtime();
             UvcSearchIdlePolicy idle = new UvcSearchIdlePolicy();
             // 先保存句柄再启动：失败回调也能沿统一关闭路径释放相机与 Surface。
             cameras = DualCameraSession.create(this, capture.rgb, capture.ir, capture.config,
-                    previewSurface, irPreviewSurface, cameraListener(epoch), pair -> processPair(pair, epoch, idle));
+                    rgbSurface, irSurface, cameraListener(epoch), pair -> processPair(pair, epoch, idle));
             cameras.start();
             updatePreviewTransform();
             show(R.string.uvc_search_opening);
@@ -363,9 +363,8 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
             @Override public void onClosed(DualCameraSession source) {
                 if (cameras != source) return;
                 cameras = null;
-                closing = false;
                 // 此回调保证 USB/native 和在途 pair 消费均已排空。
-                releasePreview();
+                surfaces.release();
                 updateButtons();
                 closeBarrier.closed();
             }
@@ -385,15 +384,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
             return;
         }
 
-        Nv21Planes rgb = pair.rgbPlanes();
-        Yuv420Frame frame = new Yuv420Frame(rgb.y(), rgb.u(), rgb.v(), rgb.width, rgb.height,
-                rgb.yRowStride, rgb.uRowStride, rgb.vRowStride, rgb.uvPixelStride,
-                YuvColorRange.VIDEO, YuvColorMatrix.BT601, 0, false);
-        // UVC 已完成独立旋转。调试预览使用 Surface，算法仍直接借用 GRAY8，不截图或转 Bitmap。
-        HiFaceResult<FaceDetectionResult> processed = sdk.processFrame(new RgbIrFrame(frame,
-                pair.ir.luma(), pair.ir.width, pair.ir.height, pair.ir.width,
-                pair.sessionId, pair.pairId, pair.rgb.sequence, pair.ir.sequence,
-                pair.rgb.arrivalTimeNanos / 1_000_000L, pair.ir.arrivalTimeNanos / 1_000_000L));
+        HiFaceResult<FaceDetectionResult> processed = analyzePair(pair);
         HiFaceError error = processed.isFailure() ? processed.requireError() : null;
         if (error == null) idle.onDetection(now, !processed.requireValue().getFaces().isEmpty());
         if (wasIdle != idle.isIdle()) postIdleDisplay(epoch, idle.isIdle());
@@ -406,6 +397,18 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
         // 初始化、节流和背压只跳过本对帧；技术错误切回主线程停止整个会话。
         if (outcome == RgbIrSearchStats.Outcome.ERROR)
             main.post(() -> { if (current(epoch)) failSearch(error); });
+    }
+
+    /** UVC 已分别旋转两路像素；SDK 同步借用 NV21/GRAY8，时间戳沿用 UVC 到达时间。 */
+    private HiFaceResult<FaceDetectionResult> analyzePair(FramePair pair) {
+        Nv21Planes rgb = pair.rgbPlanes();
+        Yuv420Frame frame = new Yuv420Frame(rgb.y(), rgb.u(), rgb.v(), rgb.width, rgb.height,
+                rgb.yRowStride, rgb.uRowStride, rgb.vRowStride, rgb.uvPixelStride,
+                YuvColorRange.VIDEO, YuvColorMatrix.BT601, 0, false);
+        return sdk.processFrame(new RgbIrFrame(frame,
+                pair.ir.luma(), pair.ir.width, pair.ir.height, pair.ir.width,
+                pair.sessionId, pair.pairId, pair.rgb.sequence, pair.ir.sequence,
+                pair.rgb.arrivalTimeNanos / 1_000_000L, pair.ir.arrivalTimeNanos / 1_000_000L));
     }
 
     /** 只在待机状态变化时刷新亮度，旧会话或已断流的通知不会再把页面调暗。 */
@@ -499,28 +502,17 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
         try {
             if (previous != null) previous.close();
         } finally {
-            if (cameras != null && !closing) {
-                closing = true;
+            if (cameras == null) {
+                surfaces.release();
+            } else if (!closeBarrier.isOwnerClosing()) {
                 closeBarrier.closing();
                 cameras.close();
-            } else if (cameras == null) {
-                releasePreview(); // 未创建相机句柄时，Surface 可以直接释放。
             }
             updateButtons();
         }
     }
 
-    private void releasePreview() {
-        if (previewSurface != null) {
-            previewSurface.release();
-            previewSurface = null;
-        }
-        if (irPreviewSurface != null) { irPreviewSurface.release(); irPreviewSurface = null; }
-        for (SurfaceTexture texture : retiredTextures) texture.release();
-        retiredTextures.clear();
-    }
-
-    private boolean camerasIdle() { return cameras == null && !closing && !closeBarrier.isClosing(); }
+    private boolean camerasIdle() { return cameras == null && !closeBarrier.isClosing(); }
 
     private boolean canEditCameras() { return camerasIdle() && !requested && !permissionPending; }
 

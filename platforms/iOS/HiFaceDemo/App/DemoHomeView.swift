@@ -3,12 +3,19 @@ import UIKit
 import Darwin
 import os
 
+@MainActor
 struct DemoHomeView: View {
-    @State private var showsAbout = false
+    @Environment(\.openURL) private var openURL
+    @State private var websiteToast: UUID?
+    private let website = URL(string: "https://helloface.pages.dev/")!
 
     private var aboutTitle: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
         return DemoL10n.text("关于 HelloFace SDK {0}", [version])
+    }
+
+    private var websiteMessage: String {
+        DemoL10n.text("更多：{0}", [website.absoluteString])
     }
 
     var body: some View {
@@ -23,7 +30,7 @@ struct DemoHomeView: View {
                                 .foregroundStyle(.white.opacity(0.75))
                         }
                         Spacer()
-                        Button { showsAbout = true } label: {
+                        Button { openWebsite() } label: {
                             Image(systemName: "info.circle")
                                 .font(.title3)
                                 .frame(width: 44, height: 44)
@@ -63,7 +70,7 @@ struct DemoHomeView: View {
                         }
                     }
                     .buttonStyle(HomeFeatureButtonStyle())
-                    Button(aboutTitle) { showsAbout = true }
+                    Button(aboutTitle) { openWebsite() }
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.75))
                         .frame(maxWidth: .infinity, minHeight: 44)
@@ -77,17 +84,34 @@ struct DemoHomeView: View {
             .foregroundStyle(.white)
             .buttonStyle(.plain)
             .navigationBarHidden(true)
-            .demoDialog(isPresented: showsAbout, onDismiss: { showsAbout = false }) {
-                CameraDialogTitle(
-                    title: aboutTitle,
-                    subtitle: DemoL10n.text("更新以及更多说明：https://github.com/FaceSDKPro/"),
-                    symbol: "info.circle"
-                )
-                Button(DemoL10n.text("知道了")) { showsAbout = false }
+            .overlay(alignment: .bottom) {
+                if websiteToast != nil {
+                    Text(websiteMessage)
+                        .font(.footnote)
+                        .multilineTextAlignment(.center)
+                        .padding(12)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                        .padding(16)
+                        .allowsHitTesting(false)
+                }
+            }
+            .task(id: websiteToast) {
+                guard websiteToast != nil else { return }
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                if !Task.isCancelled { websiteToast = nil }
             }
             .preferredColorScheme(.dark)
         }
         .navigationViewStyle(.stack)
+    }
+
+    private func openWebsite() {
+        websiteToast = nil
+        openURL(website) { accepted in
+            if !accepted {
+                websiteToast = UUID()
+            }
+        }
     }
 
     private func copyDeviceInfo() {

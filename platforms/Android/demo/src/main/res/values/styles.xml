@@ -24,6 +24,17 @@
         <item name="android:src">@drawable/ic_camera_switch</item>
     </style>
 
+    <style name="Base.Widget.HiFace.Enrollment.Field" parent="Widget.AppCompat.EditText">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:inputType">text</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">12dp</item>
+    </style>
+
+    <style name="Widget.HiFace.Enrollment.Field" parent="Base.Widget.HiFace.Enrollment.Field" />
+
     <style name="ShapeAppearance.HiFace.Search.Dialog"
         parent="ShapeAppearance.MaterialComponents.MediumComponent">
         <item name="cornerSize">24dp</item>

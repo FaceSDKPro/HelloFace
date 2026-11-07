@@ -6,7 +6,6 @@ import com.hiface.sdk.search.FaceSearchResult;
 
 import java.util.List;
 import java.util.Arrays;
-import java.util.Locale;
 
 /**
  * Latest detection boxes and a bounded score-display cache; brief associations are for drawing only,
@@ -70,18 +69,14 @@ final class FaceSearchOverlayState {
             label = livenessRejected ? (identity.isEmpty() ? "" : identity + " · ")
                     + livenessRejectedLabel : identity;
             String similarity = matched && face.getSimilarity() != null
-                    ? similarityLabel + " " + formatScore(face.getSimilarity()) : "";
+                    ? similarityLabel + " " + SearchUi.formatScore(face.getSimilarity()) : "";
             String liveness = livenessScore != null
-                    ? livenessLabel + " " + formatScore(livenessScore) : "";
+                    ? livenessLabel + " " + SearchUi.formatScore(livenessScore) : "";
             details = similarity.isEmpty() ? liveness : liveness.isEmpty()
                     ? similarity : similarity + " · " + liveness;
             caption = matched && !livenessRejected && face.getSimilarity() != null
-                    ? matchCaption(face, livenessScore, true) : "";
+                    ? SearchUi.matchCaption(face.getFaceId(), face.getSimilarity(), livenessScore) : "";
         }
-    }
-
-    private static String formatScore(float score) {
-        return String.format(Locale.ROOT, "%.3f", score);
     }
 
     FaceSearchFrame frame() { return displayed; }
@@ -123,15 +118,8 @@ final class FaceSearchOverlayState {
             if (best == null || value.face.getSimilarity() > best.face.getSimilarity()) best = value;
         }
         if (best == null) return "";
-        return matchCaption(best.face, best.livenessScore, includeLiveness);
-    }
-
-    private static String matchCaption(FaceSearchFace face, Float livenessScore, boolean includeLiveness) {
-        String text = face.getFaceId() + String.format(Locale.ROOT, "=%.2f", face.getSimilarity());
-        if (includeLiveness && livenessScore != null && !Float.isNaN(livenessScore)
-                && !Float.isInfinite(livenessScore))
-            text += String.format(Locale.ROOT, ", Liveness=%.2f", livenessScore);
-        return text;
+        return SearchUi.matchCaption(best.face.getFaceId(), best.face.getSimilarity(),
+                includeLiveness ? best.livenessScore : null);
     }
 
     Float livenessScore() {

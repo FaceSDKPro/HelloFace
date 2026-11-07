@@ -71,7 +71,8 @@ HIFACE_PREVIEW_OUTPUT_WIDTH=576 HIFACE_PREVIEW_OUTPUT_HEIGHT=1024 \
 
 The optional preview path uses the board's `librga.so.2` for one-pass NV12/NV21 scaling, color conversion and camera rotation. RGA emits the X11-native BGRX order, and local X servers use MIT-SHM image upload when available, avoiding a full-frame CPU channel swap and socket copy. Both optimizations retain portable fallbacks. If the second ISP path or RGA is unavailable, the Demo falls back to the recognition stream without failing startup.
 
-On T92P, J3 white illumination is separate from J19 infrared and J4 RGB status LEDs. For RGB capture, the board init script runs `boards/t92p-lighting.sh prepare` as root, then sets `HIFACE_LIGHT_PWM_PATH=/sys/class/pwm/pwmchip0/pwm0` and `HIFACE_LIGHT_SENSOR_DEVICE=/dev/v4l-subdev5` (verify the `cv2002_720` sensor name). Only that white-light duty/enable pair is granted to the application; infrared remains off. Run the board script with `off` when stopping the service. The 1 kHz PWM follows the vendor driver. Camera exposure, calibrated analog gain and subsampled luma estimate low-light demand, not measured lux. Two seconds of darkness triggers a gradual ramp to 25%; separate bright/dark thresholds, a 15-second minimum hold and a six-second bright filter suppress flicker. Camera or telemetry loss switches white illumination off. Other boards remain unaffected without these environment variables.
+Desktop Linux builds use the camera without a board lighting controller. On a T92P Buildroot installation, enable the board backend with `-DHIFACE_LINUX_T92P_LIGHTING=ON` in the development checkout and use the board startup service. The backend controls J3 white illumination for RGB capture and can control J19 infrared illumination in a dual-camera development build.
+
 Check device permissions instead of running the Demo as root. After joining the `video` group, log out fully and back in.
 
 ## Desktop workflows

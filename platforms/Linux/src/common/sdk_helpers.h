@@ -3,7 +3,12 @@
 #include <array>
 #include <cstdlib>
 #include <fstream>
+#include <iomanip>
+#include <locale>
+#include <optional>
+#include <sstream>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 namespace hiface_linux_demo {
@@ -50,6 +55,49 @@ inline void check(HiFaceStatus status, const char* operation) {
     if (status != HIFACE_STATUS_OK)
         throw DemoError{std::string(operation) + ": " + statusName(status) + " (" + std::to_string(status) + ")", status};
 }
+
+inline const char* cameraSearchStatus(const HiFaceSearchCameraResultV1& result) {
+    switch (result.end_reason) {
+        case HIFACE_SEARCH_END_MATCH_FOUND: return "Match found";
+        case HIFACE_SEARCH_END_TIMEOUT: return "No match (timeout)";
+        case HIFACE_SEARCH_END_NO_FACE: return "No face";
+        case HIFACE_SEARCH_END_SPOOF_DETECTED: return "No match";
+        default: break;
+    }
+    switch (result.progress) {
+        case HIFACE_SEARCH_STAGE_EMPTY_GALLERY: return "No faces in scope";
+        case HIFACE_SEARCH_STAGE_FACE_TOO_SMALL: return "Move closer";
+        case HIFACE_SEARCH_STAGE_SEARCHING: return "Searching...";
+        case HIFACE_SEARCH_STAGE_SUCCESS_INTERVAL: return "Waiting...";
+        default: return "No face";
+    }
+}
+
+struct CameraSearchScores {
+    std::optional<float> similarity, liveness;
+    std::string face_id;
+
+    bool available() const { return similarity || liveness; }
+
+    bool exceeds(float similarity_threshold, std::optional<float> liveness_threshold) const {
+        return similarity && *similarity > similarity_threshold &&
+            (!liveness_threshold || (liveness && *liveness > *liveness_threshold));
+    }
+
+    std::string caption(bool show_liveness = true) const {
+        std::ostringstream text;
+        text.imbue(std::locale::classic());
+        text << (face_id.empty() ? "Similarity" : face_id) << '=' << std::fixed << std::setprecision(2);
+        if (similarity) text << *similarity;
+        else text << "—";
+        if (show_liveness) {
+            text << ", Liveness=";
+            if (liveness) text << *liveness;
+            else text << "—";
+        }
+        return text.str();
+    }
+};
 
 // Own one SDK session; configure the runtime before creation and destroy the handle on scope exit.
 // 管理单个 SDK 会话；创建前配置运行时，离开作用域时销毁句柄。

@@ -3,14 +3,21 @@
 #include <X11/Xlib.h>
 #include <algorithm>
 #include <array>
+#include <cerrno>
+#include <chrono>
 #include <clocale>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <dlfcn.h>
+#include <spawn.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <sys/wait.h>
 #include <utility>
+
+extern char** environ;
+
 namespace hiface_linux_demo {
 namespace {
 // Keep Xrender optional at build time just like Xlib. These declarations are
@@ -36,7 +43,7 @@ struct DesktopWindow::Impl {
     SharedMemorySegmentInfo shared_image{};
     bool shared_image_attached = false, shared_memory_disabled = false;
     RenderPicture source_picture = 0, destination_picture = 0;
-    std::array<XFontSet, 6> fonts{}; XIM input_method = nullptr; XIC input_context = nullptr;
+    std::array<XFontSet, size_t(Font::Result) + 1> fonts{}; XIM input_method = nullptr; XIC input_context = nullptr;
     Atom delete_window = 0, clipboard = 0, utf8 = 0, paste_property = 0, targets = 0, atom_type = 0, string_type = 0;
     int depth = 0, width = 1060, height = 740, physical_width = 1060, physical_height = 740;
     int min_width = 600, min_height = 540, buffer_width = 0, buffer_height = 0;
@@ -49,6 +56,8 @@ struct DesktopWindow::Impl {
     const CameraFrame* painted_frame = nullptr;
     std::shared_ptr<const std::vector<Box>> painted_camera_boxes;
     std::string paste_target, clipboard_text;
+    std::vector<pid_t> website_launches;
+    std::chrono::steady_clock::time_point website_toast_until{};
 #define FN(name) decltype(&name) name##_fn = nullptr
     FN(XOpenDisplay); FN(XCloseDisplay); FN(XDefaultScreen); FN(XDisplayWidth); FN(XDisplayHeight); FN(XDefaultVisual); FN(XDefaultDepth); FN(XRootWindow);
     FN(XCreateSimpleWindow); FN(XDestroyWindow); FN(XMapWindow); FN(XResizeWindow); FN(XStoreName); FN(XSelectInput);
@@ -439,6 +448,25 @@ void DesktopWindow::paint(const ViewState& state) { impl_->paint(state); }
 void DesktopWindow::smokePage(unsigned index) { impl_->ui.pageForSmoke(index); impl_->redraw = true; }
 std::vector<Command> DesktopWindow::events(const ViewState& state) {
     auto& ui = *impl_;
+    const auto now = std::chrono::steady_clock::now();
+    const auto showWebsiteToast = [&] {
+        ui.website_toast_until = now + std::chrono::seconds(3);
+        ui.ui.showWebsiteToast(true);
+        ui.redraw = true;
+    };
+    if (ui.website_toast_until != std::chrono::steady_clock::time_point{} && now >= ui.website_toast_until) {
+        ui.website_toast_until = {};
+        ui.ui.showWebsiteToast(false);
+        ui.redraw = true;
+    }
+    auto& launches = ui.website_launches;
+    launches.erase(std::remove_if(launches.begin(), launches.end(), [&](pid_t pid) {
+        int status = 0;
+        const auto result = waitpid(pid, &status, WNOHANG);
+        if (result == 0 || (result < 0 && errno == EINTR)) return false;
+        if (result < 0 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) showWebsiteToast();
+        return true;
+    }), launches.end());
     ui.syncRotation(state);
     while (ui.XPending_fn(ui.display)) {
         XEvent event{}; ui.XNextEvent_fn(ui.display, &event); if (ui.XFilterEvent_fn(&event, ui.window)) continue;
@@ -496,6 +524,21 @@ std::vector<Command> DesktopWindow::events(const ViewState& state) {
     }
     auto commands = ui.ui.takeCommands();
     commands.erase(std::remove_if(commands.begin(), commands.end(), [&](const Command& command) {
+        if (command.type == "open-website") {
+            char opener[] = "xdg-open";
+            std::string url = command.values.front();
+            char* args[] = {opener, url.data(), nullptr};
+            pid_t pid = 0;
+            if (posix_spawnp(&pid, opener, nullptr, nullptr, args, environ) == 0) {
+                launches.push_back(pid);
+                ui.website_toast_until = {};
+                ui.ui.showWebsiteToast(false);
+                ui.redraw = true;
+            } else {
+                showWebsiteToast();
+            }
+            return true;
+        }
         if (command.type == "copy-text" && !command.values.empty()) {
             ui.clipboard_text = command.values.front();
             ui.XSetSelectionOwner_fn(ui.display, ui.clipboard, ui.window, CurrentTime);

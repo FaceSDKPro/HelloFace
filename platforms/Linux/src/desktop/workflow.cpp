@@ -347,8 +347,7 @@ std::vector<Box> searchBoxes(const HiFaceSearchCameraResultV1& result, bool comp
         box.search_mark = matched ? SearchMark::Matched : rejected ? SearchMark::Rejected : SearchMark::Pending;
         if (result.progress == HIFACE_SEARCH_STAGE_EMPTY_GALLERY) box.label = "Empty gallery";
         else if (result.progress == HIFACE_SEARCH_STAGE_FACE_TOO_SMALL) box.label = "Move closer";
-        if (completed && result.end_reason == HIFACE_SEARCH_END_SPOOF_DETECTED) box.label = "Liveness rejected";
-        else if (matched) {
+        if (matched) {
             std::ostringstream caption;
             caption.imbue(std::locale::classic());
             caption << box.face_id << '=' << std::fixed << std::setprecision(2) << face.similarity;
@@ -381,19 +380,7 @@ bool FaceWorkflow::process(const CameraFrame& input) {
         HiFaceSearchCameraResultV1 result{}; result.struct_size = sizeof(result);
         check(hiface_search_batch_read_v1(raw, &result), "read camera search");
         boxes = searchBoxes(result);
-        switch (result.end_reason) {
-            case HIFACE_SEARCH_END_MATCH_FOUND: status = "Match found"; break;
-            case HIFACE_SEARCH_END_TIMEOUT: status = "No match (timeout)"; break;
-            case HIFACE_SEARCH_END_NO_FACE: status = "No face"; break;
-            case HIFACE_SEARCH_END_SPOOF_DETECTED: status = "Liveness rejected"; break;
-            default:
-                if (result.progress == HIFACE_SEARCH_STAGE_EMPTY_GALLERY) status = "No faces in scope";
-                else if (result.progress == HIFACE_SEARCH_STAGE_FACE_TOO_SMALL) status = "Move closer";
-                else if (result.progress == HIFACE_SEARCH_STAGE_SEARCHING) status = "Searching...";
-                else if (result.progress == HIFACE_SEARCH_STAGE_SUCCESS_INTERVAL) status = "Waiting...";
-                else status = "No face";
-        }
-        if (result.has_liveness_score) status += " | liveness " + score(result.liveness_score);
+        status = cameraSearchStatus(result);
     } else {
         std::array<HiFaceFaceV1, HIFACE_MAX_FACES> faces{};
         HiFaceFrameResultV1 result{}; result.struct_size = sizeof(result); result.faces = faces.data(); result.capacity = faces.size();

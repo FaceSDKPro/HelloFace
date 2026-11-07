@@ -49,8 +49,6 @@ import com.hiface.sdk.flow.FaceFlowProgress;
 import com.hiface.sdk.frame.Yuv420Frame;
 import com.hiface.sdk.frame.YuvColorMatrix;
 import com.hiface.sdk.frame.YuvColorRange;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * 双目模组的 RGB UVC 录入：直接给 SDK 稳定采集送 YUV，不打开内置相机或截图提特征。
@@ -60,7 +58,7 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
     private static final String GROUP = "uvcEnrollmentGroup";
     private final Handler main = new Handler(Looper.getMainLooper());
     private final UvcCameraCloseBarrier closeBarrier = new UvcCameraCloseBarrier();
-    private final List<SurfaceTexture> retiredTextures = new ArrayList<>();
+    private final UvcPreviewSurfaces surfaces = new UvcPreviewSurfaces();
     private HiFaceSdk sdk;
     private UvcEnrollmentState state;
     private UvcEnrollmentCameraSettings settings;
@@ -73,8 +71,7 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
     private TextureView preview;
     private FaceCaptureOverlayView overlay;
     private TextView status;
-    private Surface surface;
-    private boolean started, closing, saving;
+    private boolean started, saving;
     private volatile boolean running;
     private volatile long generation, lastFrameAt;
     private int rotation;
@@ -129,8 +126,9 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
             @Override public void onSurfaceTextureSizeChanged(SurfaceTexture texture, int width, int height) { transformPreview(); }
             @Override public boolean onSurfaceTextureDestroyed(SurfaceTexture texture) {
                 if (manager == null) return true;
-                retiredTextures.add(texture); stopCapture();
-                return false; // native 回调仍可能使用 Surface，等 onShutdown 排空后释放纹理。
+                surfaces.retain(texture);
+                stopCapture();
+                return false;
             }
             @Override public void onSurfaceTextureUpdated(SurfaceTexture texture) {}
         });
@@ -162,7 +160,7 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
         show(R.string.uvc_enroll_opening, false);
         try {
             captureRequest = sdk.capture().startCameraCapture(captureListener(epoch));
-            surface = new Surface(preview.getSurfaceTexture());
+            Surface surface = surfaces.open(preview);
             manager = new UvcCameraManager(this, cameraListener(epoch));
             manager.open(rgb, StreamConfig.defaults(), surface, (camera, frame) -> processFrame(frame, epoch));
             transformPreview();
@@ -201,8 +199,8 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
                 failCamera();
             }
             @Override public void onShutdown() {
-                manager = null; closing = false;
-                releasePreview();
+                manager = null;
+                surfaces.release();
                 closeBarrier.closed();
             }
         };
@@ -273,19 +271,18 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
     }
 
     private void stopCapture() {
-        running = false; ++generation;
+        // 先拒绝旧帧和异步结果，再释放采集请求、相机和预览。
+        running = false;
+        ++generation;
         main.removeCallbacks(watchdog);
         if (captureRequest != null) { captureRequest.cancel(); captureRequest = null; }
         if (overlay != null) overlay.resetCountdown();
-        if (manager != null && !closing) {
-            closing = true; closeBarrier.closing(); manager.close();
-        } else if (manager == null) releasePreview();
-    }
-
-    private void releasePreview() {
-        if (surface != null) { surface.release(); surface = null; }
-        for (SurfaceTexture texture : retiredTextures) texture.release();
-        retiredTextures.clear();
+        if (manager == null) {
+            surfaces.release();
+        } else if (!closeBarrier.isOwnerClosing()) {
+            closeBarrier.closing();
+            manager.close();
+        }
     }
 
     private void transformPreview() {
@@ -294,7 +291,7 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
     }
 
     private void show(int message, boolean canRetry) { status.setText(message); retry(canRetry); }
-    private void retry(boolean visible) { findViewById(R.id.uvcEnrollRetry).setVisibility(visible ? View.VISIBLE : View.INVISIBLE); }
+    private void retry(boolean visible) { findViewById(R.id.uvcEnrollRetry).setVisibility(visible ? View.VISIBLE : View.GONE); }
 
     @Override protected void onStart() {
         super.onStart(); started = true;

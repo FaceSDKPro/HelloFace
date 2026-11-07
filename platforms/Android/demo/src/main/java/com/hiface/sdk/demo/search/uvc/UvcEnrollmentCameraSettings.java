@@ -3,17 +3,13 @@ package com.hiface.sdk.demo.search.uvc;
 import android.hardware.usb.UsbDevice;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.facesdkpro.uvccamera.DualCameraSession;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.hiface.sdk.demo.R;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 
 /** 录入只选 RGB UVC。跨页面/旋转以设备地址及 VID/PID 重新匹配，不保存枚举下标。 */
 final class UvcEnrollmentCameraSettings {
@@ -21,64 +17,57 @@ final class UvcEnrollmentCameraSettings {
     private final AppCompatActivity owner;
     private final View form;
     private final Spinner device, rotation;
-    private final List<UsbDevice> devices = new ArrayList<>();
+    private final UvcCameraChoices cameras;
     private final Bundle desired;
     private AlertDialog dialog;
 
     UvcEnrollmentCameraSettings(AppCompatActivity owner, Bundle saved, Bundle source) {
         this.owner = owner;
+        cameras = new UvcCameraChoices(owner);
         desired = saved != null ? new Bundle(saved) : source == null ? new Bundle() : new Bundle(source);
         form = owner.getLayoutInflater().inflate(R.layout.view_uvc_enrollment_settings, null, false);
         device = form.findViewById(R.id.uvcEnrollDevice);
         rotation = form.findViewById(R.id.uvcEnrollRotation);
-        rotation.setAdapter(new ArrayAdapter<>(owner, android.R.layout.simple_spinner_dropdown_item,
-                Arrays.asList("0°", "90°", "180°", "270°")));
-        int degrees = desired.getInt(ROTATION);
-        rotation.setSelection(degrees >= 0 && degrees <= 270 && degrees % 90 == 0 ? degrees / 90 : 0);
+        UvcCameraChoices.bindRotation(rotation, desired.getInt(ROTATION));
         form.findViewById(R.id.uvcEnrollRefresh).setOnClickListener(v -> refresh());
     }
 
     static void putChoice(Bundle out, UsbDevice device, int rotation) {
         if (device != null) {
             out.putString(DEVICE, device.getDeviceName());
-            out.putInt(VENDOR, device.getVendorId()); out.putInt(PRODUCT, device.getProductId());
+            out.putInt(VENDOR, device.getVendorId());
+            out.putInt(PRODUCT, device.getProductId());
         }
         out.putInt(ROTATION, rotation);
     }
 
     void refresh() {
-        UsbDevice previous = selected();
-        if (previous != null) putChoice(desired, previous, rotation());
-        devices.clear();
-        List<String> names = new ArrayList<>(); names.add(owner.getString(R.string.uvc_search_select_camera));
-        int selection = 0, rgb = 0;
+        putChoice(desired, selected(), rotation());
+        int selection;
         try {
-            devices.addAll(DualCameraSession.devices(owner));
-            for (int i = 0; i < devices.size(); i++) {
-                UsbDevice candidate = devices.get(i);
-                String name = candidate.getProductName();
-                names.add(String.format(Locale.ROOT, "%s (%04X:%04X)", name == null ? candidate.getDeviceName() : name,
-                        candidate.getVendorId(), candidate.getProductId()));
-                if (candidate.getDeviceName().equals(desired.getString(DEVICE))
-                        && candidate.getVendorId() == desired.getInt(VENDOR)
-                        && candidate.getProductId() == desired.getInt(PRODUCT)) selection = i + 1;
-                if (name != null && name.toUpperCase(Locale.ROOT).contains("RGB")) rgb = rgb == 0 ? i + 1 : -1;
-            }
-            // 明确指定的设备消失时不改选另一台；没有来源选择时才预选名称唯一的 RGB。
-            if (!desired.containsKey(DEVICE)) selection = Math.max(0, rgb);
+            List<UsbDevice> devices = cameras.refresh();
+            // 指定设备拔出时保留原身份，重新连接前显示为未选择。
+            selection = desired.containsKey(DEVICE) ? desiredPosition(devices)
+                    : cameras.suggestedPosition(DualCameraSession.Role.RGB);
         } catch (RuntimeException error) {
-            devices.clear(); names.subList(1, names.size()).clear(); selection = 0;
+            cameras.clear();
+            selection = 0;
         }
-        device.setAdapter(new ArrayAdapter<>(owner, android.R.layout.simple_spinner_dropdown_item, names));
-        device.setSelection(selection);
+        cameras.bindDevices(device, selection);
     }
 
-    UsbDevice selected() {
-        int index = device.getSelectedItemPosition() - 1;
-        return index >= 0 && index < devices.size() ? devices.get(index) : null;
+    private int desiredPosition(List<UsbDevice> devices) {
+        for (int i = 0; i < devices.size(); i++) {
+            UsbDevice candidate = devices.get(i);
+            if (candidate.getDeviceName().equals(desired.getString(DEVICE))
+                    && candidate.getVendorId() == desired.getInt(VENDOR)
+                    && candidate.getProductId() == desired.getInt(PRODUCT)) return i + 1;
+        }
+        return 0;
     }
 
-    int rotation() { return Math.max(0, rotation.getSelectedItemPosition()) * 90; }
+    UsbDevice selected() { return cameras.selected(device); }
+    int rotation() { return UvcCameraChoices.rotationDegrees(rotation); }
 
     void show(Runnable dismissed) {
         if (dialog != null && dialog.isShowing()) return;
@@ -95,7 +84,8 @@ final class UvcEnrollmentCameraSettings {
         putChoice(desired, selected(), rotation());
         if (desired.containsKey(DEVICE)) {
             out.putString(DEVICE, desired.getString(DEVICE));
-            out.putInt(VENDOR, desired.getInt(VENDOR)); out.putInt(PRODUCT, desired.getInt(PRODUCT));
+            out.putInt(VENDOR, desired.getInt(VENDOR));
+            out.putInt(PRODUCT, desired.getInt(PRODUCT));
         }
         out.putInt(ROTATION, rotation());
     }

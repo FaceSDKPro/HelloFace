@@ -65,12 +65,21 @@
         <item name="android:textColorSecondary">@color/text_on_dark_secondary</item>
         <item name="colorPrimary">@color/search_accent</item>
     </style>
-    <!-- UVC 录入沿用普通采集的白色圆框，表单使用 Material 输入控件。 -->
-    <style name="Theme.HiFace.UvcEnrollment" parent="Theme.MaterialComponents.Light.NoActionBar">
-        <item name="android:windowBackground">@android:color/white</item>
-        <item name="android:statusBarColor">@android:color/white</item>
+    <!-- UVC 录入沿用普通采集的白色遮罩，页面背景与其他浅色内容页一致。 -->
+    <style name="Theme.HiFace.UvcEnrollment" parent="Theme.HiFace.UvcEnrollment.Base" />
+
+    <style name="Theme.HiFace.UvcEnrollment.Base" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="android:windowBackground">@color/content_background</item>
+        <item name="android:statusBarColor">@color/content_background</item>
+        <item name="android:navigationBarColor">@color/content_background</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="colorPrimary">@color/content_accent</item>
         <item name="colorSecondary">@color/content_accent</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.HiFace.UvcEnrollment.Dialog</item>
+    </style>
+
+    <style name="ThemeOverlay.HiFace.UvcEnrollment.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.HiFace.Search.Dialog</item>
+        <item name="android:windowSoftInputMode">adjustResize|stateAlwaysHidden</item>
     </style>
 </resources>

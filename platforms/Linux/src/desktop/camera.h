@@ -15,6 +15,7 @@ struct CameraFrame {
     // Rockchip BGRX 字节序与小端 X11 的 0x00RRGGBB 视觉格式一致，可直接上传而无需 CPU 逐像素交换通道。
     bool x11_bgrx = false;
     HiFaceYuv420FrameV1 view() const;
+    void expandInfraredRgba();
 };
 // Owns a copy of one V4L2 payload. It stays valid after the MMAP buffer is requeued.
 struct RawCameraFrame {

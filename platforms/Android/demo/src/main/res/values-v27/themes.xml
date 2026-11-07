@@ -3,6 +3,10 @@
         <item name="android:windowLightNavigationBar">false</item>
     </style>
 
+    <style name="Theme.HiFace.UvcEnrollment" parent="Theme.HiFace.UvcEnrollment.Base">
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+
     <style name="Theme.HiFace.Content" parent="Theme.HiFace">
         <item name="android:windowBackground">@android:color/white</item>
         <item name="android:statusBarColor">@android:color/white</item>

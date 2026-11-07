@@ -1,23 +1,40 @@
 #pragma once
-#include "camera.h"
-#include "light_policy.h"
+#include <memory>
+#include <string>
 
 namespace hiface_linux_demo {
-// The capture thread alone owns the light controller. Sysfs preparation and
-// permission grants are performed by the board's root startup script.
-// 仅采集线程持有补光控制器；sysfs 初始化与访问权限由板级 root 启动脚本配置。
+// One controller per capture worker. The selected backend owns the hardware.
 class CameraLighting {
 public:
     CameraLighting();
     ~CameraLighting();
-    void update(const CameraFrame* frame, bool active);
-    void stop();
-    const std::string& status() const { return status_; }
+    void bindCamera(const std::string& camera);
+    bool setActive(bool active) noexcept;
 private:
-    bool setDuty(int percent);
-    std::string pwm_path_, sensor_path_, status_;
-    AutoLightPolicy policy_;
-    int sensor_fd_ = -1, duty_ = -1;
-    int64_t next_sample_ = 0, last_frame_ = 0;
+    struct Board;
+    std::unique_ptr<Board> board_;
+};
+
+class InfraredLighting {
+public:
+    explicit InfraredLighting(const std::string& camera);
+    ~InfraredLighting();
+    bool configured() const { return bool(board_); }
+    void setActive(bool active) noexcept;
+private:
+    struct Board;
+    std::unique_ptr<Board> board_;
+};
+
+enum class SearchLightColor { off, red, green, blue };
+
+class SearchStatusLighting {
+public:
+    SearchStatusLighting();
+    ~SearchStatusLighting();
+    void setColor(SearchLightColor color) noexcept;
+private:
+    struct Board;
+    std::unique_ptr<Board> board_;
 };
 }

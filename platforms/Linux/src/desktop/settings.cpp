@@ -138,17 +138,6 @@ DemoSettings loadSettings(const std::string& file) {
         require(found, "Unknown saved setting: " + key);
     }
     require(input.eof(), "Invalid settings file");
-    // Old files had one custom sequence shared by both flows. Preserve it
-    // during migration; fresh installations use Android's random defaults.
-    if (seen.count("actions") && !seen.count("random_actions")) {
-        std::string old_actions, old_multiple;
-        for (auto& field : fields) { if (field.key == "actions") old_actions = field.value; if (field.key == "allow_multiple") old_multiple = field.value; }
-        for (auto& field : fields) {
-            if (field.key == "random_actions" || field.key == "verification_random_actions") field.value = "0";
-            if (field.key == "verification_actions" && !seen.count(field.key)) field.value = old_actions;
-            if (field.key == "verification_allow_multiple" && !seen.count(field.key)) field.value = old_multiple;
-        }
-    }
     return parseSettings(fields);
 }
 void saveSettings(const std::string& file, const DemoSettings& settings) {

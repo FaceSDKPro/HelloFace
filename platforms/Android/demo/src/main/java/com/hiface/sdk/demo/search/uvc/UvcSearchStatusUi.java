@@ -10,13 +10,13 @@ import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.hiface.sdk.demo.R;
+import com.hiface.sdk.demo.search.SearchUi;
 import com.hiface.sdk.search.FaceSearchFace;
 import com.hiface.sdk.search.FaceSearchFrame;
 import com.hiface.sdk.search.FaceSearchProgress;
 import com.hiface.sdk.search.FaceSearchResult;
 import com.hiface.sdk.search.FaceSearchSessionConfig;
 import com.hiface.sdk.search.InfraredSearchInfo;
-import java.util.Locale;
 
 /** 实时引导与最近一次完整采样分开展示；短暂保留的是展示快照，不是跨帧身份或放行状态。 */
 final class UvcSearchStatusUi {
@@ -26,10 +26,10 @@ final class UvcSearchStatusUi {
     private final Handler handler;
     private FaceSearchProgress.Stage stage = FaceSearchProgress.Stage.WAITING_FOR_FACE;
     private InfraredSearchInfo infrared;
-    private boolean multipleFaces, statusPending, resultIsMatch, waitingPair;
+    private boolean multipleFaces, resultIsMatch, waitingPair;
     private int successInterval;
     private long newestFrame = -1, invalidatedThrough = -1, resultDeadline, nextResultUpdate;
-    private String resultText, fullResult, resultKey, pendingResult, pendingFullResult;
+    private String fullResult, resultKey, pendingResult, pendingFullResult;
     @StringRes private int pendingStatus;
     private AlertDialog detailsDialog;
 
@@ -73,9 +73,10 @@ final class UvcSearchStatusUi {
     }
 
     void frame(FaceSearchFrame frame) {
-        if (frame.getFrameId() < newestFrame || frame.getFrameId() <= invalidatedThrough) return;
+        long frameId = frame.getFrameId();
+        if (frameId < newestFrame || frameId <= invalidatedThrough) return;
         waitingPair = false;
-        newestFrame = frame.getFrameId();
+        newestFrame = frameId;
         infrared = frame.getInfrared();
         // 新检测帧不再清空完整结果；离人、缺帧或 IR 拒绝时立即清除旧成功快照。
         if (frame.getFaces().isEmpty() || missingPair() || (resultIsMatch && invalidInfrared())) clearResult();
@@ -105,22 +106,22 @@ final class UvcSearchStatusUi {
         }
         String text, key = result.getEndReason() + "/" + (infrared == null ? "" : infrared.getStatus());
         int hint = 0;
-        boolean match = recognized(result);
-        if (match) {
-            text = matchCaption(result);
-            key = "match/" + matchingFace(result).getFaceId();
+        FaceSearchFace match = confirmedMatch(result);
+        if (match != null) {
+            text = matchCaption(match, infrared);
+            key = "match/" + match.getFaceId();
         } else if (result.getEndReason() == FaceSearchResult.EndReason.SPOOF_DETECTED
                 || (infrared != null && infrared.getStatus() == InfraredSearchInfo.Status.REJECTED)) {
-            text = context.getString(R.string.uvc_search_ir_rejected);
+            text = context.getString(R.string.search_spoof);
             hint = R.string.uvc_search_ir_rejected_hint;
         } else if (infrared != null && infrared.isPassed()) {
-            text = context.getString(R.string.uvc_search_timeout);
+            text = context.getString(R.string.search_ui_overlay_unmatched);
             hint = R.string.uvc_search_unmatched_hint;
         } else {
             text = context.getString(R.string.uvc_search_ir_unavailable);
             hint = infraredHint();
         }
-        boolean first = resultText == null;
+        boolean first = fullResult == null;
         long now = SystemClock.uptimeMillis();
         resultDeadline = now + RESULT_HOLD_MS;
         pendingResult = text;
@@ -130,41 +131,46 @@ final class UvcSearchStatusUi {
         if (!key.equals(resultKey) || now >= nextResultUpdate) renderResult.run();
         else handler.postAtTime(renderResult, nextResultUpdate);
         resultKey = key;
-        resultIsMatch = match;
+        resultIsMatch = match != null;
         if (first) handler.postDelayed(expire, RESULT_HOLD_MS);
         render();
     }
 
     static boolean recognized(FaceSearchResult result) {
-        InfraredSearchInfo info = result.getFrame().getInfrared();
-        return result.getEndReason() == FaceSearchResult.EndReason.MATCH_FOUND
-                && info != null && info.isPassed() && matchingFace(result) != null;
+        return confirmedMatch(result) != null;
     }
 
     /** 与普通搜索页采用相同摘要语法；Liveness 始终取同一结果的 IR 分数，不读取 RGB 活体分数。 */
     static String matchCaption(FaceSearchResult result) {
-        if (!recognized(result)) return "";
-        FaceSearchFace face = matchingFace(result);
-        return face.getFaceId() + String.format(Locale.ROOT, "=%.2f, Liveness=%.2f",
-                face.getSimilarity(), result.getFrame().getInfrared().getRealScore());
+        FaceSearchFace match = confirmedMatch(result);
+        return match == null ? "" : matchCaption(match, result.getFrame().getInfrared());
     }
 
-    private static FaceSearchFace matchingFace(FaceSearchResult result) {
+    private static String matchCaption(FaceSearchFace face, InfraredSearchInfo infrared) {
+        return SearchUi.matchCaption(face.getFaceId(), face.getSimilarity(), infrared.getRealScore());
+    }
+
+    private static FaceSearchFace confirmedMatch(FaceSearchResult result) {
+        // 身份和红外活体必须在同一结果里通过，摘要和详情共用该人脸。
+        FaceSearchFrame frame = result.getFrame();
+        InfraredSearchInfo infrared = frame.getInfrared();
+        if (result.getEndReason() != FaceSearchResult.EndReason.MATCH_FOUND
+                || infrared == null || !infrared.isPassed()) return null;
         FaceSearchFace best = null;
-        for (FaceSearchFace face : result.getFrame().getFaces())
+        for (FaceSearchFace face : frame.getFaces())
             if (validMatch(face) && (best == null || face.getSimilarity() > best.getSimilarity())) best = face;
         return best;
     }
 
-    private String resultDetails(FaceSearchResult result, String caption, boolean match, @StringRes int hint) {
+    private String resultDetails(FaceSearchResult result, String caption, FaceSearchFace match, @StringRes int hint) {
         FaceSearchFrame frame = result.getFrame();
-        FaceSearchFace face = match ? matchingFace(result) : frame.getFaces().isEmpty() ? null : frame.getFaces().get(0);
-        String title = match ? "Face ID: " + face.getFaceId() : caption;
+        FaceSearchFace face = match != null ? match : frame.getFaces().isEmpty() ? null : frame.getFaces().get(0);
+        String title = match != null ? context.getString(R.string.uvc_search_result_face_id, match.getFaceId()) : caption;
         InfraredSearchInfo info = frame.getInfrared();
         // 低相似度与 0 分均按原样显示；未执行用 —，活体拒绝不展示候选身份为识别成功。
         return title + "\n" + context.getString(R.string.search_ui_overlay_similarity) + " "
                 + detailScore(face == null ? null : face.getSimilarity()) + " · "
-                + context.getString(R.string.uvc_search_ir_liveness) + " "
+                + context.getString(R.string.search_ui_overlay_liveness) + " "
                 + detailScore(info == null ? null : info.getRealScore())
                 + (hint == 0 ? "" : "\n" + context.getString(hint));
     }
@@ -196,27 +202,28 @@ final class UvcSearchStatusUi {
     private void clearResult() {
         handler.removeCallbacks(expire);
         handler.removeCallbacks(renderResult);
-        resultText = fullResult = resultKey = pendingResult = pendingFullResult = null;
+        fullResult = resultKey = pendingResult = pendingFullResult = null;
         resultDeadline = nextResultUpdate = 0;
         resultIsMatch = false;
-        setText(resultView, context.getString(R.string.uvc_search_no_result));
-        resultView.setContentDescription(context.getString(R.string.uvc_search_no_result));
+        String placeholder = context.getString(R.string.uvc_search_no_result);
+        setText(resultView, placeholder);
+        resultView.setContentDescription(placeholder);
         resultView.setClickable(false);
     }
 
     private void cancelStatus() {
         handler.removeCallbacks(renderStatus);
-        statusPending = false;
         pendingStatus = 0;
     }
 
     private void render() {
-        pendingStatus = guidance();
+        int next = guidance();
         // 合并 frame/progress 的中间状态；实时引导最多 4Hz，文本相同不重复 setText。
-        if (TextUtils.equals(status.getText(), context.getText(pendingStatus))) cancelStatus();
-        else if (!statusPending) {
-            statusPending = true;
-            handler.postDelayed(renderStatus, STATUS_REFRESH_MS);
+        if (TextUtils.equals(status.getText(), context.getText(next))) {
+            cancelStatus();
+        } else {
+            if (pendingStatus == 0) handler.postDelayed(renderStatus, STATUS_REFRESH_MS);
+            pendingStatus = next;
         }
     }
 
@@ -231,21 +238,22 @@ final class UvcSearchStatusUi {
         if (stage == FaceSearchProgress.Stage.SUCCESS_INTERVAL && successInterval > 0)
             return R.string.search_ui_interval_title;
         return stage == FaceSearchProgress.Stage.WAITING_FOR_FACE
-                ? R.string.uvc_search_waiting_face : R.string.uvc_search_checking;
+                ? R.string.search_waiting : R.string.search_searching;
     }
 
     private void publishStatus() {
-        statusPending = false;
-        if (pendingStatus != 0) setText(status, context.getString(pendingStatus));
+        int next = pendingStatus;
+        pendingStatus = 0;
+        if (next != 0) setText(status, context.getString(next));
     }
 
     private void publishResult() {
         if (pendingResult == null) return;
         if (SystemClock.uptimeMillis() >= resultDeadline) { clearResult(); return; }
-        resultText = pendingResult;
+        String text = pendingResult;
         fullResult = pendingFullResult;
         pendingResult = pendingFullResult = null;
-        setText(resultView, resultText);
+        setText(resultView, text);
         resultView.setContentDescription(fullResult);
         resultView.setClickable(true);
         nextResultUpdate = SystemClock.uptimeMillis() + RESULT_REFRESH_MS;
@@ -269,9 +277,8 @@ final class UvcSearchStatusUi {
             case MULTIPLE_FACES: return R.string.capture_status_multiple_faces;
             case NO_FACE: return R.string.uvc_search_no_ir_face;
             case FACE_MISMATCH: return R.string.uvc_search_face_mismatch;
-            case FACE_TOO_SMALL: return R.string.uvc_search_ir_face_too_small;
-            case PASSED: return R.string.uvc_search_ir_passed;
-            case REJECTED: return R.string.uvc_search_ir_rejected_hint;
+            case FACE_TOO_SMALL: return R.string.search_ui_move_closer;
+            case REJECTED: return R.string.search_spoof;
             default: return 0;
         }
     }
@@ -281,6 +288,6 @@ final class UvcSearchStatusUi {
     }
 
     private static String detailScore(Float value) {
-        return value == null ? "—" : String.format(Locale.ROOT, "%.3f", value);
+        return value == null ? "—" : SearchUi.formatScore(value);
     }
 }

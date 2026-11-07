@@ -20,7 +20,9 @@ enum DemoPage {
   IMAGE_SEARCH, COMPARISON, CAMERA_SETTINGS, SEARCH_LIBRARY, SEARCH_ENROLLMENT
 }
 
-/** 根页面拥有 SDK 和功能导航；1:1 基准的 HUKS 文件仅用于 Demo，与 SDK 的 runtime.db 授权状态独立。 */
+const WEBSITE_URL: string = 'https://helloface.pages.dev/';
+
+/** 根页面拥有 SDK 和功能导航；1:1 基准文件仅用于 Demo。 */
 @Entry
 @Component
 struct Index {
@@ -286,7 +288,7 @@ struct Index {
           Button({ type: ButtonType.Normal }) {
             Image($r('app.media.ic_api_info')).width(20).height(20)
           }.width(40).height(40).borderRadius(20).backgroundColor(DemoTheme.surfaceOnDark)
-          .accessibilityText(this.aboutTitle()).onClick(() => this.showAbout())
+          .accessibilityText(this.aboutTitle()).onClick(() => this.openWebsite())
         }.width('100%')
         Text(this.deviceText).fontSize(10).fontColor(DemoTheme.textOnDarkSecondary)
           .width('100%').textAlign(TextAlign.End).padding({ right: 4 }).margin({ top: 11, bottom: 12 })
@@ -315,7 +317,7 @@ struct Index {
           DemoL10n.text("设置分析分辨率与坐标镜像"), (): void => this.navigate(DemoPage.CAMERA_SETTINGS))
         Text(this.aboutTitle()).height(42).fontSize(12).fontColor(DemoTheme.textOnDarkSecondary)
           .width('100%').textAlign(TextAlign.Center).margin({ top: 3 })
-          .onClick(() => this.showAbout())
+          .onClick(() => this.openWebsite())
       }.padding({ left: 20, right: 20, top: 16, bottom: 20 }).width('100%')
     }.width('100%').height('100%').scrollBar(BarState.Off)
   }
@@ -376,7 +378,12 @@ struct Index {
     try { this.getUIContext().getPromptAction().showToast({ message: message }); } catch (_) {}
   }
 
-  private showAbout(): void {
-    this.showToast(DemoL10n.text("更新以及更多说明：https://github.com/FaceSDKPro/"));
+  private async openWebsite(): Promise<void> {
+    try {
+      const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      await context.openLink(WEBSITE_URL, { appLinkingOnly: false });
+    } catch (_) {
+      this.showToast(DemoL10n.text("更多：{0}", [WEBSITE_URL]));
+    }
   }
 }

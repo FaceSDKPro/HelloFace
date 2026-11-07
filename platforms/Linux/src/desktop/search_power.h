@@ -1,5 +1,6 @@
 #pragma once
 #include "hiface/hiface_contract_v1.h"
+#include "light_policy.h"
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
@@ -18,17 +19,21 @@ public:
     void observe(int64_t now, bool has_face) {
         if (now < 0) { reset(); return; }
         if (last_frame_ >= 0 && (now < last_frame_ || now - last_frame_ >= 3000)) reset();
+        else if (last_frame_ >= 0 && now - last_frame_ >= kSearchLightFreshnessMs) light_.reset();
         last_frame_ = now;
-        if (has_face) { no_face_since_ = -1; idle_ = false; return; }
-        if (no_face_since_ < 0) no_face_since_ = now;
-        idle_ = now - no_face_since_ >= HIFACE_IDLE_NO_FACE_TIMEOUT_MS;
+        if (has_face) no_face_since_ = -1;
+        else if (no_face_since_ < 0) no_face_since_ = now;
+        idle_ = no_face_since_ >= 0 && now - no_face_since_ >= HIFACE_IDLE_NO_FACE_TIMEOUT_MS;
+        light_.observe(has_face, idle_);
     }
-    void reset() { last_frame_ = no_face_since_ = -1; idle_ = false; }
+    void reset() { last_frame_ = no_face_since_ = -1; idle_ = false; light_.reset(); }
     bool idle() const { return idle_; }
+    bool lightOn() const { return light_.on(); }
     int64_t analysisInterval() const { return idle_ ? HIFACE_IDLE_FRAME_INTERVAL_MS : 125; }
 private:
     int64_t last_frame_ = -1, no_face_since_ = -1;
     bool idle_ = false;
+    SearchLightPolicy light_;
 };
 
 // sysfs backlight is global: use an unambiguous writable device and restore on exit.

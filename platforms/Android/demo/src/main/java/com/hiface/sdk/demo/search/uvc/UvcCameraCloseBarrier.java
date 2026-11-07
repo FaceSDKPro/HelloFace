@@ -12,12 +12,18 @@ final class UvcCameraCloseBarrier {
     private Runnable ready;
 
     boolean isClosing() { return pending != 0; }
-    void closing() { ++ownPending; ++pending; }
+    boolean isOwnerClosing() { return ownPending != 0; }
+
+    void closing() {
+        ++ownPending;
+        ++pending;
+    }
 
     // 只在页面可见期间注册；onStop 移除，不由静态集合保留后台 Activity。
     void listen(Runnable listener) {
         ready = listener;
-        if (listener == null) listeners.remove(this); else listeners.add(this);
+        if (listener == null) listeners.remove(this);
+        else listeners.add(this);
     }
 
     void closed() {
@@ -25,6 +31,7 @@ final class UvcCameraCloseBarrier {
         if (ownPending == 0) return;
         --ownPending;
         if (--pending != 0) return;
+        // 回调可能切换页面并改动订阅集合，按快照通知。
         for (UvcCameraCloseBarrier owner : new ArrayList<>(listeners))
             if (owner.ready != null) owner.ready.run();
     }

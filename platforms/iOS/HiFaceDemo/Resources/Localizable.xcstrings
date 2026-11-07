@@ -4685,19 +4685,19 @@
         }
       }
     },
-    "更新以及更多说明：https://github.com/FaceSDKPro/" : {
+    "更多：{0}" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Updates and details: https://github.com/FaceSDKPro/"
+            "value" : "More: {0}"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "更新以及更多说明：https://github.com/FaceSDKPro/"
+            "value" : "更多：{0}"
           }
         }
       }

@@ -29,13 +29,26 @@ import com.hiface.sdk.common.HiFaceError;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.ui.DemoErrorUi;
 
+import java.util.Locale;
+
 /**
  * Shared search-screen theme, form controls, and error text.
  *
  * 搜索页面共用的主题、表单控件和错误文案。
  */
-final class SearchUi {
+public final class SearchUi {
     private SearchUi() {}
+
+    public static String matchCaption(String faceId, float similarity, Float liveness) {
+        String text = faceId + String.format(Locale.ROOT, "=%.2f", similarity);
+        if (liveness != null && !Float.isNaN(liveness) && !Float.isInfinite(liveness))
+            text += String.format(Locale.ROOT, ", Liveness=%.2f", liveness);
+        return text;
+    }
+
+    public static String formatScore(float score) {
+        return String.format(Locale.ROOT, "%.3f", score);
+    }
 
     static int dp(Context context, float value) {
         return Math.round(value * context.getResources().getDisplayMetrics().density);

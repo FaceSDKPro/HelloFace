@@ -272,7 +272,7 @@ export const DEMO_TEXT_RESOURCES: Record<string, DemoTextResource> = {
   "暂时无法访问人脸库，请稍后重试。": { name: "demo_7c4c418e51c7", english: "The face library is unavailable. Try again later." },
   "暂时无法读取人脸库": { name: "demo_6feda3da10e6", english: "Unable to read the face library" },
   "更多参数：间隔与超时": { name: "demo_2ead765a75b1", english: "More settings: interval and timeout" },
-  "更新以及更多说明：https://github.com/FaceSDKPro/": { name: "demo_6e523fed0f28", english: "Updates and details: https://github.com/FaceSDKPro/" },
+  "更多：{0}": { name: "demo_4a3de4c25133", english: "More: {0}" },
   "最多检测 10 张脸 · 匹配阈值 0.80 · 不检测活体": { name: "demo_22c4f754b252", english: "Up to 10 faces · Threshold 0.80 · No liveness check" },
   "最终采样超时": { name: "demo_46932c18c2e9", english: "Final capture timed out" },
   "未保存本次样本，请重新录入": { name: "demo_23fb42b6cccc", english: "This capture was not saved. Enroll it again." },

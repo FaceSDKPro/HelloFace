@@ -1,4 +1,4 @@
-# HiFace iOS SDK 0.8.7
+# HiFace iOS SDK 0.8.8
 
 [English](README.md) | 简体中文
 

@@ -7,19 +7,20 @@ import com.hiface.sdk.search.InfraredSearchDiagnostics;
 import com.hiface.sdk.search.InfraredSearchInfo;
 import java.util.Locale;
 
-/** Formats only numeric diagnostics; image buffers, feature vectors and identity never enter this panel. */
+/** 将数值快照转换为调试文案，格式化期间不访问相机或持有图像。 */
 final class RgbIrDiagnosticsFormatter {
     private RgbIrDiagnosticsFormatter() {}
-    static String format(Context context, RgbIrSearchStats.Snapshot s, PairingDiagnostics p) {
-        String pairing = p == null ? "—" : context.getString(R.string.uvc_debug_pairing,
-                p.state.name(), p.rgbFrames, p.irFrames, p.dispatchedPairs,
-                p.replacedRgb + p.replacedIr, p.expiredRgb + p.expiredIr,
-                p.skewRgb + p.skewIr, p.outOfOrderRgb + p.outOfOrderIr,
-                p.lastConsumerDurationNanos / 1e6, p.maxConsumerDurationNanos / 1e6);
-        InfraredSearchInfo info = s.latest;
-        return context.getString(R.string.uvc_debug_summary, s.pairsPerSecond,
-                s.pairs, s.accepted, s.skipped, s.errors, s.scored, s.unavailable,
-                summary(s.skew), summary(s.age), summary(s.sdk), pairing,
+
+    static String format(Context context, RgbIrSearchStats.Snapshot stats, PairingDiagnostics pairing) {
+        String pairingText = pairing == null ? "—" : context.getString(R.string.uvc_debug_pairing,
+                pairing.state.name(), pairing.rgbFrames, pairing.irFrames, pairing.dispatchedPairs,
+                pairing.replacedRgb + pairing.replacedIr, pairing.expiredRgb + pairing.expiredIr,
+                pairing.skewRgb + pairing.skewIr, pairing.outOfOrderRgb + pairing.outOfOrderIr,
+                pairing.lastConsumerDurationNanos / 1e6, pairing.maxConsumerDurationNanos / 1e6);
+        InfraredSearchInfo info = stats.latest;
+        return context.getString(R.string.uvc_debug_summary, stats.pairsPerSecond,
+                stats.pairs, stats.accepted, stats.skipped, stats.errors, stats.scored, stats.unavailable,
+                summary(stats.skew), summary(stats.age), summary(stats.sdk), pairingText,
                 info == null ? "—" : Long.toString(info.getPairId()),
                 info == null ? "—" : info.getStatus().name(),
                 timing(info, InfraredSearchDiagnostics.Stage.RGB_DETECTION),
@@ -27,13 +28,16 @@ final class RgbIrDiagnosticsFormatter {
                 timing(info, InfraredSearchDiagnostics.Stage.IR_DETECTION),
                 timing(info, InfraredSearchDiagnostics.Stage.IR_LIVENESS),
                 timing(info, InfraredSearchDiagnostics.Stage.FEATURE),
-                timing(info, InfraredSearchDiagnostics.Stage.LOOKUP), s.idleSkipped);
+                timing(info, InfraredSearchDiagnostics.Stage.LOOKUP), stats.idleSkipped);
     }
-    private static String summary(RgbIrSearchStats.Summary s) {
-        return s.count == 0 ? "—" : String.format(Locale.ROOT, "%.1f / %.1f / %.1f ms (n=%d)", s.mean, s.p95, s.max, s.count);
+
+    private static String summary(RgbIrSearchStats.Summary sample) {
+        return sample.count == 0 ? "—" : String.format(Locale.ROOT, "%.1f / %.1f / %.1f ms (n=%d)",
+                sample.mean, sample.p95, sample.max, sample.count);
     }
+
     private static String timing(InfraredSearchInfo info, InfraredSearchDiagnostics.Stage stage) {
-        Long us = info == null ? null : info.getDiagnostics().getDurationMicros(stage);
-        return us == null ? "—" : String.format(Locale.ROOT, "%.3f", us / 1000.0);
+        Long micros = info == null ? null : info.getDiagnostics().getDurationMicros(stage);
+        return micros == null ? "—" : String.format(Locale.ROOT, "%.3f", micros / 1000.0);
     }
 }
