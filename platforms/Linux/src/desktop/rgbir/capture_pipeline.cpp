@@ -116,7 +116,8 @@ Capture::Capture(Camera& rgb, Camera& ir, LatestPair& latest, Preview preview, L
             if (lighting) lighting(light_on_.load(std::memory_order_relaxed));
         }
     } catch (...) { latest.fail(std::current_exception()); }
-    if (lighting) lighting(false);
+    try { if (lighting) lighting(false); }
+    catch (...) { latest.fail(std::current_exception()); }
 }) {}
 Capture::~Capture() { stop_.store(true, std::memory_order_relaxed); worker_.join(); }
 }

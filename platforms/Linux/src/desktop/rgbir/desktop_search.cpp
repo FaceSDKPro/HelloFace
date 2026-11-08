@@ -44,7 +44,9 @@ void DesktopSearch::run(const std::string& database, const RgbIrSettings& settin
         SearchCallbacks callbacks;
         callbacks.interruption_grace_ms = pair_gap_ms;
         if (infrared_light.configured())
-            callbacks.lighting = [&](bool active) { infrared_light.setActive(active); };
+            callbacks.lighting = [&](bool active) {
+                require(infrared_light.setActive(active), "Infrared light GPIO write failed; search stopped");
+            };
         callbacks.preview = [&](const RawCameraFrame& rgb, const RawCameraFrame& ir) {
             // Skip the entire display pair if the renderer still holds a buffer.
             auto color = rgb_pool.acquire(), infrared = ir_pool.acquire();

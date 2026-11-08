@@ -2,6 +2,7 @@
 #include "navigation.h"
 #include "camera.h"
 #include "search_power.h"
+#include "lighting.h"
 #include <iostream>
 #include <cstdlib>
 #include <csignal>
@@ -15,11 +16,16 @@ void logMessage(HiFaceLogLevel level, const char* tag, const char* message, void
 }
 }
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "--capabilities") {
+        std::cout << lightingCapabilities() << '\n';
+        return 0;
+    }
     const bool help = argc == 2 && std::string(argv[1]) == "--help";
     const bool camera_test = argc == 3 && std::string(argv[1]) == "--camera-test";
     const bool preview_test = argc == 5 && std::string(argv[1]) == "--preview-test";
     if (help || (!camera_test && !preview_test && (argc < 3 || argc > 4))) {
         std::cout << "Usage: hiface_desktop MODEL_DIR DATABASE [CAMERA_DEVICE|--smoke-test]\n"
+                     "       hiface_desktop --capabilities\n"
                      "       hiface_desktop --camera-test CAMERA_DEVICE\n"
                      "       hiface_desktop --preview-test CAMERA_DEVICE OUTPUT_WIDTH OUTPUT_HEIGHT\n"
                      "Home opens eight feature pages; Back or Esc returns to the previous page and stops its flow. F1 Search, F2 Photos / comparison, F3 Face capture, F4 SDK Settings, F5 Image search.\n"
@@ -28,6 +34,10 @@ int main(int argc, char** argv) {
     }
     bool restart = false;
     try {
+        const char* ir_gpio = std::getenv("HIFACE_IR_LIGHT_GPIO_VALUE");
+        const char* ir_camera = std::getenv("HIFACE_IR_LIGHT_CAMERA_DEVICE");
+        if ((ir_gpio && *ir_gpio) || (ir_camera && *ir_camera))
+            require(std::string(lightingBackend()) == "t92p", "This Demo does not include the required T92P infrared lighting backend");
         if (camera_test) {
             Camera camera; CameraFrame frame;
             camera.open(argv[2]);

@@ -41,9 +41,19 @@ jobs:
           cmake --build build/consumer --parallel 2
       - name: Compile Demo using binary SDK only
         run: |
-          cmake -S . -B build/demo -DCMAKE_BUILD_TYPE=Release
+          LIGHTING=OFF
+          if [ '${{ matrix.arch }}' = arm64 ]; then LIGHTING=ON; fi
+          cmake -S . -B build/demo -DCMAKE_BUILD_TYPE=Release \
+            -DHIFACE_LINUX_T92P_LIGHTING="$LIGHTING" -DHIFACE_LINUX_EMBEDDED_DISPLAY=OFF
           cmake --build build/demo --parallel 2
           # Rebuilt executables are compile-only without the integrating application's publisher identity.
+      - name: Verify the linked T92P backend in ARM64 packages
+        if: matrix.arch == 'arm64'
+        run: |
+          "./runtimes/${{ matrix.arch }}/bin/hiface_desktop" --capabilities | tee "$RUNNER_TEMP/prebuilt-lighting.json"
+          grep -F '"lightingContract":"HIFACE-LIGHTING1:t92p"' "$RUNNER_TEMP/prebuilt-lighting.json"
+          ./build/demo/hiface_desktop --capabilities | tee "$RUNNER_TEMP/rebuilt-lighting.json"
+          grep -F '"lightingContract":"HIFACE-LIGHTING1:t92p"' "$RUNNER_TEMP/rebuilt-lighting.json"
       - name: Exercise original signed desktop with synthetic frames
         run: |
           xvfb-run -a -s '-screen 0 1024x768x24' "./runtimes/${{ matrix.arch }}/bin/hiface_desktop" --builtin "$RUNNER_TEMP/prebuilt/faces.db" --smoke-test

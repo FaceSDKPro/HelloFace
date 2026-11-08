@@ -3,6 +3,9 @@
 #include <string>
 
 namespace hiface_linux_demo {
+// Reports the backend actually linked into this executable, without touching hardware.
+const char* lightingBackend() noexcept;
+const char* lightingCapabilities() noexcept;
 // One controller per capture worker. The selected backend owns the hardware.
 class CameraLighting {
 public:
@@ -20,7 +23,7 @@ public:
     explicit InfraredLighting(const std::string& camera);
     ~InfraredLighting();
     bool configured() const { return bool(board_); }
-    void setActive(bool active) noexcept;
+    bool setActive(bool active) noexcept;
 private:
     struct Board;
     std::unique_ptr<Board> board_;
