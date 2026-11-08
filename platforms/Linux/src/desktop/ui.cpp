@@ -287,13 +287,18 @@ void DemoUi::home(const ViewState& s, Rect b) {
 void DemoUi::supportFooter(const ViewState& state, bool version_link) {
     const int width = scene_.width, bottom = scene_.height;
     const auto link_color = version_link ? home_colors::secondary : accent;
-    const std::string version = "Demo " + state.runtime.demo + " | " + sdkLabel(state.runtime);
     if (version_link) {
-        const int version_width = std::min(width - 32, measure_(version, Font::Small) + 24);
-        button({16, bottom - 103, version_width, 28}, version, "website-version", 5, true, Font::Small);
-    } else {
-        text(28, bottom - 84, version, muted, width - 56, Font::Small);
+        const std::string version = sdkLabel(state.runtime);
+        const int exit_x = width - 142;
+        const int version_width = std::min(std::max(40, exit_x - 144), measure_(version, Font::Small) + 24);
+        button({16, bottom - 54, version_width, 34}, version, "website-version", 5, true, Font::Small);
+        const int email_x = 16 + version_width + 12;
+        text(email_x, bottom - 32, supportEmail, link_color, std::max(0, exit_x - email_x - 16), Font::Small, true);
+        button({exit_x, bottom - 54, 114, 34}, "Exit Demo", "quit", 5);
+        return;
     }
+    const std::string version = "Demo " + state.runtime.demo + " | " + sdkLabel(state.runtime);
+    text(28, bottom - 84, version, muted, width - 56, Font::Small);
     text(28, bottom - 58, supportEmail, link_color, width - 56, Font::Small);
     text(28, bottom - 30, projectUrl, link_color, width - 194, Font::Small);
     button({width - 142, bottom - 54, 114, 34}, "Exit Demo", "quit", version_link ? 5 : 0);

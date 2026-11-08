@@ -32,7 +32,7 @@ struct HomeLayout {
     Rect viewport;
     int columns, rows, step, card_height, count;
     HomeLayout(int width, int height, int entries,bool embedded=false)
-        : viewport{28,112,width-56,std::max(1,height-228)},
+        : viewport{28,112,width-56,std::max(1,height-180)},
           columns(embedded?1:width>=1080?4:2), rows((entries+columns-1)/columns), count(entries) {
         card_height = embedded ? 76 : std::clamp((viewport.h-11*(rows-1))/rows, 76, 144);
         step = card_height + 11;
