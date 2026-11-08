@@ -12,7 +12,7 @@
 
 namespace hiface_linux_demo {
 const char* lightingBackend() noexcept { return "t92p"; }
-const char* lightingCapabilities() noexcept { return R"({"lightingBackend":"t92p","lightingContract":"HIFACE-LIGHTING1:t92p"})"; }
+const char* lightingCapabilities() noexcept { return R"({"lightingBackend":"t92p","lightingContract":"HIFACE-LIGHTING2:t92p","infraredOnSearchEntry":true,"infraredContinuous":true})"; }
 namespace {
 bool writeValue(const std::string& file, int value) noexcept {
     int fd;

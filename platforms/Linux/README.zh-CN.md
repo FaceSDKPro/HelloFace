@@ -86,7 +86,7 @@ HIFACE_PREVIEW_OUTPUT_WIDTH=576 HIFACE_PREVIEW_OUTPUT_HEIGHT=1024 \
 
 可选预览通道通过设备上的 `librga.so.2` 一次完成 NV12/NV21 缩放、颜色转换和摄像头旋转。RGA 直接输出 X11 原生 BGRX 排列，本地 X Server 支持时使用 MIT-SHM 上传，避免整帧 CPU 通道交换和套接字复制；两项优化均保留通用回退路径。第二路 ISP 或 RGA 不可用时，Demo 会自动回退到识别流，不影响启动。
 
-预编译 ARM64 Demo 已编入 T92P 灯控后端；x86_64 使用相机自身或外部补光。两个架构仍默认使用普通桌面布局。T92P 使用板级启动服务、`HIFACE_DISPLAY_MODE=embedded` 和 `boards/t92p-lighting.sh prepare rgbir`；仅明确配置 GPIO 路径并绑定正确相机时启用控灯。板级后端在双目搜索中自动控制 J19 红外灯，持续无人脸或停止搜索后关灯；配置不完整、相机不匹配或 GPIO 写入失败会停止相关搜索并显示错误。运行安装包中的 `runtimes/arm64/bin/hiface_desktop --capabilities`，应返回 `lightingBackend: t92p`。重新构建时设置 `-DHIFACE_LINUX_T92P_LIGHTING=ON -DHIFACE_LINUX_EMBEDDED_DISPLAY=OFF`，执行 `cmake --install build --prefix <staging-dir>`，部署安装后的程序及原发布者包签名。无需重建 SDK 库。
+预编译 ARM64 Demo 已编入 T92P 灯控后端；x86_64 使用相机自身或外部补光，两个架构仍默认采用普通桌面布局。T92P 安装包内的 `boards/S99zzhiface-demo` 自启服务并选择嵌入式模式。服务每次开机都会执行 `boards/t92p-lighting.sh prepare rgbir`，恢复 GPIO 权限和相机绑定，即使 App 首先打开其他页面也会准备红外控制。进入双目搜索页即开启 J19 红外，无需等待首次检出人脸；正常搜索期间持续亮灯，包括无人脸待机，离开页面、结束搜索或采集／灯控错误终止搜索时关灯。配置和 GPIO 失败会明确报错。安装后的 ARM64 程序使用 `--capabilities` 应返回 `HIFACE-LIGHTING2:t92p`、`infraredOnSearchEntry: true` 和 `infraredContinuous: true`。ARM64 源码构建默认启用板级后端；发布入口显式设置 `-DHIFACE_LINUX_T92P_LIGHTING=ON -DHIFACE_LINUX_EMBEDDED_DISPLAY=OFF`。部署安装后的程序并使用原应用发布者签名，无需重建 SDK 库。
 
 权限不足时检查 `/dev/video*` 的访问权限；加入 `video` 组后需完整注销再登录，不必用 root 启动 Demo。
 

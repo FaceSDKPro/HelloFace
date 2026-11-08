@@ -75,15 +75,13 @@ public:
     using Lighting = std::function<void(bool)>;
     Capture(Camera& rgb, Camera& ir, LatestPair& latest, Preview preview, Lighting lighting);
     ~Capture();
-    // Hold the last lighting decision until a new decision or capture shutdown.
-    void setSearchState(bool idle, bool light_on) {
+    // Preview may idle; infrared stays on for this capture worker's lifetime.
+    void setSearchState(bool idle) {
         idle_.store(idle, std::memory_order_relaxed);
-        light_on_.store(light_on, std::memory_order_relaxed);
     }
 private:
     std::atomic<bool> stop_{false};
     std::atomic<bool> idle_{false}; // Written by search, read by capture.
-    std::atomic<bool> light_on_{false};
     std::thread worker_;
 };
 }

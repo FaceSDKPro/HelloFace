@@ -64,7 +64,6 @@ void runSearch(const std::string& database, const RgbIrSettings& settings, Camer
     CapturedPair pair;
     CameraFrame rgb_frame, ir_frame;
     SearchPowerPolicy power;
-    SearchLightPolicy infrared_light;
     SearchStats stats;
     auto due = start, last_usable = start, next_report = start + report_interval_ms;
     int64_t power_stream = 0;
@@ -84,9 +83,9 @@ void runSearch(const std::string& database, const RgbIrSettings& settings, Camer
         if (progress.paired && now - progress.last_pair_at <= callbacks.interruption_grace_ms)
             waiting_for_pair = false;
         else if (!waiting_for_pair) {
-            // Reset standby and the view during a gap, while keeping the last IR lamp decision.
+            // Reset standby and the view during a gap, while infrared stays on until capture exits.
             power.reset();
-            capture.setSearchState(false, infrared_light.on());
+            capture.setSearchState(false);
             if (callbacks.interrupted) callbacks.interrupted();
             waiting_for_pair = true;
         }
@@ -131,7 +130,7 @@ void runSearch(const std::string& database, const RgbIrSettings& settings, Camer
             stats.ir_rejected += ir_status == HIFACE_SEARCH_IR_REJECTED;
             stats.ir_stale += ir_status == HIFACE_SEARCH_IR_STALE_PAIR;
             const bool rgb_face = (callbacks.lighting ? sample->search.detected_count : sample->search.face_count) != 0;
-            // The search may skip IR detection when RGB has no face. Probe only for lamp wakeup.
+            // The search may skip IR detection when RGB has no face. Probe to keep processing awake when only IR sees a face.
             ir_only_face = callbacks.lighting && !rgb_face &&
                 (sample->infrared.ir_detected_count != 0 || search.detectInfraredPresence(ir_frame));
             has_face = rgb_face || ir_only_face;
@@ -154,9 +153,8 @@ void runSearch(const std::string& database, const RgbIrSettings& settings, Camer
             stats.rgb_faces += sample->search.detected_count != 0;
             stats.ir_only_faces += ir_only_face;
             power.observe(frame_time, has_face);
-            infrared_light.observe(has_face, power.idle());
         } else power.reset();
-        capture.setSearchState(power.idle(), infrared_light.on());
+        capture.setSearchState(power.idle());
         if (callbacks.sample) callbacks.sample(*sample, power.idle());
     }
     if (diagnostics) stats.report(latest.progress(), power.idle());

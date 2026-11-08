@@ -1,0 +1,244 @@
+#!/bin/sh
+# Buildroot/BusyBox init service for the T92P. Run after the camera 3A service.
+# Time must come from a calibrated RTC, NTP, or an administrator, never a saved
+# timestamp or the SDK build date. Keep all SDK time/authorization checks intact.
+
+# Select an installation explicitly in /etc/default/hiface-demo, or point this
+# stable path at the reviewed package. Never fall back to an old SDK version.
+DEMO_DIR=/userdata/hiface-install/current
+MIN_CLOCK_EPOCH=1793318400 # 2026-10-30T00:00:00Z; deployment may raise this floor.
+HIFACE_DISPLAY_ROTATE=270 # Clockwise 270 degrees = counter-clockwise 90 degrees.
+HIFACE_CAMERA_ROTATE=right # Sensor mounting; independent of whole-UI rotation.
+HIFACE_START_SEARCH=1 # Set rgbir for public 0.8.8+ paired RGB/IR search.
+HIFACE_RGBIR_STATS=0
+HIFACE_DEMO_HOME=/home/hiface
+[ ! -r /etc/default/hiface-demo ] || . /etc/default/hiface-demo
+SELF=/etc/init.d/S99zzhiface-demo
+PIDFILE=/var/run/hiface-demo.pid
+WAIT_PIDFILE=/var/run/hiface-demo-wait.pid
+LOGFILE=/userdata/hiface-data/hiface-demo.log
+
+resolve_demo_runtime() {
+    DEMO_RUNTIME=$DEMO_DIR
+    if [ ! -x "$DEMO_RUNTIME/bin/hiface_desktop" ]; then
+        case "$(uname -m)" in
+            aarch64|arm64) DEMO_RUNTIME=$DEMO_DIR/runtimes/arm64 ;;
+            *) echo 'This T92P service requires an ARM64 Demo runtime' >&2; return 1 ;;
+        esac
+    fi
+}
+
+log() {
+    printf '%s [autostart] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*" >>"$LOGFILE"
+}
+
+demo_running() {
+    start-stop-daemon -K -t -q -p "$PIDFILE" -x "$DEMO_RUNTIME/bin/hiface_desktop" ||
+        start-stop-daemon -K -t -q -p "$PIDFILE" -x "$DEMO_RUNTIME/bin/hiface_startup"
+}
+
+worker_running() {
+    [ -r "$WAIT_PIDFILE" ] || return 1
+    worker_pid=$(cat "$WAIT_PIDFILE")
+    case "$worker_pid" in ''|*[!0-9]*) return 1 ;; esac
+    # status is also readable as hiface; kill -0 on a root worker returns EPERM.
+    [ -d "/proc/$worker_pid" ] || return 1
+    tr '\000' ' ' <"/proc/$worker_pid/cmdline" 2>/dev/null |
+        grep -Fq "$SELF wait-start"
+}
+
+camera_devices_ready() {
+    if [ "$HIFACE_START_SEARCH" = rgbir ]; then
+        # Dual search uses the main stream of each ISP, not the RGB preview substream.
+        [ -c /dev/v4l/by-path/platform-rkisp-vir1-video-index0 ] &&
+            [ -c /dev/v4l/by-path/platform-rkisp-vir0-video-index0 ]
+    else
+        [ -c /dev/video31 ] && [ -c /dev/video32 ]
+    fi
+}
+
+prepare_runtime_storage() {
+    # Optional deployment placement only: keep the stock SDK's exact product
+    # identity and current-format database. Never migrate, replace or reset it.
+    [ -n "${HIFACE_RUNTIME_STATE_KEY:-}" ] || return 0
+    case "$HIFACE_RUNTIME_STATE_KEY" in *[!0-9a-f]*|'') return 1;; esac
+    [ "${#HIFACE_RUNTIME_STATE_KEY}" = 64 ] || return 1
+    runtime_parent=/userdata/hiface-data/sdk-state/$HIFACE_RUNTIME_STATE_KEY
+    runtime_source=$runtime_parent/runtime_v1
+    runtime_target=${HIFACE_DEMO_HOME}/.local/state/hiface/$HIFACE_RUNTIME_STATE_KEY/runtime_v1
+    for runtime_dir in /userdata/hiface-data/sdk-state "$runtime_parent" "$runtime_source" "$runtime_target"; do
+        [ ! -L "$runtime_dir" ] || return 1
+        mkdir -p "$runtime_dir" || return 1
+        chown hiface:users "$runtime_dir" || return 1
+        chmod 0700 "$runtime_dir" || return 1
+    done
+    if ! grep -Fq " $runtime_target " /proc/mounts; then
+        if [ -e "$runtime_target/runtime_v1.db" ]; then
+            log "Unexpected runtime state under mount point; preserving it"
+            return 1
+        fi
+        mount --bind "$runtime_source" "$runtime_target" || return 1
+    fi
+    [ "$runtime_source" -ef "$runtime_target" ]
+}
+
+launch_demo() {
+    ulimit -c 0
+    # rkaiq exists before it queues the first ISP parameter buffers.
+    sleep 2
+    # sysfs ownership is lost at reboot. Prepare both lights for the whole App,
+    # including entering dual-camera search later from the normal home page.
+    # Preparation leaves every lamp off; the search worker owns on/off requests.
+    light_mode=rgbir
+    if [ "$light_mode" = rgbir ]; then
+        if ! capabilities=$("$DEMO_RUNTIME/bin/hiface_desktop" --capabilities 2>>"$LOGFILE") ||
+                ! printf '%s\n' "$capabilities" | grep -Fq '"lightingContract":"HIFACE-LIGHTING2:t92p"' ||
+                ! printf '%s\n' "$capabilities" | grep -Fq '"infraredContinuous":true'; then
+            log "T92P infrared lighting backend is missing; refusing dual-camera startup"
+            return 1
+        fi
+    fi
+    if ! light_env=$("$DEMO_DIR/boards/t92p-lighting.sh" prepare "$light_mode" 2>>"$LOGFILE"); then
+        log "WARNING: lighting setup failed"
+        lights_off
+        return 1
+    fi
+    display_output=$(DISPLAY=:0 xrandr --query 2>>"$LOGFILE" | awk '/ connected/{print $1; exit}')
+    if [ -z "$display_output" ]; then
+        log "Waiting for a connected X display"
+        return 1
+    fi
+    # Let the Demo rotate its scene/input, not the Rockchip DRM scanout.
+    DISPLAY=:0 xrandr --output "$display_output" --rotate normal >>"$LOGFILE" 2>&1 || return 1
+    touch_id=$(DISPLAY=:0 xinput list --id-only goodix-ts 2>/dev/null | head -n 1)
+    if [ -n "$touch_id" ]; then
+        DISPLAY=:0 xinput set-prop "$touch_id" 'Coordinate Transformation Matrix' \
+            1 0 0 0 1 0 0 0 1 >>"$LOGFILE" 2>&1 || return 1
+    fi
+    rm -f "$PIDFILE"
+    # Let the unprivileged Demo control this board's panel brightness only.
+    # sysfs ownership resets at boot; keep max_brightness and all other nodes root-owned.
+    if [ -f /sys/class/backlight/backlight/brightness ]; then
+        if ! chown hiface:root /sys/class/backlight/backlight/brightness ||
+           ! chmod 0644 /sys/class/backlight/backlight/brightness; then
+            log "WARNING: backlight access unavailable; search still throttles processing"
+        fi
+    fi
+    log "Starting $DEMO_DIR as hiface (boot $(cat /proc/sys/kernel/random/boot_id))"
+    start-stop-daemon -S -q -b -m -p "$PIDFILE" \
+        -c hiface:users -d "$HIFACE_DEMO_HOME" -O "$LOGFILE" -x /usr/bin/env -- \
+        DISPLAY=:0 HOME="$HIFACE_DEMO_HOME" HIFACE_DATA_DIR="${HIFACE_DEMO_DATA_DIR:-/userdata/hiface-data}" \
+        HIFACE_DISPLAY_MODE=embedded HIFACE_RGBIR_WIDE_RGB_DEVICE=/dev/video31 \
+        HIFACE_START_SEARCH="$HIFACE_START_SEARCH" HIFACE_RGBIR_STATS="$HIFACE_RGBIR_STATS" \
+        HIFACE_CPU_THREADS=2 HIFACE_MOUSE_CURSOR=software HIFACE_FIXED_CAMERA_DEVICE=/dev/video31 \
+        HIFACE_DISPLAY_ROTATE="$HIFACE_DISPLAY_ROTATE" HIFACE_CAMERA_ROTATE="$HIFACE_CAMERA_ROTATE" HIFACE_PREVIEW_DEVICE=/dev/video32 \
+        HIFACE_PREVIEW_WIDTH=1280 HIFACE_PREVIEW_HEIGHT=720 HIFACE_PREVIEW_OUTPUT_WIDTH=576 \
+        HIFACE_PREVIEW_OUTPUT_HEIGHT=1024 $light_env "$DEMO_DIR/run-demo.sh" /dev/video31 || return 1
+    sleep 3
+    demo_running || return 1
+    log "Demo running, PID $(cat "$PIDFILE")"
+}
+
+lights_off() {
+    if ! "$DEMO_DIR/boards/t92p-lighting.sh" off >>"$LOGFILE" 2>&1; then
+        log "WARNING: could not confirm board lights are off"
+    fi
+}
+
+wait_start() {
+    trap '[ "$(cat "$WAIT_PIDFILE" 2>/dev/null)" != "$$" ] || rm -f "$WAIT_PIDFILE"' EXIT
+    trap 'exit 0' INT TERM
+    previous_reason=""
+    retry_delay=5
+    while :; do
+        if demo_running; then
+            retry_delay=5
+            previous_reason=""
+            sleep 5
+            continue
+        fi
+        if [ -e "$PIDFILE" ]; then
+            lights_off
+            rm -f "$PIDFILE"
+        fi
+        reason=""
+        clock_epoch=$(date -u +%s 2>/dev/null)
+        case "$clock_epoch" in ''|*[!0-9]*) clock_epoch=0 ;; esac
+        if [ "$clock_epoch" -lt "$MIN_CLOCK_EPOCH" ]; then
+            reason="Waiting for calibrated RTC/NTP/system time; SDK not started"
+        elif ! pidof rkaiq_3A_server >/dev/null 2>&1; then
+            reason="Waiting for camera 3A service"
+        elif ! camera_devices_ready; then
+            reason="Waiting for camera devices for startup mode $HIFACE_START_SEARCH"
+        elif [ ! -S /tmp/.X11-unix/X0 ]; then
+            reason="Waiting for X display :0"
+        elif launch_demo; then
+            retry_delay=5
+            continue
+        else
+            reason="Demo launch failed; retrying after dependencies become ready"
+        fi
+        if [ "$reason" != "$previous_reason" ]; then
+            log "$reason"
+            previous_reason=$reason
+        fi
+        sleep "$retry_delay"
+        retry_delay=$((retry_delay * 2))
+        [ "$retry_delay" -le 60 ] || retry_delay=60
+    done
+}
+
+start() {
+    mkdir -p /userdata/hiface-data
+    chown hiface:users /userdata/hiface-data
+    if [ ! -x "$DEMO_DIR/run-demo.sh" ] || [ ! -x "$DEMO_RUNTIME/bin/hiface_desktop" ]; then
+        log "Configured Demo missing: $DEMO_DIR"
+        return 1
+    fi
+    prepare_runtime_storage || return 1
+    # Keep the worker after launch too, so a later Demo exit is recoverable.
+    if [ -x /etc/init.d/S99zrkaiq_3A ]; then
+        /etc/init.d/S99zrkaiq_3A start || return 1
+    fi
+    worker_running && return 0
+    rm -f "$WAIT_PIDFILE"
+    # Waiting in the background keeps the rest of the boot/shutdown usable.
+    start-stop-daemon -S -q -b -m -p "$WAIT_PIDFILE" -x /bin/sh -- "$SELF" wait-start
+}
+
+stop() {
+    if worker_running; then
+        kill "$worker_pid"
+        for unused in 1 2 3 4 5 6; do
+            worker_running || break
+            sleep 1
+        done
+        if worker_running; then
+            log "Startup worker did not stop"
+            return 1
+        fi
+    fi
+    start-stop-daemon -K -q -p "$PIDFILE" -x "$DEMO_RUNTIME/bin/hiface_desktop" || true
+    start-stop-daemon -K -q -p "$PIDFILE" -x "$DEMO_RUNTIME/bin/hiface_startup" || true
+    rm -f "$PIDFILE"
+    lights_off
+}
+
+resolve_demo_runtime || exit 1
+case "${1:-}" in
+    start) start ;;
+    wait-start) wait_start ;;
+    stop) stop ;;
+    restart) stop && start ;;
+    status)
+        if demo_running; then
+            echo "running: $(cat "$PIDFILE") ($DEMO_DIR)"
+        elif worker_running; then
+            echo "waiting: $worker_pid (RTC/NTP, camera or display)"
+        else
+            echo "stopped"
+            exit 1
+        fi
+        ;;
+    *) echo "Usage: $0 {start|stop|restart|status}"; exit 1 ;;
+esac

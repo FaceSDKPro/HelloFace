@@ -92,6 +92,7 @@ CaptureProgress LatestPair::progress() {
 Capture::Capture(Camera& rgb, Camera& ir, LatestPair& latest, Preview preview, Lighting lighting)
     : worker_([this, &rgb, &ir, &latest, preview = std::move(preview), lighting = std::move(lighting)] {
     try {
+        if (lighting && !stop_.load(std::memory_order_relaxed)) lighting(true);
         Pairing pending;
         int64_t next_preview = 0;
         while (!stop_.load(std::memory_order_relaxed)) {
@@ -113,7 +114,7 @@ Capture::Capture(Camera& rgb, Camera& ir, LatestPair& latest, Preview preview, L
                 }
                 latest.publish(*pair, pending.rgb.frame, pending.ir.frame, now);
             }
-            if (lighting) lighting(light_on_.load(std::memory_order_relaxed));
+            if (lighting) lighting(true);
         }
     } catch (...) { latest.fail(std::current_exception()); }
     try { if (lighting) lighting(false); }
