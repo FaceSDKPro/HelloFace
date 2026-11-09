@@ -1,9 +1,14 @@
 package com.hiface.sdk.demo.search.uvc;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
+import android.content.res.TypedArray;
 import android.hardware.usb.UsbDevice;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
+import android.widget.TextView;
 import com.facesdkpro.uvccamera.DualCameraSession;
 import com.hiface.sdk.demo.R;
 import java.util.ArrayList;
@@ -12,11 +17,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-/** 搜索和录入共用设备列表的显示、选择与旋转规则。 */
+/** Shared device labels, selection and rotation controls. 中文：供搜索与录入页共用。 */
 final class UvcCameraChoices {
     private final Context context;
     private List<UsbDevice> devices;
     private List<String> labels;
+    private List<UvcDeviceChoicePolicy.Device> identities;
 
     UvcCameraChoices(Context context) {
         this.context = context;
@@ -24,44 +30,45 @@ final class UvcCameraChoices {
     }
 
     List<UsbDevice> refresh() {
-        // 设备列表和标签一起替换，枚举失败时旧下标不会指向另一台设备。
+        // Replace devices and labels together so failed enumeration cannot leave stale indices.
         clear();
         List<UsbDevice> found = DualCameraSession.devices(context);
         List<String> names = new ArrayList<>(labels);
+        List<UvcDeviceChoicePolicy.Device> keys = new ArrayList<>();
         for (UsbDevice device : found) {
             String name = device.getProductName();
             names.add(String.format(Locale.ROOT, "%s (%04X:%04X)",
                     name == null ? device.getDeviceName() : name, device.getVendorId(), device.getProductId()));
+            keys.add(new UvcDeviceChoicePolicy.Device(device.getDeviceName(),
+                    device.getVendorId(), device.getProductId(), name));
         }
         devices = found;
         labels = names;
+        identities = Collections.unmodifiableList(keys);
         return found;
     }
 
     void clear() {
         devices = Collections.emptyList();
         labels = Collections.singletonList(context.getString(R.string.uvc_search_select_camera));
+        identities = Collections.emptyList();
     }
 
     int size() { return devices.size(); }
 
-    int suggestedPosition(DualCameraSession.Role role) {
-        int position = 0;
-        for (int i = 0; i < devices.size(); i++) {
-            String product = devices.get(i).getProductName();
-            if (product == null) continue;
-            String name = product.toUpperCase(Locale.ROOT);
-            boolean matches = role == DualCameraSession.Role.RGB ? name.contains("RGB")
-                    : name.contains("NIR") || name.contains(" IR");
-            if (!matches) continue;
-            if (position != 0) return 0; // 名称有歧义时由用户选择。
-            position = i + 1;
-        }
-        return position;
+    int preferredPosition(UvcDeviceChoicePolicy.Device previous, DualCameraSession.Role role) {
+        return UvcDeviceChoicePolicy.position(identities, previous, role == DualCameraSession.Role.RGB);
+    }
+
+    List<UvcDeviceChoicePolicy.Device> identities() { return identities; }
+
+    UvcDeviceChoicePolicy.Device selectedIdentity(Spinner spinner) {
+        int index = spinner.getSelectedItemPosition() - 1;
+        return index >= 0 && index < identities.size() ? identities.get(index) : null;
     }
 
     UsbDevice selected(Spinner spinner) {
-        int index = spinner.getSelectedItemPosition() - 1; // 第一项是未选择占位。
+        int index = spinner.getSelectedItemPosition() - 1; // Index zero is the unselected placeholder.
         return index >= 0 && index < devices.size() ? devices.get(index) : null;
     }
 
@@ -75,7 +82,25 @@ final class UvcCameraChoices {
     static int rotationDegrees(Spinner spinner) { return Math.max(0, spinner.getSelectedItemPosition()) * 90; }
 
     private static void bind(Spinner spinner, List<String> values, int position) {
-        spinner.setAdapter(new ArrayAdapter<>(spinner.getContext(), android.R.layout.simple_spinner_dropdown_item, values));
+        // Use the page theme for both the dark search page and the light enrollment page.
+        TypedArray theme = spinner.getContext().obtainStyledAttributes(new int[]{
+                android.R.attr.textColorPrimary, com.google.android.material.R.attr.colorSurface});
+        ColorStateList text = theme.getColorStateList(0);
+        int surface = theme.getColor(1, android.graphics.Color.WHITE);
+        theme.recycle();
+        spinner.setAdapter(new ArrayAdapter<String>(spinner.getContext(), android.R.layout.simple_spinner_dropdown_item, values) {
+            @Override public View getView(int index, View recycled, ViewGroup parent) {
+                TextView view = (TextView) super.getView(index, recycled, parent);
+                if (text != null) view.setTextColor(text);
+                return view;
+            }
+            @Override public View getDropDownView(int index, View recycled, ViewGroup parent) {
+                TextView view = (TextView) super.getDropDownView(index, recycled, parent);
+                if (text != null) view.setTextColor(text);
+                view.setBackgroundColor(surface);
+                return view;
+            }
+        });
         spinner.setSelection(position);
     }
 }

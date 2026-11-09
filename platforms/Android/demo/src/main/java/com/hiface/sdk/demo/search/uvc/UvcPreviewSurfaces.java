@@ -6,7 +6,7 @@ import android.view.TextureView;
 import java.util.ArrayList;
 import java.util.List;
 
-/** 主线程持有预览 Surface，等相机关闭回调确认 native 排空后再释放。 */
+/** Owns preview surfaces on main until native cleanup completes. 中文：排空后才能释放预览资源。 */
 final class UvcPreviewSurfaces {
     private final List<Surface> surfaces = new ArrayList<>(2);
     private final List<SurfaceTexture> detachedTextures = new ArrayList<>(2);
@@ -17,7 +17,7 @@ final class UvcPreviewSurfaces {
         return surface;
     }
 
-    /** TextureView 销毁时接管纹理，监听器需返回 false 以推迟系统释放。 */
+    /** Retain a destroyed TextureView texture; its listener returns false to defer system release. */
     void retain(SurfaceTexture texture) { detachedTextures.add(texture); }
 
     void release() {

@@ -1,0 +1,29 @@
+UVCAndroidCamera 0.6.0 — local SDK delivery
+
+Upstream: https://github.com/FaceSDKPro/UVCAndroidCamera
+Source commit: 383d3b6983d7234a3b6f1f3aae03c0b0f2511ba2
+Source tree SHA-256: b4bd1096bb1e6756f8eddf6e7f17f32bb94b5063045539312b33ae6e0823a179
+Coordinate: com.facesdkpro:uvc-android-camera:0.6.0
+AAR SHA-256: 8b40c519b6e00063bfe80961236cfa704b55727bb4201dd7d3874ee2e6166100
+AAR bytes: 945719
+SDK manifest SHA-256: 201e89b431adf62418bc1d00c84872647b1fcb573ce3ead032fdc3edcb245c43
+
+This AAR comes from the upstream 0.6.0 local SDK bundle. Its source commit is
+public, but no upstream 0.6.0 GitHub Release or Maven Central publication is
+claimed. The package manifest binds the clean source and complete delivery.
+
+USB disconnect draining is now included upstream; no local patch is required.
+The complete AAR is byte-identical to the previously verified 0.5.0-hotplug.1
+candidate, including Java API, JNI keep rules, permissions, licenses, and all
+20 native libraries across armeabi-v7a, arm64-v8a, x86, and x86_64.
+
+Middle remains the default at 640x480 MJPEG / 15 FPS per camera. High is selected
+with DualCameraConfig.defaults(DualCameraConfig.Mode.HIGH). RGB NV21, IR GRAY8,
+pairing, and rotation contracts are unchanged. HiFace Demo packages only ARM64
+and ARMv7, according to its own ABI filters.
+
+Original component copyright and LGPL notices remain in the AAR's META-INF
+license files. Full corresponding source is available at the pinned commit:
+https://github.com/FaceSDKPro/UVCAndroidCamera/tree/383d3b6983d7234a3b6f1f3aae03c0b0f2511ba2
+The upstream build entry is ./gradlew :UVCCamera:assembleRelease, using
+Android Gradle Plugin 8.13.2 and Android NDK 29.0.14206865.

@@ -7,7 +7,7 @@ import com.hiface.sdk.search.InfraredSearchDiagnostics;
 import com.hiface.sdk.search.InfraredSearchInfo;
 import java.util.Locale;
 
-/** 将数值快照转换为调试文案，格式化期间不访问相机或持有图像。 */
+/** Formats numeric snapshots without accessing cameras or retaining images. 中文：仅生成调试文案。 */
 final class RgbIrDiagnosticsFormatter {
     private RgbIrDiagnosticsFormatter() {}
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.8.9]
+
+- Rename public access types to HiFaceAccess and preserve the existing method contracts.
+- Reuse trial and commercial certificates across SDK upgrades without extending validity or resetting authorization state.
+- Preserve the optional AccessUI declarations for binary consumers and retain the existing runtime storage and identity checks.
+
 ## [0.8.8]
 
 - Authorization state uses hiface-runtime-v1/runtime_v1.db; prototype state is never read, migrated or deleted.

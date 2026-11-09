@@ -14,13 +14,13 @@ SDK正在Beta 迭代公测中，请及时升级SDK版本。
 | ABI | `arm64-v8a` |
 | 入口 | ArkTS `HiFaceSdk` |
 
-直接交付时，把版本化 HAR 复制到应用（例如 `libs/hiface-0.8.8.har`），在模块
+直接交付时，把版本化 HAR 复制到应用（例如 `libs/hiface-0.8.9.har`），在模块
 `oh-package.json5` 中声明：
 
 ```json5
 {
   "dependencies": {
-    "hiface": "file:./libs/hiface-0.8.8.har"
+    "hiface": "file:./libs/hiface-0.8.9.har"
   }
 }
 ```
@@ -28,10 +28,10 @@ SDK正在Beta 迭代公测中，请及时升级SDK版本。
 同一版本通过 OpenHarmony 三方库中心仓审核后，可执行：
 
 ```shell
-ohpm install hiface@0.8.8
+ohpm install hiface@0.8.9
 ```
 
-也可以在 `oh-package.json5` 中声明 `"hiface": "0.8.8"`。直接交付和中心仓应使用同一版本、
+也可以在 `oh-package.json5` 中声明 `"hiface": "0.8.9"`。直接交付和中心仓应使用同一版本、
 同一 SHA-256 的 HAR，不能覆盖已经交付的版本。
 
 ## 初始化与错误处理

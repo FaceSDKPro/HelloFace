@@ -1,4 +1,6 @@
 import java.util.Properties
+import java.security.KeyStore
+import java.security.MessageDigest
 
 plugins {
     alias(libs.plugins.android.application)
@@ -30,8 +32,8 @@ android {
         val sdkMinimum = libs.versions.minSdk.get().toInt()
         minSdk = if (googlePlayBuild) maxOf(24, sdkMinimum) else sdkMinimum
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 8008
-        versionName = "0.8.8"
+        versionCode = 8009
+        versionName = "0.8.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -111,9 +113,9 @@ android {
 
 dependencies {
     //Powered By https://github.com/FaceSDKPro/UVCAndroidCamera
-    implementation(files("libs/uvc-android-camera-0.5.0.aar"))
+    implementation(files("libs/uvc-android-camera-0.6.0.aar"))
 
-    implementation("io.github.facesdkpro:hiface-android:0.8.8")
+    implementation("io.github.facesdkpro:hiface-android:0.8.9")
 
     implementation(libs.androidx.core)
     implementation(libs.androidx.activity)

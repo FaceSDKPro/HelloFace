@@ -1,4 +1,4 @@
-# HiFace Windows SDK · 0.8.8 Beta
+# HiFace Windows SDK · 0.8.9 Beta
 
 [English](README.md) | 简体中文
 
@@ -21,7 +21,7 @@ cmake --build build --config Release
 自己的 CMake 工程：
 
 ```cmake
-find_package(HiFace 0.8.8 CONFIG REQUIRED COMPONENTS C)
+find_package(HiFace 0.8.9 CONFIG REQUIRED COMPONENTS C)
 target_link_libraries(your_app PRIVATE HiFace::HiFace)
 ```
 

@@ -12,7 +12,7 @@
 <div align="center">
   <p>
     <a href="https://www.helloface.dev/"><img src="../../images/hello-face-icon.webp" alt="" width="51" height="51" align="bottom"><img src="../../images/helloface-wordmark.svg" alt="HelloFace" width="170" height="40" align="bottom"></a>
-    &nbsp; <strong>0.8.8 Beta</strong>
+    &nbsp; <strong>0.8.9 Beta</strong>
   </p>
   <p><strong>Pengesanan dan penangkapan wajah, pengesanan liveness, pengesahan 1:1 serta carian 1:N/M:N secara luar talian.</strong></p>
   <p>🌍 <strong>Laman web rasmi</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a> &nbsp; | &nbsp; <img src="../../images/github-mark.svg" alt="" width="16" height="16" align="bottom"> <strong>Kod integrasi GitHub</strong> · <a href="https://github.com/FaceSDKPro/HelloFace">FaceSDKPro/HelloFace</a></p>

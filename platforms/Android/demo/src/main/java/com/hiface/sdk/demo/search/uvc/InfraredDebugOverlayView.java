@@ -10,20 +10,24 @@ import com.hiface.sdk.search.FaceSearchFace;
 import com.hiface.sdk.search.InfraredSearchDiagnostics;
 import com.hiface.sdk.search.InfraredSearchInfo;
 
-/** Last analyzed IR box on the live IR preview; no tracking or identity association. */
+/** Main-thread overlay for the latest IR sample, with expiry and no identity tracking. 中文：短暂显示 IR 框。 */
 public final class InfraredDebugOverlayView extends View {
+    private static final long SAMPLE_HOLD_MS = 300;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private InfraredSearchInfo sample;
-    private final Runnable expiry = () -> { sample = null; invalidate(); };
+    private final Runnable expiry = () -> show(null);
     public InfraredDebugOverlayView(Context context, AttributeSet attrs) { super(context, attrs); }
+
+    /** Retain result metadata only, never camera buffers or preview images. */
     void show(InfraredSearchInfo info) {
         removeCallbacks(expiry);
         sample = info;
         invalidate();
-        if (sample != null) postDelayed(expiry, 300);
+        if (sample != null) postDelayed(expiry, SAMPLE_HOLD_MS);
     }
     @Override protected void onDetachedFromWindow() {
-        show(null); super.onDetachedFromWindow();
+        show(null);
+        super.onDetachedFromWindow();
     }
     @Override protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);

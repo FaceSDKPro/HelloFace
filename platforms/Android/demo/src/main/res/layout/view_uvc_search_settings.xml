@@ -11,11 +11,11 @@
         <Spinner android:id="@+id/uvcIrDevice" android:layout_width="match_parent" android:layout_height="48dp" android:saveEnabled="false" android:contentDescription="@string/uvc_search_ir_camera" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:baselineAligned="false">
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/uvc_search_rgb_rotation" android:textSize="13sp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/uvc_search_rgb_rotation" android:textColor="@color/text_on_dark_secondary" android:textSize="13sp" />
                 <Spinner android:id="@+id/uvcRgbRotation" android:layout_width="match_parent" android:layout_height="48dp" android:contentDescription="@string/uvc_search_rgb_rotation" />
             </LinearLayout>
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/uvc_search_ir_rotation" android:textSize="13sp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/uvc_search_ir_rotation" android:textColor="@color/text_on_dark_secondary" android:textSize="13sp" />
                 <Spinner android:id="@+id/uvcIrRotation" android:layout_width="match_parent" android:layout_height="48dp" android:contentDescription="@string/uvc_search_ir_rotation" />
             </LinearLayout>
         </LinearLayout>
@@ -26,7 +26,7 @@
                 android:selectAllOnFocus="true" android:imeOptions="actionDone" />
         </com.google.android.material.textfield.TextInputLayout>
         <com.google.android.material.checkbox.MaterialCheckBox android:id="@+id/uvcDebug" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:minHeight="56dp" android:layout_marginTop="12dp" android:text="@string/uvc_debug_enable" />
+            android:layout_height="wrap_content" android:minHeight="56dp" android:layout_marginTop="12dp" android:textColor="@android:color/white" android:text="@string/uvc_debug_enable" />
         <com.google.android.material.button.MaterialButton android:id="@+id/uvcRefresh" style="@style/Widget.HiFace.Search.Secondary"
             android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="8dp" android:text="@string/uvc_search_refresh_devices" />
     </LinearLayout>

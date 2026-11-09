@@ -17,7 +17,6 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
@@ -51,8 +50,9 @@ import com.hiface.sdk.frame.YuvColorMatrix;
 import com.hiface.sdk.frame.YuvColorRange;
 
 /**
- * 双目模组的 RGB UVC 录入：直接给 SDK 稳定采集送 YUV，不打开内置相机或截图提特征。
- * 录入不提供 IR 活体结论；IR 与身份的联合判定仍由搜索会话完成。
+ * Feeds RGB UVC YUV directly into SDK guided capture, without the built-in camera or screenshots.
+ * Enrollment makes no IR verdict; the search session combines identity and IR liveness.
+ * 中文：录入仅用 RGB，IR 与身份联合判定仍由双目搜索完成。
  */
 public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
     private static final String GROUP = "uvcEnrollmentGroup";
@@ -109,18 +109,60 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
         state.initialize(getIntent().getStringExtra(GROUP));
         sdk = HiFaceSdk.builder(this).lifecycleOwner(this).build();
         settings = new UvcEnrollmentCameraSettings(this, saved, getIntent().getExtras());
+        bindViews();
+        bindActions();
+        bindPreview();
+    }
+
+    @Override protected void onStart() {
+        super.onStart(); started = true;
+        store = new FaceSearchStore(this);
+        settings.refresh();
+        closeBarrier.listen(this::startCapture);
+        if (state.pending != null) showConfirmation();
+        else if (state.requested) startCapture();
+        else if (state.errorText != null) show(state.errorText, state.retryError);
+    }
+
+    @Override protected void onStop() {
+        started = false; closeBarrier.listen(null);
+        settings.dismiss();
+        stopCapture();
+        if (saveRequest != null) { saveRequest.cancel(); saveRequest = null; }
+        saving = false;
+        if (overwrite != null) { overwrite.dismiss(); overwrite = null; }
+        if (confirmation != null) { confirmation.dismiss(); confirmation = null; }
+        if (store != null) { store.close(); store = null; }
+        super.onStop();
+    }
+
+    @Override public void finish() {
+        // Register closure before navigation so the returning search page waits for USB cleanup.
+        if (state != null) { state.requested = false; stopCapture(); }
+        super.finish();
+    }
+
+    @Override protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        settings.save(out);
+    }
+
+    private void bindViews() {
         preview = findViewById(R.id.uvcEnrollPreview);
         overlay = findViewById(R.id.uvcEnrollOverlay);
         status = findViewById(R.id.uvcEnrollStatus);
+    }
+
+    private void bindActions() {
         findViewById(R.id.backButton).setOnClickListener(v -> finish());
         findViewById(R.id.uvcEnrollSettings).setOnClickListener(v -> showSettings());
         findViewById(R.id.uvcEnrollRetry).setOnClickListener(v -> {
             settings.refresh(); state.requested = true;
             if (settings.selected() == null) showSettings(); else startCapture();
         });
-        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
-            @Override public void handleOnBackPressed() { finish(); }
-        });
+    }
+
+    private void bindPreview() {
         preview.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) { startCapture(); }
             @Override public void onSurfaceTextureSizeChanged(SurfaceTexture texture, int width, int height) { transformPreview(); }
@@ -179,12 +221,12 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
                 showConfirmation();
             }
             @Override public void onError(HiFaceError error) {
-                if (!current(epoch)) return;
-                failCapture(error);
+                if (current(epoch)) failCapture(error);
             }
         };
     }
 
+    /** State callbacks run on main; only onShutdown releases previews and the shared close barrier. */
     private UvcCameraManager.Listener cameraListener(long epoch) {
         return new UvcCameraManager.Listener() {
             @Override public void onOpened(UvcCameraManager.Camera camera) {
@@ -206,7 +248,7 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
         };
     }
 
-    /** native 帧只在本回调内同步借用；旋转交给 SDK，预览使用同角度的 GPU 变换。 */
+    /** Borrow native pixels only during this callback; SDK and GPU preview use the same rotation. */
     private void processFrame(CameraFrame frame, long epoch) {
         if (!current(epoch)) return;
         lastFrameAt = frame.callbackTimeNanos / 1_000_000L;
@@ -237,6 +279,7 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
         confirmation.show();
     }
 
+    /** Allow one save at a time; check visibility and generation before updating its confirmation dialog. */
     private void saveCapture(String id, String group, boolean replace) {
         if (saving || store == null || state.pending == null || confirmation == null) return;
         saving = true; confirmation.setSaving(true);
@@ -267,11 +310,11 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
     private void fail(String message, boolean canRetry) {
         state.requested = false; stopCapture();
         state.errorText = message; state.retryError = canRetry;
-        status.setText(message); retry(canRetry);
+        show(message, canRetry);
     }
 
     private void stopCapture() {
-        // 先拒绝旧帧和异步结果，再释放采集请求、相机和预览。
+        // Reject old frames/results before cancelling capture and releasing camera resources.
         running = false;
         ++generation;
         main.removeCallbacks(watchdog);
@@ -290,39 +333,10 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
             preview.setTransform(PreviewTransform.centerCrop(preview.getWidth(), preview.getHeight(), 640, 480, rotation));
     }
 
-    private void show(int message, boolean canRetry) { status.setText(message); retry(canRetry); }
-    private void retry(boolean visible) { findViewById(R.id.uvcEnrollRetry).setVisibility(visible ? View.VISIBLE : View.GONE); }
+    private void show(int message, boolean canRetry) { show(getText(message), canRetry); }
 
-    @Override protected void onStart() {
-        super.onStart(); started = true;
-        store = new FaceSearchStore(this);
-        settings.refresh();
-        closeBarrier.listen(this::startCapture);
-        if (state.pending != null) showConfirmation();
-        else if (state.requested) startCapture();
-        else if (state.errorText != null) { status.setText(state.errorText); retry(state.retryError); }
-    }
-
-    @Override protected void onStop() {
-        started = false; closeBarrier.listen(null);
-        settings.dismiss();
-        stopCapture();
-        if (saveRequest != null) { saveRequest.cancel(); saveRequest = null; }
-        saving = false;
-        if (overwrite != null) { overwrite.dismiss(); overwrite = null; }
-        if (confirmation != null) { confirmation.dismiss(); confirmation = null; }
-        if (store != null) { store.close(); store = null; }
-        super.onStop();
-    }
-
-    @Override public void finish() {
-        // Back/保存完成都会先登记关闭；下层搜索页即使已 onStart 也不能抢开 USB。
-        if (state != null) { state.requested = false; stopCapture(); }
-        super.finish();
-    }
-
-    @Override protected void onSaveInstanceState(Bundle out) {
-        super.onSaveInstanceState(out);
-        settings.save(out);
+    private void show(CharSequence message, boolean canRetry) {
+        status.setText(message);
+        findViewById(R.id.uvcEnrollRetry).setVisibility(canRetry ? View.VISIBLE : View.GONE);
     }
 }

@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-SDK / Demo: **0.8.8 Beta**.
+SDK / Demo: **0.8.9 Beta**.
 
 On-device detection, capture, liveness, 1:1 comparison, 1:N/M:N search and face-library management.
 
@@ -14,7 +14,7 @@ Guides: [SDK](docs/SDK.md) · [Demo](docs/DEMO.md).
 
 Use Android Studio, JDK 17, Android SDK 36 / Build Tools 36.0.0, and Java source level 11. Minimum Android version is 6.0 / API 23. The AAR includes native libraries for `arm64-v8a` and `armeabi-v7a`; this Demo does not require an NDK installation. Camera validation requires an ARM phone.
 
-The Demo loads `demo/libs/uvc-android-camera-0.5.0.aar` directly. The [UVCAndroidCamera 0.5.0 release](https://github.com/FaceSDKPro/UVCAndroidCamera/releases/tag/v0.5.0) includes third-party license texts and defaults paired capture to Middle at 15 FPS per camera. Select High with `DualCameraConfig.defaults(DualCameraConfig.Mode.HIGH)`.
+The Demo loads `demo/libs/uvc-android-camera-0.6.0.aar` directly from the [UVCAndroidCamera 0.6.0 source](https://github.com/FaceSDKPro/UVCAndroidCamera/tree/383d3b6983d7234a3b6f1f3aae03c0b0f2511ba2) local delivery. It includes the USB-disconnect draining fix and third-party license texts; no local patch is needed. The adjacent `.txt` records provenance and checksums. Paired capture defaults to Middle at 15 FPS per camera. Select High with `DualCameraConfig.defaults(DualCameraConfig.Mode.HIGH)`.
 
 Open this directory, sync dependencies, select `demo`, and run it on a phone. Grant camera access when requested. The application ID is `com.hiface.sdk.public`.
 
@@ -45,7 +45,7 @@ Use the SDK dependency and model compression configuration in the host App modul
 
 ```kotlin
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.8")
+    implementation("io.github.facesdkpro:hiface-android:0.8.9")
 }
 android {
     defaultConfig {
@@ -61,6 +61,8 @@ android {
 ```
 
 Retain the AAR consumer R8 rules. Request `CAMERA` at runtime; online image import needs `INTERNET`.
+
+Keep `libhiface_core.so` and `libhiface_opencv.so` from the same AAR together. Do not rename, remove, or mix individual native libraries. The latter is the private NCNN runtime; its name does not add an OpenCV dependency or API.
 
 Camera example: [CameraPreviewFragment](demo/src/main/java/com/hiface/sdk/demo/camera/CameraPreviewFragment.java). See the SDK guide for frame ownership and lifecycle.
 

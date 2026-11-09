@@ -18,7 +18,7 @@ import com.hiface.sdk.search.FaceSearchResult;
 import com.hiface.sdk.search.FaceSearchSessionConfig;
 import com.hiface.sdk.search.InfraredSearchInfo;
 
-/** 实时引导与最近一次完整采样分开展示；短暂保留的是展示快照，不是跨帧身份或放行状态。 */
+/** Main-thread guidance and completed-sample display. 中文：展示快照不作为跨帧身份或放行状态。 */
 final class UvcSearchStatusUi {
     private static final long RESULT_HOLD_MS = 1500, RESULT_REFRESH_MS = 500, STATUS_REFRESH_MS = 250;
     private final Context context;
@@ -28,6 +28,7 @@ final class UvcSearchStatusUi {
     private InfraredSearchInfo infrared;
     private boolean multipleFaces, resultIsMatch, waitingPair;
     private int successInterval;
+    // Frame IDs reject late results; UI expiry/throttling use uptimeMillis, separate from capture timestamps.
     private long newestFrame = -1, invalidatedThrough = -1, resultDeadline, nextResultUpdate;
     private String fullResult, resultKey, pendingResult, pendingFullResult;
     @StringRes private int pendingStatus;
@@ -57,7 +58,7 @@ final class UvcSearchStatusUi {
         TextView text = new TextView(context);
         int padding = (int) (24 * context.getResources().getDisplayMetrics().density);
         text.setPadding(padding, padding, padding, padding);
-        // 固定打开时的完整采样；后续刷新不打断阅读或复制长 ID。
+        // Freeze the opened sample so live updates do not interrupt reading or copying its ID.
         text.setText(fullResult);
         text.setTextIsSelectable(true);
         detailsDialog = new MaterialAlertDialogBuilder(context).setTitle(R.string.uvc_search_details)
@@ -78,7 +79,7 @@ final class UvcSearchStatusUi {
         waitingPair = false;
         newestFrame = frameId;
         infrared = frame.getInfrared();
-        // 新检测帧不再清空完整结果；离人、缺帧或 IR 拒绝时立即清除旧成功快照。
+        // Preserve completed results across detections, but clear a success on face loss, missing pairs or IR rejection.
         if (frame.getFaces().isEmpty() || missingPair() || (resultIsMatch && invalidInfrared())) clearResult();
         render();
     }
@@ -127,7 +128,7 @@ final class UvcSearchStatusUi {
         pendingResult = text;
         pendingFullResult = resultDetails(result, text, match, hint);
         handler.removeCallbacks(renderResult);
-        // 同一身份的分数最多每 500ms 更新；新身份或新结论立即替换，不先隐藏再显示。
+        // Throttle scores for one identity to 500 ms; replace a changed identity/verdict immediately.
         if (!key.equals(resultKey) || now >= nextResultUpdate) renderResult.run();
         else handler.postAtTime(renderResult, nextResultUpdate);
         resultKey = key;
@@ -136,22 +137,13 @@ final class UvcSearchStatusUi {
         render();
     }
 
-    static boolean recognized(FaceSearchResult result) {
-        return confirmedMatch(result) != null;
-    }
-
-    /** 与普通搜索页采用相同摘要语法；Liveness 始终取同一结果的 IR 分数，不读取 RGB 活体分数。 */
-    static String matchCaption(FaceSearchResult result) {
-        FaceSearchFace match = confirmedMatch(result);
-        return match == null ? "" : matchCaption(match, result.getFrame().getInfrared());
-    }
-
-    private static String matchCaption(FaceSearchFace face, InfraredSearchInfo infrared) {
+    /** Use the standard caption format with the same sample's IR score, never the RGB liveness score. */
+    static String matchCaption(FaceSearchFace face, InfraredSearchInfo infrared) {
         return SearchUi.matchCaption(face.getFaceId(), face.getSimilarity(), infrared.getRealScore());
     }
 
-    private static FaceSearchFace confirmedMatch(FaceSearchResult result) {
-        // 身份和红外活体必须在同一结果里通过，摘要和详情共用该人脸。
+    static FaceSearchFace confirmedMatch(FaceSearchResult result) {
+        // Require identity and IR to pass in one result; caption and details share that confirmed face.
         FaceSearchFrame frame = result.getFrame();
         InfraredSearchInfo infrared = frame.getInfrared();
         if (result.getEndReason() != FaceSearchResult.EndReason.MATCH_FOUND
@@ -167,7 +159,7 @@ final class UvcSearchStatusUi {
         FaceSearchFace face = match != null ? match : frame.getFaces().isEmpty() ? null : frame.getFaces().get(0);
         String title = match != null ? context.getString(R.string.uvc_search_result_face_id, match.getFaceId()) : caption;
         InfraredSearchInfo info = frame.getInfrared();
-        // 低相似度与 0 分均按原样显示；未执行用 —，活体拒绝不展示候选身份为识别成功。
+        // Keep low/zero scores and mark unavailable values with —; a rejected candidate is never a match.
         return title + "\n" + context.getString(R.string.search_ui_overlay_similarity) + " "
                 + detailScore(face == null ? null : face.getSimilarity()) + " · "
                 + context.getString(R.string.search_ui_overlay_liveness) + " "
@@ -190,7 +182,7 @@ final class UvcSearchStatusUi {
         stage = FaceSearchProgress.Stage.WAITING_FOR_FACE;
     }
 
-    /** 配对中断保留帧号边界，迟到的旧终态不能重新显示身份。 */
+    /** Keep the frame cutoff across pair loss so late terminal results cannot restore identity. */
     void waitingForPair() {
         clearResult();
         cancelStatus();
@@ -218,7 +210,7 @@ final class UvcSearchStatusUi {
 
     private void render() {
         int next = guidance();
-        // 合并 frame/progress 的中间状态；实时引导最多 4Hz，文本相同不重复 setText。
+        // Coalesce frame/progress guidance at 4 Hz; avoid rewriting identical text.
         if (TextUtils.equals(status.getText(), context.getText(next))) {
             cancelStatus();
         } else {
@@ -228,7 +220,7 @@ final class UvcSearchStatusUi {
     }
 
     @StringRes private int guidance() {
-        // 优先提示当前阻塞原因。上一轮的搜索间隔不能盖住本帧的配对或红外问题。
+        // Prioritize the current blocker over the previous round's success interval.
         if (missingPair()) return R.string.uvc_search_waiting_pair;
         if (stage == FaceSearchProgress.Stage.EMPTY_GALLERY) return R.string.search_ui_empty_caption;
         if (multipleFaces) return R.string.capture_status_multiple_faces;

@@ -11,7 +11,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.hiface.sdk.demo.R;
 import java.util.List;
 
-/** 录入只选 RGB UVC。跨页面/旋转以设备地址及 VID/PID 重新匹配，不保存枚举下标。 */
+/** RGB-only enrollment settings; restore address/VID/PID rather than indices. 中文：录入不选择 IR 相机。 */
 final class UvcEnrollmentCameraSettings {
     private static final String DEVICE = "enrollUvcDevice", VENDOR = "enrollUvcVendor", PRODUCT = "enrollUvcProduct", ROTATION = "enrollUvcRotation";
     private final AppCompatActivity owner;
@@ -46,9 +46,9 @@ final class UvcEnrollmentCameraSettings {
         int selection;
         try {
             List<UsbDevice> devices = cameras.refresh();
-            // 指定设备拔出时保留原身份，重新连接前显示为未选择。
+            // Keep the requested device identity while disconnected; display no selection until it returns.
             selection = desired.containsKey(DEVICE) ? desiredPosition(devices)
-                    : cameras.suggestedPosition(DualCameraSession.Role.RGB);
+                    : cameras.preferredPosition(null, DualCameraSession.Role.RGB);
         } catch (RuntimeException error) {
             cameras.clear();
             selection = 0;
@@ -56,6 +56,7 @@ final class UvcEnrollmentCameraSettings {
         cameras.bindDevices(device, selection);
     }
 
+    /** Keep the explicitly selected RGB device; do not substitute another camera while it is absent. */
     private int desiredPosition(List<UsbDevice> devices) {
         for (int i = 0; i < devices.size(); i++) {
             UsbDevice candidate = devices.get(i);

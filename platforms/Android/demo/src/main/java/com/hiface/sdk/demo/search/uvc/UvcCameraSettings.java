@@ -13,13 +13,14 @@ import com.facesdkpro.uvccamera.DualCameraSession;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.search.InfraredSearchConfig;
+import java.util.List;
 
-/** 双目设备设置表单；只管理选择和校验，不持有相机或搜索会话。 */
+/** Main-thread device selection and validation; owns no capture session. 中文：仅管理双目设置表单。 */
 final class UvcCameraSettings {
     private static final int MAX_PAIR_SKEW_MS = 50, MAX_FRAME_AGE_MS = 150;
     private static final String DEFAULT_IR_THRESHOLD = "0.70";
 
-    /** 一次启动使用同一份已校验参数，USB 角色不能从枚举次序或旧下标推断。 */
+    /** Validated settings for one start; USB roles never come from enumeration order or stale indices. */
     static final class Selection {
         final UsbDevice rgb, ir;
         final DualCameraConfig config;
@@ -41,6 +42,7 @@ final class UvcCameraSettings {
     private final CheckBox debug;
     private AlertDialog dialog;
     private int validationMessage;
+    private UvcDeviceChoicePolicy.Device rememberedRgb, rememberedIr;
 
     UvcCameraSettings(AppCompatActivity owner, Runnable refresh, Runnable debugChanged) {
         this.owner = owner;
@@ -64,13 +66,24 @@ final class UvcCameraSettings {
 
     boolean debugEnabled() { return debug.isChecked(); }
     int validationMessage() { return validationMessage; }
+    int deviceCount() { return cameras.size(); }
 
-    int refreshDevices() {
+    boolean usesDevice(UsbDevice device) {
+        return device.equals(selectedRgbDevice()) || device.equals(cameras.selected(irDevice));
+    }
+
+    /** Rebind current USB handles and report inventory changes; remember choices across disconnection. */
+    boolean refreshDevices() {
+        UvcDeviceChoicePolicy.Device rgb = cameras.selectedIdentity(rgbDevice);
+        UvcDeviceChoicePolicy.Device ir = cameras.selectedIdentity(irDevice);
+        if (rgb != null) rememberedRgb = rgb;
+        if (ir != null) rememberedIr = ir;
+        List<UvcDeviceChoicePolicy.Device> previous = cameras.identities();
         try {
             cameras.refresh();
-            cameras.bindDevices(rgbDevice, cameras.suggestedPosition(DualCameraSession.Role.RGB));
-            cameras.bindDevices(irDevice, cameras.suggestedPosition(DualCameraSession.Role.IR));
-            return setupHint();
+            cameras.bindDevices(rgbDevice, cameras.preferredPosition(rememberedRgb, DualCameraSession.Role.RGB));
+            cameras.bindDevices(irDevice, cameras.preferredPosition(rememberedIr, DualCameraSession.Role.IR));
+            return !previous.equals(cameras.identities());
         } catch (RuntimeException error) {
             cameras.clear();
             cameras.bindDevices(rgbDevice, 0);
@@ -86,7 +99,7 @@ final class UvcCameraSettings {
         return rgb.equals(ir) ? R.string.uvc_search_choose_distinct : R.string.uvc_search_ready;
     }
 
-    /** 校验失败保留表单并定位错误；成功后才允许 Activity 打开两路摄像头。 */
+    /** Keep invalid input editable; return capture settings only after device and threshold validation. */
     Selection read() {
         validationMessage = setupHint();
         if (validationMessage != R.string.uvc_search_ready) return null;
@@ -95,7 +108,7 @@ final class UvcCameraSettings {
             validationMessage = R.string.uvc_search_threshold_invalid;
             return null;
         }
-        // UVC 配帧和 SDK 复核共用 50/150 ms 门槛；映射与 IoU 需按目标模组标定。
+        // Pairing and SDK checks share 50/150 ms limits; calibrate mapping and IoU for the target module.
         InfraredSearchConfig infrared = new InfraredSearchConfig(value,
                 new float[]{1,0,0,0,1,0,0,0,1}, .25f, 80, MAX_PAIR_SKEW_MS, MAX_FRAME_AGE_MS);
         DualCameraConfig config = DualCameraConfig.defaults()
@@ -118,16 +131,18 @@ final class UvcCameraSettings {
         return value;
     }
 
-    void show(Runnable done) {
+    void show(boolean discovered, Runnable done) {
         if (dialog == null) {
-            dialog = new MaterialAlertDialogBuilder(owner).setTitle(R.string.uvc_search_settings).setView(form)
+            dialog = new MaterialAlertDialogBuilder(owner).setView(form)
                     .setPositiveButton(R.string.uvc_search_done, null).create();
-            dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
-                if (validateThreshold() == null) return;
-                dialog.dismiss();
-                done.run();
-            }));
         }
+        dialog.setTitle(discovered ? R.string.uvc_search_devices_found : R.string.uvc_search_settings);
+        // Bind the current callback on each show; Done cannot dismiss an invalid threshold.
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+            if (validateThreshold() == null) return;
+            dialog.dismiss();
+            done.run();
+        }));
         dialog.show();
     }
 
@@ -148,11 +163,10 @@ final class UvcCameraSettings {
     }
 
     void save(Bundle out) {
-        // 不保存 USB 枚举下标；页面重建时重新枚举并确认角色。
+        // Never persist enumeration indices; rebuild device choices from current attachments.
         out.putInt("rgbRotation", rgbRotation.getSelectedItemPosition());
         out.putInt("irRotation", irRotation.getSelectedItemPosition());
         out.putString("irThreshold", threshold.getText().toString());
         out.putBoolean("debug", debug.isChecked());
     }
-
 }

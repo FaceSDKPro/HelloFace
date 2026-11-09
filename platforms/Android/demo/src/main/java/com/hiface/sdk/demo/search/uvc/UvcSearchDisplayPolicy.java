@@ -3,17 +3,17 @@ package com.hiface.sdk.demo.search.uvc;
 import android.view.Window;
 import android.view.WindowManager;
 
-/** 主线程按分析状态调整当前窗口亮度，会话结束时还原。 */
+/** Adjust this window's brightness on main and restore it when capture stops. 中文：仅影响当前窗口。 */
 final class UvcSearchDisplayPolicy {
     private final Window window;
     private boolean active;
-    private float previous;
+    private float previousBrightness;
 
     UvcSearchDisplayPolicy(Window window) { this.window = window; }
 
     void start() {
         if (active) return;
-        previous = window.getAttributes().screenBrightness;
+        previousBrightness = window.getAttributes().screenBrightness;
         active = true;
         setIdle(false);
     }
@@ -25,7 +25,7 @@ final class UvcSearchDisplayPolicy {
     void stop() {
         if (!active) return;
         active = false;
-        brightness(previous);
+        brightness(previousBrightness);
     }
 
     private void brightness(float value) {

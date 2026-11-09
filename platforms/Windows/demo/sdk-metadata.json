@@ -1,5 +1,5 @@
 {
-  "version": "0.8.8",
+  "version": "0.8.9",
   "status": "beta-candidate",
   "architecture": "x64",
   "compute": "CPU",
@@ -22,7 +22,7 @@
     "gallery",
     "camera"
   ],
-  "candidateId": "0.8.8-beta.831708a172f9.522507f9",
+  "candidateId": "0.8.9-beta.945093bf2a05.522507f9",
   "releaseChannel": "beta",
   "proprietaryCoffSymbols": "removed",
   "authenticode": "unsigned"

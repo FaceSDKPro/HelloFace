@@ -1,5 +1,5 @@
 {
-  "version": "0.8.8",
+  "version": "0.8.9",
   "channel": "Beta",
   "architecture": "arm64",
   "glibc_baseline": "2.35",

@@ -245,7 +245,7 @@
     <string name="uvc_search_waiting_pair">正在同步画面…</string>
     <string name="uvc_search_stopped">搜索已停止</string>
     <string name="uvc_search_select_camera">选择摄像头</string>
-    <string name="uvc_search_connect_cameras">请连接两路相机后刷新。</string>
+    <string name="uvc_search_connect_cameras">请连接 RGB 和 IR 摄像头。</string>
     <string name="uvc_search_ready">相机已就绪，点击开始搜索。</string>
     <string name="uvc_search_choose_distinct">请选择两台不同的相机。</string>
     <string name="uvc_search_threshold_invalid">红外阈值须为 0.60–0.80</string>
@@ -271,13 +271,14 @@
     <string name="uvc_search_threshold_label">IR活体阈值</string>
     <string name="uvc_search_threshold_help">0.60–0.80，默认 0.70。上线前按目标模组标定。</string>
     <string name="uvc_search_refresh_devices">重新检测相机</string>
+    <string name="uvc_search_devices_found">发现 UVC 摄像头，请确认 RGB / IR</string>
     <string name="uvc_search_done">完成</string>
     <string name="uvc_search_fixed_mode">单人搜索，需通过红外活体。</string>
     <string name="uvc_search_options">分组 %1$s · 相似度 %2$s · 间隔 %3$d ms · 超时 %4$d ms</string>
     <string name="uvc_search_all_groups">全部</string>
     <string name="uvc_search_details">本次结果</string>
     <string name="uvc_search_usb_permission">请允许 USB 访问后重试。</string>
-    <string name="uvc_search_usb_detached">相机已断开，请重连后刷新。</string>
+    <string name="uvc_search_usb_detached">相机已断开，请重新连接摄像头。</string>
     <string name="uvc_search_camera_failure">%1$s：%2$s</string>
     <string name="uvc_search_result_face_id">人脸 ID：%1$s</string>
     <string name="uvc_search_no_result">暂无结果</string>

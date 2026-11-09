@@ -1,6 +1,5 @@
-# HiFace iOS 0.8.8
+# HiFace iOS 0.8.9
 
-- 授权状态使用 HiFaceRuntimeV1/runtime_v1.db，不查找、迁移或清理旧目录。
-- 内置厂商签名试用证书，从证书发布日期起一个自然年内开放全部能力；试用不绑定宿主 App、签名或设备。
-- 正式授权绑定宿主 App 的 Bundle ID + 主程序签名 Team ID；不绑定证书指纹，不兼容旧 access-group 授权身份。
-- 本地候选准备中；构建、验收及发布批准待完成。
+- 公开授权类型统一改名为 HiFaceAccess，查询、导入及导出方法保持原契约。
+- 试用及正式证书可随 SDK 升级复用；最低兼容版本、原有效期、应用身份及功能范围保持，升级不重置状态。
+- 保持 HiFaceRuntimeV1/runtime_v1.db、宿主签名 Team ID 绑定及时间完整性检查。

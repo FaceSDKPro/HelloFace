@@ -11,7 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.hiface.sdk.demo.R;
 
-/** 一次采样的确认表单；仅预览分配 Bitmap，关闭时释放，保存仍交给页面及共用存储。 */
+/** Confirms one capture; owns only the preview bitmap, released on dismiss. 中文：写库交给页面处理。 */
 final class UvcEnrollmentConfirmation {
     interface Listener {
         void save(String faceId, String group);
@@ -31,7 +31,7 @@ final class UvcEnrollmentConfirmation {
         group = form.findViewById(R.id.uvcEnrollGroup);
         id.setText(state.faceId);
         group.setText(state.group);
-        // 弹窗随页面重建，输入草稿留在 ViewModel 中。
+        // Keep the edited draft in the ViewModel when the dialog is recreated.
         TextWatcher draft = new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -50,7 +50,7 @@ final class UvcEnrollmentConfirmation {
             photo.setImageDrawable(null);
             bitmap.recycle();
         });
-        // 校验失败保留表单，保存期间由页面禁用提交和重拍。
+        // Keep invalid drafts open; the page disables submission/retake while saving.
         dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             String value = id.getText().toString().trim();
             if (value.isEmpty()) {

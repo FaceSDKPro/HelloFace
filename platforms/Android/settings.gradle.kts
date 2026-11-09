@@ -26,8 +26,10 @@ plugins {
 
 val sdkRepository = providers.gradleProperty("hiface.sdkRepository")
     .orNull
-    ?.trim()
-    ?.takeIf(String::isNotEmpty)
+    ?.let {
+        require(it.isNotBlank()) { "hiface.sdkRepository must name a non-empty SDK repository" }
+        it.trim()
+    }
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)

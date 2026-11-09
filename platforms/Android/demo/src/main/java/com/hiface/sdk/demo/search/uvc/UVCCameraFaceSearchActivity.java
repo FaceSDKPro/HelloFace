@@ -1,10 +1,15 @@
 package com.hiface.sdk.demo.search.uvc;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -22,12 +27,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.IntentCompat;
 import com.facesdkpro.uvccamera.CameraFailure;
 import com.facesdkpro.uvccamera.DualCameraConfig;
 import com.facesdkpro.uvccamera.DualCameraSession;
 import com.facesdkpro.uvccamera.FramePair;
 import com.facesdkpro.uvccamera.Nv21Planes;
 import com.facesdkpro.uvccamera.PreviewTransform;
+import com.facesdkpro.uvccamera.UvcCameraManager;
 import com.hiface.sdk.HiFaceSdk;
 import com.hiface.sdk.common.HiFaceError;
 import com.hiface.sdk.common.HiFaceErrorCode;
@@ -51,11 +58,12 @@ import com.hiface.sdk.search.FaceSearchSessionConfig;
 import com.hiface.sdk.search.InfraredSearchInfo;
 
 /**
- * 双目搜索接入页：管理采集和搜索会话；设备表单、结果展示及亮度策略各自独立。
- * 普通 FaceSearchActivity 不依赖本页。身份与 IR 活体的最终结论由 SDK 对同一采样作出。
+ * Owns RGB/IR capture and SDK search sessions. Settings, result display and brightness stay separate.
+ * The SDK makes the final identity/IR decision for the same sample; ordinary RGB search is independent.
  *
- * <p>界面和会话生命周期由主线程管理。UVC-pairs 线程负责送帧、分析节流和同步借用像素。
- * generation 使停止后的旧回调失效；日志不记录图像、人脸特征、身份或评分。</p>
+ * <p>Main owns lifecycle and UI; UVC-pairs synchronously borrows pixels and applies analysis throttling.
+ * A generation change rejects old callbacks. Logs contain no images, features, identities or scores.</p>
+ * 中文：主线程管理会话，帧回调只同步借用像素；停止后拒绝旧回调并等待资源排空。
  */
 public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
     private static final String TAG = "HiFaceRgbIr";
@@ -79,10 +87,32 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
     private final UvcCameraCloseBarrier closeBarrier = new UvcCameraCloseBarrier();
     private FaceSearchOverlayView overlay;
     private TextView status;
-    // requested 是用户运行意图，退到后台仍保留；running 表示当前会话允许接收回调。
+    // requested survives backgrounding; running admits callbacks only for the current session.
     private boolean started, requested, permissionPending;
+    private boolean usbReceiverRegistered, devicesRefreshPending, discoveryPending;
     private volatile boolean running;
     private volatile long generation, lastPairAt;
+
+    private final Runnable refreshUsbDevices = this::flushDeviceChanges;
+    private final BroadcastReceiver usbDevices = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            if (!started) return;
+            String action = intent.getAction();
+            boolean attached = UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action);
+            if (!attached && !UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) return;
+            UsbDevice device = IntentCompat.getParcelableExtra(intent, UsbManager.EXTRA_DEVICE, UsbDevice.class);
+            if (!UvcCameraManager.isCamera(device)) return;
+            devicesRefreshPending = true;
+            discoveryPending |= attached;
+            if (!attached && (running || requested) && (cameraSettings.usesDevice(device)
+                    || capture != null && (device.equals(capture.rgb) || device.equals(capture.ir)))) {
+                // Invalidate old callbacks immediately; the close barrier still waits for USB/Surface cleanup.
+                failCapture(getString(R.string.uvc_search_usb_detached), true);
+            }
+            main.removeCallbacks(refreshUsbDevices);
+            main.postDelayed(refreshUsbDevices, 300); // A dual-camera hub can send two attachment broadcasts.
+        }
+    };
 
     private final Runnable diagnosticsTicker = new Runnable() {
         @Override public void run() {
@@ -103,7 +133,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
                 failCapture(getString(R.string.uvc_search_pair_timeout), true);
                 return;
             }
-            // 两路各自有帧也可能配不成对；这时及时清掉旧身份/框，不能一直显示上次通过。
+            // Two live streams may still fail pairing; clear stale results rather than retain a previous pass.
             if (age > UvcSearchIdlePolicy.PAIR_GAP_MS) {
                 overlay.clear();
                 irOverlay.show(null);
@@ -129,13 +159,52 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
         updateButtons();
     }
 
+    @Override protected void onStart() {
+        super.onStart();
+        started = true;
+        IntentFilter usbFilter = new IntentFilter(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        usbFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        ContextCompat.registerReceiver(this, usbDevices, usbFilter, ContextCompat.RECEIVER_EXPORTED);
+        usbReceiverRegistered = true;
+        devicesRefreshPending = true;
+        closeBarrier.listen(() -> {
+            updateButtons();
+            flushDeviceChanges();
+            startCapture();
+        });
+        flushDeviceChanges();
+        updateButtons();
+        startCapture();
+    }
+
+    @Override protected void onStop() {
+        started = false;
+        main.removeCallbacks(refreshUsbDevices);
+        if (usbReceiverRegistered) {
+            unregisterReceiver(usbDevices);
+            usbReceiverRegistered = false;
+        }
+        closeBarrier.listen(null);
+        cameraSettings.dismiss();
+        if (searchSettingsDialog != null) searchSettingsDialog.dismiss();
+        stopCapture(false);
+        super.onStop();
+    }
+
+    @Override protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        cameraSettings.save(out);
+        out.putBoolean("captureRequested", requested);
+        UvcSearchSettingsDialog.save(out, searchOptions);
+    }
+
     private void bindViews(Bundle state) {
         preview = findViewById(R.id.uvcPreview);
         irPreview = findViewById(R.id.uvcIrPreview);
         irOverlay = findViewById(R.id.uvcIrOverlay);
         diagnostics = findViewById(R.id.uvcDiagnostics);
         overlay = findViewById(R.id.uvcOverlay);
-        overlay.setAssociationEnabled(false); // 双目身份和 IR 结论不跨采样关联。
+        overlay.setAssociationEnabled(false); // Never associate identity and IR verdicts across samples.
         status = findViewById(R.id.uvcStatus);
         searchOptions = UvcSearchSettingsDialog.restore(state);
         statusUi = new UvcSearchStatusUi(findViewById(android.R.id.content), main);
@@ -155,7 +224,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
             stopCapture();
             show(R.string.uvc_search_stopped);
         });
-        findViewById(R.id.uvcLibrary).setOnClickListener(v -> openPage(FaceSearchLibraryActivity.class));
+        findViewById(R.id.uvcLibrary).setOnClickListener(v -> openPage(new Intent(this, FaceSearchLibraryActivity.class)));
         findViewById(R.id.uvcEnroll).setOnClickListener(v -> openPage(UVCCameraFaceEnrollmentActivity.intent(
                 this, cameraSettings.selectedRgbDevice(), cameraSettings.rgbRotationDegrees(), searchOptions.getGroup())));
     }
@@ -185,7 +254,8 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
 
     private void onCameraPermission(boolean granted) {
         permissionPending = false;
-        // 授权可能在停止或离开后返回，不能借此重新启动采集。
+        flushDeviceChanges();
+        // A late permission result must not restart a stopped or hidden page.
         if (started && requested) {
             if (granted) startCapture();
             else {
@@ -207,13 +277,17 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
         menu.show();
     }
 
-    /** 设备与预览参数只在空闲时修改，运行中的搜索参数可单独应用。 */
+    /** Edit device/preview settings only while idle; search settings can be applied independently. */
     private void showCameraSettings() {
+        showCameraSettings(false);
+    }
+
+    private void showCameraSettings(boolean discovered) {
         if (!canEditCameras()) {
             Toast.makeText(this, R.string.uvc_search_settings_running, Toast.LENGTH_SHORT).show();
             return;
         }
-        cameraSettings.show(() -> {
+        cameraSettings.show(discovered, () -> {
             show(cameraSettings.setupHint());
             offerRetry(false);
         });
@@ -229,25 +303,42 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
         });
     }
 
-    private void openPage(Class<?> page) { openPage(new Intent(this, page)); }
-
     private void openPage(Intent page) {
-        // 先停止准入并登记 USB 关闭，再切换页面；录入页只在排空完成后打开同一 RGB 相机。
+        // Register USB closure before navigation; enrollment opens the shared RGB device only after draining.
         started = false;
         stopCapture(false);
         startActivity(page);
     }
 
-    private void refreshDevices() {
-        if (cameras != null) return;
+    /** Refresh idle device choices and return the change directly, without retaining temporary state. */
+    private boolean refreshDevices() {
+        if (cameras != null) return false;
         try {
-            show(cameraSettings.refreshDevices());
+            boolean changed = cameraSettings.refreshDevices();
+            show(cameraSettings.setupHint());
+            return changed;
         } catch (RuntimeException error) {
             failCamera("Cannot enumerate UVC cameras", error);
+            return false;
         }
     }
 
-    /** 先校验设备和 IR 配置，再等待权限与 Surface；每次继续启动都重新检查用户意图。 */
+    /** Coalesce USB events; refresh only after old cameras and permission requests finish. */
+    private void flushDeviceChanges() {
+        if (!devicesRefreshPending || !started || isFinishing() || isDestroyed()
+                || !camerasIdle() || permissionPending) return;
+        boolean discovered = discoveryPending;
+        devicesRefreshPending = discoveryPending = false;
+        boolean changed = refreshDevices();
+        if ((discovered || requested && changed) && cameraSettings.deviceCount() > 0) {
+            // Confirm roles after reconnection; never resume with stale UsbDevice handles.
+            requested = false;
+            updateButtons();
+            showCameraSettings(true);
+        }
+    }
+
+    /** Validate devices/IR before permissions and surfaces; recheck user intent on every continuation. */
     private void startCapture() {
         if (!started || !requested || !camerasIdle() || permissionPending || isFinishing() || isDestroyed()) return;
         offerRetry(false);
@@ -269,7 +360,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
         if (!preview.isAvailable() || (cameraSettings.debugEnabled() && !irPreview.isAvailable())) {
             show(R.string.uvc_search_opening);
             updateButtons();
-            return; // 由 onSurfaceTextureAvailable 继续，停止操作可撤销本次 requested。
+            return; // Surface availability continues this request; Stop can still cancel it.
         }
 
         capture = selection;
@@ -277,7 +368,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
         stats.start(epoch, SystemClock.elapsedRealtimeNanos());
         statusUi.clear();
         try {
-            // IR 是显式模式。SDK 不通过关闭 RGB 活体来隐式放行，也不会使用旧 IR 通过结果。
+            // Require explicit IR liveness for this sample; disabling RGB liveness cannot grant a pass.
             search = sdk.search().startCameraSearch(
                     UvcSearchSettingsDialog.withInfrared(searchOptions, capture.infrared), searchListener(epoch));
             Surface rgbSurface = surfaces.open(preview);
@@ -286,7 +377,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
             displayPolicy.start();
             lastPairAt = SystemClock.elapsedRealtime();
             UvcSearchIdlePolicy idle = new UvcSearchIdlePolicy();
-            // 先保存句柄再启动：失败回调也能沿统一关闭路径释放相机与 Surface。
+            // Assign before starting so even startup failures use the same camera/Surface cleanup path.
             cameras = DualCameraSession.create(this, capture.rgb, capture.ir, capture.config,
                     rgbSurface, irSurface, cameraListener(epoch), pair -> processPair(pair, epoch, idle));
             cameras.start();
@@ -294,7 +385,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
             show(R.string.uvc_search_opening);
             main.post(diagnosticsTicker);
         } catch (RuntimeException error) {
-            // 搜索启动和 Surface 创建也包含在清理范围内，不能留下占用相机槽位的半启动会话。
+            // Include search and Surface creation failures in cleanup; do not retain a partial session.
             failCamera("Cannot start RGB/IR search", error);
         }
         updateButtons();
@@ -331,7 +422,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
                 if (!current(epoch)) return;
                 lastPairAt = SystemClock.elapsedRealtime();
                 statusUi.camerasReady();
-                // 两路 USB 授权可先后弹窗，配对看门狗只能在两路真正打开后启动。
+                // USB permissions may be sequential; start the pair watchdog only when both cameras are open.
                 main.postDelayed(watchdog, 500);
             }
             @Override public void onError(DualCameraSession source, String message, Throwable cause) {
@@ -357,26 +448,27 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
                     message = getString(R.string.uvc_search_camera_failure, getString(camera), message);
                 }
                 failCapture(message, true);
-                // 只记录技术代码，不在日志输出图像、身份或评分。
+                // Log technical codes only, without images, identities or scores.
                 Log.w(TAG, "UVC " + role + ": " + failure.code + ", native=" + failure.nativeStatus);
             }
             @Override public void onClosed(DualCameraSession source) {
                 if (cameras != source) return;
                 cameras = null;
-                // 此回调保证 USB/native 和在途 pair 消费均已排空。
+                // USB/native resources and in-flight pair consumers have drained at this callback.
                 surfaces.release();
                 updateButtons();
                 closeBarrier.closed();
+                flushDeviceChanges();
             }
         };
     }
 
-    /** UVC-pairs 线程同步借用像素；回调返回即失效，不能把 pair/ByteBuffer post 到主线程。 */
+    /** Borrow pixels synchronously on UVC-pairs; never post pair/ByteBuffer to main. 中文：回调返回后像素失效。 */
     private void processPair(FramePair pair, long epoch, UvcSearchIdlePolicy idle) {
         if (!current(epoch)) return;
         long startedNanos = SystemClock.elapsedRealtimeNanos();
         long now = startedNanos / 1_000_000L;
-        lastPairAt = now; // 看门狗观察实际配对流量，包括主动跳过的帧对。
+        lastPairAt = now; // Include intentionally skipped pairs in the stream watchdog.
         boolean wasIdle = idle.isIdle();
         if (!idle.shouldAnalyze(now)) {
             stats.pair(epoch, pair.rgb.arrivalTimeNanos, pair.ir.arrivalTimeNanos, startedNanos,
@@ -394,12 +486,12 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
                 : transientError ? RgbIrSearchStats.Outcome.SKIPPED : RgbIrSearchStats.Outcome.ERROR;
         stats.pair(epoch, pair.rgb.arrivalTimeNanos, pair.ir.arrivalTimeNanos, startedNanos,
                 SystemClock.elapsedRealtimeNanos() - startedNanos, outcome);
-        // 初始化、节流和背压只跳过本对帧；技术错误切回主线程停止整个会话。
+        // Initialization/throttling skip this pair; technical errors stop the session on main.
         if (outcome == RgbIrSearchStats.Outcome.ERROR)
             main.post(() -> { if (current(epoch)) failSearch(error); });
     }
 
-    /** UVC 已分别旋转两路像素；SDK 同步借用 NV21/GRAY8，时间戳沿用 UVC 到达时间。 */
+    /** UVC rotates both streams; SDK borrows NV21/GRAY8 with the original UVC arrival timestamps. */
     private HiFaceResult<FaceDetectionResult> analyzePair(FramePair pair) {
         Nv21Planes rgb = pair.rgbPlanes();
         Yuv420Frame frame = new Yuv420Frame(rgb.y(), rgb.u(), rgb.v(), rgb.width, rgb.height,
@@ -411,7 +503,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
                 pair.rgb.arrivalTimeNanos / 1_000_000L, pair.ir.arrivalTimeNanos / 1_000_000L));
     }
 
-    /** 只在待机状态变化时刷新亮度，旧会话或已断流的通知不会再把页面调暗。 */
+    /** Update brightness on idle transitions; reject notifications from old or stalled streams. */
     private void postIdleDisplay(long epoch, boolean idle) {
         main.post(() -> {
             if (current(epoch)) displayPolicy.setIdle(idle
@@ -465,6 +557,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
         if (enabled) renderDiagnostics(); else irOverlay.show(null);
     }
 
+    /** Record current-generation IR diagnostics on main; the debug toggle changes display only. */
     private void renderInfrared(long epoch, InfraredSearchInfo info) {
         stats.core(epoch, info);
         if (cameraSettings.debugEnabled()) irOverlay.show(info);
@@ -482,12 +575,12 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
                 cameras == null ? null : cameras.pairingDiagnostics()));
     }
 
-    /** 主动停止/错误会撤销运行意图；页面暂时离开则保留，返回后等待旧相机排空再恢复。 */
+    /** Stop/errors cancel user intent; backgrounding preserves it until old cameras drain. 中文：离页后先排空再恢复。 */
     private void stopCapture() { stopCapture(true); }
 
     private void stopCapture(boolean cancelRequest) {
         if (cancelRequest) requested = false;
-        // 先作废回调，再关 SDK/UVC；主线程不等待帧线程退出。
+        // Invalidate callbacks before closing SDK/UVC; never join the frame thread on main.
         running = false;
         stats.stop(generation);
         ++generation;
@@ -509,6 +602,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
                 cameras.close();
             }
             updateButtons();
+            flushDeviceChanges();
         }
     }
 
@@ -527,32 +621,5 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
     private void show(int text) { status.setText(text); }
     private void offerRetry(boolean enabled) {
         findViewById(R.id.uvcRetry).setVisibility(enabled ? View.VISIBLE : View.GONE);
-    }
-
-    @Override protected void onStart() {
-        super.onStart();
-        started = true;
-        closeBarrier.listen(() -> {
-            updateButtons();
-            startCapture();
-        });
-        updateButtons();
-        startCapture();
-    }
-
-    @Override protected void onStop() {
-        started = false;
-        closeBarrier.listen(null);
-        cameraSettings.dismiss();
-        if (searchSettingsDialog != null) searchSettingsDialog.dismiss();
-        stopCapture(false);
-        super.onStop();
-    }
-
-    @Override protected void onSaveInstanceState(Bundle out) {
-        super.onSaveInstanceState(out);
-        cameraSettings.save(out);
-        out.putBoolean("captureRequested", requested);
-        UvcSearchSettingsDialog.save(out, searchOptions);
     }
 }

@@ -12,6 +12,50 @@ import UniformTypeIdentifiers
 import _Concurrency
 import _StringProcessing
 import _SwiftConcurrencyShims
+public enum HiFaceAccessMode : Swift.UInt32, Swift.Sendable {
+  case none, trial, commercial
+  public init?(rawValue: Swift.UInt32)
+  public typealias RawValue = Swift.UInt32
+  public var rawValue: Swift.UInt32 {
+    get
+  }
+}
+public struct HiFaceAccessInfo : Swift.Sendable, Swift.Equatable {
+  public let errorCode: HiFace.HiFaceErrorCode?
+  public let generation: Swift.String
+  public let revision: Swift.String
+  public let effectiveTimeSeconds: Swift.Int64
+  public let expiresAtSeconds: Swift.Int64
+  public let featureMask: Swift.UInt64
+  public let maximumGalleryEntries: Swift.UInt32
+  public let mode: HiFace.HiFaceAccessMode
+  public let trialStartedAtSeconds: Swift.Int64
+  public let notBeforeSeconds: Swift.Int64
+  public let licenseExpiresAtSeconds: Swift.Int64
+  public var isValid: Swift.Bool {
+    get
+  }
+  public var isPerpetual: Swift.Bool {
+    get
+  }
+  public static func == (a: HiFace.HiFaceAccessInfo, b: HiFace.HiFaceAccessInfo) -> Swift.Bool
+}
+public enum HiFaceAccess {
+  public static func importLicense(_ envelope: Foundation.Data) async -> Swift.Result<Swift.Void, HiFace.HiFaceError>
+  public static func getStatus() async -> Swift.Result<HiFace.HiFaceAccessInfo, HiFace.HiFaceError>
+  public static func initialize() async -> Swift.Result<HiFace.HiFaceAccessInfo, HiFace.HiFaceError>
+  public static func exportApplicationProfile() async -> Swift.Result<Foundation.Data, HiFace.HiFaceError>
+  public static func exportRecoveryRequest() async -> Swift.Result<Foundation.Data, HiFace.HiFaceError>
+}
+@objc @_inheritsConvenienceInitializers @_Concurrency.MainActor final public class HiFaceAccessViewController : UIKit.UIViewController, UIKit.UIDocumentPickerDelegate {
+  @_Concurrency.MainActor @objc override final public func viewDidLoad()
+  @_Concurrency.MainActor @objc override final public func viewDidDisappear(_ animated: Swift.Bool)
+  @_Concurrency.MainActor @preconcurrency @objc final public func documentPicker(_ controller: UIKit.UIDocumentPickerViewController, didPickDocumentsAt urls: [Foundation.URL])
+  @_Concurrency.MainActor @preconcurrency @objc final public func documentPickerWasCancelled(_ controller: UIKit.UIDocumentPickerViewController)
+  @_Concurrency.MainActor @objc override dynamic public init(nibName nibNameOrNil: Swift.String?, bundle nibBundleOrNil: Foundation.Bundle?)
+  @_Concurrency.MainActor @objc required dynamic public init?(coder: Foundation.NSCoder)
+  @objc deinit
+}
 public struct FaceCaptureCallbacks : Swift.Sendable {
   public let onProgress: @_Concurrency.MainActor @Sendable (HiFace.FaceFlowProgress) -> Swift.Void
   public let onResult: @_Concurrency.MainActor @Sendable (HiFace.FaceCaptureResult) -> Swift.Void
@@ -309,50 +353,6 @@ public struct HiFaceRGBAImage : Swift.Sendable, Swift.Equatable {
   public func makeCGImage() -> CoreGraphics.CGImage?
   public static func == (a: HiFace.HiFaceRGBAImage, b: HiFace.HiFaceRGBAImage) -> Swift.Bool
 }
-public enum HiFaceLicenseMode : Swift.UInt32, Swift.Sendable {
-  case none, trial, commercial
-  public init?(rawValue: Swift.UInt32)
-  public typealias RawValue = Swift.UInt32
-  public var rawValue: Swift.UInt32 {
-    get
-  }
-}
-public struct HiFaceLicenseInfo : Swift.Sendable, Swift.Equatable {
-  public let errorCode: HiFace.HiFaceErrorCode?
-  public let generation: Swift.String
-  public let revision: Swift.String
-  public let effectiveTimeSeconds: Swift.Int64
-  public let expiresAtSeconds: Swift.Int64
-  public let featureMask: Swift.UInt64
-  public let maximumGalleryEntries: Swift.UInt32
-  public let mode: HiFace.HiFaceLicenseMode
-  public let trialStartedAtSeconds: Swift.Int64
-  public let notBeforeSeconds: Swift.Int64
-  public let licenseExpiresAtSeconds: Swift.Int64
-  public var isValid: Swift.Bool {
-    get
-  }
-  public var isPerpetual: Swift.Bool {
-    get
-  }
-  public static func == (a: HiFace.HiFaceLicenseInfo, b: HiFace.HiFaceLicenseInfo) -> Swift.Bool
-}
-public enum HiFaceLicense {
-  public static func importLicense(_ envelope: Foundation.Data) async -> Swift.Result<Swift.Void, HiFace.HiFaceError>
-  public static func getStatus() async -> Swift.Result<HiFace.HiFaceLicenseInfo, HiFace.HiFaceError>
-  public static func initialize() async -> Swift.Result<HiFace.HiFaceLicenseInfo, HiFace.HiFaceError>
-  public static func exportApplicationProfile() async -> Swift.Result<Foundation.Data, HiFace.HiFaceError>
-  public static func exportRecoveryRequest() async -> Swift.Result<Foundation.Data, HiFace.HiFaceError>
-}
-@objc @_inheritsConvenienceInitializers @_Concurrency.MainActor final public class HiFaceLicenseViewController : UIKit.UIViewController, UIKit.UIDocumentPickerDelegate {
-  @_Concurrency.MainActor @objc override final public func viewDidLoad()
-  @_Concurrency.MainActor @objc override final public func viewDidDisappear(_ animated: Swift.Bool)
-  @_Concurrency.MainActor @preconcurrency @objc final public func documentPicker(_ controller: UIKit.UIDocumentPickerViewController, didPickDocumentsAt urls: [Foundation.URL])
-  @_Concurrency.MainActor @preconcurrency @objc final public func documentPickerWasCancelled(_ controller: UIKit.UIDocumentPickerViewController)
-  @_Concurrency.MainActor @objc override dynamic public init(nibName nibNameOrNil: Swift.String?, bundle nibBundleOrNil: Foundation.Bundle?)
-  @_Concurrency.MainActor @objc required dynamic public init?(coder: Foundation.NSCoder)
-  @objc deinit
-}
 public struct FaceLivenessConfiguration : Swift.Sendable, Swift.Equatable {
   public static let defaultActionTimeoutMilliseconds: Swift.Int64
   public static let defaultFaceAcquisitionTimeoutMilliseconds: Swift.Int64
@@ -561,6 +561,9 @@ public struct FaceVerificationConfiguration : Swift.Sendable, Swift.Equatable {
   public init(referenceFeature: Swift.String, threshold: Swift.Float? = nil, requiresSilentLiveness: Swift.Bool = false, actions: [HiFace.FaceAction] = [], actionTimeoutMilliseconds: Swift.Int64? = nil, faceAcquisitionTimeoutMilliseconds: Swift.Int64? = nil, allowsMultipleFaces: Swift.Bool = false) throws
   public static func == (a: HiFace.FaceVerificationConfiguration, b: HiFace.FaceVerificationConfiguration) -> Swift.Bool
 }
+extension HiFace.HiFaceAccessMode : Swift.Equatable {}
+extension HiFace.HiFaceAccessMode : Swift.Hashable {}
+extension HiFace.HiFaceAccessMode : Swift.RawRepresentable {}
 extension HiFace.HiFaceErrorCode : Swift.Equatable {}
 extension HiFace.HiFaceErrorCode : Swift.Hashable {}
 extension HiFace.HiFaceErrorCode : Swift.RawRepresentable {}
@@ -577,8 +580,5 @@ extension HiFace.HiFaceImageRotation : Swift.RawRepresentable {}
 extension HiFace.HiFaceCPUThreadPolicy : Swift.Equatable {}
 extension HiFace.HiFaceCPUThreadPolicy : Swift.Hashable {}
 extension HiFace.HiFaceCPUThreadPolicy : Swift.RawRepresentable {}
-extension HiFace.HiFaceLicenseMode : Swift.Equatable {}
-extension HiFace.HiFaceLicenseMode : Swift.Hashable {}
-extension HiFace.HiFaceLicenseMode : Swift.RawRepresentable {}
 extension HiFace.FaceSearchEndReason : Swift.Hashable {}
 extension HiFace.FaceSearchStage : Swift.Hashable {}

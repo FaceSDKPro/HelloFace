@@ -23,6 +23,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/* 与主 C ABI 保持相同对齐，并在文件末尾恢复接入方的 packing 设置。 */
+#if defined(_MSC_VER) || defined(__clang__) || defined(__GNUC__)
+#  pragma pack(push, 8)
+#endif
 /* RGB + near-IR camera search. The original search v1 structs and RGB scoring
  * retain their meaning. IR is required for every sampled identity decision.
  * Images must show one person; the mapping is a device-specific geometric
@@ -79,6 +83,9 @@ HIFACE_API HiFaceStatus HIFACE_CALL hiface_session_search_prepare_rgbir_v1(
 HIFACE_API HiFaceStatus HIFACE_CALL hiface_search_batch_read_infrared_v1(
         HiFaceSearchBatchHandle batch, HiFaceSearchInfraredResultV1* out_result);
 
+#if defined(_MSC_VER) || defined(__clang__) || defined(__GNUC__)
+#  pragma pack(pop)
+#endif
 #ifdef __cplusplus
 }
 #endif

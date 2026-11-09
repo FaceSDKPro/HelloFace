@@ -245,7 +245,7 @@
     <string name="uvc_search_waiting_pair">Syncing camera feeds…</string>
     <string name="uvc_search_stopped">Search stopped</string>
     <string name="uvc_search_select_camera">Select a camera</string>
-    <string name="uvc_search_connect_cameras">Connect both cameras and refresh.</string>
+    <string name="uvc_search_connect_cameras">Connect the RGB and IR cameras.</string>
     <string name="uvc_search_ready">Cameras ready. Tap Start.</string>
     <string name="uvc_search_choose_distinct">Select two different cameras.</string>
     <string name="uvc_search_threshold_invalid">IR threshold must be 0.60–0.80</string>
@@ -271,13 +271,14 @@
     <string name="uvc_search_threshold_label">IR liveness threshold</string>
     <string name="uvc_search_threshold_help">0.60–0.80, default 0.70. Calibrate on the target module before deployment.</string>
     <string name="uvc_search_refresh_devices">Refresh connected cameras</string>
+    <string name="uvc_search_devices_found">UVC cameras detected · confirm RGB / IR</string>
     <string name="uvc_search_done">Done</string>
     <string name="uvc_search_fixed_mode">Single-person search requires IR liveness.</string>
     <string name="uvc_search_options">Group %1$s · Similarity %2$s · Interval %3$d ms · Timeout %4$d ms</string>
     <string name="uvc_search_all_groups">All</string>
     <string name="uvc_search_details">Result details</string>
     <string name="uvc_search_usb_permission">Allow USB access and retry.</string>
-    <string name="uvc_search_usb_detached">Camera disconnected. Reconnect and refresh.</string>
+    <string name="uvc_search_usb_detached">Camera disconnected. Reconnect to select cameras.</string>
     <string name="uvc_search_camera_failure">%1$s: %2$s</string>
     <string name="uvc_search_result_face_id">Face ID: %1$s</string>
     <string name="uvc_search_no_result">No result yet</string>

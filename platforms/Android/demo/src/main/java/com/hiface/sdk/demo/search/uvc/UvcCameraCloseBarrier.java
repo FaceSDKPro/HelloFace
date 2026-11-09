@@ -4,8 +4,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-/** 主线程上的应用内 USB 关闭屏障；搜索、录入和重建后的页面都等待旧采集排空。 */
+/** Main-thread close barrier shared across search, enrollment and recreation. 中文：等待旧采集完全排空。 */
 final class UvcCameraCloseBarrier {
+    // Global pending blocks all pages; per-owner counts prevent one owner releasing another.
     private static int pending;
     private static final Set<UvcCameraCloseBarrier> listeners = new LinkedHashSet<>();
     private int ownPending;
@@ -19,7 +20,7 @@ final class UvcCameraCloseBarrier {
         ++pending;
     }
 
-    // 只在页面可见期间注册；onStop 移除，不由静态集合保留后台 Activity。
+    // Subscribe only while visible; onStop removes the static reference to the background Activity.
     void listen(Runnable listener) {
         ready = listener;
         if (listener == null) listeners.remove(this);
@@ -27,11 +28,11 @@ final class UvcCameraCloseBarrier {
     }
 
     void closed() {
-        // 重复/无配对的回调不能替另一页面解除尚未完成的关闭。
+        // Duplicate or unmatched callbacks cannot release another owner's pending closure.
         if (ownPending == 0) return;
         --ownPending;
         if (--pending != 0) return;
-        // 回调可能切换页面并改动订阅集合，按快照通知。
+        // Notify a snapshot because callbacks can navigate and change subscriptions.
         for (UvcCameraCloseBarrier owner : new ArrayList<>(listeners))
             if (owner.ready != null) owner.ready.run();
     }

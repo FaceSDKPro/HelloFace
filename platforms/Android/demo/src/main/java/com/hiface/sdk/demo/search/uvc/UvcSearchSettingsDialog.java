@@ -11,14 +11,17 @@ import com.hiface.sdk.demo.R;
 import com.hiface.sdk.search.FaceSearchSessionConfig;
 import com.hiface.sdk.search.InfraredSearchConfig;
 
-/** 双目页只编辑支持的搜索参数；固定单人模式和必需 IR，不复用普通 RGB 页的模式开关。 */
+/** Edits supported search options with mandatory IR and single-person mode. 中文：不复用普通 RGB 页的模式开关。 */
 final class UvcSearchSettingsDialog {
+    // Keep API 23 support without java.util.function, which requires API 24.
     interface OnApply { void accept(FaceSearchSessionConfig config); }
+    private interface NumberParser<N extends Number> { N parse(String text); }
 
     private UvcSearchSettingsDialog() {}
 
     static FaceSearchSessionConfig defaults() { return FaceSearchSessionConfig.builder().build(); }
 
+    /** Rebuild editable options while retaining single-person mode and required IR checks. */
     static FaceSearchSessionConfig withInfrared(FaceSearchSessionConfig options, InfraredSearchConfig ir) {
         return FaceSearchSessionConfig.builder().group(options.getGroup()).threshold(options.getThreshold())
                 .searchIntervalMillis(options.getSearchIntervalMillis())
@@ -61,9 +64,9 @@ final class UvcSearchSettingsDialog {
         dialog.setOnShowListener(ignored -> {
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> fill.accept(defaults()));
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-                Float score = decimal(threshold, .75f, .85f, R.string.search_ui_error_threshold);
-                Integer gap = integer(interval, 0, 3000, R.string.search_ui_error_interval);
-                Integer budget = integer(timeout, 1000, 3000, R.string.search_ui_error_timeout);
+                Float score = number(threshold, Float::valueOf, .75f, .85f, R.string.search_ui_error_threshold);
+                Integer gap = number(interval, Integer::valueOf, 0, 3000, R.string.search_ui_error_interval);
+                Integer budget = number(timeout, Integer::valueOf, 1000, 3000, R.string.search_ui_error_timeout);
                 if (score == null || gap == null || budget == null) return;
                 apply.accept(FaceSearchSessionConfig.builder().group(group.getText().toString().trim())
                         .threshold(score).searchIntervalMillis(gap).searchTimeoutMillis(budget).build());
@@ -74,19 +77,15 @@ final class UvcSearchSettingsDialog {
         return dialog;
     }
 
-    private static Float decimal(EditText field, float min, float max, int error) {
+    /** Shared numeric validation; bounds also reject NaN/infinity, preserving invalid drafts. */
+    private static <N extends Number> N number(EditText field, NumberParser<N> parser,
+            double min, double max, int error) {
         try {
-            float value = Float.parseFloat(field.getText().toString().trim());
-            if (Float.isFinite(value) && value >= min && value <= max) { field.setError(null); return value; }
-        } catch (NumberFormatException ignored) { /* Keep the draft open for correction. */ }
-        field.setError(field.getContext().getString(error));
-        return null;
-    }
-
-    private static Integer integer(EditText field, int min, int max, int error) {
-        try {
-            int value = Integer.parseInt(field.getText().toString().trim());
-            if (value >= min && value <= max) { field.setError(null); return value; }
+            N value = parser.parse(field.getText().toString().trim());
+            if (value.doubleValue() >= min && value.doubleValue() <= max) {
+                field.setError(null);
+                return value;
+            }
         } catch (NumberFormatException ignored) { /* Keep the draft open for correction. */ }
         field.setError(field.getContext().getString(error));
         return null;

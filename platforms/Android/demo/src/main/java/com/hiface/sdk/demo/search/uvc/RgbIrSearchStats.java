@@ -3,7 +3,7 @@ package com.hiface.sdk.demo.search.uvc;
 import com.hiface.sdk.search.InfraredSearchInfo;
 import java.util.Arrays;
 
-/** UVC-pairs 写入送帧统计，主线程补充 IR 结果并读取快照；只保存数值和有界采样。 */
+/** UVC-pairs records delivery; main adds IR results and reads bounded snapshots. 中文：只保存数值统计。 */
 final class RgbIrSearchStats {
     enum Outcome { ACCEPTED, SKIPPED, ERROR, IDLE_SKIPPED }
     static final int WINDOW = 120;
@@ -25,12 +25,13 @@ final class RgbIrSearchStats {
     }
 
     synchronized void stop(long epoch) { if (this.epoch == epoch) active = false; }
-    synchronized boolean accepts(long epoch) { return active && this.epoch == epoch; }
+    // Called only while holding this monitor; old sessions cannot update new statistics.
+    private boolean accepts(long epoch) { return active && this.epoch == epoch; }
 
     synchronized void pair(long epoch, long rgbNanos, long irNanos, long nowNanos, long durationNanos, Outcome outcome) {
         if (!accepts(epoch)) return;
         ++pairs;
-        // 到达时间与提交时间使用同一单调时钟；异常时间不参与延迟统计。
+        // Arrival/submission share a monotonic clock; exclude invalid timestamps from latency statistics.
         if (rgbNanos >= 0 && irNanos >= 0 && nowNanos >= rgbNanos && nowNanos >= irNanos) {
             skew.add(Math.abs(rgbNanos - irNanos) / 1e6);
             age.add((nowNanos - Math.min(rgbNanos, irNanos)) / 1e6);
@@ -46,7 +47,7 @@ final class RgbIrSearchStats {
 
     synchronized void core(long epoch, InfraredSearchInfo info) {
         if (!accepts(epoch) || info == null) return;
-        // onFrame/onResult 可能指向同一帧对，只计数一次，同时保留最终耗时。
+        // onFrame/onResult can describe the same pair; count once and retain its final timings.
         boolean sameSource = latest != null && latest.getSourceId() == info.getSourceId();
         if (sameSource && info.getPairId() < latest.getPairId()) return;
         if (!sameSource || info.getPairId() != latest.getPairId()) {
@@ -111,7 +112,7 @@ final class RgbIrSearchStats {
 
         Summary snapshot() {
             if (count == 0) return new Summary(0, 0, 0, 0);
-            // 排序副本，避免主线程读取统计时改变环形采样顺序。
+            // Sort a copy so snapshot reads preserve the sampling ring.
             double[] sorted = Arrays.copyOf(values, count);
             Arrays.sort(sorted);
             double sum = 0;
