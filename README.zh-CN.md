@@ -12,7 +12,7 @@
 <div align="center">
   <p>
     <a href="https://www.helloface.dev/zh/"><img src="images/hello-face-icon.webp" alt="" width="51" height="51" align="bottom"><img src="images/helloface-wordmark.svg" alt="HelloFace" width="170" height="40" align="bottom"></a>
-    &nbsp; <strong>0.8.9 Beta</strong>
+    &nbsp; <strong>0.8.11 Beta</strong>
   </p>
   <p><strong>离线人脸检测、采集、活体、1:1 比对及 1:N/M:N 搜索。</strong></p>
   <p>🌍 <strong>官方网站</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a> &nbsp; | &nbsp; <img src="images/github-mark.svg" alt="" width="16" height="16" align="bottom"> <strong>GitHub 集成源码</strong> · <a href="https://github.com/FaceSDKPro/HelloFace">FaceSDKPro/HelloFace</a></p>
@@ -91,6 +91,7 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
   <tr>
     <th align="center">Android APK 下载</th>
     <th align="center">微信联系</th>
+    <th align="center">Google Play 下载</th>
   </tr>
   <tr>
     <td align="center">
@@ -101,11 +102,9 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
       <img src="images/WeChat.jpg" alt="微信二维码" width="180"><br>
       扫码联系
     </td>
+    <td align="center">
+      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="images/GooglePlay.svg" alt="Google Play 下载二维码" width="180" height="180"></a><br>
+      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">在 Google Play 下载 Android Demo</a>
+    </td>
   </tr>
 </table>
-
-<p align="center">
-  <strong>Google Play 下载</strong><br>
-  <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="images/GooglePlay.svg" alt="Google Play 下载二维码" width="180" height="180"></a><br>
-  <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">在 Google Play 下载 Android Demo</a>
-</p>

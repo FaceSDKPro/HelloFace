@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.8.11]
+
+- 已有使用 20261110.hftrial 的七 Core 私有候选；合并构建与加固配置后须重建，完整验收及发布批准待完成。
+
 ## [0.8.9]
 
 - Rename public access types to HiFaceAccess and preserve the existing method contracts.

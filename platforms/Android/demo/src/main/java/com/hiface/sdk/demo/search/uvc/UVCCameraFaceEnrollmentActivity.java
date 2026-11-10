@@ -75,10 +75,9 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
     private volatile boolean running;
     private volatile long generation, lastFrameAt;
     private int rotation;
+    private StreamConfig actualConfig;
 
-    static Intent intent(Context context, UsbDevice rgb, int rotation, String group) {
-        Bundle choice = new Bundle();
-        UvcEnrollmentCameraSettings.putChoice(choice, rgb, rotation);
+    static Intent intent(Context context, Bundle choice, String group) {
         return new Intent(context, UVCCameraFaceEnrollmentActivity.class).putExtras(choice).putExtra(GROUP, group);
     }
 
@@ -204,7 +203,8 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
             captureRequest = sdk.capture().startCameraCapture(captureListener(epoch));
             Surface surface = surfaces.open(preview);
             manager = new UvcCameraManager(this, cameraListener(epoch));
-            manager.open(rgb, StreamConfig.defaults(), surface, (camera, frame) -> processFrame(frame, epoch));
+            actualConfig = settings.streamConfig();
+            manager.open(rgb, actualConfig, surface, (camera, frame) -> processFrame(frame, epoch));
             transformPreview();
         } catch (RuntimeException | LinkageError error) { failCamera(); }
     }
@@ -231,14 +231,16 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
         return new UvcCameraManager.Listener() {
             @Override public void onOpened(UvcCameraManager.Camera camera) {
                 if (!current(epoch)) return;
+                actualConfig = camera.actualConfig();
+                transformPreview();
                 lastFrameAt = SystemClock.elapsedRealtime();
-                show(R.string.uvc_enroll_guidance, false);
+                show(getString(R.string.uvc_enroll_guidance) + "\n" + actualConfig, false);
                 main.postDelayed(watchdog, 1000);
             }
             @Override public void onFailure(CameraFailure failure) {
                 if (!current(epoch)) return;
                 Log.w("HiFaceUvcEnroll", "UVC " + failure.code + ", native=" + failure.nativeStatus);
-                failCamera();
+                fail(getString(UvcCameraFailureUi.message(failure.code)), true);
             }
             @Override public void onShutdown() {
                 manager = null;
@@ -329,8 +331,9 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
     }
 
     private void transformPreview() {
-        if (preview.getWidth() > 0 && preview.getHeight() > 0)
-            preview.setTransform(PreviewTransform.centerCrop(preview.getWidth(), preview.getHeight(), 640, 480, rotation));
+        if (actualConfig != null && preview.getWidth() > 0 && preview.getHeight() > 0)
+            preview.setTransform(PreviewTransform.centerCrop(preview.getWidth(), preview.getHeight(),
+                    actualConfig.width, actualConfig.height, rotation));
     }
 
     private void show(int message, boolean canRetry) { show(getText(message), canRetry); }

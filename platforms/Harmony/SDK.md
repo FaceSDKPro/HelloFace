@@ -17,10 +17,10 @@ The SDK is in iterative public Beta testing. Please keep the SDK version up to d
 For direct delivery, copy the versioned HAR into the application and configure the module's `oh-package.json5`:
 
 ```json5
-{ "dependencies": { "hiface": "file:./libs/hiface-0.8.9.har" } }
+{ "dependencies": { "hiface": "file:./libs/hiface-0.8.11.har" } }
 ```
 
-After the same version is approved in the OpenHarmony package registry, use `ohpm install hiface@0.8.9`. Direct and registry delivery must use the same version and HAR SHA-256. Never replace an artifact already delivered under a version number. Sign the host HAP/APP with your own credentials; SDK HARs do not include Demo signing files or private keys.
+After the same version is approved in the OpenHarmony package registry, use `ohpm install hiface@0.8.11`. Direct and registry delivery must use the same version and HAR SHA-256. Never replace an artifact already delivered under a version number. Sign the host HAP/APP with your own credentials; SDK HARs do not include Demo signing files or private keys.
 
 ## Initialization and ownership
 

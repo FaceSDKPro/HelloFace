@@ -12,7 +12,7 @@
 <div align="center">
   <p>
     <a href="https://www.helloface.dev/"><img src="../../images/hello-face-icon.webp" alt="" width="51" height="51" align="bottom"><img src="../../images/helloface-wordmark.svg" alt="HelloFace" width="170" height="40" align="bottom"></a>
-    &nbsp; <strong>0.8.9 Beta</strong>
+    &nbsp; <strong>0.8.11 Beta</strong>
   </p>
   <p><strong>オフラインでの顔検出・取得・ライブネス検出・1:1 照合・1:N/M:N 検索。</strong></p>
   <p>🌍 <strong>公式サイト</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a> &nbsp; | &nbsp; <img src="../../images/github-mark.svg" alt="" width="16" height="16" align="bottom"> <strong>GitHub 連携サンプルコード</strong> · <a href="https://github.com/FaceSDKPro/HelloFace">FaceSDKPro/HelloFace</a></p>
@@ -91,6 +91,7 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
   <tr>
     <th align="center">Android APK のダウンロード</th>
     <th align="center">WeChat でのお問い合わせ</th>
+    <th align="center">Google Play でダウンロード</th>
   </tr>
   <tr>
     <td align="center">
@@ -101,11 +102,9 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
       <img src="../../images/WeChat.jpg" alt="WeChat の QR コード" width="180"><br>
       スキャンしてお問い合わせ
     </td>
+    <td align="center">
+      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="../../images/GooglePlay.svg" alt="Google Play ダウンロード用 QR コード" width="180" height="180"></a><br>
+      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">Android デモを Google Play でダウンロード</a>
+    </td>
   </tr>
 </table>
-
-<p align="center">
-  <strong>Google Play でダウンロード</strong><br>
-  <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="../../images/GooglePlay.svg" alt="Google Play ダウンロード用 QR コード" width="180" height="180"></a><br>
-  <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">Android デモを Google Play でダウンロード</a>
-</p>

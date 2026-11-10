@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-SDK / Demo: **0.8.9 Beta**.
+SDK / Demo: **0.8.11 Beta**.
 
 On-device detection, capture, liveness, 1:1 comparison, 1:N/M:N search and face-library management.
 
@@ -14,7 +14,7 @@ Guides: [SDK](docs/SDK.md) · [Demo](docs/DEMO.md).
 
 Use Android Studio, JDK 17, Android SDK 36 / Build Tools 36.0.0, and Java source level 11. Minimum Android version is 6.0 / API 23. The AAR includes native libraries for `arm64-v8a` and `armeabi-v7a`; this Demo does not require an NDK installation. Camera validation requires an ARM phone.
 
-The Demo loads `demo/libs/uvc-android-camera-0.6.0.aar` directly from the [UVCAndroidCamera 0.6.0 source](https://github.com/FaceSDKPro/UVCAndroidCamera/tree/383d3b6983d7234a3b6f1f3aae03c0b0f2511ba2) local delivery. It includes the USB-disconnect draining fix and third-party license texts; no local patch is needed. The adjacent `.txt` records provenance and checksums. Paired capture defaults to Middle at 15 FPS per camera. Select High with `DualCameraConfig.defaults(DualCameraConfig.Mode.HIGH)`.
+The Demo loads `demo/libs/uvc-android-camera-0.6.5.aar` from the reviewed UVCAndroidCamera 0.6.5 local delivery. The adjacent `.txt` binds exact artifact/source snapshot checksums and states whether the source is a local development candidate. The [upstream base](https://github.com/FaceSDKPro/UVCAndroidCamera/tree/abda469aca1cb87107f61eb8e1aeac7609a558ad) is not necessarily the complete source of a local candidate; no public release is implied. The AAR retains third-party licenses and JNI keep rules. Capture size and FPS are preferences; cameras may negotiate a nearby MJPEG mode. Use `actualConfig()` after startup for dimensions and FPS. Demo Settings offer 640×480 / 1280×720 and 15 / 30 FPS for each role. Search defaults to 15 FPS per camera; standalone RGB enrollment defaults to 30 FPS. Enrollment opened from search inherits the requested RGB size and FPS. Confirm RGB/IR roles and calibrate their normalized mapping for your camera module.
 
 Open this directory, sync dependencies, select `demo`, and run it on a phone. Grant camera access when requested. The application ID is `com.hiface.sdk.public`.
 
@@ -45,7 +45,7 @@ Use the SDK dependency and model compression configuration in the host App modul
 
 ```kotlin
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.9")
+    implementation("io.github.facesdkpro:hiface-android:0.8.11")
 }
 android {
     defaultConfig {

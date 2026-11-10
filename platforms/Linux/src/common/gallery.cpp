@@ -256,6 +256,6 @@ void exportFeatureFile(Database& db, const std::string& path, const std::string&
         offset += rows.size(); if (rows.size() < 500) break;
     }
     atomicWrite(path, "{\n  \"schemaVersion\":1,\n  \"featureFormat\":\"HF1\",\n  \"featureSpaceId\":" + jsonQuote(HIFACE_FEATURE_SPACE_ID)
-        + ",\n  \"entryCount\":" + std::to_string(total) + ",\n  \"entries\":[\n" + body.str() + "\n  ]\n}\n");
+        + ",\n  \"entryCount\":" + std::to_string(total) + ",\n  \"entries\":[\n" + body.str() + "\n  ]\n}\n", false);
 }
 }

@@ -1,13 +1,11 @@
 import java.util.Properties
-import java.security.KeyStore
-import java.security.MessageDigest
 
 plugins {
     alias(libs.plugins.android.application)
 }
 
-// Manage signing locally; never include credential files in Git or customer exports.
-// 本机签名由使用者管理，凭据文件不进入 Git 或客户导出包。
+// Read the original app signing locally; customer exports never include credentials.
+// 私有仓库沿用已批准的签名配置，公开导出不携带凭据。
 val demoSigningFile = layout.projectDirectory.file("signing.properties").asFile
 val demoSigning = Properties().apply {
     if (demoSigningFile.isFile) demoSigningFile.reader(Charsets.UTF_8).use { load(it) }
@@ -32,8 +30,8 @@ android {
         val sdkMinimum = libs.versions.minSdk.get().toInt()
         minSdk = if (googlePlayBuild) maxOf(24, sdkMinimum) else sdkMinimum
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 8009
-        versionName = "0.8.9"
+        versionCode = 8011
+        versionName = "0.8.11"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -82,6 +80,7 @@ android {
             isShrinkResources = false
         }
         release {
+            isDebuggable = false
             // Release removes unused code and resources; the SDK AAR supplies the JNI keep rules.
             // Release 裁剪无用代码与资源，JNI 保留规则由 SDK 随 AAR 提供。
             isMinifyEnabled = true
@@ -113,9 +112,9 @@ android {
 
 dependencies {
     //Powered By https://github.com/FaceSDKPro/UVCAndroidCamera
-    implementation(files("libs/uvc-android-camera-0.6.0.aar"))
+    implementation(files("libs/uvc-android-camera-0.6.5.aar"))
 
-    implementation("io.github.facesdkpro:hiface-android:0.8.9")
+    implementation("io.github.facesdkpro:hiface-android:0.8.11")
 
     implementation(libs.androidx.core)
     implementation(libs.androidx.activity)
@@ -138,3 +137,4 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.junit)
 }
+

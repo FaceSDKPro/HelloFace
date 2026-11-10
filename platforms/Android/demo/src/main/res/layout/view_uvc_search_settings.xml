@@ -7,8 +7,10 @@
             android:textSize="13sp" android:textColor="@color/text_on_dark_secondary" android:layout_marginBottom="16dp" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/uvc_search_rgb_camera" android:textAppearance="@style/TextAppearance.HiFace.Search.ParameterTitle" />
         <Spinner android:id="@+id/uvcRgbDevice" android:layout_width="match_parent" android:layout_height="48dp" android:saveEnabled="false" android:contentDescription="@string/uvc_search_rgb_camera" />
+        <include android:id="@+id/uvcRgbStream" layout="@layout/view_uvc_stream_settings" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/uvc_search_ir_camera" android:textAppearance="@style/TextAppearance.HiFace.Search.ParameterTitle" />
         <Spinner android:id="@+id/uvcIrDevice" android:layout_width="match_parent" android:layout_height="48dp" android:saveEnabled="false" android:contentDescription="@string/uvc_search_ir_camera" />
+        <include android:id="@+id/uvcIrStream" layout="@layout/view_uvc_stream_settings" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:baselineAligned="false">
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/uvc_search_rgb_rotation" android:textColor="@color/text_on_dark_secondary" android:textSize="13sp" />

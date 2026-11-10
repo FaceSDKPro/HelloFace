@@ -291,4 +291,11 @@
     <string name="uvc_enroll_guidance">请正对镜头并保持不动，系统会自动采集。</string>
     <string name="uvc_enroll_camera_error">RGB UVC 相机不可用，请检查连接与 USB 授权后重试。</string>
     <string name="uvc_enroll_opening">正在打开 RGB UVC 相机…</string>
+    <string name="uvc_stream_preferences">期望采集分辨率 / 帧率（相机可能匹配邻近模式）</string>
+    <string name="uvc_stream_resolution">期望采集分辨率</string>
+    <string name="uvc_stream_fps">期望采集帧率</string>
+    <string name="uvc_stream_actual">RGB：%1$s · IR：%2$s</string>
+    <string name="uvc_camera_unsupported_mode">相机不支持此 MJPEG 模式，请调整分辨率或帧率。</string>
+    <string name="uvc_camera_busy">相机被占用，请关闭其他相机应用后重试。</string>
+    <string name="uvc_camera_open_timeout">相机打开超时，请检查 USB 供电并重新连接。</string>
 </resources>

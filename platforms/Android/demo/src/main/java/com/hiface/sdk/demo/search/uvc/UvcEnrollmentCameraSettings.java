@@ -7,18 +7,21 @@ import android.widget.Spinner;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.facesdkpro.uvccamera.DualCameraSession;
+import com.facesdkpro.uvccamera.StreamConfig;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.hiface.sdk.demo.R;
 import java.util.List;
 
 /** RGB-only enrollment settings; restore address/VID/PID rather than indices. 中文：录入不选择 IR 相机。 */
 final class UvcEnrollmentCameraSettings {
+    static final String STREAM_KEY = "enrollStream";
     private static final String DEVICE = "enrollUvcDevice", VENDOR = "enrollUvcVendor", PRODUCT = "enrollUvcProduct", ROTATION = "enrollUvcRotation";
     private final AppCompatActivity owner;
     private final View form;
     private final Spinner device, rotation;
     private final UvcCameraChoices cameras;
     private final Bundle desired;
+    private final UvcStreamSettings stream;
     private AlertDialog dialog;
 
     UvcEnrollmentCameraSettings(AppCompatActivity owner, Bundle saved, Bundle source) {
@@ -28,6 +31,8 @@ final class UvcEnrollmentCameraSettings {
         form = owner.getLayoutInflater().inflate(R.layout.view_uvc_enrollment_settings, null, false);
         device = form.findViewById(R.id.uvcEnrollDevice);
         rotation = form.findViewById(R.id.uvcEnrollRotation);
+        stream = new UvcStreamSettings(form.findViewById(R.id.uvcEnrollStream), STREAM_KEY, true);
+        stream.restore(desired);
         UvcCameraChoices.bindRotation(rotation, desired.getInt(ROTATION));
         form.findViewById(R.id.uvcEnrollRefresh).setOnClickListener(v -> refresh());
     }
@@ -69,6 +74,7 @@ final class UvcEnrollmentCameraSettings {
 
     UsbDevice selected() { return cameras.selected(device); }
     int rotation() { return UvcCameraChoices.rotationDegrees(rotation); }
+    StreamConfig streamConfig() { return stream.read(DualCameraSession.Role.RGB); }
 
     void show(Runnable dismissed) {
         if (dialog != null && dialog.isShowing()) return;
@@ -82,6 +88,7 @@ final class UvcEnrollmentCameraSettings {
     boolean isShowing() { return dialog != null && dialog.isShowing(); }
 
     void save(Bundle out) {
+        stream.save(out);
         putChoice(desired, selected(), rotation());
         if (desired.containsKey(DEVICE)) {
             out.putString(DEVICE, desired.getString(DEVICE));

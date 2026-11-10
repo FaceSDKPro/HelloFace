@@ -67,6 +67,8 @@ inline ErrorPresentation presentError(const std::string& raw, HiFaceStatus statu
         result.summary = "Access denied."; result.advice = "Check file and folder permissions.";
     } else if (status == HIFACE_STATUS_MODEL_LOAD_FAILED || has("missing model") || has("model file")) {
         result.summary = "Models unavailable."; result.advice = "Restore the complete SDK package.";
+    } else if (system_error == EEXIST || has("export file already exists")) {
+        result.summary = "File already exists."; result.advice = "Choose a different output filename.";
     } else if (status == HIFACE_STATUS_IMAGE_NO_FACE) {
         result.summary = "No face found."; result.advice = "Use a clear face photo.";
     } else if (status == HIFACE_STATUS_IMAGE_FACE_TOO_SMALL) {
@@ -93,7 +95,8 @@ inline ErrorPresentation presentError(const std::string& raw, HiFaceStatus statu
     if (system_error) {
         if (result.code == "DEMO_ERROR") result.code.clear(); else result.code += " / ";
         const char* name = system_error == EACCES ? "EACCES" : system_error == EPERM ? "EPERM" :
-            system_error == ENOSPC ? "ENOSPC" : system_error == EROFS ? "EROFS" : system_error == ENOENT ? "ENOENT" : "ERROR";
+            system_error == ENOSPC ? "ENOSPC" : system_error == EROFS ? "EROFS" : system_error == ENOENT ? "ENOENT" :
+            system_error == EEXIST ? "EEXIST" : "ERROR";
         result.code += "OS " + std::string(name) + " (" + std::to_string(system_error) + ")";
     }
     return result;

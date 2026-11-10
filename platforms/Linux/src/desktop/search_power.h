@@ -12,6 +12,9 @@ namespace hiface_linux_demo {
 // 预览独立于 SDK 保持不变的 200 ms 待机分析节奏。
 inline constexpr int kSearchIdlePreviewFps = 10;
 inline constexpr int64_t kSearchIdlePreviewIntervalMs = 1000 / kSearchIdlePreviewFps;
+inline int captureFrameRate(int configured, bool idle) {
+    return idle ? std::min(configured, kSearchIdlePreviewFps) : configured;
+}
 // Observe completed detections only. Skipped/failed/stale frames never prove absence.
 // 只观察成功完成的检测；跳帧、错误和断流不能证明持续无人脸。
 class SearchPowerPolicy {

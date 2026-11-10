@@ -75,6 +75,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
     private DualCameraSession cameras;
     private UvcCameraSettings cameraSettings;
     private UvcCameraSettings.Selection capture;
+    private DualCameraConfig actualConfig;
     private TextureView preview, irPreview;
     private final UvcPreviewSurfaces surfaces = new UvcPreviewSurfaces();
     private InfraredDebugOverlayView irOverlay;
@@ -226,7 +227,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
         });
         findViewById(R.id.uvcLibrary).setOnClickListener(v -> openPage(new Intent(this, FaceSearchLibraryActivity.class)));
         findViewById(R.id.uvcEnroll).setOnClickListener(v -> openPage(UVCCameraFaceEnrollmentActivity.intent(
-                this, cameraSettings.selectedRgbDevice(), cameraSettings.rgbRotationDegrees(), searchOptions.getGroup())));
+                this, cameraSettings.enrollmentChoice(), searchOptions.getGroup())));
     }
 
     private void bindPreview() {
@@ -364,6 +365,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
         }
 
         capture = selection;
+        actualConfig = null;
         final long epoch = ++generation;
         stats.start(epoch, SystemClock.elapsedRealtimeNanos());
         statusUi.clear();
@@ -420,6 +422,10 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
         return new DualCameraSession.Listener() {
             @Override public void onReady(DualCameraSession source) {
                 if (!current(epoch)) return;
+                actualConfig = source.actualConfig();
+                updatePreviewTransform();
+                ((TextView) findViewById(R.id.uvcPreviewLabel)).setText(getString(
+                        R.string.uvc_stream_actual, actualConfig.rgb.toString(), actualConfig.ir.toString()));
                 lastPairAt = SystemClock.elapsedRealtime();
                 statusUi.camerasReady();
                 // USB permissions may be sequential; start the pair watchdog only when both cameras are open.
@@ -431,16 +437,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
             }
             @Override public void onFailure(DualCameraSession source, DualCameraSession.Role role, CameraFailure failure) {
                 if (!current(epoch)) return;
-                int hint;
-                switch (failure.code) {
-                    case USB_PERMISSION_DENIED:
-                    case USB_PERMISSION_TIMEOUT: hint = R.string.uvc_search_usb_permission; break;
-                    case CAMERA_CLOSED:
-                    case DEVICE_DETACHED: hint = R.string.uvc_search_usb_detached; break;
-                    case STREAM_TIMEOUT: hint = R.string.uvc_search_stream_timeout; break;
-                    case PAIR_TIMEOUT: hint = R.string.uvc_search_pair_timeout; break;
-                    default: hint = R.string.uvc_search_camera_unavailable;
-                }
+                int hint = UvcCameraFailureUi.message(failure.code);
                 String message = getString(hint);
                 if (role != null) {
                     int camera = role == DualCameraSession.Role.RGB
@@ -541,7 +538,7 @@ public final class UVCCameraFaceSearchActivity extends AppCompatActivity {
 
     private void updatePreviewTransform() {
         if (capture == null) return;
-        DualCameraConfig config = capture.config;
+        DualCameraConfig config = actualConfig == null ? capture.config : actualConfig;
         transformPreview(preview, config.rgb.width, config.rgb.height, config.rgbRotationDegrees);
         transformPreview(irPreview, config.ir.width, config.ir.height, config.irRotationDegrees);
     }

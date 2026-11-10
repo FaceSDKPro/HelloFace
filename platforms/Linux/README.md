@@ -65,6 +65,8 @@ No Qt, OpenCV or compiler is required to run prebuilt programs. Launch in a grap
 headless systems can use self-tests and the CLI. Camera support is V4L2 single-plane or multiplanar MMAP with
 YUYV/MJPEG/NV12/NV21 (packed in one buffer plane),
 requesting 640×480 at 25 FPS on ordinary desktops (640×360 for embedded displays); the driver negotiates actual parameters.
+Advanced FPS requests retain the selected value from 1 to 60; search idle never requests a higher rate than the
+configured value. Preview and recognition retain their own processing caps, regardless of camera capture FPS.
 Set `HIFACE_CAMERA_ROTATE=left` (aliases: `ccw`, `90ccw`) to turn a landscape sensor frame into
 a portrait frame before both rendering and face analysis (480×640 on desktop defaults, 360×640 on board defaults). Use `right` (aliases: `cw`, `90cw`) for the opposite direction.
 On ordinary desktops, **SDK Settings** saves 640×480 / 1280×720 / 1920×1080 presets, mirror and **Camera rotation** automatically. Camera rotation affects preview and analysis together while desktop controls remain upright. A saved angle overrides the startup `HIFACE_CAMERA_ROTATE` default; the two are not added.
@@ -164,6 +166,9 @@ searched with their corresponding AI images; neither sample measures real-world 
 Import your own authorized adult photos/features to verify real matches. JSON follows the Android HF1 exchange schema.
 Folder import uses filenames as IDs and skips bad/no-face images; completed batches survive cancellation.
 Export preserves original HF1 data and refuses to overwrite an existing file. SDK capacity is 50,000 records.
+Exports and saved settings/references use private file permissions (`0600`). Concurrent exports never replace
+an existing file or symbolic link. Error details can retry the current library query, selected photo,
+comparison slot or settings draft without clearing the selection.
 
 ## Build without private SDK source
 
@@ -195,6 +200,9 @@ runtime=runtimes/x86_64  # ARM64: runtimes/arm64
 CLI enrollment/import are upserts; desktop single enrollment rejects duplicate IDs. Import commits in batches.
 `generate-demo-features OUTPUT.json` creates 10k synthetic vectors without models or personal data.
 `-DBUILD_TESTING=ON` enables integration tests; run `ctest --test-dir build --output-on-failure`.
+On native Linux, these include thread-start failure injection, synthetic camera disconnect/recovery,
+and 100 navigation/write cycles with file-descriptor, thread and resident-memory checks.
+They exercise the real SDK with synthetic input and do not replace physical camera or driver validation.
 All Demo code consumes `HiFace::HiFace` public C ABI; camera, renderer, image decoder and JSON adapters belong to the Demo.
 
 ## Data and diagnostics

@@ -10,6 +10,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
 import com.facesdkpro.uvccamera.DualCameraSession;
+import com.facesdkpro.uvccamera.CameraSelection;
 import com.hiface.sdk.demo.R;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,7 +58,10 @@ final class UvcCameraChoices {
     int size() { return devices.size(); }
 
     int preferredPosition(UvcDeviceChoicePolicy.Device previous, DualCameraSession.Role role) {
-        return UvcDeviceChoicePolicy.position(identities, previous, role == DualCameraSession.Role.RGB);
+        if (previous != null) return UvcDeviceChoicePolicy.retainedPosition(identities, previous);
+        CameraSelection suggested = CameraSelection.suggest(devices);
+        UsbDevice candidate = role == DualCameraSession.Role.RGB ? suggested.rgb : suggested.ir;
+        return candidate == null ? 0 : devices.indexOf(candidate) + 1;
     }
 
     List<UvcDeviceChoicePolicy.Device> identities() { return identities; }
@@ -81,7 +85,7 @@ final class UvcCameraChoices {
 
     static int rotationDegrees(Spinner spinner) { return Math.max(0, spinner.getSelectedItemPosition()) * 90; }
 
-    private static void bind(Spinner spinner, List<String> values, int position) {
+    static void bind(Spinner spinner, List<String> values, int position) {
         // Use the page theme for both the dark search page and the light enrollment page.
         TypedArray theme = spinner.getContext().obtainStyledAttributes(new int[]{
                 android.R.attr.textColorPrimary, com.google.android.material.R.attr.colorSurface});

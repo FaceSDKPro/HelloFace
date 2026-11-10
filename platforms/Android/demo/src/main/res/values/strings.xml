@@ -291,4 +291,11 @@
     <string name="uvc_enroll_guidance">Face the camera and hold still for auto capture.</string>
     <string name="uvc_enroll_camera_error">The RGB UVC camera is unavailable. Check its connection and USB permission, then retry.</string>
     <string name="uvc_enroll_opening">Opening the RGB UVC camera…</string>
+    <string name="uvc_stream_preferences">Preferred capture size / FPS (camera may select a nearby mode)</string>
+    <string name="uvc_stream_resolution">Preferred capture resolution</string>
+    <string name="uvc_stream_fps">Preferred capture frame rate</string>
+    <string name="uvc_stream_actual">RGB: %1$s · IR: %2$s</string>
+    <string name="uvc_camera_unsupported_mode">Camera does not support this MJPEG mode. Change resolution or FPS.</string>
+    <string name="uvc_camera_busy">Camera is busy. Close other camera apps and retry.</string>
+    <string name="uvc_camera_open_timeout">Camera opening timed out. Check USB power and reconnect.</string>
 </resources>

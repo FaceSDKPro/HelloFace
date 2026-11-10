@@ -28,6 +28,6 @@ void writeSyntheticDemoFeatures(const std::string& path) {
              << ",\"group\":\"synthetic-demo\",\"tag\":\"not-a-person\",\"updateTimeMillis\":1}";
     }
     json << "]}\n";
-    atomicWrite(path, json.str());
+    atomicWrite(path, json.str(), false);
 }
 }

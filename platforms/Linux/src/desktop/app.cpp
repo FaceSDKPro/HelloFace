@@ -50,8 +50,19 @@ std::vector<Box> previewBoxes(const std::vector<Box>& source, int analysis_width
 }
 }
 DesktopApp::DesktopApp(std::string models, std::string database, std::string device, bool smoke, std::string assets)
-    : smoke_(smoke), capture_worker_([this] { captureLoop(); }),
-      worker_([this, models, database, device, smoke, assets] { run(models, database, device, smoke, assets); }) {}
+    : smoke_(smoke) {
+    try {
+        capture_worker_ = std::thread([this] { captureLoop(); });
+        worker_ = std::thread([this, models, database, device, smoke, assets] { run(models, database, device, smoke, assets); });
+    } catch (...) {
+        // A failed second start must join the first thread before unwinding.
+        // 第二个线程启动失败时，先回收采集线程，再保留原异常交给界面处理。
+        stopping_ = true;
+        capture_changed_.notify_all();
+        if (capture_worker_.joinable()) capture_worker_.join();
+        throw;
+    }
+}
 DesktopApp::~DesktopApp() {
     stopping_ = true;
     capture_changed_.notify_all();
@@ -163,7 +174,7 @@ void DesktopApp::configureCapture(const std::string& device, const DemoSettings&
     capture_request_.width = settings.camera_width;
     capture_request_.height = settings.camera_height;
     capture_request_.rotation = settings.camera_rotation;
-    capture_request_.fps = std::clamp(settings.camera_fps, 20, kPreviewFps);
+    capture_request_.fps = settings.camera_fps;
     capture_request_.mjpeg = settings.camera_mjpeg;
     const char* preview_device = std::getenv("HIFACE_PREVIEW_DEVICE");
     capture_request_.preview_device = preview_device ? preview_device : "";
@@ -289,7 +300,7 @@ void DesktopApp::captureLoop() {
         try {
             const auto cadence_now = monotonicMilliseconds();
             if (idle_applied != request.search_idle) {
-                const int requested_fps = request.search_idle ? kSearchIdlePreviewFps : request.fps;
+                const int requested_fps = captureFrameRate(request.fps, request.search_idle);
                 const bool camera_rate = smoke_ || camera.requestFrameRate(requested_fps);
                 const bool preview_rate = smoke_ || !preview_camera.ready() || preview_camera.requestFrameRate(requested_fps);
                 std::fprintf(stderr, "[SearchPower] %s preview_target=%d hardware_rate=%s\n",
@@ -546,11 +557,6 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
             std::vector<Command> commands;
             { std::lock_guard<std::mutex> lock(mutex_); commands.swap(commands_); }
             bool workflow_updated = !commands.empty();
-            if (!commands.empty()) {
-                camera_recovery.reset();
-                camera_failure_message.clear();
-                resume_search_after_camera_failure = false;
-            }
             for (const auto& command : commands) {
                 if(cancellable(command) && command.page_generation != page_generation_) continue;
                 if(command.type=="page"){active_page_generation=command.page_generation;photo_generation=photo_generation_;}
@@ -561,6 +567,15 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 const bool photo_command = command.type == "image-search" || command.type == "cancel-image-search";
                 if (photo_command && command.request_id != photo_generation_) continue;
                 if (photo_command) photo_generation = command.request_id;
+                // Only an explicit camera/flow change replaces recovery intent.
+                // 镜像、元数据等操作及已取消的旧任务不能丢失断线前的搜索状态。
+                if (command.type == "page" || command.type == "connect" || command.type == "restart-camera" ||
+                    command.type == "next" || command.type == "action" || command.type == "pause" ||
+                    command.type == "settings" || command.type == "image") {
+                    camera_recovery.reset();
+                    camera_failure_message.clear();
+                    resume_search_after_camera_failure = false;
+                }
                 if (command.type == "settings") ++settings_attempt;
                 if (command.type == "confirm-enrollment") ++enrollment_attempt;
                 if (command.type == "metadata") ++metadata_attempt;

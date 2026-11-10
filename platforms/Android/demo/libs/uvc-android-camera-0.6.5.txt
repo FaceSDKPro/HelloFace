@@ -1,0 +1,29 @@
+UVCAndroidCamera 0.6.5 — reviewed SDK delivery from clean upstream source
+
+Upstream: https://github.com/FaceSDKPro/UVCAndroidCamera
+Source commit: abda469aca1cb87107f61eb8e1aeac7609a558ad
+Source dirty: false
+Source tree SHA-256: fc9e40e74fed50239077735c546cfa2015f1c1b8b70a5fa8e46a8f293a867266
+Coordinate: com.facesdkpro:uvc-android-camera:0.6.5
+AAR SHA-256: e3c9558d2270b6129ebfb84a9caa15a9e1bdc9bd0696237923859f7b84fd4ab1
+AAR bytes: 955695
+SDK manifest SHA-256: 7fbfd02f4db788409fdabfc290b080a85710139a72e615a118fd6ef29e0df62c
+Sources JAR SHA-256: c34707f8a1ddb322c975e37614f083ef9030dd84ffd282eadb511ffc0ac7c5a1
+
+The live clean source matches the SDK manifest. All 64 declared bundle files
+and SHA256SUMS entries were independently verified. The 0.6.5 AAR and sources
+JAR are byte-identical to the previously reviewed local 0.6.3 SDK candidate;
+0.6.5 consolidates that API with upstream Demo/build/documentation changes.
+This record binds the checked local delivery, not a Maven Central publication.
+
+Role suggestions, typed resolution/FPS preferences, closest supported mode
+negotiation, actualConfig(), and structured native-open errors remain available.
+HiFace Demo requests MJPEG: RGB NV21 video range and IR GRAY8 full range.
+Requested dimensions/FPS are preferences; preview uses actualConfig().
+Software pairing uses host callback arrival, not hardware synchronization.
+
+All 20 native libraries pass the ABI, ELF hardening and 16 KB alignment audit.
+Corresponding source and native LGPL license information:
+https://github.com/FaceSDKPro/UVCAndroidCamera/tree/abda469aca1cb87107f61eb8e1aeac7609a558ad
+The AAR retains META-INF third-party licenses and consumer JNI keep rules.
+HiFace Demo packages ARM64/ARMv7 only; UVC is not a HiFace SDK Core dependency.

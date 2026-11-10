@@ -9,6 +9,7 @@ import android.widget.Spinner;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.facesdkpro.uvccamera.DualCameraConfig;
+import com.facesdkpro.uvccamera.CameraSelection;
 import com.facesdkpro.uvccamera.DualCameraSession;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.hiface.sdk.demo.R;
@@ -40,6 +41,7 @@ final class UvcCameraSettings {
     private final Spinner rgbDevice, irDevice, rgbRotation, irRotation;
     private final EditText threshold;
     private final CheckBox debug;
+    private final UvcStreamSettings rgbStream, irStream;
     private AlertDialog dialog;
     private int validationMessage;
     private UvcDeviceChoicePolicy.Device rememberedRgb, rememberedIr;
@@ -54,6 +56,8 @@ final class UvcCameraSettings {
         irRotation = form.findViewById(R.id.uvcIrRotation);
         threshold = form.findViewById(R.id.uvcThreshold);
         debug = form.findViewById(R.id.uvcDebug);
+        rgbStream = new UvcStreamSettings(form.findViewById(R.id.uvcRgbStream), "rgbStream", false);
+        irStream = new UvcStreamSettings(form.findViewById(R.id.uvcIrStream), "irStream", false);
         threshold.setText(DEFAULT_IR_THRESHOLD);
         UvcCameraChoices.bindRotation(rgbRotation, 0);
         UvcCameraChoices.bindRotation(irRotation, 0);
@@ -63,6 +67,13 @@ final class UvcCameraSettings {
 
     UsbDevice selectedRgbDevice() { return cameras.selected(rgbDevice); }
     int rgbRotationDegrees() { return UvcCameraChoices.rotationDegrees(rgbRotation); }
+
+    Bundle enrollmentChoice() {
+        Bundle choice = new Bundle();
+        UvcEnrollmentCameraSettings.putChoice(choice, selectedRgbDevice(), rgbRotationDegrees());
+        rgbStream.save(choice, UvcEnrollmentCameraSettings.STREAM_KEY);
+        return choice;
+    }
 
     boolean debugEnabled() { return debug.isChecked(); }
     int validationMessage() { return validationMessage; }
@@ -96,7 +107,7 @@ final class UvcCameraSettings {
         if (cameras.size() < 2) return R.string.uvc_search_connect_cameras;
         UsbDevice rgb = selectedRgbDevice(), ir = cameras.selected(irDevice);
         if (rgb == null || ir == null) return R.string.uvc_search_choose_cameras;
-        return rgb.equals(ir) ? R.string.uvc_search_choose_distinct : R.string.uvc_search_ready;
+        return CameraSelection.isPair(rgb, ir) ? R.string.uvc_search_ready : R.string.uvc_search_choose_distinct;
     }
 
     /** Keep invalid input editable; return capture settings only after device and threshold validation. */
@@ -111,7 +122,8 @@ final class UvcCameraSettings {
         // Pairing and SDK checks share 50/150 ms limits; calibrate mapping and IoU for the target module.
         InfraredSearchConfig infrared = new InfraredSearchConfig(value,
                 new float[]{1,0,0,0,1,0,0,0,1}, .25f, 80, MAX_PAIR_SKEW_MS, MAX_FRAME_AGE_MS);
-        DualCameraConfig config = DualCameraConfig.defaults()
+        DualCameraConfig config = DualCameraConfig.forStreams(rgbStream.read(DualCameraSession.Role.RGB),
+                irStream.read(DualCameraSession.Role.IR))
                 .withPairingLimits(MAX_PAIR_SKEW_MS, MAX_FRAME_AGE_MS, 30)
                 .withRotations(rgbRotationDegrees(), UvcCameraChoices.rotationDegrees(irRotation));
         return new Selection(selectedRgbDevice(), cameras.selected(irDevice), config, infrared);
@@ -155,6 +167,8 @@ final class UvcCameraSettings {
 
     void restore(Bundle saved) {
         if (saved == null) return;
+        rgbStream.restore(saved);
+        irStream.restore(saved);
         rgbRotation.setSelection(saved.getInt("rgbRotation"));
         irRotation.setSelection(saved.getInt("irRotation"));
         String restored = saved.getString("irThreshold", DEFAULT_IR_THRESHOLD);
@@ -163,6 +177,8 @@ final class UvcCameraSettings {
     }
 
     void save(Bundle out) {
+        rgbStream.save(out);
+        irStream.save(out);
         // Never persist enumeration indices; rebuild device choices from current attachments.
         out.putInt("rgbRotation", rgbRotation.getSelectedItemPosition());
         out.putInt("irRotation", irRotation.getSelectedItemPosition());

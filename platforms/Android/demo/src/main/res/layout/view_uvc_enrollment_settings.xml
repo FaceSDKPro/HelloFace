@@ -10,6 +10,7 @@
             android:layout_marginTop="16dp" android:text="@string/uvc_search_rgb_camera" android:textStyle="bold" />
         <Spinner android:id="@+id/uvcEnrollDevice" android:layout_width="match_parent" android:layout_height="48dp"
             android:saveEnabled="false" android:contentDescription="@string/uvc_search_rgb_camera" />
+        <include android:id="@+id/uvcEnrollStream" layout="@layout/view_uvc_stream_settings" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="8dp" android:text="@string/uvc_search_rgb_rotation" android:textStyle="bold" />
         <Spinner android:id="@+id/uvcEnrollRotation" android:layout_width="match_parent" android:layout_height="48dp"

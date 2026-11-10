@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-SDK / Demo：**0.8.9 Beta**
+SDK / Demo：**0.8.11 Beta**
 
 支持检测、采集、活体、1:1 比对、1:N/M:N 搜索和人脸库管理，算法在设备端运行。
 
@@ -14,7 +14,7 @@ SDK / Demo：**0.8.9 Beta**
 
 用 Android Studio 打开本目录，使用 JDK 17、Android SDK 36 / Build Tools 36.0.0，在 ARM 手机运行 `demo`。最低 Android 6.0 / API 23；支持 `arm64-v8a`、`armeabi-v7a`，构建 Demo 无需 NDK。
 
-Demo 直接读取来自 [UVCAndroidCamera 0.6.0 源码](https://github.com/FaceSDKPro/UVCAndroidCamera/tree/383d3b6983d7234a3b6f1f3aae03c0b0f2511ba2)本地交付的 `demo/libs/uvc-android-camera-0.6.0.aar`。上游已包含 USB 断开排空修复与第三方许可，无需本地补丁；相邻 `.txt` 记录来源和摘要。默认 Middle 双路 15 FPS，High 使用 `DualCameraConfig.defaults(DualCameraConfig.Mode.HIGH)` 选择。
+Demo 直接读取已核验的 UVCAndroidCamera 0.6.5 本地交付 `demo/libs/uvc-android-camera-0.6.5.aar`。相邻 `.txt` 绑定产物与源码快照摘要，并明确是否为本地开发候选；[上游基准提交](https://github.com/FaceSDKPro/UVCAndroidCamera/tree/abda469aca1cb87107f61eb8e1aeac7609a558ad) 不一定包含本地候选的完整源码，不代表该版本已公开发布。AAR 保留第三方许可与 JNI keep 规则。分辨率与帧率是期望值，相机会匹配邻近 MJPEG 模式，启动后使用 `actualConfig()` 获取实际尺寸与帧率。Demo 设置可为各角色选择 640×480 / 1280×720、15 / 30 FPS；搜索默认双路 15 FPS，单独打开 RGB 录入默认 30 FPS；从搜索页进入录入时沿用已选 RGB 分辨率与帧率。需确认 RGB/IR 角色，并按目标相机模块标定归一化映射。
 
 ```sh
 ./gradlew :demo:assembleDebug
@@ -43,7 +43,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.9")
+    implementation("io.github.facesdkpro:hiface-android:0.8.11")
 }
 android {
     defaultConfig {

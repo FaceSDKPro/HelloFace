@@ -1256,7 +1256,24 @@ void DemoUi::handle(const std::string& action, const ViewState& state) {
         const auto error = errorPresentation(state);
         if (!state.ready || error.sdk_status >= HIFACE_STATUS_LICENSE_MISSING || error.sdk_status == HIFACE_STATUS_MODEL_LOAD_FAILED) emit("restart");
         else if (cameraPage(page_)) handle(!state.connected || state.camera_stalled ? "connect" : "start-task", state);
-        else if (page_ == "gallery") emit("gallery");
+        else if (page_ == "gallery") handle("gallery-load", state);
+        else if (page_ == "image-search") {
+            if (values_["search-path"].empty()) browse("search-path");
+            else handle("image-search", state);
+        } else if (page_ == "images") {
+            bool retrying = false;
+            for (const auto& slot : {std::pair{"photo-a", state.comparison_first_error},
+                                     std::pair{"photo-b", state.comparison_second_error}}) {
+                if (!slot.second.empty() && !values_[slot.first].empty()) {
+                    handle("preview:" + std::string(slot.first), state); retrying = true;
+                }
+            }
+            if (!retrying) {
+                if (state.comparison_first_ready && state.comparison_second_ready) handle("image:compare", state);
+                else browse(state.comparison_first_ready ? "photo-b" : "photo-a");
+            }
+        } else if (settingsPage(page_)) handle("settings-apply", state);
+        else if (page_ == "references") emit("page", {"references"});
         return;
     }
     if (action == "quit") { requestClose(state); return; }

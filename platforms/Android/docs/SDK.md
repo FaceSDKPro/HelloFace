@@ -14,7 +14,7 @@ The SDK is in iterative public Beta testing. Please keep the SDK version up to d
 | ABI | `arm64-v8a`, `armeabi-v7a` |
 | Entry point | Java `com.hiface.sdk.HiFaceSdk` |
 
-Version `0.8.9` is used in these integration examples; check the publication record for Maven availability.
+Version `0.8.11` is used in these integration examples; check the publication record for Maven availability.
 
 ```kotlin
 repositories {
@@ -22,7 +22,7 @@ repositories {
     mavenCentral()
 }
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.9")
+    implementation("io.github.facesdkpro:hiface-android:0.8.11")
 }
 android {
     androidResources { noCompress += "bphfm" }

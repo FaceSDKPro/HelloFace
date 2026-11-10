@@ -12,7 +12,7 @@
 <div align="center">
   <p>
     <a href="https://www.helloface.dev/"><img src="../../images/hello-face-icon.webp" alt="" width="51" height="51" align="bottom"><img src="../../images/helloface-wordmark.svg" alt="HelloFace" width="170" height="40" align="bottom"></a>
-    &nbsp; <strong>0.8.9 Beta</strong>
+    &nbsp; <strong>0.8.11 Beta</strong>
   </p>
   <p><strong>Détection et capture de visages, détection du vivant, vérification 1:1 et recherche 1:N/M:N hors ligne.</strong></p>
   <p>🌍 <strong>Site officiel</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a> &nbsp; | &nbsp; <img src="../../images/github-mark.svg" alt="" width="16" height="16" align="bottom"> <strong>Code d’intégration sur GitHub</strong> · <a href="https://github.com/FaceSDKPro/HelloFace">FaceSDKPro/HelloFace</a></p>
@@ -91,6 +91,7 @@ E-mail: [FaceAISDK.Service@gmail.com](mailto:FaceAISDK.Service@gmail.com)
   <tr>
     <th align="center">Télécharger l’APK Android</th>
     <th align="center">Contact WeChat</th>
+    <th align="center">Télécharger sur Google Play</th>
   </tr>
   <tr>
     <td align="center">
@@ -101,11 +102,9 @@ E-mail: [FaceAISDK.Service@gmail.com](mailto:FaceAISDK.Service@gmail.com)
       <img src="../../images/WeChat.jpg" alt="Code QR WeChat" width="180"><br>
       Scannez pour nous contacter
     </td>
+    <td align="center">
+      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="../../images/GooglePlay.svg" alt="Code QR de téléchargement sur Google Play" width="180" height="180"></a><br>
+      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">Télécharger la démo Android sur Google Play</a>
+    </td>
   </tr>
 </table>
-
-<p align="center">
-  <strong>Télécharger sur Google Play</strong><br>
-  <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="../../images/GooglePlay.svg" alt="Code QR de téléchargement sur Google Play" width="180" height="180"></a><br>
-  <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">Télécharger la démo Android sur Google Play</a>
-</p>
