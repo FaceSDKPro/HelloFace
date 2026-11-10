@@ -56,7 +56,7 @@
 
 | 플랫폼 | 실행 및 개발 환경 | 연동 자료(영문) |
 |---|---|---|
-| Android | Android 6.0+ · ARM64/ARMv7/X86 · JDK 11 | [Demo](../../platforms/Android/README.md) · [SDK](../../platforms/Android/docs/SDK.md) |
+| Android | Android 6.0+ · ARM64/ARMv7 · JDK 11 | [Demo](../../platforms/Android/README.md) · [SDK](../../platforms/Android/docs/SDK.md) |
 | iOS | iOS 15+ · Swift 6 · Xcode | [Demo](../../platforms/iOS/README.md) · [SDK](../../platforms/iOS/SDK/API.md) |
 | Harmony | HarmonyOS API 20+ · ARM64 · DevEco Studio 26 | [Demo](../../platforms/Harmony/README.md) · [SDK](../../platforms/Harmony/SDK.md) |
 | Linux | Ubuntu 22.04+ · x86_64/ARM64 · X11/XWayland | [Demo](../../platforms/Linux/README.md) · [SDK](../../platforms/Linux/runtimes/x86_64/sdk/README.md) |
@@ -103,3 +103,9 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
     </td>
   </tr>
 </table>
+
+<p align="center">
+  <strong>Google Play에서 다운로드</strong><br>
+  <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="../../images/GooglePlay.svg" alt="Google Play 다운로드 QR 코드" width="180" height="180"></a><br>
+  <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">Google Play에서 Android 데모 다운로드</a>
+</p>

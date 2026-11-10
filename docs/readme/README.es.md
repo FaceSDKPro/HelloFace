@@ -56,7 +56,7 @@
 
 | Plataforma | Requisitos | Integración (en inglés) |
 |---|---|---|
-| Android | Android 6.0+ · ARM64/ARMv7/X86 · JDK 11 | [Demo](../../platforms/Android/README.md) · [SDK](../../platforms/Android/docs/SDK.md) |
+| Android | Android 6.0+ · ARM64/ARMv7 · JDK 11 | [Demo](../../platforms/Android/README.md) · [SDK](../../platforms/Android/docs/SDK.md) |
 | iOS | iOS 15+ · Swift 6 · Xcode | [Demo](../../platforms/iOS/README.md) · [SDK](../../platforms/iOS/SDK/API.md) |
 | Harmony | HarmonyOS API 20+ · ARM64 · DevEco Studio 26 | [Demo](../../platforms/Harmony/README.md) · [SDK](../../platforms/Harmony/SDK.md) |
 | Linux | Ubuntu 22.04+ · x86_64/ARM64 · X11/XWayland | [Demo](../../platforms/Linux/README.md) · [SDK](../../platforms/Linux/runtimes/x86_64/sdk/README.md) |
@@ -103,3 +103,9 @@ Correo electrónico: [FaceAISDK.Service@gmail.com](mailto:FaceAISDK.Service@gmai
     </td>
   </tr>
 </table>
+
+<p align="center">
+  <strong>Descargar en Google Play</strong><br>
+  <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="../../images/GooglePlay.svg" alt="Código QR de descarga en Google Play" width="180" height="180"></a><br>
+  <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">Descargar la demo de Android en Google Play</a>
+</p>

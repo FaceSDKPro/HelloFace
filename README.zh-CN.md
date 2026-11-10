@@ -56,7 +56,7 @@
 
 | 平台 | 环境 | 接入说明 |
 |---|---|---|
-| Android | Android 6.0+ · ARM64/ARMv7/X86 · JDK 11 | [Demo](platforms/Android/README.zh-CN.md) · [SDK](platforms/Android/docs/SDK.zh-CN.md) |
+| Android | Android 6.0+ · ARM64/ARMv7 · JDK 11 | [Demo](platforms/Android/README.zh-CN.md) · [SDK](platforms/Android/docs/SDK.zh-CN.md) |
 | iOS | iOS 15+ · Swift 6 · Xcode | [Demo](platforms/iOS/README.zh-CN.md) · [SDK](platforms/iOS/SDK/API.zh-CN.md) |
 | Harmony | HarmonyOS API 20+ · ARM64 · DevEco Studio 26 | [Demo](platforms/Harmony/README.zh-CN.md) · [SDK](platforms/Harmony/SDK.zh-CN.md) |
 | Linux | Ubuntu 22.04+ · x86_64/ARM64 · X11/XWayland | [Demo](platforms/Linux/README.zh-CN.md) · [SDK](platforms/Linux/runtimes/x86_64/sdk/README.zh-CN.md) |
@@ -103,3 +103,9 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
     </td>
   </tr>
 </table>
+
+<p align="center">
+  <strong>Google Play 下载</strong><br>
+  <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="images/GooglePlay.svg" alt="Google Play 下载二维码" width="180" height="180"></a><br>
+  <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">在 Google Play 下载 Android Demo</a>
+</p>
