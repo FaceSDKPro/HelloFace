@@ -89,22 +89,22 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 
 <table>
   <tr>
-    <th align="center">Android APK 다운로드</th>
-    <th align="center">WeChat 문의</th>
-    <th align="center">Google Play에서 다운로드</th>
+    <th align="center">Android APK</th>
+    <th align="center">WeChat</th>
+    <th align="center">Google Play</th>
   </tr>
   <tr>
-    <td align="center">
-      <a href="https://www.pgyer.com/HelloFace"><img src="../../images/AndroidAPK.png" alt="Android APK 다운로드 QR 코드" width="180"></a><br>
-      <a href="https://www.pgyer.com/HelloFace">클릭하거나 스캔하여 다운로드</a>
+    <td align="center" valign="top" width="33%">
+      <a href="https://www.pgyer.com/HelloFace"><img src="../../images/AndroidAPK.png" alt="Android APK 다운로드 QR 코드" width="180" height="180"></a><br>
+      <a href="https://www.pgyer.com/HelloFace">다운로드</a>
     </td>
-    <td align="center">
-      <img src="../../images/WeChat.jpg" alt="WeChat QR 코드" width="180"><br>
+    <td align="center" valign="top" width="33%">
+      <img src="../../images/WeChat.jpg" alt="WeChat QR 코드" width="180" height="180"><br>
       스캔하여 문의
     </td>
-    <td align="center">
+    <td align="center" valign="top" width="33%">
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="../../images/GooglePlay.svg" alt="Google Play 다운로드 QR 코드" width="180" height="180"></a><br>
-      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">Google Play에서 Android 데모 다운로드</a>
+      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">다운로드</a>
     </td>
   </tr>
 </table>

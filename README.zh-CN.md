@@ -89,22 +89,22 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 
 <table>
   <tr>
-    <th align="center">Android APK 下载</th>
-    <th align="center">微信联系</th>
-    <th align="center">Google Play 下载</th>
+    <th align="center">Android APK</th>
+    <th align="center">微信</th>
+    <th align="center">Google Play</th>
   </tr>
   <tr>
-    <td align="center">
-      <a href="https://www.pgyer.com/HelloFace"><img src="images/AndroidAPK.png" alt="Android APK 下载二维码" width="180"></a><br>
-      <a href="https://www.pgyer.com/HelloFace">点击或扫码下载</a>
+    <td align="center" valign="top" width="33%">
+      <a href="https://www.pgyer.com/HelloFace"><img src="images/AndroidAPK.png" alt="Android APK 下载二维码" width="180" height="180"></a><br>
+      <a href="https://www.pgyer.com/HelloFace">下载</a>
     </td>
-    <td align="center">
-      <img src="images/WeChat.jpg" alt="微信二维码" width="180"><br>
+    <td align="center" valign="top" width="33%">
+      <img src="images/WeChat.jpg" alt="微信二维码" width="180" height="180"><br>
       扫码联系
     </td>
-    <td align="center">
+    <td align="center" valign="top" width="33%">
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="images/GooglePlay.svg" alt="Google Play 下载二维码" width="180" height="180"></a><br>
-      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">在 Google Play 下载 Android Demo</a>
+      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">下载</a>
     </td>
   </tr>
 </table>

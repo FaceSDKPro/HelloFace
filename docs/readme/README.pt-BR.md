@@ -89,22 +89,22 @@ E-mail: [FaceAISDK.Service@gmail.com](mailto:FaceAISDK.Service@gmail.com)
 
 <table>
   <tr>
-    <th align="center">Baixar o APK para Android</th>
-    <th align="center">Contato pelo WeChat</th>
-    <th align="center">Baixar no Google Play</th>
+    <th align="center">Android APK</th>
+    <th align="center">WeChat</th>
+    <th align="center">Google Play</th>
   </tr>
   <tr>
-    <td align="center">
-      <a href="https://www.pgyer.com/HelloFace"><img src="../../images/AndroidAPK.png" alt="Código QR para baixar o APK para Android" width="180"></a><br>
-      <a href="https://www.pgyer.com/HelloFace">Clique ou escaneie para baixar</a>
+    <td align="center" valign="top" width="33%">
+      <a href="https://www.pgyer.com/HelloFace"><img src="../../images/AndroidAPK.png" alt="Código QR para baixar o APK para Android" width="180" height="180"></a><br>
+      <a href="https://www.pgyer.com/HelloFace">Baixar</a>
     </td>
-    <td align="center">
-      <img src="../../images/WeChat.jpg" alt="Código QR do WeChat" width="180"><br>
-      Escaneie para entrar em contato
+    <td align="center" valign="top" width="33%">
+      <img src="../../images/WeChat.jpg" alt="Código QR do WeChat" width="180" height="180"><br>
+      Escaneie para conversar
     </td>
-    <td align="center">
+    <td align="center" valign="top" width="33%">
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="../../images/GooglePlay.svg" alt="Código QR para baixar no Google Play" width="180" height="180"></a><br>
-      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">Baixar o Demo para Android no Google Play</a>
+      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">Baixar</a>
     </td>
   </tr>
 </table>

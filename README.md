@@ -89,22 +89,22 @@ Email: [FaceAISDK.Service@gmail.com](mailto:FaceAISDK.Service@gmail.com)
 
 <table>
   <tr>
-    <th align="center">Download Android APK</th>
-    <th align="center">WeChat contact</th>
-    <th align="center">Google Play download</th>
+    <th align="center">Android APK</th>
+    <th align="center">WeChat</th>
+    <th align="center">Google Play</th>
   </tr>
   <tr>
-    <td align="center">
-      <a href="https://www.pgyer.com/HelloFace"><img src="images/AndroidAPK.png" alt="Android APK download QR code" width="180"></a><br>
-      <a href="https://www.pgyer.com/HelloFace">Click or scan to download</a>
+    <td align="center" valign="top" width="33%">
+      <a href="https://www.pgyer.com/HelloFace"><img src="images/AndroidAPK.png" alt="Android APK download QR code" width="180" height="180"></a><br>
+      <a href="https://www.pgyer.com/HelloFace">Download</a>
     </td>
-    <td align="center">
-      <img src="images/WeChat.jpg" alt="WeChat QR code" width="180"><br>
-      Scan to contact
+    <td align="center" valign="top" width="33%">
+      <img src="images/WeChat.jpg" alt="WeChat QR code" width="180" height="180"><br>
+      Scan to chat
     </td>
-    <td align="center">
+    <td align="center" valign="top" width="33%">
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="images/GooglePlay.svg" alt="Google Play download QR code" width="180" height="180"></a><br>
-      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">Get the Android Demo on Google Play</a>
+      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">Download</a>
     </td>
   </tr>
 </table>

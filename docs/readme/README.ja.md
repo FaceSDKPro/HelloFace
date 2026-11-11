@@ -89,22 +89,22 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 
 <table>
   <tr>
-    <th align="center">Android APK のダウンロード</th>
-    <th align="center">WeChat でのお問い合わせ</th>
-    <th align="center">Google Play でダウンロード</th>
+    <th align="center">Android APK</th>
+    <th align="center">WeChat</th>
+    <th align="center">Google Play</th>
   </tr>
   <tr>
-    <td align="center">
-      <a href="https://www.pgyer.com/HelloFace"><img src="../../images/AndroidAPK.png" alt="Android APK ダウンロード用 QR コード" width="180"></a><br>
-      <a href="https://www.pgyer.com/HelloFace">クリックまたはスキャンしてダウンロード</a>
+    <td align="center" valign="top" width="33%">
+      <a href="https://www.pgyer.com/HelloFace"><img src="../../images/AndroidAPK.png" alt="Android APK ダウンロード用 QR コード" width="180" height="180"></a><br>
+      <a href="https://www.pgyer.com/HelloFace">ダウンロード</a>
     </td>
-    <td align="center">
-      <img src="../../images/WeChat.jpg" alt="WeChat の QR コード" width="180"><br>
-      スキャンしてお問い合わせ
+    <td align="center" valign="top" width="33%">
+      <img src="../../images/WeChat.jpg" alt="WeChat の QR コード" width="180" height="180"><br>
+      スキャンして連絡
     </td>
-    <td align="center">
+    <td align="center" valign="top" width="33%">
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="../../images/GooglePlay.svg" alt="Google Play ダウンロード用 QR コード" width="180" height="180"></a><br>
-      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">Android デモを Google Play でダウンロード</a>
+      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">ダウンロード</a>
     </td>
   </tr>
 </table>

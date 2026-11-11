@@ -89,22 +89,22 @@ E-mel: [FaceAISDK.Service@gmail.com](mailto:FaceAISDK.Service@gmail.com)
 
 <table>
   <tr>
-    <th align="center">Muat turun APK Android</th>
-    <th align="center">Hubungi melalui WeChat</th>
-    <th align="center">Muat turun di Google Play</th>
+    <th align="center">Android APK</th>
+    <th align="center">WeChat</th>
+    <th align="center">Google Play</th>
   </tr>
   <tr>
-    <td align="center">
-      <a href="https://www.pgyer.com/HelloFace"><img src="../../images/AndroidAPK.png" alt="Kod QR untuk memuat turun APK Android" width="180"></a><br>
-      <a href="https://www.pgyer.com/HelloFace">Klik atau imbas untuk memuat turun</a>
+    <td align="center" valign="top" width="33%">
+      <a href="https://www.pgyer.com/HelloFace"><img src="../../images/AndroidAPK.png" alt="Kod QR untuk memuat turun APK Android" width="180" height="180"></a><br>
+      <a href="https://www.pgyer.com/HelloFace">Muat turun</a>
     </td>
-    <td align="center">
-      <img src="../../images/WeChat.jpg" alt="Kod QR WeChat" width="180"><br>
-      Imbas untuk menghubungi kami
+    <td align="center" valign="top" width="33%">
+      <img src="../../images/WeChat.jpg" alt="Kod QR WeChat" width="180" height="180"><br>
+      Imbas kod
     </td>
-    <td align="center">
+    <td align="center" valign="top" width="33%">
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="../../images/GooglePlay.svg" alt="Kod QR muat turun Google Play" width="180" height="180"></a><br>
-      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">Muat turun Demo Android di Google Play</a>
+      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">Muat turun</a>
     </td>
   </tr>
 </table>
