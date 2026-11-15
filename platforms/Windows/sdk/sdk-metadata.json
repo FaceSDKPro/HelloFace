@@ -12,7 +12,7 @@
   "sampleData": "none",
   "packageRole": "sdk",
   "layering": "Binary C ABI SDK with built-in encrypted resources; integration adapter belongs to Demo",
-  "candidateId": "0.8.12-candidate.19ba6db67fac.522507f9",
+  "candidateId": "0.8.12-candidate.8983c74dfaa5.522507f9",
   "releaseChannel": "stable",
   "proprietaryCoffSymbols": "removed",
   "authenticode": "unsigned"
