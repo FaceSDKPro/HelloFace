@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-SDK: **0.8.11 Beta**
+SDK: **0.8.12**
 
 On-device detection, capture, liveness, 1:1 comparison, 1:N/M:N search and face-library management.
 
@@ -19,11 +19,11 @@ On-device detection, capture, liveness, 1:1 comparison, 1:N/M:N search and face-
 | Path | Purpose |
 |---|---|
 | `demo/` | Editable ArkTS examples |
-| `libs/hiface-0.8.11.har` | Binary SDK |
+| `libs/hiface-0.8.12.har` | Binary SDK |
 | `AppScope/`, `hvigor/` | Required App and build configuration |
 
 Models are embedded in the HAR. Await `whenReady()` before using the SDK.
 
 Guides: [SDK](SDK.md) · [Demo](demo/README.md).
 
-The SDK is in iterative public Beta testing. Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).
+Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).

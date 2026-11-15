@@ -15,6 +15,8 @@ import androidx.annotation.MainThread;
 
 import com.hiface.sdk.HiFaceSdk;
 import com.hiface.sdk.capture.FaceCaptureApi;
+import com.hiface.sdk.capture.FaceCaptureResult;
+import com.hiface.sdk.demo.storage.FacePhotoStore;
 import com.hiface.sdk.common.HiFaceError;
 import com.hiface.sdk.common.HiFaceErrorCode;
 import com.hiface.sdk.common.HiFaceResult;
@@ -356,6 +358,7 @@ public final class FaceSearchStore implements AutoCloseable {
     private final Set<Request<?>> requests = Collections.synchronizedSet(new HashSet<>());
     private FaceSearchDatabase database;
     private volatile boolean closed;
+    private Context photoContext;
 
     /**
      * Create a serialized database thread for this screen and deliver all results on the main thread.
@@ -366,6 +369,7 @@ public final class FaceSearchStore implements AutoCloseable {
         this(Executors.newSingleThreadExecutor(task -> new Thread(task, "HiFaceDemo-Database")),
                 mainThreadDispatcher(),
                 databaseOpener(context), context.getApplicationContext().getAssets());
+        photoContext = context.getApplicationContext();
     }
 
     private static Dispatcher mainThreadDispatcher() {
@@ -456,7 +460,11 @@ public final class FaceSearchStore implements AutoCloseable {
 
     @MainThread
     Request<Boolean> delete(String faceId, Callback<Boolean> callback) {
-        return execute((db, request) -> db.delete(faceId), callback);
+        return execute((db, request) -> {
+            HiFaceResult<Boolean> result = db.delete(faceId);
+            if (result.isSuccess() && photoContext != null) FacePhotoStore.remove(photoContext, faceId);
+            return result;
+        }, callback);
     }
 
     /**
@@ -490,7 +498,35 @@ public final class FaceSearchStore implements AutoCloseable {
     @MainThread
     public Request<Boolean> save(String faceId, String feature, String group, boolean overwriteConfirmed,
             Callback<Boolean> callback) {
-        return execute((db, request) -> saveFeature(db, faceId, feature, group, overwriteConfirmed, request), callback);
+        return execute((db, request) -> {
+            HiFaceResult<Boolean> result = saveFeature(db, faceId, feature, group, overwriteConfirmed, request);
+            if (result.isSuccess() && photoContext != null) FacePhotoStore.remove(photoContext, faceId);
+            return result;
+        }, callback);
+    }
+
+    private HiFaceResult<Boolean> saveBatch(FaceSearchDatabase db, List<FaceSearchFeatureEntry> batch) {
+        return saveBatch(db, batch, photoContext);
+    }
+
+    private static HiFaceResult<Boolean> saveBatch(FaceSearchDatabase db,
+            List<FaceSearchFeatureEntry> batch, Context context) {
+        HiFaceResult<Boolean> result = db.saveFeatures(batch);
+        if (result.isSuccess() && context != null) {
+            for (FaceSearchFeatureEntry entry : batch) FacePhotoStore.remove(context, entry.getFaceId());
+        }
+        return result;
+    }
+
+    /** Save only a confirmed crop after the feature commits, on the existing database worker. */
+    @MainThread
+    public Request<Boolean> save(String faceId, FaceCaptureResult capture, String group,
+            boolean overwriteConfirmed, Callback<Boolean> callback) {
+        return execute((db, request) -> {
+            HiFaceResult<Boolean> result = saveFeature(db, faceId, capture.getFeature(), group, overwriteConfirmed, request);
+            if (result.isSuccess() && photoContext != null) FacePhotoStore.save(photoContext, faceId, capture);
+            return result;
+        }, callback);
     }
 
     /**
@@ -592,13 +628,13 @@ public final class FaceSearchStore implements AutoCloseable {
                     if (request.cancelled) {
                         return cancelledImport();
                     }
-                    if (request.stopRequested) return finishImport(db, request, batch, imported, 0, imported + batch.size(), FEATURE_DEMO_COUNT, true);
+                    if (request.stopRequested) return finishImport(db, request, batch, imported, 0, imported + batch.size(), FEATURE_DEMO_COUNT, true, photoContext);
                     batch.add(readFeatureEntry(reader));
                     if (batch.size() == WRITE_BATCH_SIZE) {
                         if (request.cancelled) {
                             return cancelledImport();
                         }
-                        HiFaceResult<Boolean> saved = db.saveFeatures(batch);
+                        HiFaceResult<Boolean> saved = saveBatch(db, batch);
                         if (saved.isFailure()) {
                             return HiFaceResult.failure(saved.requireError());
                         }
@@ -617,7 +653,7 @@ public final class FaceSearchStore implements AutoCloseable {
                 if (request.cancelled) {
                     return cancelledImport();
                 }
-                HiFaceResult<Boolean> saved = db.saveFeatures(batch);
+                HiFaceResult<Boolean> saved = saveBatch(db, batch);
                 if (saved.isFailure()) {
                     return HiFaceResult.failure(saved.requireError());
                 }
@@ -677,7 +713,7 @@ public final class FaceSearchStore implements AutoCloseable {
                     if (request.cancelled) {
                         return cancelledImport();
                     }
-                    if (request.stopRequested) return finishImport(db, request, batch, imported, failed, processed, IMAGE_DEMO_COUNT, true);
+                    if (request.stopRequested) return finishImport(db, request, batch, imported, failed, processed, IMAGE_DEMO_COUNT, true, photoContext);
                     DownloadedImage downloaded;
                     try {
                         // Check cancellation periodically so the screen can read the library again without waiting for a slow-
@@ -696,7 +732,7 @@ public final class FaceSearchStore implements AutoCloseable {
                     if (request.cancelled) {
                         return cancelledImport();
                     }
-                    if (request.stopRequested) return finishImport(db, request, batch, imported, failed, processed, IMAGE_DEMO_COUNT, true);
+                    if (request.stopRequested) return finishImport(db, request, batch, imported, failed, processed, IMAGE_DEMO_COUNT, true, photoContext);
                     // Consume in completion order and replenish before decoding, preventing a slow request from blocking
                     // later images.
                     // 按完成顺序消费，并在解码前补位，避免慢请求阻塞后续图片。
@@ -720,7 +756,7 @@ public final class FaceSearchStore implements AutoCloseable {
                     Bitmap bitmap = null;
                     try {
                         bitmap = decodeBitmap(downloaded.encoded);
-                        if (request.stopRequested) return finishImport(db, request, batch, imported, failed, processed, IMAGE_DEMO_COUNT, true);
+                        if (request.stopRequested) return finishImport(db, request, batch, imported, failed, processed, IMAGE_DEMO_COUNT, true, photoContext);
                         HiFaceResult<String> feature = capture.extractFeatureBlocking(bitmap);
                         if (request.cancelled) {
                             return cancelledImport();
@@ -743,12 +779,12 @@ public final class FaceSearchStore implements AutoCloseable {
                     }
                     processed++;
                     if (request.stopRequested) return finishImport(db, request, batch,
-                            imported, failed, processed, IMAGE_DEMO_COUNT, true);
+                            imported, failed, processed, IMAGE_DEMO_COUNT, true, photoContext);
                     if (batch.size() >= IMAGE_WRITE_BATCH_SIZE) {
                         if (request.cancelled) {
                             return cancelledImport();
                         }
-                        HiFaceResult<Boolean> saved = db.saveFeatures(batch);
+                        HiFaceResult<Boolean> saved = saveBatch(db, batch);
                         if (saved.isFailure()) {
                             return HiFaceResult.failure(saved.requireError());
                         }
@@ -769,7 +805,7 @@ public final class FaceSearchStore implements AutoCloseable {
                 if (request.cancelled) {
                     return cancelledImport();
                 }
-                HiFaceResult<Boolean> saved = db.saveFeatures(batch);
+                HiFaceResult<Boolean> saved = saveBatch(db, batch);
                 if (saved.isFailure()) {
                     return HiFaceResult.failure(saved.requireError());
                 }
@@ -798,9 +834,15 @@ public final class FaceSearchStore implements AutoCloseable {
     static HiFaceResult<ImportSummary> finishImport(FaceSearchDatabase db, Request<?> request,
             List<FaceSearchFeatureEntry> batch, int imported, int failed, int processed,
             int total, boolean stopped) {
+        return finishImport(db, request, batch, imported, failed, processed, total, stopped, null);
+    }
+
+    private static HiFaceResult<ImportSummary> finishImport(FaceSearchDatabase db, Request<?> request,
+            List<FaceSearchFeatureEntry> batch, int imported, int failed, int processed,
+            int total, boolean stopped, Context context) {
         if (request.cancelled) return cancelledImport();
         if (!batch.isEmpty()) {
-            HiFaceResult<Boolean> saved = db.saveFeatures(batch);
+            HiFaceResult<Boolean> saved = saveBatch(db, batch, context);
             if (saved.isFailure()) return HiFaceResult.failure(saved.requireError());
             imported += batch.size();
             batch.clear();

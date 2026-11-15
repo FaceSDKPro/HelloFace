@@ -188,7 +188,8 @@ std::string escaped(const std::string& text) {
     return result + '"';
 }
 }
-ImportProgress importDataset(Gallery& database, const std::filesystem::path& file, const ImportCallback& callback) {
+ImportProgress importDataset(Gallery& database, const std::filesystem::path& file,
+        const ImportCallback& callback, const ImportSavedCallback& saved) {
     std::ifstream input(file, std::ios::binary | std::ios::ate);
     if (!input || input.tellg() <= 0 || input.tellg() > 64 * 1024 * 1024) throw std::runtime_error("Expected a dataset JSON file of at most 64 MiB");
     std::string text(static_cast<size_t>(input.tellg()), '\0'); input.seekg(0);
@@ -202,7 +203,11 @@ ImportProgress importDataset(Gallery& database, const std::filesystem::path& fil
         || json.field("entryCount").integer() != static_cast<int64_t>(entries.array.size())) throw std::runtime_error("Invalid dataset entry count");
     ImportProgress progress; progress.total = entries.array.size();
     std::vector<Person> batch;
-    auto commit = [&] { if (!batch.empty()) { database.save(batch, true); progress.saved += batch.size(); batch.clear(); } };
+    auto commit = [&] { if (!batch.empty()) {
+        database.save(batch, true);
+        if (saved) for (const auto& person : batch) saved(person.id);
+        progress.saved += batch.size(); batch.clear();
+    } };
     for (const auto& entry : entries.array) {
         if (callback && !callback(progress)) { commit(); progress.stopped = true; return progress; }
         try {

@@ -4,6 +4,7 @@
 #include "rgbir/settings.h"
 #include "hiface/hiface_linux.h"
 #include <optional>
+#include "search_frame_image.h"
 
 #if !HIFACE_LINUX_HAS_RGBIR_SEARCH_V1
 #error "This Demo requires the Linux SDK with public RGB/IR paired search v1"
@@ -15,6 +16,7 @@ struct Pair;
 struct Sample {
     HiFaceSearchCameraResultV1 search{};
     HiFaceSearchInfraredResultV1 infrared{};
+    std::shared_ptr<const SearchFrameImage> frame_image;
 };
 
 // One worker owns the session. The caller keeps the database alive for its lifetime.

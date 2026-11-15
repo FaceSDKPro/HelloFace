@@ -39,6 +39,8 @@ std::optional<Sample> SearchSession::process(const CameraFrame& rgb_frame, const
     sample.infrared.struct_size = sizeof(sample.infrared);
     check(hiface_search_batch_read_v1(raw, &sample.search), "read identity result");
     check(hiface_search_batch_read_infrared_v1(raw, &sample.infrared), "read infrared result");
+    if (sample.search.end_reason != HIFACE_SEARCH_END_NONE)
+        sample.frame_image = copySearchFrameImage(session.handle, raw, sample.search.frame_id);
     require(sample.infrared.source_id == source_id && sample.infrared.pair_id == pair.id,
         "Core returned an IR result for a different frame pair");
     return sample;

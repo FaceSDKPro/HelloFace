@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 
 namespace hiface_demo {
 // Device-pixel geometry shared by drawing, pointer hit testing and scrolling.
@@ -12,6 +13,97 @@ struct UiRect {
     int height() const { return std::max(0, bottom - top); }
     bool contains(int x, int y) const { return x >= left && x < right && y >= top && y < bottom; }
 };
+// Recognition uses logical pixels for Win32 controls and painted text alike.
+struct RecognitionCardLayout {
+    static constexpr int tile_width = 104, tile_step = 112;
+    UiRect bounds, title, description, passive, action_toggle, choices[4], hint;
+    UiRect start, add_reference, reference_title, reference_help, strip, strip_scroll;
+
+    RecognitionCardLayout(int x, int y, int width, bool verification, bool actions, bool has_references = false) {
+        const int left = x + 16, right = x + width - 16;
+        int row = y + 12;
+        auto place = [&](int height, int gap) {
+            const UiRect area{left, row, right, row + height};
+            row += height + gap;
+            return area;
+        };
+        title = place(32, 2);
+        description = place(44, 4);
+        if (verification) passive = place(42, 4);
+        action_toggle = place(42, 6);
+        if (actions) {
+            const auto choice_row = place(42, 8);
+            constexpr int gap = 8;
+            const int available = choice_row.width() - 3 * gap;
+            for (int i = 0; i < 4; ++i) {
+                choices[i] = {left + i * available / 4 + i * gap, choice_row.top,
+                    left + (i + 1) * available / 4 + i * gap, choice_row.bottom};
+            }
+        }
+        hint = place(42, 10);
+        if (verification) {
+            reference_title = place(42, 4);
+            add_reference = {right - 124, reference_title.top, right, reference_title.bottom};
+            reference_title.right = add_reference.left - 8;
+            reference_help = place(36, 4);
+            if (has_references) {
+                strip = place(112, 4);
+                strip_scroll = place(20, 0);
+            }
+        } else {
+            start = place(46, 0);
+        }
+        bounds = {x, y, x + width, row + 14};
+    }
+};
+
+struct RecognitionLayout {
+    UiRect viewport, scrollbar, result;
+    RecognitionCardLayout verification{0, 0, 240, true, false}, liveness{0, 0, 240, false, false};
+    int content_height = 0;
+    RecognitionLayout(int width, int height, bool has_result, bool verify_actions, bool live_actions,
+        bool has_references, int scroll = 0) {
+        constexpr int gap = 12, result_height = 146;
+        viewport = {12, 72, width - 12, std::max(73, height - 54)};
+        const bool wide = width >= 900;
+        const int verify_height = RecognitionCardLayout(0, 0, 240, true, verify_actions, has_references).bounds.height();
+        const int live_height = RecognitionCardLayout(0, 0, 240, false, live_actions).bounds.height();
+        const int cards_height = wide ? std::max(verify_height, live_height) : verify_height + gap + live_height;
+        content_height = cards_height + (has_result ? gap + result_height : 0);
+        if (content_height > viewport.height()) {
+            scrollbar = {viewport.right - 20, viewport.top, viewport.right, viewport.bottom};
+            viewport.right = scrollbar.left - 8;
+        }
+        const int card_width = wide ? (viewport.width() - gap) / 2 : viewport.width();
+        const int top = viewport.top - clampScroll(scroll);
+        verification = {viewport.left, top, card_width, true, verify_actions, has_references};
+        liveness = {wide ? verification.bounds.right + gap : viewport.left,
+            wide ? top : verification.bounds.bottom + gap, card_width, false, live_actions};
+        if (has_result) result = {viewport.left, top + cards_height + gap, viewport.right, top + content_height};
+    }
+    int clampScroll(int scroll) const { return std::clamp(scroll, 0, std::max(0, content_height - viewport.height())); }
+    UiRect visible(UiRect bounds) const {
+        return {std::max(bounds.left, viewport.left), std::max(bounds.top, viewport.top),
+            std::min(bounds.right, viewport.right), std::min(bounds.bottom, viewport.bottom)};
+    }
+};
+
+struct ReferenceSwipe {
+    int x, y, offset;
+    bool moved = false, horizontal = false;
+
+    int update(int current_x, int current_y, int drag_threshold, int tile_width) {
+        const int dx = current_x - x, dy = current_y - y;
+        if (!moved && (std::abs(dx) >= drag_threshold || std::abs(dy) >= drag_threshold)) {
+            moved = true;
+            horizontal = std::abs(dx) > std::abs(dy);
+        }
+        if (!horizontal) return offset;
+        const int steps = (std::abs(dx) + tile_width / 2) / tile_width;
+        return offset + (dx < 0 ? steps : -steps);
+    }
+};
+
 struct ImageFit {
     int x = 0, y = 0, width = 0, height = 0;
     double scale = 0;

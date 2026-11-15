@@ -12,7 +12,7 @@
 <div align="center">
   <p>
     <a href="https://www.helloface.dev/"><img src="images/hello-face-icon.webp" alt="" width="51" height="51" align="bottom"><img src="images/helloface-wordmark.svg" alt="HelloFace" width="170" height="40" align="bottom"></a>
-    &nbsp; <strong>0.8.11 Beta</strong>
+    &nbsp; <strong>0.8.12</strong>
   </p>
   <p><strong>Offline face detection, capture, liveness, 1:1 verification and 1:N/M:N search.</strong></p>
   <p>🌍 <strong>Official Website</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a> &nbsp; | &nbsp; <img src="images/github-mark.svg" alt="" width="16" height="16" align="bottom"> <strong>GitHub Integration Code</strong> · <a href="https://github.com/FaceSDKPro/HelloFace">FaceSDKPro/HelloFace</a></p>
@@ -76,7 +76,7 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 ## Before you deploy
 
 - The Demo UI on each platform is for SDK demonstration only; you can freely customize the UI and interactions.
-- The SDK is in iterative public Beta testing. Please keep the SDK version up to date.
+- Please keep the SDK version up to date.
 - The current model does not support face recognition for people under 12 and must not be used in financial scenarios.
 - Face search requires clear camera images; outdoor deployments require a camera with a wide dynamic range greater than 100 dB.
 - Windows/Linux desktop and camera workflows await testing with real cameras; mobile apps require your own application signing.

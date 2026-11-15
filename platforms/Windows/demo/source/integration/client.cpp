@@ -8,6 +8,16 @@
 #include "hiface/hiface_windows.h"
 namespace hiface {
 namespace {
+int32_t HIFACE_CALL receiveSearchImage(const uint8_t* jpeg, size_t size, uint32_t width,
+        uint32_t height, uint64_t frame_id, void* context) {
+    auto& update = *static_cast<FrameUpdate*>(context);
+    if (frame_id != update.frame_id) return 0;
+    try {
+        update.frame_jpeg.assign(jpeg, jpeg + size);
+        update.frame_width = width; update.frame_height = height;
+        return 1;
+    } catch (...) { update.frame_jpeg.clear(); update.frame_width = update.frame_height = 0; return 0; }
+}
 // Scratch references are cleared on success, cancellation and exceptions.
 // 临时参考特征在成功、取消和异常退出时都清理；返回结果另持有自身数据。
 struct ClearFeature {
@@ -270,6 +280,13 @@ FrameUpdate Client::process(const CameraFrame& input, const std::function<bool()
     check(hiface_session_search_complete_v1(session_, raw), "complete camera search");
     HiFaceSearchCameraResultV1 result{}; result.struct_size = sizeof(result);
     check(hiface_search_batch_read_v1(raw, &result), "read camera search");
+    update.frame_id = result.frame_id;
+    if (result.end_reason != HIFACE_SEARCH_END_NONE && (!current || current())) {
+        (void)hiface_session_search_copy_jpeg_v1(session_, raw, receiveSearchImage, &update);
+        if (current && !current()) {
+            update.frame_jpeg.clear(); update.frame_width = update.frame_height = 0;
+        }
+    }
     update.faces.assign(result.faces, result.faces + result.face_count);
     update.end_reason = result.end_reason; update.has_liveness = result.has_liveness_score != 0; update.liveness_score = result.liveness_score;
     update.matched = result.end_reason == HIFACE_SEARCH_END_MATCH_FOUND;

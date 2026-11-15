@@ -9,6 +9,7 @@ struct GalleryEntry {
     std::string id, feature, group, tag;
     int64_t updated = 0;
     float similarity = 0;
+    std::shared_ptr<const Image> photo{};
 };
 using SearchResults = std::unique_ptr<HiFaceSearchResultsOpaque, decltype(&hiface_search_results_destroy_v1)>;
 std::vector<GalleryEntry> readResults(HiFaceSearchResultsHandle results);

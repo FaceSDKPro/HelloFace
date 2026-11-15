@@ -28,6 +28,7 @@ public:
         EnrollmentDraft::validateMetadata(id, "", ""); decodeFeature(feature);
         database_.save({{id, "", "", feature, 0}}, true);
     }
+    bool remove(const std::string& raw_id) { return database_.remove(normalizeMetadata(raw_id)) != 0; }
 private:
     Gallery database_;
 };
@@ -46,6 +47,7 @@ private:
 class PhotoComparisonCache {
 public:
     void clear() { features_ = {}; }
+    void clear(unsigned slot) { features_.at(slot).clear(); }
     bool ready(unsigned slot) const { return slot < 2 && !features_[slot].empty(); }
     bool ready() const { return ready(0) && ready(1); }
     // Commit only a current successful extraction; cancellation/failure retains the old slot.

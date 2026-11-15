@@ -22,7 +22,7 @@ enum class Action { Apply, EnterPage, OpenCamera, CloseCamera, StartFlow, Cancel
     LoadA, LoadB, Compare, SetImageReference, ImportReference,
     ExportFeature, ExportPreview, ImageEnroll, RefreshGallery, NextPage,
     DeletePerson, UpdatePerson, ImportJson, ExportJson, ImportImages, SearchPhoto, SearchPhotoAgain, ReleaseMemory, SaveEnrollment, ReplaceEnrollment,
-    SaveReference, SelectReference };
+    SaveReference, SelectReference, DeleteReference };
 struct Command {
     Action action = Action::Apply;
     Settings settings;

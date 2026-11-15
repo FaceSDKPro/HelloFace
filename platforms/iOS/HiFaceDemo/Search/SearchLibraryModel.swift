@@ -26,6 +26,7 @@ final class SearchLibraryModel: ObservableObject {
     @Published var status = DemoL10n.text("读取中…")
     @Published var query = ""
     @Published private(set) var people: [SearchLibraryPerson] = []
+    @Published private(set) var photoRevision = 0
     @Published private(set) var isLookup = false
     @Published private(set) var isWorking = false
     @Published private(set) var hasError = false
@@ -135,6 +136,7 @@ final class SearchLibraryModel: ObservableObject {
             do {
                 let database = try await database()
                 _ = try await database.delete(faceID: faceID)
+                await FacePhotoStore.remove(faceID: faceID)
                 let snapshot: ListSnapshot
                 if lookup {
                     snapshot = ListSnapshot(count: try await database.count(), people: [])
@@ -312,6 +314,7 @@ final class SearchLibraryModel: ObservableObject {
     /// list mode consistent.
     /// 查询、删除、导入和刷新共用首批状态更新，避免总数、偏移和列表模式不一致。
     private func apply(_ snapshot: ListSnapshot, lookup: Bool = false) {
+        photoRevision &+= 1
         people = snapshot.people
         isLookup = lookup
         nextOffset = lookup ? 0 : snapshot.people.count

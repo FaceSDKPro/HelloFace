@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-SDK: **0.8.11 Beta**
+SDK: **0.8.12**
 
 On-device detection, capture, liveness, 1:1 comparison, 1:N/M:N search and face-library management.
 
@@ -27,4 +27,4 @@ Use `HiFaceSDK()` with its default model bundle. Add `NSCameraUsageDescription` 
 
 Guides: [SDK](SDK/README.md) · [Demo](DEMO.md).
 
-The SDK is in iterative public Beta testing. Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).
+Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).

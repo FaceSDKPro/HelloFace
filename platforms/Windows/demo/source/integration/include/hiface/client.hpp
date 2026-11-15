@@ -40,6 +40,11 @@ struct FlowResult {
 };
 HiFaceFlowConfigV1 flowConfig(const FlowOptions& options, const Feature* reference = nullptr);
 struct FrameUpdate {
+    // Same terminal RGB sample, quality 95, <=480 per side; empty if unavailable.
+    // 同一结束采样的 RGB 场景 JPEG，质量 95、宽高均 <=480；无图时为空，不缓存旧图。
+    uint64_t frame_id = 0;
+    std::vector<uint8_t> frame_jpeg;
+    uint32_t frame_width = 0, frame_height = 0;
     std::vector<HiFaceSearchCameraFaceV1> faces;
     std::vector<DetailedFace> details;
     std::optional<FlowResult> result;

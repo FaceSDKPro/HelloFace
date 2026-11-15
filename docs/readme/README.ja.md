@@ -12,7 +12,7 @@
 <div align="center">
   <p>
     <a href="https://www.helloface.dev/"><img src="../../images/hello-face-icon.webp" alt="" width="51" height="51" align="bottom"><img src="../../images/helloface-wordmark.svg" alt="HelloFace" width="170" height="40" align="bottom"></a>
-    &nbsp; <strong>0.8.11 Beta</strong>
+    &nbsp; <strong>0.8.12</strong>
   </p>
   <p><strong>オフラインでの顔検出・取得・ライブネス検出・1:1 照合・1:N/M:N 検索。</strong></p>
   <p>🌍 <strong>公式サイト</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a> &nbsp; | &nbsp; <img src="../../images/github-mark.svg" alt="" width="16" height="16" align="bottom"> <strong>GitHub 連携サンプルコード</strong> · <a href="https://github.com/FaceSDKPro/HelloFace">FaceSDKPro/HelloFace</a></p>
@@ -76,7 +76,7 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 ## 導入前の確認事項
 
 - 各プラットフォームのデモ UI は SDK の動作を示すためのものです。UI や操作方法は自由にカスタマイズできます。
-- SDK は継続的に改善しているパブリックベータ版です。SDK を最新の状態に保ってください。
+- SDK を最新の状態に保ってください。
 - 現在のモデルは 12 歳未満の子どもの顔認識に対応しておらず、金融関連の用途には使用できません。
 - 顔検索には鮮明なカメラ画像が必要です。屋外で利用する場合は、ワイドダイナミックレンジが 100 dB を超えるカメラが必要です。
 - Windows/Linux のデスクトップおよびカメラの処理フローは、実際のカメラによる検証待ちです。モバイルアプリの実行には、ご自身のアプリ署名設定が必要です。

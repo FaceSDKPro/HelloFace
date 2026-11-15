@@ -22,12 +22,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.hiface.sdk.demo.comparison.FaceComparisonActivity;
 import com.hiface.sdk.demo.camera.CameraSettingsActivity;
 import com.hiface.sdk.demo.detection.FaceDetectionActivity;
-import com.hiface.sdk.demo.liveness.FaceLivenessActivity;
 import com.hiface.sdk.demo.search.FaceSearchActivity;
 import com.hiface.sdk.demo.search.uvc.UVCCameraFaceSearchActivity;
 import com.hiface.sdk.demo.ui.DemoWindowInsets;
-import com.hiface.sdk.demo.verification.FaceEnrollmentActivity;
-import com.hiface.sdk.demo.verification.FaceVerificationActivity;
 
 /**
  * Demo home screen with SDK feature and camera-settings entry points.
@@ -62,15 +59,9 @@ public final class DemoHomeActivity extends AppCompatActivity {
         bindFeatureCard(R.id.featureFaceDetection, android.R.drawable.ic_menu_camera,
                 R.string.feature_face_detection, R.string.feature_face_detection_desc,
                 FaceDetectionActivity.class);
-        bindFeatureCard(R.id.featureFaceEnroll, android.R.drawable.ic_input_add,
-                R.string.feature_face_enroll, R.string.feature_face_enroll_desc,
-                FaceEnrollmentActivity.class);
-        bindFeatureCard(R.id.featureFaceVerification, R.drawable.ic_api_verified,
-                R.string.feature_face_verification, R.string.feature_face_verification_desc,
-                FaceVerificationActivity.class);
-        bindFeatureCard(R.id.featureFaceLiveness, android.R.drawable.ic_menu_view,
-                R.string.feature_face_liveness, R.string.feature_face_liveness_desc,
-                FaceLivenessActivity.class);
+        bindFeatureCard(R.id.featureFaceRecognition, R.drawable.ic_api_verified,
+                R.string.feature_face_recognition, R.string.feature_face_recognition_desc,
+                FaceRecognitionActivity.class);
         bindFeatureCard(R.id.featureFaceSearch, android.R.drawable.ic_menu_search,
                 R.string.feature_face_search, R.string.feature_face_search_desc, FaceSearchActivity.class);
         bindFeatureCard(R.id.featureUVCCameraFaceSearch, android.R.drawable.ic_menu_camera,
@@ -130,7 +121,7 @@ public final class DemoHomeActivity extends AppCompatActivity {
         // brightness.
         // 系统菜单图标自带约 60% 的透明度；实色图标仅调整图像，保持底框亮度一致。
         featureIcon.setImageAlpha(
-                icon == android.R.drawable.ic_input_add || icon == R.drawable.ic_api_verified
+                icon == R.drawable.ic_api_verified
                         ? 153 : 255);
         ((TextView) feature.findViewById(R.id.featureTitle)).setText(title);
         ((TextView) feature.findViewById(R.id.featureDescription)).setText(description);

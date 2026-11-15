@@ -13,6 +13,7 @@ import {
   RgbaImage
 } from 'hiface';
 import { FacePhotoPicker } from '../comparison/FacePhotoPicker';
+import { FacePhotoStore } from '../verification/FacePhotoStore';
 
 const FEATURE_ASSET: string = 'face_search/features_10000.json';
 const IMAGE_ASSET: string = 'face_search/images_1000.json';
@@ -163,6 +164,7 @@ export class FaceSearchDemoImporter {
         if (batch.length === FEATURE_BATCH_SIZE) {
           const saved: HiFaceResult<boolean> = await this.database.saveFeatures(batch);
           if (saved.isFailure()) return this.failure(saved.requireError());
+          await FacePhotoStore.removeMany(this.context, batch.map((entry: FaceSearchFeatureEntry): string => entry.faceId));
           imported += batch.length;
           batch = [];
           progress(new FaceSearchImportProgress(processed, FEATURE_COUNT, imported));
@@ -174,6 +176,7 @@ export class FaceSearchDemoImporter {
         if (!this.isActive()) return this.cancelled();
         const saved: HiFaceResult<boolean> = await this.database.saveFeatures(batch);
         if (saved.isFailure()) return this.failure(saved.requireError());
+        await FacePhotoStore.removeMany(this.context, batch.map((entry: FaceSearchFeatureEntry): string => entry.faceId));
         imported += batch.length;
         progress(new FaceSearchImportProgress(processed, FEATURE_COUNT, imported));
       }
@@ -253,6 +256,7 @@ export class FaceSearchDemoImporter {
         if (batch.length >= IMAGE_BATCH_SIZE) {
           const saved: HiFaceResult<boolean> = await this.database.saveFeatures(batch);
           if (saved.isFailure()) return this.failure(saved.requireError());
+          await FacePhotoStore.removeMany(this.context, batch.map((entry: FaceSearchFeatureEntry): string => entry.faceId));
           imported += batch.length;
           batch = [];
         }
@@ -262,6 +266,7 @@ export class FaceSearchDemoImporter {
         if (!this.isActive()) return this.cancelled();
         const saved: HiFaceResult<boolean> = await this.database.saveFeatures(batch);
         if (saved.isFailure()) return this.failure(saved.requireError());
+        await FacePhotoStore.removeMany(this.context, batch.map((entry: FaceSearchFeatureEntry): string => entry.faceId));
         imported += batch.length;
       }
       if (!this.stopRequested && processed !== IMAGE_COUNT) return this.invalid('Image JSON entry count is invalid');

@@ -6,7 +6,7 @@
 
 人脸搜索识别要求摄像头成像清晰；室外环境下，摄像头宽动态范围须大于 100 dB。
 
-SDK正在Beta 迭代公测中，请及时升级SDK版本。
+请及时升级 SDK 版本。
 
 | 项目 | 当前范围 |
 |---|---|
@@ -14,13 +14,13 @@ SDK正在Beta 迭代公测中，请及时升级SDK版本。
 | ABI | `arm64-v8a` |
 | 入口 | ArkTS `HiFaceSdk` |
 
-直接交付时，把版本化 HAR 复制到应用（例如 `libs/hiface-0.8.11.har`），在模块
+直接交付时，把版本化 HAR 复制到应用（例如 `libs/hiface-0.8.12.har`），在模块
 `oh-package.json5` 中声明：
 
 ```json5
 {
   "dependencies": {
-    "hiface": "file:./libs/hiface-0.8.11.har"
+    "hiface": "file:./libs/hiface-0.8.12.har"
   }
 }
 ```
@@ -28,10 +28,10 @@ SDK正在Beta 迭代公测中，请及时升级SDK版本。
 同一版本通过 OpenHarmony 三方库中心仓审核后，可执行：
 
 ```shell
-ohpm install hiface@0.8.11
+ohpm install hiface@0.8.12
 ```
 
-也可以在 `oh-package.json5` 中声明 `"hiface": "0.8.11"`。直接交付和中心仓应使用同一版本、
+也可以在 `oh-package.json5` 中声明 `"hiface": "0.8.12"`。直接交付和中心仓应使用同一版本、
 同一 SHA-256 的 HAR，不能覆盖已经交付的版本。
 
 ## 初始化与错误处理
@@ -178,3 +178,7 @@ const result = await sdk.liveness().evaluateInfrared(frame, calibratedThreshold)
 先检查技术错误再读结果。Android 在工作线程同步调用，iOS/鸿蒙使用有界后台队列，输入由 SDK
 持有或复制。此入口不改变既有 RGB 相机活体或搜索流程；iOS 接入前需确认可取得 IR 图像，SDK
 不负责读取 Face ID 内部红外流。
+
+### 搜索结果场景图（0.8.12）
+
+`FaceSearchResult.frameJpeg`、`frameWidth`、`frameHeight` 返回与 `frame` 同一结束采样的完整 RGB 场景。画面已旋转、未镜像，等比缩小、不放大，最长边 480、JPEG 质量 95。成功及业务失败均尽力带图，无图时宽高为 0；框仍按原采样尺寸解释。Native 锁外编码，取消/关闭后丢弃旧结果，不落盘、不缓存多帧或沿用上一轮图片。

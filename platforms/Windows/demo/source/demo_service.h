@@ -1,10 +1,33 @@
 #pragma once
 #include "types.h"
 #include "image_search.h"
+#include <chrono>
 namespace hiface_demo {
+inline int64_t flowClockMs() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+// Core reports progress only when it changes. Keep the prompt and one deadline for
+// the whole action sequence, including temporary face loss between actions.
+struct GuidedFlowProgress {
+    HiFaceFlowEventV1 last{};
+    int64_t deadline_ms = 0;
+
+    void observe(const HiFaceFlowEventV1& event, int64_t now_ms) {
+        if (event.kind != HIFACE_FLOW_EVENT_PROGRESS) return;
+        last = event;
+        if (!event.has_action) deadline_ms = 0;
+        else if (!deadline_ms && event.stage == HIFACE_STAGE_PERFORM_ACTION &&
+                 event.step_count > 0 && event.step_count <= static_cast<int32_t>(HIFACE_MAX_FACE_FLOW_ACTIONS))
+            deadline_ms = now_ms + HIFACE_FLOW_DEFAULT_ACTION_TIMEOUT_MS * event.step_count;
+    }
+};
+
 struct Update : hiface::FrameUpdate {
     std::string message;
+    int64_t action_deadline_ms = 0;
 };
+std::string flowOutcomeText(HiFaceFlowOutcomeV1 outcome);
 bool searchFaceAccepted(const Update& update, const HiFaceSearchCameraFaceV1& face);
 std::string searchFaceText(const Update& update, const HiFaceSearchCameraFaceV1& face);
 std::string bestSearchMatchCaption(const Update& update, bool include_liveness);
@@ -41,6 +64,8 @@ public:
 private:
     hiface::Client client_;
     Gallery database_;
+    GuidedFlowProgress progress_;
+    FlowKind flow_kind_ = FlowKind::Capture;
 };
 void runSelfTest();
 void runDatasetSelfTest(const std::filesystem::path& dataset);

@@ -1,5 +1,7 @@
 import Foundation
 
+enum FacePhotoStore { static func remove(faceIDs: [String]) async {} }
+
 struct HiFaceError: Error {
     enum Code { case invalidArgument, processingFailed }
     let code: Code

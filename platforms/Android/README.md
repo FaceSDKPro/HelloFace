@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-SDK / Demo: **0.8.11 Beta**.
+SDK / Demo: **0.8.12**.
 
 On-device detection, capture, liveness, 1:1 comparison, 1:N/M:N search and face-library management.
 
@@ -45,7 +45,7 @@ Use the SDK dependency and model compression configuration in the host App modul
 
 ```kotlin
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.11")
+    implementation("io.github.facesdkpro:hiface-android:0.8.12")
 }
 android {
     defaultConfig {
@@ -70,4 +70,4 @@ Camera example: [CameraPreviewFragment](demo/src/main/java/com/hiface/sdk/demo/c
 
 Sign Release APKs with your certificate. Retain [LICENSE](LICENSE).
 
-The SDK is in iterative public Beta testing. Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/) · [Issues](https://github.com/FaceSDKPro/HelloFace/issues).
+Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/) · [Issues](https://github.com/FaceSDKPro/HelloFace/issues).

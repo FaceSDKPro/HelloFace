@@ -13,6 +13,10 @@
 namespace hiface_linux_demo::rgbir {
 constexpr int64_t max_skew_ms = 50, max_age_ms = 150, pair_gap_ms = 500, pair_timeout_ms = 5000;
 
+struct CameraStreamError : DemoError {
+    using DemoError::DemoError;
+};
+
 int64_t nowMs();
 
 struct Stamp {
@@ -49,6 +53,7 @@ struct CaptureProgress {
     int64_t last_pair_at;
     int64_t stream_started_at = 0;
     uint64_t paired = 0, replaced = 0, expired = 0;
+    Stamp rgb{}, ir{};
 };
 
 // One complete pending pair. Swaps recycle raw buffers and isolate the pair
@@ -56,6 +61,7 @@ struct CaptureProgress {
 class LatestPair {
 public:
     explicit LatestPair(int64_t start) : progress_{start} {}
+    void observe(Stamp rgb, Stamp ir);
     void publish(const Pair& stamp, RawCameraFrame& rgb, RawCameraFrame& ir, int64_t now);
     void fail(std::exception_ptr error);
     bool waitTake(int64_t due, CapturedPair& output);

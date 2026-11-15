@@ -1,7 +1,10 @@
 import { DemoL10n } from '../ui/DemoL10n';
+import { DemoPageHeader } from '../ui/DemoPageHeader';
+import { RecognitionOptionsPanel } from '../recognition/RecognitionOptionsPanel';
+import { FacePhotoStore, FacePhotoThumbnail } from '../verification/FacePhotoStore';
 import { FaceReference, FaceFeatureStore } from '../verification/FaceFeatureStore';
 import { DemoTheme } from '../ui/DemoTheme';
-import { FaceSearchSessionConfig, HiFaceResult, HiFaceSdk } from 'hiface';
+import { FaceAction, FaceSearchSessionConfig, HiFaceResult, HiFaceSdk } from 'hiface';
 import { CameraSettingsDemo } from '../camera/CameraSettingsDemo';
 import { CameraPageLifecycle } from '../camera/CameraPageLifecycle';
 import { RealtimeCameraDemo } from './RealtimeCameraDemo';
@@ -17,7 +20,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 // 导航只保存页面，不包装 SDK；各功能页直接调用 hiface 的公开 API。
 enum DemoPage {
   HOME, DETECTION, ENROLLMENT, VERIFICATION, LIVENESS, SEARCH,
-  IMAGE_SEARCH, COMPARISON, CAMERA_SETTINGS, SEARCH_LIBRARY, SEARCH_ENROLLMENT
+  IMAGE_SEARCH, COMPARISON, CAMERA_SETTINGS, SEARCH_LIBRARY, SEARCH_ENROLLMENT, RECOGNITION
 }
 
 const WEBSITE_URL: string = 'https://helloface.pages.dev/';
@@ -42,11 +45,19 @@ struct Index {
 
   @State private activePage: DemoPage = DemoPage.HOME;
   @State private cameraPageKey: number = 0;
+  @State private verificationSilent: boolean = true;
+  @State private verificationActionsEnabled: boolean = false;
+  @State private verificationActionMask: number = 9;
+  @State private livenessSilent: boolean = true;
+  @State private livenessActionsEnabled: boolean = false;
+  @State private livenessActionMask: number = 9;
+  @State private recognitionTitle: string = '';
+  @State private recognitionMessage: string = '';
+  @State private recognitionPassed: boolean = false;
   @State private sdkState: string = DemoL10n.text("正在准备识别模型…");
   @State private sdkInitializing: boolean = true;
   @State private sdkFailed: boolean = false;
   @State private references: FaceReference[] = [];
-  @State private selectingReference: boolean = false;
   @State private selectedFaceId: string = '';
   @State private selectedFeature: string = '';
   @State private searchConfig: FaceSearchSessionConfig = createDemoFaceSearchConfig();
@@ -58,7 +69,9 @@ struct Index {
   private lifecycleToken: number = 0;
   private referenceStoreToken: number = 0;
   private savingReference: boolean = false;
+  private selectedActions: FaceAction[] = [];
   private readonly cameraLifecycle: CameraPageLifecycle = new CameraPageLifecycle();
+  private readonly recognitionScroller: Scroller = new Scroller();
   private readonly deviceValues: string[] = [
     `${deviceInfo.majorVersion}.${deviceInfo.seniorVersion}.${deviceInfo.featureVersion}`,
     deviceInfo.productModel || '-', deviceInfo.hardwareModel || '-'];
@@ -174,10 +187,6 @@ struct Index {
   onPageHide(): void { this.cameraLifecycle.pause(); }
 
   onBackPress(): boolean {
-    if (this.selectingReference) {
-      this.selectingReference = false;
-      return true;
-    }
     if (this.activePage === DemoPage.HOME) return false;
     if (this.cameraLifecycle.handleBack()) return true;
     this.goBack();
@@ -186,7 +195,7 @@ struct Index {
 
   /** 离开当前功能前先停止相机生命周期，再创建新的页面实例。 */
   private navigate(page: DemoPage): void {
-    if (this.sdk === undefined && page !== DemoPage.CAMERA_SETTINGS) {
+    if (this.sdk === undefined && page !== DemoPage.CAMERA_SETTINGS && page !== DemoPage.RECOGNITION) {
       this.showToast(this.sdkState);
       return;
     }
@@ -213,14 +222,6 @@ struct Index {
     return RealtimeMode.DETECTION;
   }
 
-  private chooseReference(): void {
-    if (this.references.length === 0) {
-      this.showToast(DemoL10n.text("请先完成人脸采集"));
-      return;
-    }
-    this.selectingReference = true;
-  }
-
   /** 1:1 基准与搜索库分开保存；只返回落盘结果，由仍然可见的相机页决定导航。 */
   private async saveReference(faceId: string, feature: string): Promise<boolean> {
     if (this.savingReference) return false;
@@ -244,6 +245,8 @@ struct Index {
     Stack() {
       if (this.activePage === DemoPage.HOME) {
         this.Home()
+      } else if (this.activePage === DemoPage.RECOGNITION) {
+        this.RecognitionMenu()
       } else if (this.activePage === DemoPage.IMAGE_SEARCH && this.sdk !== undefined) {
         FaceImageSearchDemo({ sdk: this.sdk, onExit: (): void => this.goBack(),
           onOpenLibrary: (): void => this.navigate(DemoPage.SEARCH_LIBRARY) })
@@ -259,6 +262,14 @@ struct Index {
           RealtimeCameraDemo({
             sdk: this.sdk!, cameraLifecycle: this.cameraLifecycle,
             initialMode: this.cameraMode(), initialReferenceFeature: this.selectedFeature,
+            recognitionConfigured: this.activePage === DemoPage.VERIFICATION || this.activePage === DemoPage.LIVENESS,
+            recognitionActions: this.selectedActions,
+            recognitionSilent: this.verificationSilent,
+            onRecognitionResult: (title: string, message: string, passed: boolean): void => {
+              this.recognitionTitle = title; this.recognitionMessage = message; this.recognitionPassed = passed;
+              this.goBack();
+              setTimeout((): void => this.recognitionScroller.scrollEdge(Edge.Bottom), 0);
+            },
             referenceFaceId: this.selectedFaceId, initialSearchConfig: this.searchConfig,
             onReferenceConfirmed: (faceId: string, feature: string): Promise<boolean> =>
               this.saveReference(faceId, feature),
@@ -269,12 +280,10 @@ struct Index {
           })
         }, (key: number): string => `${key}`)
       }
-      if (this.selectingReference) {
-        this.ReferencePicker()
-      }
     }
     .width('100%').height('100%')
-    .backgroundColor(this.activePage === DemoPage.HOME ? DemoTheme.homeBackground : DemoTheme.brand)
+    .backgroundColor(this.activePage === DemoPage.RECOGNITION ? DemoTheme.contentBackground :
+      this.activePage === DemoPage.HOME ? DemoTheme.homeBackground : DemoTheme.brand)
   }
 
   @Builder
@@ -302,12 +311,8 @@ struct Index {
         }
         this.FeatureCard($r('app.media.ic_api_camera_small'), DemoL10n.text("实时人脸检测"),
           DemoL10n.text("查看人脸框、关键点、轮廓和头姿"), (): void => this.navigate(DemoPage.DETECTION))
-        this.FeatureCard($r('app.media.ic_home_enroll'), DemoL10n.text("人脸采集"),
-          DemoL10n.text("采集正脸并保存特征"), (): void => this.navigate(DemoPage.ENROLLMENT))
-        this.FeatureCard($r('app.media.ic_home_verify'), DemoL10n.text("1:1 人脸验证"),
-          DemoL10n.text("选择 Face ID，活体通过后验证"), (): void => this.chooseReference())
-        this.FeatureCard($r('app.media.ic_home_liveness'), DemoL10n.text("活体检测"),
-          DemoL10n.text("随机动作挑战与双模型静默检测"), (): void => this.navigate(DemoPage.LIVENESS))
+        this.FeatureCard($r('app.media.ic_home_verify'), DemoL10n.text("人脸识别"),
+          DemoL10n.text("通过相机进行 1:1 人脸识别与活体检测"), (): void => this.navigate(DemoPage.RECOGNITION))
         this.FeatureCard($r('app.media.ic_search_search'), DemoL10n.text("人脸搜索识别"),
           DemoL10n.text("RGB相机搜索识别，1:N搜索活体也用RGB相机"), (): void => this.navigate(DemoPage.SEARCH))
         this.FeatureCard($r('app.media.ic_home_compare'), DemoL10n.text("静态人脸 1:1 对比"),
@@ -321,6 +326,137 @@ struct Index {
           .onClick(() => this.openWebsite())
       }.padding({ left: 20, right: 20, top: 16, bottom: 20 }).width('100%')
     }.width('100%').height('100%').scrollBar(BarState.Off)
+  }
+
+  private recognitionActions(verification: boolean): FaceAction[] {
+    const enabled: boolean = verification ? this.verificationActionsEnabled : this.livenessActionsEnabled;
+    const mask: number = verification ? this.verificationActionMask : this.livenessActionMask;
+    const order: FaceAction[] = [FaceAction.BLINK, FaceAction.MOUTH_OPEN, FaceAction.SHAKE_HEAD, FaceAction.NOD_HEAD];
+    const actions: FaceAction[] = [];
+    if (enabled) for (let index: number = 0; index < order.length; ++index) {
+      if ((mask & (1 << index)) !== 0) actions.push(order[index]);
+    }
+    return actions;
+  }
+
+  private startRecognition(reference: FaceReference | undefined = undefined): void {
+    const verification: boolean = reference !== undefined;
+    const enabled: boolean = verification ? this.verificationActionsEnabled : this.livenessActionsEnabled;
+    const actions: FaceAction[] = this.recognitionActions(verification);
+    if (enabled && actions.length === 0) {
+      this.showToast(DemoL10n.text('请至少勾选一个动作'));
+      return;
+    }
+    this.selectedActions = actions;
+    this.recognitionMessage = '';
+    if (reference !== undefined) {
+      this.selectedFaceId = reference.faceId;
+      this.selectedFeature = reference.feature;
+    }
+    this.navigate(verification ? DemoPage.VERIFICATION : DemoPage.LIVENESS);
+  }
+
+  private confirmDeleteReference(faceId: string): void {
+    const token: number = this.referenceStoreToken;
+    this.getUIContext().showAlertDialog({
+      title: DemoL10n.text('删除这条人脸？'),
+      message: DemoL10n.text('Face ID：{0}\n\n删除后需重新录入。', [faceId]),
+      primaryButton: {
+        value: DemoL10n.text('删除'), fontColor: DemoTheme.contentError,
+        action: (): void => {
+          if (token === this.referenceStoreToken && this.activePage === DemoPage.RECOGNITION) {
+            this.deleteReference(faceId);
+          }
+        }
+      },
+      secondaryButton: { value: DemoL10n.text('取消'), action: (): void => {} }
+    });
+  }
+
+  private async deleteReference(faceId: string): Promise<void> {
+    const token: number = ++this.referenceStoreToken;
+    try {
+      const context: common.UIAbilityContext =
+        this.getUIContext().getHostContext() as common.UIAbilityContext;
+      const remaining: FaceReference[] = await this.featureStore.remove(context, faceId);
+      // The encrypted feature snapshot is authoritative. A stale thumbnail must not
+      // make a completed identity deletion look as though it failed.
+      // 加密特征快照是权威数据；旧头像清理失败不能把已完成的身份删除显示成失败。
+      try {
+        await FacePhotoStore.remove(context, faceId);
+      } catch (_) {
+        // The photo is only Demo presentation data and is no longer reachable.
+      }
+      if (token === this.referenceStoreToken && this.activePage === DemoPage.RECOGNITION) {
+        this.references = remaining;
+        this.showToast(DemoL10n.text('已删除 {0}', [faceId]));
+      }
+    } catch (error) {
+      if (token === this.referenceStoreToken && this.activePage === DemoPage.RECOGNITION) {
+        this.showToast(DemoL10n.text('删除失败：{0}', [String(error)]));
+      }
+    }
+  }
+
+  @Builder
+  private RecognitionMenu() {
+    Column() {
+      DemoPageHeader({ title: DemoL10n.text('人脸识别'), onBack: (): void => this.goBack() })
+      Scroll(this.recognitionScroller) {
+        Column({ space: 12 }) {
+        Column({ space: 10 }) {
+          Text(DemoL10n.text('1:1 人脸验证')).fontSize(18).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText)
+          Text(DemoL10n.text('选择已录入的人脸，与当前相机人脸进行比对')).fontSize(12).fontColor(DemoTheme.contentSecondary)
+          RecognitionOptionsPanel({ silent: $verificationSilent, actionsEnabled: $verificationActionsEnabled,
+            actionMask: $verificationActionMask })
+          Row() {
+            Text(DemoL10n.text('已录入的人脸')).fontSize(14).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText).layoutWeight(1)
+            Button(DemoL10n.text('＋ 采集人脸')).height(42).backgroundColor(Color.Transparent).fontColor(DemoTheme.contentAccent)
+              .onClick(() => this.navigate(DemoPage.ENROLLMENT))
+          }.width('100%')
+          Text(DemoL10n.text(this.references.length === 0 ? '暂无参考人脸，请先采集并保存 Face ID。' :
+            '左右滑动，点击头像开始 1:1 验证，长按删除')).fontSize(12).fontColor(DemoTheme.contentSecondary)
+          if (this.references.length > 0) {
+            List({ space: 12 }) {
+              ForEach(this.references, (entry: FaceReference) => {
+                ListItem() {
+                  Column({ space: 8 }) {
+                    FacePhotoThumbnail({ faceId: entry.faceId, diameter: 72, circular: true })
+                    Text(entry.faceId).fontSize(13).fontColor(DemoTheme.contentText).maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
+                      .textAlign(TextAlign.Center).width('100%')
+                  }.width(96).padding({ top: 4, bottom: 4 })
+                }.priorityGesture(GestureGroup(GestureMode.Exclusive,
+                  LongPressGesture({ repeat: false, duration: 500 })
+                    .onAction((): void => this.confirmDeleteReference(entry.faceId)),
+                  TapGesture().onAction((): void => this.startRecognition(entry))))
+                  .accessibilityText(DemoL10n.text('验证 {0}，长按删除', [entry.faceId]))
+              }, (entry: FaceReference): string => entry.faceId)
+            }.listDirection(Axis.Horizontal).width('100%').height(116)
+          }
+        }.width('100%').alignItems(HorizontalAlign.Start).padding(14).backgroundColor('#FFFFFF')
+          .borderRadius(16).border({ width: 1, color: '#E2E8E5' })
+        Column({ space: 10 }) {
+          Text(DemoL10n.text('独立活体检测')).fontSize(18).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText)
+          Text(DemoL10n.text('不比对身份。静默活体始终开启，可叠加动作挑战。')).fontSize(12).fontColor(DemoTheme.contentSecondary)
+          RecognitionOptionsPanel({ silent: $livenessSilent, actionsEnabled: $livenessActionsEnabled,
+            actionMask: $livenessActionMask, standalone: true })
+          Button(DemoL10n.text('开始活体检测')).width('100%').height(48)
+            .backgroundColor(DemoTheme.contentAccent).fontColor('#FFFFFF')
+            .onClick(() => this.startRecognition())
+        }.width('100%').alignItems(HorizontalAlign.Start).padding(14).backgroundColor('#FFFFFF')
+          .borderRadius(16).border({ width: 1, color: '#E2E8E5' })
+        if (this.recognitionMessage.length > 0) {
+          Column({ space: 6 }) {
+            Text(DemoL10n.text(this.recognitionPassed ? '检测通过' : '检测未通过'))
+              .fontSize(12).fontColor(this.recognitionPassed ? DemoTheme.contentAccent : DemoTheme.contentError)
+            Text(this.recognitionTitle).fontSize(18).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText)
+            Text(this.recognitionMessage).fontSize(14).fontColor(DemoTheme.contentSecondary)
+          }.alignItems(HorizontalAlign.Start).width('100%').padding(14).backgroundColor('#FFFFFF')
+            .borderRadius(16).border({ width: 1, color: '#E2E8E5' })
+        }
+        }.padding({ left: 12, right: 12, top: 8, bottom: 16 }).width('100%')
+      }.layoutWeight(1).width('100%').scrollBar(BarState.Off)
+    }.width('100%').height('100%').backgroundColor(DemoTheme.contentBackground)
   }
 
   @Builder
@@ -339,32 +475,6 @@ struct Index {
     }.width('100%').constraintSize({ minHeight: 68 }).padding({ left: 11, right: 11, top: 9, bottom: 9 })
     .backgroundColor(DemoTheme.surfaceOnDark).border({ width: 1, color: DemoTheme.borderOnDark }).borderRadius(14)
     .margin({ bottom: 11 }).onClick(action)
-  }
-
-  @Builder
-  private ReferencePicker() {
-    Stack() {
-      Column().width('100%').height('100%').backgroundColor('#99000000')
-        .onClick(() => { this.selectingReference = false; })
-      Column({ space: 12 }) {
-        Text(DemoL10n.text("选择要验证的 Face ID")).fontSize(20).fontColor(DemoTheme.contentText).width('100%')
-        Scroll() {
-          Column() {
-            ForEach(this.references, (entry: FaceReference) => {
-              Text(entry.faceId).width('100%').padding(16).fontColor(DemoTheme.contentText)
-                .onClick(() => {
-                  this.selectedFaceId = entry.faceId;
-                  this.selectedFeature = entry.feature;
-                  this.selectingReference = false;
-                  this.navigate(DemoPage.VERIFICATION);
-                })
-            }, (entry: FaceReference): string => entry.faceId)
-          }.width('100%')
-        }.constraintSize({ maxHeight: 360 }).width('100%')
-        Button(DemoL10n.text("取消")).fontColor(DemoTheme.brand).backgroundColor(Color.Transparent)
-          .alignSelf(ItemAlign.End).onClick(() => { this.selectingReference = false; })
-      }.width('86%').padding(24).backgroundColor('#FFFFFF').borderRadius(24)
-    }.width('100%').height('100%')
   }
 
   private copyDeviceInfo(): void {

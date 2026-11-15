@@ -81,21 +81,7 @@
             android:layout_marginBottom="11dp" />
 
         <include
-            android:id="@+id/featureFaceEnroll"
-            layout="@layout/item_api_feature"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="11dp" />
-
-        <include
-            android:id="@+id/featureFaceVerification"
-            layout="@layout/item_api_feature"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="11dp" />
-
-        <include
-            android:id="@+id/featureFaceLiveness"
+            android:id="@+id/featureFaceRecognition"
             layout="@layout/item_api_feature"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

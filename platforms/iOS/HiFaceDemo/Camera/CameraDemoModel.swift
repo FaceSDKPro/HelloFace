@@ -68,6 +68,10 @@ final class CameraDemoModel: ObservableObject {
     // 当前模型负责创建和关闭 SDK，相机管线复用同一实例。
     let sdk: HiFaceSDK
     let pipeline: CameraPipeline
+    private let recognitionActions: [FaceAction]?
+    private let recognitionSilent: Bool
+    private let recognitionReferenceID: String?
+    @Published private(set) var completedPassed = false
     private let mode: CameraDemoMode
     let enrollsInSearchLibrary: Bool
     private var request: FaceRequest?
@@ -84,7 +88,12 @@ final class CameraDemoModel: ObservableObject {
     private var started = false
     private var suspended = false
 
-    init(mode: CameraDemoMode, enrollsInSearchLibrary: Bool = false) {
+    init(mode: CameraDemoMode, enrollsInSearchLibrary: Bool = false,
+         recognitionActions: [FaceAction]? = nil, recognitionSilent: Bool = true,
+         recognitionReferenceID: String? = nil) {
+        self.recognitionActions = recognitionActions
+        self.recognitionSilent = recognitionSilent
+        self.recognitionReferenceID = recognitionReferenceID
         self.mode = mode
         self.enrollsInSearchLibrary = enrollsInSearchLibrary
         sdk = HiFaceSDK()
@@ -282,6 +291,7 @@ final class CameraDemoModel: ObservableObject {
                 feature: pendingReferenceFeature,
                 faceID: enrollmentFaceID
             )
+            FacePhotoStore.saveLater(image: alignedFace, faceID: faceID)
             self.pendingReferenceFeature = nil
             enrollmentFaceID = faceID
             refreshReferenceFaces()
@@ -307,10 +317,11 @@ final class CameraDemoModel: ObservableObject {
         enrollmentGroup = group
         confirmsSearchOverwrite = false
         isSavingCapture = true
+        let photo = alignedFace
         enrollmentTask = Task { [weak self] in
             do {
                 try await Self.persistSearchCapture(
-                    faceID: faceID, feature: feature, group: group, replace: replace
+                    faceID: faceID, feature: feature, group: group, replace: replace, photo: photo
                 )
                 guard let self, !Task.isCancelled, started else { return }
                 isSavingCapture = false
@@ -338,7 +349,7 @@ final class CameraDemoModel: ObservableObject {
     /// work finish.
     /// 开库和查询在非主线程执行；取消后不再发起保存，已提交的数据库操作自然结束。
     private nonisolated static func persistSearchCapture(
-        faceID: String, feature: String, group: String, replace: Bool
+        faceID: String, feature: String, group: String, replace: Bool, photo: CGImage?
     ) async throws {
         try Task.checkCancellation()
         let database = try HiFaceSDK.openSearchDatabase()
@@ -356,6 +367,7 @@ final class CameraDemoModel: ObservableObject {
             }
             try Task.checkCancellation()
             try await database.saveFeature(faceID: faceID, feature: feature, tag: tag, group: group)
+            await FacePhotoStore.save(image: photo, faceID: faceID)
             await database.close()
         } catch {
             await database.close()
@@ -399,14 +411,14 @@ final class CameraDemoModel: ObservableObject {
                 detail = DemoL10n.text("Face ID：{0}；请重新录入或选择其他身份", [String(describing: faceID)])
                 return
             }
-            let actions = FaceFlowPresentation.randomChallenge(count: 2)
+            let actions = recognitionActions ?? FaceFlowPresentation.randomChallenge(count: 2)
             phase = .running
             resetActionProgress()
             pipeline.resumeAnalysis()
             status = DemoL10n.text("准备验证 {0}", [String(describing: faceID)])
             let configuration = try FaceVerificationConfiguration(
                 referenceFeature: reference,
-                requiresSilentLiveness: true,
+                requiresSilentLiveness: recognitionSilent,
                 actions: actions,
                 allowsMultipleFaces: true
             )
@@ -537,7 +549,7 @@ final class CameraDemoModel: ObservableObject {
         case .liveness:
             do {
                 phase = .running
-                let actions = FaceFlowPresentation.randomChallenge(count: 3)
+                let actions = recognitionActions ?? FaceFlowPresentation.randomChallenge(count: 3)
                 let configuration = try FaceLivenessConfiguration(
                     actions: actions,
                     allowsMultipleFaces: true
@@ -635,6 +647,7 @@ final class CameraDemoModel: ObservableObject {
 
     private func handle(_ result: FaceFlowResult) {
         guard started else { return }
+        completedPassed = result.passed
         request = nil
         pipeline.pauseAnalysis()
         resetActionProgress()
@@ -816,6 +829,11 @@ final class CameraDemoModel: ObservableObject {
     // 参考基准存储。
 
     private func prepareReferenceSelection() {
+        if let recognitionReferenceID {
+            if selectReference(recognitionReferenceID) { beginVerification() }
+            else { phase = .failed }
+            return
+        }
         pipeline.pauseAnalysis()
         guard refreshReferenceFaces() else { return }
         guard !referenceFaceIDs.isEmpty, let selectedReferenceID else {

@@ -183,7 +183,7 @@ public final class FaceSearchEnrollmentActivity extends CameraFlowActivity {
         }
         saving = true;
         setConfirmationEnabled(dialog, false);
-        saveRequest = store.save(faceId, capture.getFeature(), group, overwriteConfirmed, saved -> {
+        saveRequest = store.save(faceId, capture, group, overwriteConfirmed, saved -> {
             saveRequest = null;
             saving = false;
             if (!getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)

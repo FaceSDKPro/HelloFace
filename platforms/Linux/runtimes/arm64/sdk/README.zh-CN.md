@@ -2,9 +2,9 @@
 
 [English](README.md) | 简体中文
 
-**Beta** · x86_64 / ARM64 · CPU · C ABI v1。
+**SDK** · x86_64 / ARM64 · CPU · C ABI v1。
 运行基线为 Ubuntu 22.04 / glibc 2.35，兼容目标为 Ubuntu 24.04。
-SDK正在Beta 迭代公测中，请及时升级SDK版本。当前模型不支持12周岁以下儿童人脸识别，不能用于金融相关场景。目标设备验收待完成。
+请及时升级 SDK 版本。当前模型不支持12周岁以下儿童人脸识别，不能用于金融相关场景。目标设备验收待完成。
 
 持久运行状态在显式配置时使用 `$XDG_STATE_HOME/hiface`，否则使用系统账号主目录下的 `~/.local/state/hiface`。首次使用前选定持久私有目录并保持稳定；无效、临时或不安全路径会报错，不自动切换状态目录。
 
@@ -87,3 +87,7 @@ resolve → complete → read → destroy 生命周期，并额外调用
 
 嵌入式 Demo 的 `src/desktop/rgbir/` 直接调用上述公开接口；普通横屏桌面保留 RGB 单摄导航，
 双摄页仅在嵌入式模式显示。几何检查不等于硬件同步或跨光谱身份核验，须按实际双摄标定和验收。
+
+## 搜索结束场景 JPEG（0.8.12）
+
+终态批次完成并读取后、送入另一帧/停止/销毁 batch 前调用 `hiface_session_search_copy_jpeg_v1(session, batch, sink, context)`。sink 成功时调用一次，参数为同一 `frame_id`、JPEG 宽高和借用字节；返回非零前按需复制。编码和回调在 Session 锁外执行。完整 RGB 画面已旋转、未镜像，等比缩小、不放大，最长边 480、质量 95。业务失败也尽力带图，出图失败不改变搜索结论或复用旧图，不落盘或缓存历史。

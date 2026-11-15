@@ -1,5 +1,7 @@
 import Foundation
 
+enum FacePhotoStore { static func remove(faceID: String) async {} }
+
 // Use matching SDK stubs with the real Demo Model to control database-open and import completion
 // ordering.
 // 使用等形 SDK 桩运行真实 Demo Model，主动控制开库和导入的完成顺序。

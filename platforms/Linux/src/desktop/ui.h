@@ -21,10 +21,13 @@ public:
     explicit DemoUi(Measure measure = {});
     const Scene& render(const ViewState& state, int width, int height);
     void click(int x, int y, const ViewState& state);
+    bool defersClick(int x, int y) const;
+    void beginDeferredClick(int x);
+    void longPress(int x, int y, const ViewState& state);
     void key(Key key, const std::string& text, bool shift, const ViewState& state);
     void scroll(int steps, int x, int y, const ViewState& state);
     void drag(int x, int y, const ViewState& state);
-    void releasePointer() { library_drag_active_ = false; }
+    void releasePointer() { library_drag_active_ = reference_drag_active_ = false; }
     void pointer(int x, int y) { pointer_x_ = x; pointer_y_ = y; }
     void paste(const std::string& text, const std::string& field);
     std::string selectedText() const;
@@ -50,6 +53,8 @@ private:
     void picture(Rect rect, const Image* image, const CameraFrame* camera, bool mirror, const std::vector<Box>& boxes, bool fill = false);
     void empty(Rect rect, const std::string& title, const std::string& hint);
     void home(const ViewState& state, Rect body);
+    void recognition(const ViewState& state, Rect body);
+    DemoSettings recognitionOptions(const ViewState& state, bool verification) const;
     void uvcCameraFaceSearch(const ViewState& state, Rect bounds);
     void uvcSettingsDialog(const ViewState& state);
     void handleUvcSettings(const std::string& action, const ViewState& state);
@@ -103,6 +108,10 @@ private:
     std::vector<std::string> page_history_;
     std::string focused_, keyboard_focus_, notice_, invalid_field_;
     int home_scroll_ = 0, home_max_scroll_ = 0;
+    int recognition_scroll_ = 0, recognition_max_scroll_ = 0, reference_scroll_ = 0, reference_max_scroll_ = 0;
+    Rect recognition_reference_area_;
+    std::string recognition_result_title_, recognition_result_message_;
+    bool recognition_result_passed_ = false;
     std::string home_focus_;
     std::string observed_device_;
     int gallery_rows_ = 10;
@@ -111,6 +120,8 @@ private:
     bool library_more_pending_ = false, library_clear_pending_ = false;
     bool library_drag_active_ = false;
     int library_drag_y_ = 0;
+    bool reference_drag_active_ = false;
+    int reference_drag_origin_x_ = 0, reference_drag_origin_scroll_ = 0;
     uint64_t library_attempt_ = 0, library_revision_ = 0;
     bool metadata_dialog_ = false, metadata_pending_ = false, metadata_error_ = false;
     uint64_t metadata_attempt_ = 0;

@@ -1,8 +1,11 @@
 #include "desktop_search.h"
+#include "camera_recovery.h"
 #include "live_search.h"
 #include "frame_pool.h"
 #include "lighting.h"
 #include "search_power.h"
+#include <chrono>
+#include <cstdio>
 
 namespace hiface_linux_demo::rgbir {
 
@@ -28,6 +31,7 @@ void DesktopSearch::run(const std::string& database, const RgbIrSettings& settin
         publish(std::make_shared<const RgbIrView>(state));
     };
     const auto fail = [&](const std::string& message) {
+        std::fprintf(stderr, "[RGB/IR] search stopped: %s\n", message.c_str());
         update([&] {
             state = {};
             state.running = false;
@@ -41,8 +45,13 @@ void DesktopSearch::run(const std::string& database, const RgbIrSettings& settin
         SearchStatusLighting status_light;
         status_light.setColor(SearchLightColor::blue);
         update([] {});
+        CameraRecovery recovery;
         SearchCallbacks callbacks;
         callbacks.interruption_grace_ms = pair_gap_ms;
+        if (diagnostics)
+            callbacks.opened = [](const std::string& rgb, const std::string& ir) {
+                std::fprintf(stderr, "[RGB/IR] streams open: RGB=%s; IR=%s\n", rgb.c_str(), ir.c_str());
+            };
         if (infrared_light.configured())
             callbacks.lighting = [&](bool active) {
                 require(infrared_light.setActive(active), "Infrared light GPIO write failed; search stopped");
@@ -64,6 +73,7 @@ void DesktopSearch::run(const std::string& database, const RgbIrSettings& settin
             });
         };
         callbacks.sample = [&](const Sample& sample, bool idle) {
+            recovery.retry(nowMs(), true);
             backlight.update(true, idle);
             status_light.setColor(searchStatusColor(sample));
             auto scores = searchScores(sample);
@@ -71,20 +81,37 @@ void DesktopSearch::run(const std::string& database, const RgbIrSettings& settin
                 state.idle = idle;
                 state.guidance = searchGuidance(sample);
                 state.scores = std::move(scores);
+                state.frame_image = sample.frame_image;
             });
         };
-        callbacks.interrupted = [&] {
+        const auto clear_preview = [&](const std::string& guidance) {
             backlight.restore();
             status_light.setColor(SearchLightColor::blue);
             update([&] {
                 state.idle = false;
-                state.guidance = "Waiting for RGB/IR frames";
+                state.guidance = guidance;
                 state.scores = {};
+                state.frame_image.reset();
                 state.rgb.reset();
                 state.ir.reset();
             });
         };
-        runSearch(database, settings, CameraRotation::settings, stop_, diagnostics, callbacks);
+        callbacks.interrupted = [&] { clear_preview("Waiting for RGB/IR frames"); };
+        while (!stop_.load(std::memory_order_relaxed)) {
+            try {
+                runSearch(database, settings, CameraRotation::settings, stop_, diagnostics, callbacks);
+                break;
+            } catch (const CameraStreamError& error) {
+                if (stop_.load(std::memory_order_relaxed)) break;
+                // Both streams and the old SDK search session have closed before retrying.
+                std::fprintf(stderr, "[RGB/IR] camera recovery: %s\n", error.message.c_str());
+                clear_preview("Reconnecting both cameras...");
+                while (!stop_.load(std::memory_order_relaxed) && !recovery.retry(nowMs(), false))
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                if (!stop_.load(std::memory_order_relaxed))
+                    std::fprintf(stderr, "[RGB/IR] reopening cameras, attempt=%u\n", recovery.attempt());
+            }
+        }
     } catch (const DemoError& error) {
         fail(error.message);
     } catch (const std::exception& error) {

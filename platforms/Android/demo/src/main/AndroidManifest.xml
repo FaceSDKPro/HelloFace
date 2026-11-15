@@ -41,6 +41,10 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".FaceRecognitionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.HiFace.Content.Soft" />
+        <activity
             android:name=".verification.FaceVerificationActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />

@@ -12,7 +12,7 @@
 <div align="center">
   <p>
     <a href="https://www.helloface.dev/"><img src="../../images/hello-face-icon.webp" alt="" width="51" height="51" align="bottom"><img src="../../images/helloface-wordmark.svg" alt="HelloFace" width="170" height="40" align="bottom"></a>
-    &nbsp; <strong>0.8.11 Beta</strong>
+    &nbsp; <strong>0.8.12</strong>
   </p>
   <p><strong>Offline-Gesichtsdetektion und -erfassung, Lebenderkennung, 1:1-Verifizierung sowie 1:N-/M:N-Suche.</strong></p>
   <p>🌍 <strong>Offizielle Website</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a> &nbsp; | &nbsp; <img src="../../images/github-mark.svg" alt="" width="16" height="16" align="bottom"> <strong>Integrationscode auf GitHub</strong> · <a href="https://github.com/FaceSDKPro/HelloFace">FaceSDKPro/HelloFace</a></p>
@@ -76,7 +76,7 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 ## Vor der Bereitstellung
 
 - Die Demo-Oberflächen der einzelnen Plattformen dienen der Veranschaulichung des SDK. Sie können die Oberfläche und Interaktionen frei anpassen.
-- Das SDK befindet sich in einer öffentlichen Betaphase und wird fortlaufend weiterentwickelt. Halten Sie die SDK-Version aktuell.
+- Halten Sie die SDK-Version aktuell.
 - Das aktuelle Modell unterstützt keine Gesichtserkennung von Kindern unter 12 Jahren und darf nicht in Finanzanwendungen eingesetzt werden.
 - Die Gesichtssuche erfordert klare Kamerabilder. Für den Außeneinsatz ist eine Kamera mit einem weiten Dynamikbereich von über 100 dB erforderlich.
 - Die Desktop- und Kameraabläufe unter Windows/Linux müssen noch mit realen Kameras validiert werden. Mobile Apps erfordern Ihre eigene Konfiguration zur Anwendungssignierung.

@@ -21,6 +21,8 @@ struct ImportProgress {
     bool stopped = false;
 };
 using ImportCallback = std::function<bool(const ImportProgress&)>;
-ImportProgress importDataset(Gallery& database, const std::filesystem::path& file, const ImportCallback& progress = {});
+using ImportSavedCallback = std::function<void(const std::string&)>;
+ImportProgress importDataset(Gallery& database, const std::filesystem::path& file,
+    const ImportCallback& progress = {}, const ImportSavedCallback& saved = {});
 size_t exportDataset(const Gallery& database, const std::filesystem::path& file, const std::string& group = {}, const std::string& tag = {});
 }

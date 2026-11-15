@@ -6,6 +6,7 @@ import CoreGraphics
 import CoreVideo
 import Dispatch
 import Foundation
+import ImageIO
 import Swift
 import UIKit
 import UniformTypeIdentifiers
@@ -217,6 +218,9 @@ public struct FaceFlowResult : Swift.Sendable, Swift.Equatable {
   public let feature: Swift.String?
   public let livenessScore: Swift.Float?
   public let similarity: Swift.Float?
+  public let frameJPEG: Foundation.Data?
+  public let frameWidth: Swift.Int
+  public let frameHeight: Swift.Int
   public var passed: Swift.Bool {
     get
   }
@@ -512,6 +516,9 @@ public struct FaceSearchResult : Swift.Sendable, Swift.Equatable {
   public let endReason: HiFace.FaceSearchEndReason
   public let livenessScore: Swift.Float?
   public let frame: HiFace.FaceSearchFrame
+  public let frameJPEG: Foundation.Data?
+  public let frameWidth: Swift.Int
+  public let frameHeight: Swift.Int
   public static func == (a: HiFace.FaceSearchResult, b: HiFace.FaceSearchResult) -> Swift.Bool
 }
 @_hasMissingDesignatedInitializers final public class FaceSearchSession : @unchecked Swift.Sendable {

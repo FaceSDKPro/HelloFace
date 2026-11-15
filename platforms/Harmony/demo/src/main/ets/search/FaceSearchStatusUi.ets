@@ -18,7 +18,7 @@ export class FaceSearchStatusUi {
   }
 
   static progressTitle(progress: FaceSearchProgress): string {
-    if (progress.stage === FaceSearchStage.WAITING_FOR_FACE) return DemoL10n.text("等待人脸入镜");
+    if (progress.stage === FaceSearchStage.WAITING_FOR_FACE) return DemoL10n.text("请正对镜头");
     if (progress.stage === FaceSearchStage.FACE_TOO_SMALL) return DemoL10n.text("请靠近摄像头");
     if (progress.stage === FaceSearchStage.EMPTY_GALLERY) return DemoL10n.text("当前范围内暂无已录入人脸");
     if (progress.stage === FaceSearchStage.SUCCESS_INTERVAL) return DemoL10n.text("等待下一次搜索");
@@ -30,6 +30,6 @@ export class FaceSearchStatusUi {
     if (progress.stage === FaceSearchStage.FACE_TOO_SMALL) return DemoL10n.text("人脸太小，请靠近一些");
     if (progress.stage === FaceSearchStage.SEARCHING) return DemoL10n.text("正在匹配人脸库");
     if (progress.stage === FaceSearchStage.SUCCESS_INTERVAL) return DemoL10n.text("间隔结束后自动继续");
-    return DemoL10n.text("面向镜头，入镜后自动识别");
+    return DemoL10n.text("入镜即识别");
   }
 }

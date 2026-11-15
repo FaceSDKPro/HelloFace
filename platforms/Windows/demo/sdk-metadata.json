@@ -1,6 +1,6 @@
 {
-  "version": "0.8.11",
-  "status": "beta-candidate",
+  "version": "0.8.12",
+  "status": "stable-candidate",
   "architecture": "x64",
   "compute": "CPU",
   "windowsExecutionAcceptance": "pending",
@@ -22,8 +22,8 @@
     "gallery",
     "camera"
   ],
-  "candidateId": "0.8.11-beta.75ea807f108b.522507f9",
-  "releaseChannel": "beta",
+  "candidateId": "0.8.12-candidate.19ba6db67fac.522507f9",
+  "releaseChannel": "stable",
   "proprietaryCoffSymbols": "removed",
   "authenticode": "unsigned"
 }

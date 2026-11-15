@@ -6,7 +6,7 @@
 
 Face search requires clear camera images; outdoor deployments require a camera with a wide dynamic range greater than 100 dB.
 
-The SDK is in iterative public Beta testing. Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).
+Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).
 
 | Requirement | Supported |
 |---|---|
@@ -14,7 +14,7 @@ The SDK is in iterative public Beta testing. Please keep the SDK version up to d
 | ABI | `arm64-v8a`, `armeabi-v7a` |
 | Entry point | Java `com.hiface.sdk.HiFaceSdk` |
 
-Version `0.8.11` is used in these integration examples; check the publication record for Maven availability.
+Version `0.8.12` is used in these integration examples; check the publication record for Maven availability.
 
 ```kotlin
 repositories {
@@ -22,7 +22,7 @@ repositories {
     mavenCentral()
 }
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.11")
+    implementation("io.github.facesdkpro:hiface-android:0.8.12")
 }
 android {
     androidResources { noCompress += "bphfm" }
@@ -105,6 +105,13 @@ HF1 is a 604-character Q7/Base64URL representation, **not encryption**. SQLite s
 1:N can run passive liveness; M:N does not. Search does not run 468-point/pose processing. Match `frameId` across detection, scoring, and completion. An unscored face is not a negative match. Use the final `endReason`; `SPOOF_DETECTED` rejects the result even if an identity passes the similarity threshold. Similarity is not identity probability.
 
 After 10 seconds without faces, analysis targets a 200 ms interval and resumes normal processing when a face returns. Skipped frames return `NOT_READY`. Search interval controls the wait after a successful match, not camera FPS.
+
+In 0.8.12, `FaceSearchResult` also provides `getFrameJpeg()`, `getFrameWidth()`, and `getFrameHeight()`.
+The JPEG is the full RGB scene from the same terminal sample as `getFrame()`, rotated and unmirrored,
+scaled proportionally without upscaling to at most 480 pixels on either side, at quality 95,
+to prioritize search throughput.
+Success and business rejection include a best-effort image; unavailable images are `null` with zero dimensions.
+Face bounds still use the original sample dimensions. The SDK keeps no image history or disk cache.
 
 Handle errors by `HiFaceErrorCode`.
 ## Multi-face image search

@@ -191,6 +191,7 @@ struct SearchLibraryView: View {
     private var peopleList: some View {
         List(model.people) { person in
             HStack(spacing: 12) {
+                FacePhotoThumbnail(faceID: person.id, revision: model.photoRevision)
                 VStack(alignment: .leading, spacing: 5) {
                     Text(person.id).font(.headline).lineLimit(2)
                     Text(DemoL10n.text("分组：{0}", [String(describing: person.group.isEmpty ? DemoL10n.text("未分组") : person.group)]) +

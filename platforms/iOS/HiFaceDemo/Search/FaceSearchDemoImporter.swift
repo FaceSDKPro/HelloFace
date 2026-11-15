@@ -66,6 +66,7 @@ enum FaceSearchDemoImporter {
                 ))
             if batch.count == featureBatchSize {
                 try await database.saveFeatures(batch)
+                await FacePhotoStore.remove(faceIDs: batch.map(\.faceID))
                 imported += batch.count
                 batch.removeAll(keepingCapacity: true)
                 await progress(FaceSearchDemoImportProgress(processed: imported, total: featureCount,
@@ -74,6 +75,7 @@ enum FaceSearchDemoImporter {
         }
         if !batch.isEmpty {
             try await database.saveFeatures(batch)
+            await FacePhotoStore.remove(faceIDs: batch.map(\.faceID))
             imported += batch.count
         }
         await progress(FaceSearchDemoImportProgress(processed: imported, total: featureCount,
@@ -161,6 +163,7 @@ enum FaceSearchDemoImporter {
                 if batch.count >= imageBatchSize {
                     try Task.checkCancellation()
                     try await database.saveFeatures(batch)
+                    await FacePhotoStore.remove(faceIDs: batch.map(\.faceID))
                     imported += batch.count
                     batch.removeAll(keepingCapacity: true)
                 }
@@ -172,6 +175,7 @@ enum FaceSearchDemoImporter {
         if !batch.isEmpty {
             try Task.checkCancellation()
             try await database.saveFeatures(batch)
+            await FacePhotoStore.remove(faceIDs: batch.map(\.faceID))
             imported += batch.count
         }
         await progress(FaceSearchDemoImportProgress(processed: processed, total: imageCount,

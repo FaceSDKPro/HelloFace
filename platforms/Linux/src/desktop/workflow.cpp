@@ -1,5 +1,6 @@
 #include "workflow.h"
 #include "image_decode.h"
+#include "face_photo_store.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -139,6 +140,7 @@ FaceWorkflow::~FaceWorkflow() {
 }
 void FaceWorkflow::recount() { check(hiface_search_count_v1(database_.handle, nullptr, nullptr, &gallery_count), "count gallery"); }
 void FaceWorkflow::stop() {
+    search_frame_image.reset();
     check(hiface_session_search_stop_v1(session_.handle), "stop search");
     check(hiface_session_face_flow_stop_v1(session_.handle), "stop flow");
     mode_ = 'D'; boxes.clear();
@@ -159,6 +161,7 @@ void FaceWorkflow::confirmEnrollment(const std::string& id, const std::string& g
         if (exists) { duplicate_enrollment_id = id; throw DemoError{"ALREADY_EXISTS: confirm replacing this Face ID"}; }
     }
     enrollment_.save(target, id, capture ? "" : group, capture ? "" : tag, capture || overwrite);
+    FacePhotoStore(data_directory_).save(id, aligned_preview.get());
     saved_capture_kind = pending_capture_kind_; ++saved_capture_generation;
     pending_capture_kind_ = 0; duplicate_enrollment_id.clear();
     if (capture) { loadCapturedFaces(); status = "Face ID and feature saved: " + id; }
@@ -168,6 +171,7 @@ void FaceWorkflow::loadCapturedFaces() {
     captured_faces.clear();
     for (uint32_t offset = 0;; offset += 100) {
         auto rows = listGallery(*captured_database_, "", "", offset, 100);
+        for (auto& row : rows) row.photo = FacePhotoStore(data_directory_).load(row.id);
         captured_faces.insert(captured_faces.end(), rows.begin(), rows.end());
         if (rows.size() < 100) break;
     }
@@ -180,6 +184,14 @@ void FaceWorkflow::selectCapturedReference(const std::string& id) {
     reference_ = feature; reference_id = row.id; has_reference_ = true; reference_from_captured_ = true; aligned_preview.reset();
     status = "Reference selected: " + row.id;
 }
+void FaceWorkflow::deleteCapturedReference(const std::string& id) {
+    uint64_t deleted = 0;
+    check(hiface_search_delete_v1(captured_database_->handle, id.c_str(), &deleted), "delete captured reference");
+    FacePhotoStore(data_directory_).remove(id);
+    if (id == reference_id && reference_from_captured_) clearReference();
+    loadCapturedFaces();
+    status = deleted ? "Deleted " + id : "Face ID not found";
+}
 void FaceWorkflow::pauseSearch() {
     require(mode_ == 'S' || mode_ == 'P', "Start search before pausing");
     if (mode_ == 'P') { action('S'); return; }
@@ -190,6 +202,9 @@ void FaceWorkflow::enterPausedSearch() {
     // 恢复用户暂停状态，不先启动识别或预热搜索缓存。
     stop(); check(hiface_search_release_memory_v1(database_.handle), "release search cache");
     mode_ = 'P'; status = "Search paused";
+}
+void FaceWorkflow::applyRecognitionOptions(const DemoSettings& settings) {
+    settings_ = parseSettings(settingsFields(settings));
 }
 void FaceWorkflow::applySettings(const DemoSettings& settings) {
     const auto validated = parseSettings(settingsFields(settings));
@@ -272,7 +287,7 @@ void FaceWorkflow::action(char key) {
         config.threshold = settings_.search_threshold; config.timeout_ms = settings_.search_timeout; config.interval_ms = settings_.search_interval;
         config.group = settings_.group.c_str(); config.tag = settings_.tag.c_str();
         check(hiface_session_search_start_v1(session_.handle, &config), "start camera search");
-        mode_ = 'S'; status = "Searching...";
+        mode_ = 'S'; status = "Face the camera.";
     }
 }
 void FaceWorkflow::finishFlow() {
@@ -302,12 +317,13 @@ void FaceWorkflow::finishFlow() {
     }
     status = message;
     if (finished_mode == 'C' || finished_mode == 'E' || finished_mode == 'L' || finished_mode == 'V') {
+        result_passed = result.outcome == HIFACE_FLOW_OUTCOME_PASSED;
         result_title = finished_mode == 'V' ? "1:1 Face Verification" : finished_mode == 'L' ? "Liveness" : "Face Capture";
         result_pending_ = true; result_can_retry = true; ++flow_result_generation;
     }
 }
 void FaceWorkflow::showFlowError(char mode, const DemoError& error) {
-    stop(); status = error.message;
+    stop(); status = error.message; result_passed = false;
     if (mode != 'C' && mode != 'E' && mode != 'L' && mode != 'V') return;
     result_title = mode == 'V' ? "Unable to verify" : mode == 'L' ? "Unable to run liveness" : "Unable to capture a face";
     result_can_retry = error.status != HIFACE_STATUS_INVALID_ARGUMENT &&
@@ -373,6 +389,7 @@ std::vector<Box> searchBoxes(const HiFaceSearchCameraResultV1& result, bool comp
 }
 bool FaceWorkflow::process(const CameraFrame& input) {
     if (mode_ == 'P' || importing_ || enrollment_.pending() || result_pending_) return false;
+    search_frame_image.reset();
     const auto begin = monotonicMilliseconds(); const auto frame = input.view();
     if (mode_ == 'S') {
         HiFaceSearchBatchHandle raw = nullptr;
@@ -384,6 +401,8 @@ bool FaceWorkflow::process(const CameraFrame& input) {
         check(hiface_session_search_complete_v1(session_.handle, raw), "complete camera search");
         HiFaceSearchCameraResultV1 result{}; result.struct_size = sizeof(result);
         check(hiface_search_batch_read_v1(raw, &result), "read camera search");
+        if (result.end_reason != HIFACE_SEARCH_END_NONE)
+            search_frame_image = copySearchFrameImage(session_.handle, raw, result.frame_id);
         boxes = searchBoxes(result);
         status = cameraSearchStatus(result);
     } else {
@@ -480,6 +499,7 @@ void FaceWorkflow::loadGallery(uint32_t offset, const std::string& id, const std
         if (exists) loaded.push_back(getEntry(database_, id));
     }
     gallery_next_offset = offset + static_cast<uint32_t>(loaded.size());
+    for (auto& row : loaded) row.photo = FacePhotoStore(data_directory_).load(row.id);
     gallery_has_more = id.empty() && !loaded.empty() && gallery_next_offset < filtered_count;
     if (!append || !id.empty()) { gallery_rows = std::move(loaded); gallery_offset = offset; }
     else {
@@ -495,6 +515,7 @@ void FaceWorkflow::loadGallery(uint32_t offset, const std::string& id, const std
 void FaceWorkflow::deleteEntry(const std::string& id) {
     require(!importing_, "Stop import before deleting a face");
     uint64_t deleted = 0; check(hiface_search_delete_v1(database_.handle, id.c_str(), &deleted), "delete face ID"); recount();
+    FacePhotoStore(data_directory_).remove(id);
     if (id == reference_id && !reference_from_captured_) clearReference();
     status = deleted ? "Deleted " + id : "Face ID not found";
 }
@@ -530,11 +551,13 @@ void FaceWorkflow::stepImport() {
                 const auto text = encodeFeature(captureFeature(session_, readImage(file.c_str())));
                 row = {file.stem().string(), text.data(), import_group_, ""}; captured = true;
             } catch (const DemoError&) { ++import_failed; }
-            if (captured) { saveEntry(database_, row, true); ++import_saved; }
+            if (captured) { saveEntry(database_, row, true); FacePhotoStore(data_directory_).remove(row.id); ++import_saved; }
             ++import_processed;
         } else {
             const auto count = std::min<size_t>(100, import_entries_.size() - import_processed);
-            saveEntries(database_, import_entries_, import_processed, count, true); import_processed += count; import_saved += count;
+            saveEntries(database_, import_entries_, import_processed, count, true);
+            for (size_t i = import_processed; i < import_processed + count; ++i) FacePhotoStore(data_directory_).remove(import_entries_[i].id);
+            import_processed += count; import_saved += count;
         }
         recount();
         status = "Import " + std::to_string(import_processed) + "/" + std::to_string(import_total) + " | saved " + std::to_string(import_saved) + " | failed " + std::to_string(import_failed);

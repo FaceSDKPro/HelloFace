@@ -8,6 +8,7 @@
 } } while (0)
 
 int main(void) {
+    REQUIRE(hiface_session_search_copy_jpeg_v1(NULL, NULL, NULL, NULL) == HIFACE_STATUS_INVALID_ARGUMENT);
     HiFaceRuntimeConfigV1 runtime = {0};
     runtime.struct_size = sizeof(runtime);
     runtime.api_version = HIFACE_C_API_VERSION;

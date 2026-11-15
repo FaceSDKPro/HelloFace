@@ -25,6 +25,7 @@ inline bool writesData(const Command& command) {
 // UI reads published snapshots; mutable SDK/database state stays on the workflow thread.
 // UI 读取已发布的状态快照；可变的 SDK 和数据库状态留在工作流线程。
 struct ViewState {
+    std::shared_ptr<const SearchFrameImage> search_frame_image;
     bool ready = false, importing = false, connected = false, busy = false, failed = false;
     bool can_cancel = false;
     bool writes_pending = false;
@@ -46,6 +47,7 @@ struct ViewState {
     std::string gallery_query_id;
     bool flow_result_pending = false;
     bool flow_result_can_retry = true;
+    bool flow_result_passed = false;
     std::string duplicate_enrollment_id, result_title;
     std::vector<GalleryEntry> captured_faces;
     bool comparison_first_ready = false, comparison_second_ready = false;

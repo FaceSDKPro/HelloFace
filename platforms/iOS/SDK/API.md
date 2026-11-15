@@ -1,4 +1,4 @@
-# HiFace 0.8.11 API Guide
+# HiFace 0.8.12 API Guide
 
 English | [简体中文](API.zh-CN.md)
 
@@ -8,7 +8,7 @@ English | [简体中文](API.zh-CN.md)
 
 Face search requires clear camera images; outdoor deployments require a camera with a wide dynamic range greater than 100 dB.
 
-The SDK is in iterative public Beta testing. Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).
+Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).
 
 | Requirement | Supported |
 |---|---|
@@ -161,3 +161,7 @@ Check technical errors before reading the result. Android calls are synchronous 
 worker thread; iOS/Harmony calls use the bounded background queue. Input is owned/copied.
 This entry does not change the RGB camera liveness/search flows. iOS requires accessible
 IR image data; the SDK does not obtain the internal Face ID IR stream.
+
+### Search result scene image (0.8.12)
+
+`FaceSearchResult.frameJPEG`, `frameWidth`, and `frameHeight` describe the same terminal RGB sample as `frame`. The full scene is rotated, unmirrored, scaled without upscaling to at most 480 pixels per side, and JPEG-encoded at quality 95. Success and business rejection include a best-effort image. Unavailable images have zero dimensions. Bounds remain in the original sample coordinates. Encoding runs outside the Native lock; cancellation discards stale images. No disk cache or image history is kept.

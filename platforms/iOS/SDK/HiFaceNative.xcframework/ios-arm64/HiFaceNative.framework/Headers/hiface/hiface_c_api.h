@@ -794,6 +794,17 @@ HIFACE_API HiFaceStatus HIFACE_CALL hiface_session_face_flow_copy_result_v1(
         uint8_t* out_preview_rgba,
         size_t out_preview_size);
 
+/**
+ * 复制本轮结束帧的完整画面，RGBA8888、已旋转且未镜像、等比例缩小，宽高均不超过 720。
+ * 与 copy_result 返回的人脸裁剪图来自同一帧；图片不参与多帧候选选择。
+ * 缓冲为 NULL/0 时回填宽高，并在有图时返回 RESOURCE_EXHAUSTED；所需字节为 width*height*4。
+ * 无图时返回 OK、宽高为 0。结果生命周期与 copy_result 相同；不创建磁盘缓存。
+ * 移动端包装将这份有界快照编码为 JPEG quality=95，公开结果不保留完整原始分辨率图像。
+ */
+HIFACE_API HiFaceStatus HIFACE_CALL hiface_session_face_flow_copy_frame_v1(
+        HiFaceSessionHandle session, uint8_t* out_rgba, size_t capacity,
+        uint32_t* out_width, uint32_t* out_height);
+
 /** 放弃当前流程并清零全部敏感中间数据；未在进行中时也是安全的，且不重置待机计时。 */
 HIFACE_API HiFaceStatus HIFACE_CALL hiface_session_face_flow_stop_v1(HiFaceSessionHandle session);
 
@@ -930,6 +941,26 @@ HIFACE_API HiFaceStatus HIFACE_CALL hiface_session_search_complete_v1(
         HiFaceSessionHandle session, HiFaceSearchBatchHandle batch);
 HIFACE_API HiFaceStatus HIFACE_CALL hiface_search_batch_read_v1(
         HiFaceSearchBatchHandle batch, HiFaceSearchCameraResultV1* out_result);
+/* Copy the completed batch's RGB scene as rotated, unmirrored RGBA, preserving aspect ratio,
+ * never upscaling, both sides <=480 (search throughput takes priority).
+ * Call before submitting another camera frame or stopping.
+ * No history is retained; a stale/nonterminal batch returns INVALID_STATE, never another frame.
+ * Null output with zero capacity queries size (RESOURCE_EXHAUSTED); outputs are zero on failure.
+ * Business rejection also supports a best-effort scene. Existing result layouts are unchanged. */
+HIFACE_API HiFaceStatus HIFACE_CALL hiface_session_search_copy_frame_v1(
+        HiFaceSessionHandle session, HiFaceSearchBatchHandle batch, uint8_t* out_rgba, size_t capacity,
+        uint32_t* out_width, uint32_t* out_height);
+/* Called once with a borrowed JPEG from the same terminal sample; copy before returning.
+ * Return nonzero on success. Callback runs outside the Session mutex; do not destroy
+ * the borrowed Session/batch or throw across this C boundary. No callback on failure. */
+typedef int32_t (HIFACE_CALL *HiFaceSearchJpegSinkV1)(const uint8_t* jpeg, size_t size,
+        uint32_t width, uint32_t height, uint64_t frame_id, void* context);
+/* Best-effort terminal RGB scene, rotated/unmirrored, <=480 per side, quality 95.
+ * Copies the exact batch under the Session mutex, then encodes outside it. No files/history.
+ * Call before another frame or stop; null/unavailable image never changes the business result. */
+HIFACE_API HiFaceStatus HIFACE_CALL hiface_session_search_copy_jpeg_v1(
+        HiFaceSessionHandle session, HiFaceSearchBatchHandle batch,
+        HiFaceSearchJpegSinkV1 sink, void* context);
 HIFACE_API void HIFACE_CALL hiface_search_batch_destroy_v1(HiFaceSearchBatchHandle batch);
 
 #if defined(_MSC_VER) || defined(__clang__) || defined(__GNUC__)

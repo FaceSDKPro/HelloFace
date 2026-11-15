@@ -1,4 +1,4 @@
-# HiFace Windows SDK · 0.8.11 Beta
+# HiFace Windows SDK · 0.8.12
 
 English | [简体中文](README.zh-CN.md)
 
@@ -22,7 +22,7 @@ cmake --build build --config Release
 In your CMake project:
 
 ```cmake
-find_package(HiFace 0.8.11 CONFIG REQUIRED COMPONENTS C)
+find_package(HiFace 0.8.12 CONFIG REQUIRED COMPONENTS C)
 target_link_libraries(your_app PRIVATE HiFace::HiFace)
 ```
 
@@ -60,3 +60,7 @@ For application examples, see the separate Demo's `source/` and `source/integrat
 Missing DLL / `0xc000007b`: check the complete x64 DLL set. Initialization failure: check status and logs.
 The SDK does not open cameras. The current model does not support face recognition for people under 12 and must not be used in financial scenarios.
 [Report issues](https://github.com/FaceSDKPro/HelloFace/issues) with version, status code and sanitized logs.
+
+## Terminal search scene JPEG (0.8.12)
+
+Call `hiface_session_search_copy_jpeg_v1(session, batch, sink, context)` after completing and reading a terminal batch, before another frame, stop, or batch destruction. The sink is called once with borrowed JPEG bytes, width, height and the same `frame_id`; copy bytes before returning nonzero. Encoding and the callback run outside the Session mutex. The full RGB scene is rotated/unmirrored, bounded to 480 pixels per side without upscaling, at quality 95. Business rejection also supports a best-effort scene. An unavailable image never changes the search outcome or reuses an earlier picture. No image files/history are created.

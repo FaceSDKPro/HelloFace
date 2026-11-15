@@ -777,10 +777,6 @@
       "value": "Stopped: saved {0}, failed {1}"
     },
     {
-      "name": "demo_11cf70bba26c",
-      "value": "Deleted {0}"
-    },
-    {
       "name": "demo_8c2808528338",
       "value": "Loaded · {0} · Mirror correction {1}"
     },
@@ -1769,10 +1765,6 @@
       "value": "Waiting for the next search"
     },
     {
-      "name": "demo_38532433b960",
-      "value": "Waiting for a face"
-    },
-    {
       "name": "demo_e6ae87dff6d6",
       "value": "Timed out waiting for a face"
     },
@@ -2253,8 +2245,8 @@
       "value": "Different people"
     },
     {
-      "name": "demo_dff28256e05f",
-      "value": "Face the camera. Recognition starts automatically."
+      "name": "demo_13bfdde174b9",
+      "value": "Recognition starts automatically"
     },
     {
       "name": "demo_c9856fa210d5",
@@ -2331,6 +2323,126 @@
     {
       "name": "demo_b38373c53f06",
       "value": "The device time is invalid. Correct it and try again."
+    },
+    {
+      "name": "demo_17baa8a1e685",
+      "value": "1:1 Face Recognition + Liveness"
+    },
+    {
+      "name": "demo_e8c92c9f1f1b",
+      "value": "Face Recognition"
+    },
+    {
+      "name": "demo_d3675597ea3f",
+      "value": "Liveness Only"
+    },
+    {
+      "name": "demo_8c74f6e34e36",
+      "value": "Camera-based 1:1 face recognition and liveness detection"
+    },
+    {
+      "name": "demo_39e3f1fa7789",
+      "value": "Choose a flow and liveness options. Results appear here."
+    },
+    {
+      "name": "demo_2886e8ec5c66",
+      "value": "Choose an enrolled reference to compare with the camera face."
+    },
+    {
+      "name": "demo_8423ce994e9a",
+      "value": "Independent Liveness"
+    },
+    {
+      "name": "demo_a08fc3b98a9f",
+      "value": "No identity comparison. Passive liveness is always on; action challenges are optional."
+    },
+    {
+      "name": "demo_7bc3693d6d18",
+      "value": "Passive liveness"
+    },
+    {
+      "name": "demo_0ddc1a8e6d2d",
+      "value": "Check for a live person without requiring an action"
+    },
+    {
+      "name": "demo_90045e1da381",
+      "value": "Action challenges"
+    },
+    {
+      "name": "demo_a34c6d627cf8",
+      "value": "Choose the actions to perform"
+    },
+    {
+      "name": "demo_a49d8277c944",
+      "value": "Choose at least one action; actions run in the order below"
+    },
+    {
+      "name": "demo_1e28701b09dd",
+      "value": "Choose at least one action"
+    },
+    {
+      "name": "demo_5a88e0a71f19",
+      "value": "Face the camera; no action challenge is required."
+    },
+    {
+      "name": "demo_424e1b931b83",
+      "value": "Compare identity only, without liveness detection."
+    },
+    {
+      "name": "demo_37fd568d53fb",
+      "value": "Perform the selected actions in order, then face the camera to finish."
+    },
+    {
+      "name": "demo_e8ab1db95112",
+      "value": "Enrolled references"
+    },
+    {
+      "name": "demo_77552d9522cb",
+      "value": "+ Capture face"
+    },
+    {
+      "name": "demo_9a9cb1c6461d",
+      "value": "Swipe sideways and tap a portrait to verify"
+    },
+    {
+      "name": "demo_bf9fb6c8f521",
+      "value": "Swipe sideways; tap a portrait to verify, or touch and hold to delete"
+    },
+    {
+      "name": "demo_e05df0d137e5",
+      "value": "Verify {0}; touch and hold to delete"
+    },
+    {
+      "name": "demo_11cf70bba26c",
+      "value": "Deleted {0}"
+    },
+    {
+      "name": "demo_c6e967cd2353",
+      "value": "No reference faces yet. Capture a face and save its Face ID."
+    },
+    {
+      "name": "demo_8019bffb92c6",
+      "value": "Verify Face ID: {0}"
+    },
+    {
+      "name": "demo_936447bdc50d",
+      "value": "Start liveness detection"
+    },
+    {
+      "name": "demo_cada50959f54",
+      "value": "Detection canceled"
+    },
+    {
+      "name": "demo_7469469bfd95",
+      "value": "Passed"
+    },
+    {
+      "name": "demo_233bd2a0a5a4",
+      "value": "Not passed"
+    },
+    {
+      "name": "demo_1a0f083db79d",
+      "value": "Invalid detection options. Return and select them again."
     }
   ]
 }

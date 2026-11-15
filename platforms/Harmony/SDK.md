@@ -6,7 +6,7 @@
 
 Face search requires clear camera images; outdoor deployments require a camera with a wide dynamic range greater than 100 dB.
 
-The SDK is in iterative public Beta testing. Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).
+Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).
 
 | Requirement | Supported |
 |---|---|
@@ -17,10 +17,10 @@ The SDK is in iterative public Beta testing. Please keep the SDK version up to d
 For direct delivery, copy the versioned HAR into the application and configure the module's `oh-package.json5`:
 
 ```json5
-{ "dependencies": { "hiface": "file:./libs/hiface-0.8.11.har" } }
+{ "dependencies": { "hiface": "file:./libs/hiface-0.8.12.har" } }
 ```
 
-After the same version is approved in the OpenHarmony package registry, use `ohpm install hiface@0.8.11`. Direct and registry delivery must use the same version and HAR SHA-256. Never replace an artifact already delivered under a version number. Sign the host HAP/APP with your own credentials; SDK HARs do not include Demo signing files or private keys.
+After the same version is approved in the OpenHarmony package registry, use `ohpm install hiface@0.8.12`. Direct and registry delivery must use the same version and HAR SHA-256. Never replace an artifact already delivered under a version number. Sign the host HAP/APP with your own credentials; SDK HARs do not include Demo signing files or private keys.
 
 ## Initialization and ownership
 
@@ -135,3 +135,7 @@ Check technical errors before reading the result. Android calls are synchronous 
 worker thread; iOS/Harmony calls use the bounded background queue. Input is owned/copied.
 This entry does not change the RGB camera liveness/search flows. iOS requires accessible
 IR image data; the SDK does not obtain the internal Face ID IR stream.
+
+### Search result scene image (0.8.12)
+
+`FaceSearchResult.frameJpeg`, `frameWidth`, and `frameHeight` describe the same terminal RGB sample as `frame`. The full scene is rotated, unmirrored, scaled without upscaling to at most 480 pixels per side, and JPEG-encoded at quality 95. Success and business rejection include a best-effort image. Unavailable images have zero dimensions. Bounds remain in the original sample coordinates. Encoding runs outside the Native lock; cancellation discards stale images. No disk cache or image history is kept.

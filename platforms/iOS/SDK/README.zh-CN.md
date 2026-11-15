@@ -1,4 +1,4 @@
-# HiFace iOS SDK 0.8.11
+# HiFace iOS SDK 0.8.12
 
 [English](README.md) | 简体中文
 
@@ -8,4 +8,4 @@
 
 使用 `HiFaceSDK()` 默认模型配置，在 App Info.plist 添加 `NSCameraUsageDescription`。帧、流程和生命周期要求见 [API 指南](API.zh-CN.md)。
 
-SDK正在Beta 迭代公测中，请及时升级SDK版本。
+请及时升级 SDK 版本。

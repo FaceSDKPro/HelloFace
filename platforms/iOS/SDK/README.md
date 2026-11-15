@@ -1,4 +1,4 @@
-# HiFace iOS SDK 0.8.11
+# HiFace iOS SDK 0.8.12
 
 English | [简体中文](README.zh-CN.md)
 
@@ -8,4 +8,4 @@ Requires iOS 15+ and Swift 6. Add this directory as a local Swift Package and se
 
 Initialize with `HiFaceSDK()` and its default model bundle. Add `NSCameraUsageDescription` to your App Info.plist. See the [API guide](API.md) for frames, flows and lifecycle.
 
-The SDK is in iterative public Beta testing. Please keep the SDK version up to date.
+Please keep the SDK version up to date.

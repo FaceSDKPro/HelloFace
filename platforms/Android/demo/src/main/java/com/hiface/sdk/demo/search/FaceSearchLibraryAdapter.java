@@ -4,6 +4,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.ImageView;
+import android.graphics.Bitmap;
+import com.hiface.sdk.demo.storage.FacePhotoStore;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -17,9 +20,9 @@ import com.hiface.sdk.demo.search.FaceSearchStore.Person;
 import java.util.List;
 
 /**
- * Display only ID, group, and tag; update rows according to those visible fields.
+ * Display metadata and an optional private face thumbnail; keep image loading outside list diffs.
  *
- * 列表仅展示 ID、分组和标签，按实际显示的字段做局部更新。
+ * 列表展示资料和可选私有头像；图片异步读取，不参与列表差分。
  */
 final class FaceSearchLibraryAdapter extends ListAdapter<Person, FaceSearchLibraryAdapter.Holder> {
     interface OnDeleteListener {
@@ -120,10 +123,18 @@ final class FaceSearchLibraryAdapter extends ListAdapter<Person, FaceSearchLibra
         holder.bind(getItem(position));
     }
 
+    @Override public void onViewRecycled(@NonNull Holder holder) {
+        holder.releasePhoto();
+        super.onViewRecycled(holder);
+    }
+
     static final class Holder extends RecyclerView.ViewHolder {
         private final TextView id;
         private final TextView group;
         private final View delete;
+        private final ImageView photo;
+        private FacePhotoStore.Request photoRequest;
+        private Bitmap photoBitmap;
         private String faceId;
         private Person person;
 
@@ -132,6 +143,7 @@ final class FaceSearchLibraryAdapter extends ListAdapter<Person, FaceSearchLibra
             id = view.findViewById(R.id.personId);
             group = view.findViewById(R.id.personGroup);
             delete = view.findViewById(R.id.personDelete);
+            photo = view.findViewById(R.id.personPhoto);
             // 使用当前绑定的资料，不捕获旧列表位置；修改后只刷新元数据。
             view.findViewById(R.id.personEdit).setOnClickListener(v -> onEdit.onEdit(person));
             // A recycled card must delete its current ID, not a captured old ID or list position.
@@ -146,8 +158,21 @@ final class FaceSearchLibraryAdapter extends ListAdapter<Person, FaceSearchLibra
          * 刷新复用行的 ID、元数据和删除目标，空分组显示未分组文案。
          */
         void bind(Person person) {
+            releasePhoto();
             this.person = person;
             faceId = person.id;
+            final String requestedId = faceId;
+            photoRequest = FacePhotoStore.loadAsync(itemView.getContext(), requestedId, bitmap -> {
+                if (!requestedId.equals(faceId)) { if (bitmap != null) bitmap.recycle(); return; }
+                photoRequest = null;
+                photoBitmap = bitmap;
+                if (bitmap != null) {
+                    photo.setImageTintList(null);
+                    photo.setPadding(0, 0, 0, 0);
+                    photo.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    photo.setImageBitmap(bitmap);
+                }
+            });
             id.setText(person.id);
             String name = person.group.isEmpty()
                     ? itemView.getContext().getString(R.string.search_ungrouped) : person.group;
@@ -158,6 +183,16 @@ final class FaceSearchLibraryAdapter extends ListAdapter<Person, FaceSearchLibra
             group.setText(metadata);
             delete.setContentDescription(itemView.getContext()
                     .getString(R.string.search_ui_delete_accessibility, person.id));
+        }
+
+        void releasePhoto() {
+            if (photoRequest != null) { photoRequest.cancel(); photoRequest = null; }
+            photo.setImageResource(R.drawable.ic_search_person);
+            photo.setImageTintList(android.content.res.ColorStateList.valueOf(
+                    androidx.core.content.ContextCompat.getColor(itemView.getContext(), R.color.search_accent)));
+            int padding = (int) (11 * itemView.getResources().getDisplayMetrics().density + 0.5f);
+            photo.setPadding(padding, padding, padding, padding);
+            if (photoBitmap != null) { photoBitmap.recycle(); photoBitmap = null; }
         }
     }
 }

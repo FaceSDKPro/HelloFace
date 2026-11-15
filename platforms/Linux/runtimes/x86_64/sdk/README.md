@@ -2,9 +2,9 @@
 
 English | [简体中文](README.zh-CN.md)
 
-**Beta** · x86_64 / ARM64 · CPU · C ABI v1.
+**SDK** · x86_64 / ARM64 · CPU · C ABI v1.
 Ubuntu 22.04 / glibc 2.35 baseline; Ubuntu 24.04 is a compatibility target.
-The SDK is in iterative public Beta testing. Please keep the SDK version up to date. The current model does not support face recognition for people under 12 and must not be used in financial scenarios. Target-device acceptance is pending.
+Please keep the SDK version up to date. The current model does not support face recognition for people under 12 and must not be used in financial scenarios. Target-device acceptance is pending.
 
 Persistent runtime state uses `$XDG_STATE_HOME/hiface` when explicitly configured; otherwise it uses the OS account's `~/.local/state/hiface`. Choose a persistent private location before first use and keep it stable. Invalid, temporary or unsafe paths fail without switching to another state directory.
 
@@ -88,3 +88,7 @@ The embedded Demo uses these public functions in `src/desktop/rgbir/`.
 Ordinary landscape desktop mode keeps RGB-only navigation; select embedded mode
 for the dual-camera page. Geometry checks are not hardware synchronization or
 cross-spectral identity verification. Calibrate and validate each camera rig.
+
+## Terminal search scene JPEG (0.8.12)
+
+Call `hiface_session_search_copy_jpeg_v1(session, batch, sink, context)` after completing and reading a terminal batch, before another frame, stop, or batch destruction. The sink is called once with borrowed JPEG bytes, width, height and the same `frame_id`; copy bytes before returning nonzero. Encoding and the callback run outside the Session mutex. The full RGB scene is rotated/unmirrored, bounded to 480 pixels per side without upscaling, at quality 95. Business rejection also supports a best-effort scene. An unavailable image never changes the search outcome or reuses an earlier picture. No image files/history are created.

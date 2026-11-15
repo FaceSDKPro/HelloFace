@@ -12,7 +12,7 @@
 <div align="center">
   <p>
     <a href="https://www.helloface.dev/"><img src="../../images/hello-face-icon.webp" alt="" width="51" height="51" align="bottom"><img src="../../images/helloface-wordmark.svg" alt="HelloFace" width="170" height="40" align="bottom"></a>
-    &nbsp; <strong>0.8.11 Beta</strong>
+    &nbsp; <strong>0.8.12</strong>
   </p>
   <p><strong>Pengesanan dan penangkapan wajah, pengesanan liveness, pengesahan 1:1 serta carian 1:N/M:N secara luar talian.</strong></p>
   <p>🌍 <strong>Laman web rasmi</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a> &nbsp; | &nbsp; <img src="../../images/github-mark.svg" alt="" width="16" height="16" align="bottom"> <strong>Kod integrasi GitHub</strong> · <a href="https://github.com/FaceSDKPro/HelloFace">FaceSDKPro/HelloFace</a></p>
@@ -76,7 +76,7 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 ## Sebelum digunakan dalam aplikasi anda
 
 - Antara muka Demo bagi setiap platform hanya untuk menunjukkan SDK; anda bebas menyesuaikan antara muka dan interaksinya.
-- SDK ini berada dalam ujian Beta awam yang sentiasa dikemas kini. Sila pastikan versi SDK anda terkini.
+- Sila pastikan versi SDK anda terkini.
 - Model semasa tidak menyokong pengecaman wajah bagi kanak-kanak di bawah umur 12 tahun dan tidak boleh digunakan dalam senario kewangan.
 - Carian wajah memerlukan imej kamera yang jelas; penggunaan di luar bangunan memerlukan kamera dengan julat dinamik luas melebihi 100 dB.
 - Aliran kerja desktop dan kamera Windows/Linux masih menunggu ujian dengan kamera sebenar; aplikasi mudah alih memerlukan tandatangan aplikasi anda sendiri.

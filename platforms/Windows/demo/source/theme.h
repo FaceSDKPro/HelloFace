@@ -22,7 +22,7 @@ constexpr COLORREF surface_secondary = whiteOverlay(surface, 191), hover_line = 
 constexpr COLORREF error = RGB(255, 150, 150);
 }
 struct Theme {
-    HFONT body = nullptr, title = nullptr, small = nullptr, result = nullptr, parameter_title = nullptr;
+    HFONT body = nullptr, title = nullptr, small = nullptr, result = nullptr, parameter_title = nullptr, recognition = nullptr;
     HBRUSH background = nullptr, surface = nullptr, home_background = nullptr;
     UINT dpi = 96;
     Theme(); ~Theme();

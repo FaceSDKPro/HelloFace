@@ -36,15 +36,20 @@ void label(HDC dc, const wchar_t* value, RECT rectangle, HFONT font, COLORREF co
     DrawTextW(dc, value, -1, &rectangle, format | DT_NOPREFIX); SelectObject(dc, old);
 }
 Theme::Theme() { background = CreateSolidBrush(colors::background); surface = CreateSolidBrush(colors::surface); home_background = CreateSolidBrush(home_colors::background); setDpi(96); }
-Theme::~Theme() { DeleteObject(body); DeleteObject(title); DeleteObject(small); DeleteObject(result); DeleteObject(parameter_title); DeleteObject(background); DeleteObject(surface); DeleteObject(home_background); }
+Theme::~Theme() {
+    for (auto font : {body, title, small, result, parameter_title, recognition}) DeleteObject(font);
+    DeleteObject(background); DeleteObject(surface); DeleteObject(home_background);
+}
 int Theme::px(int value) const { return MulDiv(value, static_cast<int>(dpi), 96); }
 void Theme::setDpi(UINT value) {
-    dpi = value; DeleteObject(body); DeleteObject(title); DeleteObject(small); DeleteObject(result); DeleteObject(parameter_title);
+    dpi = value;
+    for (auto font : {body, title, small, result, parameter_title, recognition}) DeleteObject(font);
     auto font = [&](int size, int weight) { return CreateFontW(-px(size), 0, 0, 0, weight, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Microsoft YaHei UI"); };
     body = font(14, FW_NORMAL); title = font(23, FW_SEMIBOLD); small = font(12, FW_NORMAL);
     result = font(18, FW_MEDIUM);
     parameter_title = font(15, FW_BOLD);
+    recognition = font(17, FW_NORMAL);
 }
 void Theme::style(HWND control) {
     SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(body), TRUE);
@@ -69,7 +74,8 @@ void Theme::button(const DRAWITEMSTRUCT& item, bool primary, bool selected, bool
     if (navigation && selected) { RECT bar{area.left, area.top + px(10), area.left + px(3), area.bottom - px(10)}; fill(item.hDC, bar, colors::primary); }
     wchar_t text[256]{}; GetWindowTextW(item.hwndItem, text, 256);
     if (navigation) area.left += px(16);
-    label(item.hDC, text, area, body, text_color, (navigation ? DT_LEFT : DT_CENTER) | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+    const auto font = reinterpret_cast<HFONT>(SendMessageW(item.hwndItem, WM_GETFONT, 0, 0));
+    label(item.hDC, text, area, font ? font : body, text_color, (navigation ? DT_LEFT : DT_CENTER) | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
     if (item.itemState & ODS_FOCUS) { InflateRect(&area, -px(4), -px(4)); DrawFocusRect(item.hDC, &area); }
 }
 void Theme::homeButton(const DRAWITEMSTRUCT& item, bool secondary) const {

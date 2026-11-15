@@ -1,4 +1,4 @@
-# HiFace 0.8.11 API 指南
+# HiFace 0.8.12 API 指南
 
 [English](API.md) | 简体中文
 
@@ -8,7 +8,7 @@
 
 人脸搜索识别要求摄像头成像清晰；室外环境下，摄像头宽动态范围须大于 100 dB。
 
-SDK正在Beta 迭代公测中，请及时升级SDK版本。
+请及时升级 SDK 版本。
 
 | 项目 | 当前范围 |
 |---|---|
@@ -223,3 +223,7 @@ let result = await sdk.evaluateInfraredLiveness(frame,
 先检查技术错误再读结果。Android 在工作线程同步调用，iOS/鸿蒙使用有界后台队列，输入由 SDK
 持有或复制。此入口不改变既有 RGB 相机活体或搜索流程；iOS 接入前需确认可取得 IR 图像，SDK
 不负责读取 Face ID 内部红外流。
+
+### 搜索结果场景图（0.8.12）
+
+`FaceSearchResult.frameJPEG`、`frameWidth`、`frameHeight` 返回与 `frame` 同一结束采样的完整 RGB 场景。画面已旋转、未镜像，等比缩小、不放大，最长边 480、JPEG 质量 95。成功及业务失败均尽力带图，无图时宽高为 0；框仍按原采样尺寸解释。Native 锁外编码，取消/关闭后丢弃旧结果，不落盘、不缓存多帧或沿用上一轮图片。

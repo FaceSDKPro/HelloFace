@@ -1,6 +1,7 @@
 #include "live_search.h"
 #include "search_power.h"
-#include <iostream>
+#include <cstdio>
+#include <sstream>
 
 namespace hiface_linux_demo::rgbir {
 namespace {
@@ -27,14 +28,20 @@ struct SearchStats {
     uint64_t ir_passed = 0, ir_rejected = 0, ir_stale = 0;
     uint64_t rgb_faces = 0, ir_only_faces = 0;
     TimingWindow skew, age, decode, sdk;
-    void report(const CaptureProgress& capture, bool idle) const {
-        std::cerr << "[RGB/IR] idle=" << idle << " paired=" << capture.paired << " replaced=" << capture.replaced
+    void report(const CaptureProgress& capture, bool idle, int64_t now) const {
+        std::ostringstream line;
+        line << "[RGB/IR] idle=" << idle << " paired=" << capture.paired << " replaced=" << capture.replaced
             << " expired=" << capture.expired << " accepted=" << accepted << " skipped=" << skipped
             << " decode_errors=" << decode_errors << " stale_after_decode=" << stale_after_decode
             << " ir_passed=" << ir_passed << " ir_rejected=" << ir_rejected << " ir_stale=" << ir_stale
             << " rgb_faces=" << rgb_faces << " ir_only_faces=" << ir_only_faces
+            << " rgb_frames=" << capture.rgb.sequence << " ir_frames=" << capture.ir.sequence
+            << " rgb_gap_ms=" << (capture.rgb.time ? now - capture.rgb.time : -1)
+            << " ir_gap_ms=" << (capture.ir.time ? now - capture.ir.time : -1)
+            << " monotonic_ms=" << now
             << " | P95 ms skew=" << skew.p95() << " age=" << age.p95()
             << " decode=" << decode.p95() << " SDK=" << sdk.p95() << '\n';
+        std::fputs(line.str().c_str(), stderr);
     }
 };
 
@@ -42,14 +49,18 @@ void openCamera(Camera& camera, const std::string& path, RgbIrCameraRole role, i
     try {
         camera.openRgbIr(path, role, rotation);
     } catch (const DemoError& error) {
-        throw DemoError{std::string(role == RgbIrCameraRole::rgb ? "RGB camera: " : "IR camera: ") + error.message};
+        throw CameraStreamError{std::string(role == RgbIrCameraRole::rgb ? "RGB camera: " : "IR camera: ") + error.message};
     }
 }
 }
 
 void runSearch(const std::string& database, const RgbIrSettings& settings, CameraRotation rotation,
                const std::atomic<bool>& stopping, bool diagnostics, const SearchCallbacks& callbacks) {
-    verifyRgbIrDevices(settings);
+    try {
+        verifyRgbIrDevices(settings);
+    } catch (const DemoError& error) {
+        throw CameraStreamError{error.message};
+    }
     Database gallery(database.c_str());
     SearchSession search(gallery, settings);
     Camera rgb, ir;
@@ -75,11 +86,13 @@ void runSearch(const std::string& database, const RgbIrSettings& settings, Camer
         const auto now = nowMs();
         if (stopping.load(std::memory_order_relaxed)) break;
         if (diagnostics && now >= next_report) {
-            stats.report(progress, power.idle());
+            stats.report(progress, power.idle(), now);
             next_report = now + report_interval_ms;
         }
-        if (now - progress.last_pair_at > pair_timeout_ms)
-            throw DemoError{"No usable RGB/IR pair. Check both streams and V4L2 monotonic timestamps."};
+        if (now - progress.last_pair_at > pair_timeout_ms) {
+            stats.report(progress, power.idle(), now);
+            throw CameraStreamError{"No usable RGB/IR pair for 5 seconds"};
+        }
         if (progress.paired && now - progress.last_pair_at <= callbacks.interruption_grace_ms)
             waiting_for_pair = false;
         else if (!waiting_for_pair) {
@@ -91,7 +104,7 @@ void runSearch(const std::string& database, const RgbIrSettings& settings, Camer
         }
         if (!available) {
             if (now - last_usable > pair_timeout_ms)
-                throw DemoError{"RGB/IR pairs expired before analysis. Check system load and camera mode."};
+                throw CameraStreamError{"RGB/IR pairs expired before analysis"};
             continue;
         }
         try {
@@ -102,7 +115,7 @@ void runSearch(const std::string& database, const RgbIrSettings& settings, Camer
             // camera error and must never be displayed as an IR rejection.
             ++stats.decode_errors;
             if (nowMs() - last_usable > pair_timeout_ms)
-                throw DemoError{"Repeated RGB/IR decode failure: " + error.message};
+                throw CameraStreamError{"Repeated RGB/IR decode failure: " + error.message};
             due = nowMs() + active_interval_ms;
             continue;
         }
@@ -113,7 +126,7 @@ void runSearch(const std::string& database, const RgbIrSettings& settings, Camer
         if (age > max_age_ms) {
             ++stats.stale_after_decode;
             if (submitted - last_usable > pair_timeout_ms)
-                throw DemoError{"RGB/IR pairs keep expiring during frame preparation. Check system load and camera mode."};
+                throw CameraStreamError{"RGB/IR pairs keep expiring during frame preparation"};
             // Nothing reached the SDK. Take the next fresh pair without adding a throttle interval.
             continue;
         }
@@ -157,6 +170,6 @@ void runSearch(const std::string& database, const RgbIrSettings& settings, Camer
         capture.setSearchState(power.idle());
         if (callbacks.sample) callbacks.sample(*sample, power.idle());
     }
-    if (diagnostics) stats.report(latest.progress(), power.idle());
+    if (diagnostics) stats.report(latest.progress(), power.idle(), nowMs());
 }
 }

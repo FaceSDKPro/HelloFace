@@ -48,6 +48,7 @@
 		B20000000000000000000018 /* FaceCaptureCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018 /* FaceCaptureCameraView.swift */; };
 		B20000000000000000000019 /* FaceCaptureOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* FaceCaptureOverlayView.swift */; };
 		10000000000000000000000A /* DemoFaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000B /* DemoFaceStore.swift */; };
+		D30000000000000000000001 /* FacePhotoStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30000000000000000000002 /* FacePhotoStore.swift */; };
 		B2000000000000000000001B /* FaceVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001B /* FaceVerificationView.swift */; };
 		E20000000000000000000001 /* DemoErrorPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000001 /* DemoErrorPresentation.swift */; };
 		E20000000000000000000002 /* FaceFlowPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000002 /* FaceFlowPresentation.swift */; };
@@ -112,6 +113,7 @@
 		B10000000000000000000018 /* FaceCaptureCameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceCaptureCameraView.swift; sourceTree = "<group>"; };
 		B10000000000000000000019 /* FaceCaptureOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceCaptureOverlayView.swift; sourceTree = "<group>"; };
 		20000000000000000000000B /* DemoFaceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoFaceStore.swift; sourceTree = "<group>"; };
+		D30000000000000000000002 /* FacePhotoStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FacePhotoStore.swift; sourceTree = "<group>"; };
 		B1000000000000000000001B /* FaceVerificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceVerificationView.swift; sourceTree = "<group>"; };
 		E10000000000000000000001 /* DemoErrorPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoErrorPresentation.swift; sourceTree = "<group>"; };
 		E10000000000000000000002 /* FaceFlowPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceFlowPresentation.swift; sourceTree = "<group>"; };
@@ -256,6 +258,7 @@
 			isa = PBXGroup;
 			children = (
 				20000000000000000000000B /* DemoFaceStore.swift */,
+				D30000000000000000000002 /* FacePhotoStore.swift */,
 				B1000000000000000000001B /* FaceVerificationView.swift */,
 			);
 			path = Verification;
@@ -513,6 +516,7 @@
 				E20000000000000000000004 /* FaceSearchOverlayState.swift in Sources */,
 				E20000000000000000000005 /* FaceOverlayLayout.swift in Sources */,
 				10000000000000000000000A /* DemoFaceStore.swift in Sources */,
+				D30000000000000000000001 /* FacePhotoStore.swift in Sources */,
 				B2000000000000000000001B /* FaceVerificationView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -600,14 +604,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 18;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				INFOPLIST_FILE = HiFaceDemo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 0.8.11;
+				MARKETING_VERSION = 0.8.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hiface.sdk.public;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -622,7 +626,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 18;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEPLOYMENT_POSTPROCESSING = YES;
 				DEVELOPMENT_TEAM = "";
@@ -631,7 +635,7 @@
 				INFOPLIST_FILE = HiFaceDemo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 0.8.11;
+				MARKETING_VERSION = 0.8.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hiface.sdk.public;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

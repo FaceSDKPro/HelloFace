@@ -119,6 +119,34 @@ export class FaceFeatureStore {
     if (next.length > MAX_REFERENCE_COUNT) {
       throw new Error(`At most ${MAX_REFERENCE_COUNT} verification references may be stored`);
     }
+    await this.commitSnapshot(context, next);
+    return Array.from(this.references);
+  }
+
+  remove(context: common.UIAbilityContext, faceId: string): Promise<FaceReference[]> {
+    return this.enqueue<FaceReference[]>(() => this.removeSnapshot(context, faceId));
+  }
+
+  private async removeSnapshot(context: common.UIAbilityContext,
+    faceId: string): Promise<FaceReference[]> {
+    if (!this.loaded) await this.loadSnapshot(context);
+    const normalizedId: string = faceId.trim();
+    const next: FaceReference[] = this.references.filter(
+      (entry: FaceReference): boolean => entry.faceId !== normalizedId);
+    if (next.length === this.references.length) return Array.from(this.references);
+    await this.commitSnapshot(context, next);
+    return Array.from(this.references);
+  }
+
+  private async commitSnapshot(context: common.UIAbilityContext,
+    next: FaceReference[]): Promise<void> {
+    if (next.length === 0) {
+      const store: preferences.Preferences = await preferences.getPreferences(context, STORE_NAME);
+      await store.delete(ENCRYPTED_REFERENCES_KEY);
+      await store.flush();
+      this.references = [];
+      return;
+    }
     const plaintext: Uint8Array = this.encode(next);
     try {
       await this.ensureKey();
@@ -135,7 +163,6 @@ export class FaceFeatureStore {
       await store.put(ENCRYPTED_REFERENCES_KEY, envelope);
       await store.flush();
       this.references = next;
-      return Array.from(this.references);
     } finally {
       plaintext.fill(0);
     }

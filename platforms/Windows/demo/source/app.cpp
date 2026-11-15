@@ -3,7 +3,9 @@
 #include "enrollment_draft.h"
 #include "search_power.h"
 #include "workflow_state.h"
+#include "face_photo_store.h"
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <sstream>
 
@@ -90,9 +92,15 @@ void App::run() {
                 else listing.reset(gallery, state.settings.query_id, state.settings.filter_group, state.settings.filter_tag);
                 while (listing.more && listing.people.size() < loaded) listing.append(gallery);
                 state.people = listing.people; state.filtered = listing.filtered;
+                state.face_photos.clear();
+                // Keep only the loaded page's small thumbnails; no full image history in UI snapshots.
+                for (const auto& person : state.people) {
+                    if (auto photo = FacePhotoStore::load(person.id)) state.face_photos.emplace(person.id, bgraImage(*photo));
+                }
                 state.offset = listing.next; state.gallery_more = listing.more;
             } else {
                 listing = {}; state.people.clear(); state.filtered = state.total; state.offset = 0; state.gallery_more = false;
+                state.face_photos.clear();
             }
         };
         // Create inference resources on demand; metadata-only operations use the gallery directly.
@@ -125,6 +133,8 @@ void App::run() {
                 clear_enrollment();
                 clear_reference(); comparison.clear();
                 state.comparison_ready = false; state.comparison_similarity.reset();
+                state.comparison_slot_ready = {};
+                state.comparison_extracting = -1;
                 state.flow_summary.clear();
                 state.comparison_error_a.clear(); state.comparison_error_b.clear();
                 if (settings.page == Page::Verification || state.settings.page == Page::Verification) {
@@ -218,7 +228,7 @@ void App::run() {
                     if (current()) { state.view_generation = task.generation; switch (task.action) {
                         case Action::EnterPage: {
                             const auto page = task.settings.page;
-                            if (page == Page::Reference || page == Page::Verification) load_references();
+                            if (page == Page::Reference || page == Page::Verification || page == Page::Recognition) load_references();
                             // Clear the previous page even when camera/SDK initialization fails.
                             // open_camera reapplies after lazy SDK creation to configure the new session.
                             // 先清理旧页面；相机/SDK 初始化失败也留在目标页，SDK 新建后再配置会话。
@@ -226,6 +236,11 @@ void App::run() {
                             if (page == Page::Reference || page == Page::Verification) (void)reference_store();
                             if (!task.settings.parameters_valid)
                                 state.update.message = u8"请修正尚未应用的参数，再打开摄像头开始";
+                            else if (page == Page::Verification && !task.settings.reference_id.empty()) {
+                                reference=reference_store().feature(task.settings.reference_id);
+                                state.reference_id=task.settings.reference_id;state.has_reference=true;
+                                open_camera();
+                            }
                             else if (page == Page::Verification)
                                 state.update.message = u8"请选择已采集的 Face ID，选择后自动开始验证";
                             else if (startsCameraOnEntry(page, task.settings.parameters_valid)) open_camera();
@@ -280,22 +295,38 @@ void App::run() {
                             if (task.settings.page == Page::Comparison) {
                                 const unsigned slot = task.action == Action::LoadA ? 0 : 1;
                                 auto& error = slot ? state.comparison_error_b : state.comparison_error_a;
+                                auto& preview = slot ? state.image_b : state.image_a;
+                                bool accepted = false;
                                 try {
                                     auto image = std::make_shared<Image>(readImage(task.files.at(0)));
-                                    if (!current()) break;
-                                    state.update.message = slot ? u8"正在提取图片 B 特征…" : u8"正在提取图片 A 特征…"; publish(state);
-                                    auto captured=ensure().captureWithPreview(*image);
+                                    auto source_preview = bgraImage(*image);
                                     {
                                         std::lock_guard<std::mutex> lock(mutex_);
-                                        if (!comparison.replace(slot, [&] { return std::move(captured); }, current)) break;
-                                        if (slot) state.image_b = image; else state.image_a = image;
-                                        error.clear(); state.comparison_similarity.reset();
-                                        state.comparison_ready = comparison.ready(); state.update = {};
+                                        if (!current()) break;
+                                        comparison.clear(slot);
+                                        preview = std::move(source_preview);
+                                        error.clear();
+                                        state.comparison_similarity.reset();
+                                        state.comparison_ready = state.comparison_slot_ready[slot] = false;
+                                        state.comparison_extracting = static_cast<int>(slot);
+                                        accepted = true;
                                     }
-                                    state.update.message = state.comparison_ready ? u8"两侧特征已就绪，可以比对" : u8"请继续选择另一张照片";
+                                    publish(state);
+                                    auto captured=ensure().captureWithPreview(*image);
+                                    const auto aligned = captured.preview.rgba.empty() ? nullptr : bgraImage(captured.preview);
+                                    {
+                                        std::lock_guard<std::mutex> lock(mutex_);
+                                        if (comparison.replace(slot, [&] { return std::move(captured); }, current)) {
+                                            if (aligned) preview = aligned;
+                                            state.comparison_slot_ready[slot] = true;
+                                            state.comparison_ready = comparison.ready();
+                                        }
+                                    }
                                 } catch (const std::exception& failure) {
-                                    if (current()) { error = failure.what(); state.update.message = u8"照片处理失败，原照片和特征保留"; }
+                                    if (current()) error = (accepted ? u8"提取失败： " : u8"读取失败： ") + std::string(failure.what());
                                 }
+                                state.comparison_extracting = -1;
+                                state.update = {};
                                 break;
                             }
                             const auto image = std::make_shared<Image>(readImage(task.files.at(0)));
@@ -358,8 +389,24 @@ void App::run() {
                         case Action::SaveReference:
                             if (state.settings.page != Page::Reference || !current()) break;
                             reference_draft.save(reference_store(), task.settings.id);
+                            FacePhotoStore::save(normalizeMetadata(task.settings.id), state.captured.get());
                             state.pending_reference = false; state.captured.reset(); state.reference_ids = reference_store().ids();
                             state.update = {}; state.update.message = u8"采集基准已保存"; break;
+                        case Action::DeleteReference: {
+                            const auto id = normalizeMetadata(task.settings.id);
+                            const bool removed = reference_store().remove(id);
+                            FacePhotoStore::remove(id);
+                            if (state.reference_id == id) {
+                                if (sdk) sdk->cancelFlow();
+                                camera.reset(); reference.clear();
+                                state.camera_open = state.flow_active = state.has_reference = false;
+                                state.reference_id.clear();
+                            }
+                            state.reference_ids = reference_store().ids();
+                            state.update = {};
+                            state.update.message = removed ? u8"已删除参考人脸 " + id : u8"该 Face ID 不存在";
+                            break;
+                        }
                         case Action::ExportFeature:
                             if (reference.empty()) throw std::runtime_error(u8"请先在动态验证页选择采集基准");
                             writeFeatureFile(task.files.at(0), reference); state.update.message = u8"HF1 特征已导出"; break;
@@ -387,6 +434,7 @@ void App::run() {
                                 state.enrollment_conflict = true; state.conflict_id = task.settings.id;
                                 state.update.message = u8"此 ID 已存在；确认覆盖或修改 ID，当前预览保留"; break;
                             }
+                            FacePhotoStore::save(normalizeMetadata(task.settings.id), state.captured.get());
                             clear_enrollment(); refresh();
                             state.captured.reset();
                             enrollment_notice = u8"已录入人员 " + task.settings.id + u8"；返回后自动恢复搜索";
@@ -398,7 +446,8 @@ void App::run() {
                             state.settings = task.settings; state.people.clear();state.offset=0;state.gallery_more=false;refresh();
                             state.update.message = state.people.empty() ? (state.total == 0 ? u8"人脸库为空，请先录入人员" : u8"未找到该 Face ID 或筛选结果为空") : u8"人脸库已加载，滚动到底部自动读取更多"; break;
                         case Action::DeletePerson: {
-                            const auto removed = gallery.remove(task.settings.id); refresh(false,true);
+                            const auto removed = gallery.remove(task.settings.id);
+                            FacePhotoStore::remove(task.settings.id); refresh(false,true);
                             state.update.message = removed ? u8"人员已删除" : u8"该 ID 不存在"; break;
                         }
                         case Action::UpdatePerson:
@@ -409,7 +458,7 @@ void App::run() {
                                     state.update.message = u8"导入 " + std::to_string(value.processed) + "/" + std::to_string(value.total) + u8" | 已保存=" + std::to_string(value.saved) + u8" | 失败=" + std::to_string(value.failed); publish(state);
                                 }
                                 return current();
-                            });
+                            }, FacePhotoStore::remove);
                             refresh(); state.update.message = std::string(progress.stopped ? u8"已停止导入" : u8"导入完成") + u8" | 保存=" + std::to_string(progress.saved) + u8" | 失败=" + std::to_string(progress.failed); break;
                         }
                         case Action::ExportJson:
@@ -526,13 +575,17 @@ void App::run() {
                         update.message = u8"采集成功，尚未入库；请核对预览和 ID 后确认保存，或重新采集";
                     }
                     if (state.settings.page == Page::Verification || state.settings.page == Page::Liveness) {
-                        state.flow_summary = update.message;
-                        if (update.result->metadata.flags & HIFACE_FLOW_RESULT_HAS_SIMILARITY) {
-                            const auto raw_similarity=state.flow_summary.find(u8" | 相似度=");
-                            if(raw_similarity!=std::string::npos)state.flow_summary.erase(raw_similarity);
-                            std::ostringstream score; score << std::fixed << std::setprecision(2) << update.result->metadata.similarity * 100;
-                            state.flow_summary = u8"Face ID: " + state.reference_id + u8"\n相似度: " + score.str() + "%\n" + state.flow_summary;
-                        }
+                        state.flow_passed = update.matched;
+                        const auto& result = update.result->metadata;
+                        std::ostringstream summary;
+                        summary << flowOutcomeText(result.outcome);
+                        if (!state.reference_id.empty()) summary << "\nFace ID: " << state.reference_id;
+                        summary << std::fixed << std::setprecision(2);
+                        if ((result.flags & HIFACE_FLOW_RESULT_HAS_SIMILARITY) && std::isfinite(result.similarity))
+                            summary << u8"\n相似度 " << result.similarity * 100 << '%';
+                        if ((result.flags & HIFACE_FLOW_RESULT_HAS_LIVENESS) && std::isfinite(result.liveness_score))
+                            summary << u8"\n活体分数 " << result.liveness_score;
+                        state.flow_summary = summary.str();
                         ++state.flow_completion;
                     }
                     notice = update.message; notice_until = last_frame + std::chrono::seconds(6);

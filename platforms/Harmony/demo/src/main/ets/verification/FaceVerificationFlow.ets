@@ -8,8 +8,8 @@ import { FaceAction, FaceVerificationConfig } from 'hiface';
 export class FaceVerificationFlow {
   static readonly VERIFICATION_ACTION_COUNT: number = 2;
 
-  static config(referenceFeature: string, actions: ReadonlyArray<FaceAction>): FaceVerificationConfig {
+  static config(referenceFeature: string, actions: ReadonlyArray<FaceAction>, silent: boolean = true): FaceVerificationConfig {
     return new FaceVerificationConfig(referenceFeature,
-      FaceVerificationConfig.DEFAULT_THRESHOLD, true, actions, 3000, 10000, true);
+      FaceVerificationConfig.DEFAULT_THRESHOLD, silent, actions, 3000, 10000, true);
   }
 }

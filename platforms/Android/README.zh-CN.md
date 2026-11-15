@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-SDK / Demo：**0.8.11 Beta**
+SDK / Demo：**0.8.12**
 
 支持检测、采集、活体、1:1 比对、1:N/M:N 搜索和人脸库管理，算法在设备端运行。
 
@@ -43,7 +43,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.11")
+    implementation("io.github.facesdkpro:hiface-android:0.8.12")
 }
 android {
     defaultConfig {
@@ -68,4 +68,4 @@ android {
 
 Debug 签名仅供测试；Release APK 使用自己的证书。保留 [LICENSE](LICENSE) 和交付信息。
 
-SDK正在Beta 迭代公测中，请及时升级SDK版本。[更新与说明](https://github.com/FaceSDKPro/) · [问题反馈](https://github.com/FaceSDKPro/HelloFace/issues)。
+请及时升级 SDK 版本。[更新与说明](https://github.com/FaceSDKPro/) · [问题反馈](https://github.com/FaceSDKPro/HelloFace/issues)。

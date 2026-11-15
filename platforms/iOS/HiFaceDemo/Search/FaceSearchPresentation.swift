@@ -22,7 +22,7 @@ enum FaceSearchPresentation {
 
     static func guidance(for progress: FaceSearchProgress) -> (title: String, hint: String) {
         switch progress.stage {
-        case .waitingForFace: (DemoL10n.text("等待人脸入镜"), DemoL10n.text("面向镜头，入镜后自动识别"))
+        case .waitingForFace: (DemoL10n.text("请正对镜头"), DemoL10n.text("入镜即识别"))
         case .faceTooSmall: (DemoL10n.text("请靠近一点"), DemoL10n.text("人脸太小，请靠近一些"))
         case .searching: (DemoL10n.text("正在搜索"), DemoL10n.text("正在匹配人脸库"))
         case .emptyGallery: (DemoL10n.text("当前范围内暂无已录入人脸"), DemoL10n.text("请录入人脸或调整搜索设置"))

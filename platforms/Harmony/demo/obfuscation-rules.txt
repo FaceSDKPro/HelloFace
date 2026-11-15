@@ -15,3 +15,16 @@ onWindowStageCreate
 onWindowStageDestroy
 onForeground
 onBackground
+
+# External rawfile JSON keys must survive property obfuscation in Release builds.
+schemaVersion
+entryCount
+featureFormat
+featureSpaceId
+imageFormat
+faceId
+feature
+group
+tag
+updateTimeMillis
+imageUrl

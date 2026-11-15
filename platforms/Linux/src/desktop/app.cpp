@@ -602,7 +602,10 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                             suspended_photo.reset(); suspended_report.reset(); suspended_photo_path.clear();
                         }
                         if (page == RgbIrSearchPage::route) stop_rgbir();
-                        workflow.clearPageResults(); page = v.at(0); analysis_fps = 0; analysis_frames = 0;
+                        workflow.clearPageResults();
+                        if ((v.at(0)=="verification" || v.at(0)=="liveness") && !command.fields.empty())
+                            workflow.applyRecognitionOptions(parseSettings(command.fields));
+                        page = v.at(0); analysis_fps = 0; analysis_frames = 0;
                         comparison_completed[0] = comparison_generations_[0]; comparison_completed[1] = comparison_generations_[1];
                         if (returning_to_photo) {
                             workflow.search_photo = std::move(suspended_photo); workflow.photo_search = std::move(suspended_report);
@@ -619,6 +622,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                         if (page == "gallery") {
                             gallery_offset = 0; gallery_id.clear(); gallery_group.clear(); gallery_tag.clear(); gallery();
                         }
+                        if (page == "recognition") workflow.loadCapturedFaces();
                         if (page == "references") { workflow.loadCapturedFaces(); workflow.status = "Select a captured Face ID to verify."; }
                         if (page == "image-search") workflow.status = workflow.photoSearchSummary();
                         if (page == "camera-settings") workflow.status = "Camera preferences save automatically. Open a camera feature to use them.";
@@ -699,6 +703,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                     }
                     else if (command.type == "confirm-enrollment") { workflow.confirmEnrollment(v.at(0), v.at(1), v.at(2), v.size() > 3 && v.at(3) == "replace"); }
                     else if (command.type == "capture-reference") workflow.selectCapturedReference(v.at(0));
+                    else if (command.type == "delete-captured-reference") workflow.deleteCapturedReference(v.at(0));
                     else if (command.type == "preview-photo") {
                         workflow.previewComparisonPhoto(comparison_slot == 0, v.at(1), [&] { return stopping_ || command.request_id != comparison_generations_[comparison_slot]; });
                         comparison_completed[comparison_slot] = command.request_id;
@@ -845,6 +850,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 const auto capture = captureSnapshot();
                 auto state = std::make_shared<ViewState>();
                 state->ready = true; state->importing = workflow.importing(); state->connected = capture.ready;
+                state->search_frame_image = workflow.search_frame_image;
                 state->search_idle = search_power.idle();
                 state->pending_enrollment = workflow.pendingEnrollment(); state->enrollment_generation = workflow.enrollmentGeneration();
                 state->pending_capture_kind = workflow.pendingCaptureKind(); state->captured_faces = workflow.captured_faces;
@@ -854,7 +860,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 state->saved_capture_generation = workflow.saved_capture_generation; state->saved_capture_kind = workflow.saved_capture_kind;
                 state->duplicate_enrollment_id = workflow.duplicate_enrollment_id;
                 state->flow_result_pending = workflow.resultPending(); state->flow_result_generation = workflow.flow_result_generation; state->result_title = workflow.result_title;
-                state->flow_result_can_retry = workflow.result_can_retry;
+                state->flow_result_can_retry = workflow.result_can_retry; state->flow_result_passed = workflow.result_passed;
                 state->comparison_first_processing = comparison_completed[0] != comparison_generations_[0];
                 state->comparison_second_processing = comparison_completed[1] != comparison_generations_[1];
                 state->comparison_first_ready = workflow.comparison_first_ready && !state->comparison_first_processing;

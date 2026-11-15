@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-SDK：**0.8.11 Beta**
+SDK：**0.8.12**
 
 支持检测、采集、活体、1:1 比对、1:N/M:N 搜索和人脸库管理，算法在设备端运行。
 
@@ -27,4 +27,4 @@ SDK：**0.8.11 Beta**
 
 接入说明：[SDK](SDK/README.zh-CN.md) · [Demo](DEMO.zh-CN.md)。
 
-SDK正在Beta 迭代公测中，请及时升级SDK版本。[更新说明](https://github.com/FaceSDKPro/)。
+请及时升级 SDK 版本。[更新说明](https://github.com/FaceSDKPro/)。

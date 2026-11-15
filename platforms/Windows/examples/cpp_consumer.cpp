@@ -2,6 +2,7 @@
 #include <array>
 #include <iostream>
 int main() {
+    if (hiface_session_search_copy_jpeg_v1(nullptr, nullptr, nullptr, nullptr) != HIFACE_STATUS_INVALID_ARGUMENT) return 1;
     // C++ applications call the same stable C ABI; no C++ implementation source is needed.
     // C++ 应用调用同一套稳定 C ABI，无需 C++ 实现源码。
     std::array<float, HIFACE_FACE_FEATURE_DIMENSION> feature{}; feature[0] = 1;

@@ -78,6 +78,16 @@ enum DemoFaceStore {
         return attributes.compactMap { $0[kSecAttrAccount as String] as? String }.sorted()
     }
 
+    static func delete(faceID rawFaceID: String) throws {
+        let faceID = try validatedFaceID(rawFaceID)
+        let status = SecItemDelete(identityQuery(faceID: faceID) as CFDictionary)
+        if status != errSecItemNotFound { try check(status) }
+        // Selection is a convenience pointer. A stale or unreadable pointer must not prevent explicit deletion;
+        // selectedFaceID(among:) repairs it on the next read.
+        // 当前选择只是便捷指针；它损坏时不能阻止用户明确删除，下次读取会自动修复。
+        if (try? storedSelectedFaceID()) == faceID { try? clearSelectedFaceID() }
+    }
+
     static func select(faceID rawFaceID: String) throws {
         let faceID = try validatedFaceID(rawFaceID)
         guard try feature(for: faceID) != nil else { throw StoreError.missingFaceID(faceID) }

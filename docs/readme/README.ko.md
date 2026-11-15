@@ -12,7 +12,7 @@
 <div align="center">
   <p>
     <a href="https://www.helloface.dev/"><img src="../../images/hello-face-icon.webp" alt="" width="51" height="51" align="bottom"><img src="../../images/helloface-wordmark.svg" alt="HelloFace" width="170" height="40" align="bottom"></a>
-    &nbsp; <strong>0.8.11 Beta</strong>
+    &nbsp; <strong>0.8.12</strong>
   </p>
   <p><strong>얼굴 검출, 캡처, 라이브니스 검출, 1:1 검증 및 1:N/M:N 검색을 오프라인으로 제공합니다.</strong></p>
   <p>🌍 <strong>공식 웹사이트</strong> · <a href="https://www.helloface.dev">helloface.dev ↗</a> &nbsp; | &nbsp; <img src="../../images/github-mark.svg" alt="" width="16" height="16" align="bottom"> <strong>GitHub 연동 소스 코드</strong> · <a href="https://github.com/FaceSDKPro/HelloFace">FaceSDKPro/HelloFace</a></p>
@@ -76,7 +76,7 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 ## 배포 전 확인 사항
 
 - 각 플랫폼의 데모 UI는 SDK 시연용입니다. UI와 상호작용은 자유롭게 변경할 수 있습니다.
-- SDK는 지속적으로 개선 중인 공개 베타 버전입니다. SDK를 최신 버전으로 유지하세요.
+- SDK를 최신 버전으로 유지하세요.
 - 현재 모델은 12세 미만 아동의 얼굴 인식을 지원하지 않으며 금융 관련 용도로 사용할 수 없습니다.
 - 얼굴 검색에는 선명한 카메라 영상이 필요합니다. 실외 배포에는 와이드 다이내믹 레인지가 100 dB를 초과하는 카메라가 필요합니다.
 - Windows/Linux의 데스크톱 및 카메라 처리 흐름은 실제 카메라 검증을 기다리고 있습니다. 모바일 앱 실행에는 자체 앱 서명 설정이 필요합니다.

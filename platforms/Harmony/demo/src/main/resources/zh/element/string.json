@@ -777,10 +777,6 @@
       "value": "已停止：已保存 {0} 条，失败 {1} 条"
     },
     {
-      "name": "demo_11cf70bba26c",
-      "value": "已删除 {0}"
-    },
-    {
       "name": "demo_8c2808528338",
       "value": "已加载 · {0} · 坐标校正{1}"
     },
@@ -1769,10 +1765,6 @@
       "value": "等待下一次搜索"
     },
     {
-      "name": "demo_38532433b960",
-      "value": "等待人脸入镜"
-    },
-    {
       "name": "demo_e6ae87dff6d6",
       "value": "等待人脸超时"
     },
@@ -2253,8 +2245,8 @@
       "value": "非同一人"
     },
     {
-      "name": "demo_dff28256e05f",
-      "value": "面向镜头，入镜后自动识别"
+      "name": "demo_13bfdde174b9",
+      "value": "入镜即识别"
     },
     {
       "name": "demo_c9856fa210d5",
@@ -2331,6 +2323,126 @@
     {
       "name": "demo_b38373c53f06",
       "value": "设备时间异常，请校准后重试"
+    },
+    {
+      "name": "demo_17baa8a1e685",
+      "value": "1:1 人脸识别 + 活体检测"
+    },
+    {
+      "name": "demo_e8c92c9f1f1b",
+      "value": "人脸识别"
+    },
+    {
+      "name": "demo_d3675597ea3f",
+      "value": "仅活体检测"
+    },
+    {
+      "name": "demo_8c74f6e34e36",
+      "value": "通过相机进行 1:1 人脸识别与活体检测"
+    },
+    {
+      "name": "demo_39e3f1fa7789",
+      "value": "选择检测方式与活体参数，结果将在本页显示"
+    },
+    {
+      "name": "demo_2886e8ec5c66",
+      "value": "选择已录入的人脸，与当前相机人脸进行比对"
+    },
+    {
+      "name": "demo_8423ce994e9a",
+      "value": "独立活体检测"
+    },
+    {
+      "name": "demo_a08fc3b98a9f",
+      "value": "不比对身份。静默活体始终开启，可叠加动作挑战。"
+    },
+    {
+      "name": "demo_7bc3693d6d18",
+      "value": "静默活体"
+    },
+    {
+      "name": "demo_0ddc1a8e6d2d",
+      "value": "检测是否为真人，无需指定动作"
+    },
+    {
+      "name": "demo_90045e1da381",
+      "value": "动作活体"
+    },
+    {
+      "name": "demo_a34c6d627cf8",
+      "value": "勾选需要完成的动作"
+    },
+    {
+      "name": "demo_a49d8277c944",
+      "value": "至少选择一个动作，按下方顺序执行"
+    },
+    {
+      "name": "demo_1e28701b09dd",
+      "value": "请至少勾选一个动作"
+    },
+    {
+      "name": "demo_5a88e0a71f19",
+      "value": "正对镜头即可，无需做指定动作。"
+    },
+    {
+      "name": "demo_424e1b931b83",
+      "value": "仅进行 1:1 人脸比对，不进行活体检测。"
+    },
+    {
+      "name": "demo_37fd568d53fb",
+      "value": "按勾选顺序完成动作，再正对镜头完成检测。"
+    },
+    {
+      "name": "demo_e8ab1db95112",
+      "value": "已录入的人脸"
+    },
+    {
+      "name": "demo_77552d9522cb",
+      "value": "＋ 采集人脸"
+    },
+    {
+      "name": "demo_9a9cb1c6461d",
+      "value": "左右滑动，点击头像开始 1:1 验证"
+    },
+    {
+      "name": "demo_bf9fb6c8f521",
+      "value": "左右滑动，点击头像开始 1:1 验证，长按删除"
+    },
+    {
+      "name": "demo_e05df0d137e5",
+      "value": "验证 {0}，长按删除"
+    },
+    {
+      "name": "demo_11cf70bba26c",
+      "value": "已删除 {0}"
+    },
+    {
+      "name": "demo_c6e967cd2353",
+      "value": "暂无参考人脸，请先采集并保存 Face ID。"
+    },
+    {
+      "name": "demo_8019bffb92c6",
+      "value": "验证 Face ID：{0}"
+    },
+    {
+      "name": "demo_936447bdc50d",
+      "value": "开始活体检测"
+    },
+    {
+      "name": "demo_cada50959f54",
+      "value": "检测已取消"
+    },
+    {
+      "name": "demo_7469469bfd95",
+      "value": "检测通过"
+    },
+    {
+      "name": "demo_233bd2a0a5a4",
+      "value": "检测未通过"
+    },
+    {
+      "name": "demo_1a0f083db79d",
+      "value": "检测参数无效，请返回重新选择。"
     }
   ]
 }

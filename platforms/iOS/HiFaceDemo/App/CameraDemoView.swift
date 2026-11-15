@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import HiFace
 
 /// Keep search awake in the foreground; restore brightness and allow automatic lock on exit.
 /// 搜索页在前台时始终常亮；离开时恢复亮度并允许系统自动锁屏。
@@ -97,6 +98,7 @@ private final class CameraScreenBrightnessPresentation: ObservableObject {
 /// 统一管理相机页面生命周期；各能力的页面和 Overlay 位于对应功能分组。
 struct CameraDemoView: View {
     let mode: CameraDemoMode
+    private let onRecognitionResult: (@MainActor (String, String, Bool) -> Void)?
     @StateObject private var model: CameraDemoModel
     @StateObject private var searchScreenPresentation = SearchScreenPresentation()
     @StateObject private var cameraScreenBrightness = CameraScreenBrightnessPresentation()
@@ -107,9 +109,15 @@ struct CameraDemoView: View {
     @State private var presentsResultAlert = false
     @Environment(\.openURL) private var openURL
 
-    init(mode: CameraDemoMode, enrollsInSearchLibrary: Bool = false) {
+    init(mode: CameraDemoMode, enrollsInSearchLibrary: Bool = false,
+         recognitionActions: [FaceAction]? = nil, recognitionSilent: Bool = true,
+         recognitionReferenceID: String? = nil,
+         onRecognitionResult: (@MainActor (String, String, Bool) -> Void)? = nil) {
         self.mode = mode
-        _model = StateObject(wrappedValue: CameraDemoModel(mode: mode, enrollsInSearchLibrary: enrollsInSearchLibrary))
+        self.onRecognitionResult = onRecognitionResult
+        _model = StateObject(wrappedValue: CameraDemoModel(mode: mode, enrollsInSearchLibrary: enrollsInSearchLibrary,
+            recognitionActions: recognitionActions, recognitionSilent: recognitionSilent,
+            recognitionReferenceID: recognitionReferenceID))
     }
 
     private var isGuidedFlow: Bool { mode != .detection && mode != .search }
@@ -186,7 +194,13 @@ struct CameraDemoView: View {
             // 人数进度会去重；逐帧同步空/非空状态，避免恢复或回调合并后旧状态阻止待机计时。
             searchScreenPresentation.updateFacePresence(model.searchFrame?.faces.isEmpty == false)
         }
-        .onChange(of: shouldPresentResult) { presentsResultAlert = $0 }
+        .onChange(of: shouldPresentResult) { ready in
+            guard ready else { presentsResultAlert = false; return }
+            if let onRecognitionResult {
+                onRecognitionResult(model.status, model.detail ?? "", model.phase == .completed && model.completedPassed)
+                closePage()
+            } else { presentsResultAlert = true }
+        }
         .demoDialog(isPresented: presentsResultAlert, onDismiss: closePage) {
             CameraDialogTitle(
                 title: model.phase == .needsReference ? DemoL10n.text("请先完成人脸采集") : model.status,

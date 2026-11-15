@@ -13,8 +13,8 @@ struct DemoPage {
 inline constexpr DemoPage demo_pages[] = {
     {"detection", "Live Detection", "View facial landmarks and contours", 'D'},
     {"capture", "Face Capture", "Capture a face and save its feature", 'C'},
-    {"verification", "1:1 Face Verification", "Select a Face ID, then verify with liveness", 'V'},
-    {"liveness", "Liveness", "Random action challenges and passive liveness detection", 'L'},
+    {"verification", "1:1 Face Recognition + Liveness", "Select a Face ID, then verify with liveness", 'V'},
+    {"liveness", "Liveness Only", "Random action challenges and passive liveness detection", 'L'},
     {"camera", "Face Search and Recognition", "RGB camera search and recognition; 1:N liveness also uses the RGB camera", 'S'},
     {RgbIrSearchPage::route, RgbIrSearchPage::title, "RGB camera search and recognition. The IR camera checks liveness.", 0},
     {"images", "Photo 1:1 Comparison", "Compare faces in two photos", 0},
@@ -24,12 +24,13 @@ inline constexpr DemoPage demo_pages[] = {
     {"gallery", "Face library", "Manage identities and import or export HF1 JSON", 0},
     {"settings", "Feature settings", "Adjust parameters, then apply to save", 0},
     {"references", "Select a Face ID", "Choose a reference saved by Face Capture", 0},
+    {"recognition", "Face Recognition", "Camera-based 1:1 face recognition and liveness detection", 0},
 };
-// Embedded keeps Android's nine entries; ordinary desktop omits RGB/IR entirely.
-// 嵌入式保留九项入口；普通桌面仅八项，不展示双目占位页。
-inline constexpr int home_page_count = 9;
+// Recognition owns capture/verification/liveness; ordinary desktop omits RGB/IR.
+inline constexpr int home_page_indices[] = {0, 13, 4, 5, 6, 7, 8};
+inline constexpr int home_page_count = sizeof(home_page_indices) / sizeof(home_page_indices[0]);
 inline int homePageCount(bool embedded) { return embedded ? home_page_count : home_page_count-1; }
-inline const DemoPage& homePageAt(int index,bool embedded) { return demo_pages[index+(!embedded && index>=5?1:0)]; }
+inline const DemoPage& homePageAt(int index,bool embedded) { return demo_pages[home_page_indices[index+(!embedded && index>=3?1:0)]]; }
 inline bool homePage(std::string_view route,bool embedded=true) {
     for (int i = 0; i < homePageCount(embedded); ++i) if (homePageAt(i,embedded).route == route) return true;
     return false;
@@ -48,6 +49,7 @@ inline bool pageAvailable(std::string_view route,bool embedded) {
 inline constexpr const char* smoke_pages[] = {
     "camera", "images", "gallery", "settings", "image-search", "home",
     "detection", "capture", "verification", "liveness", "enrollment", "camera-settings", "references",
+    "recognition",
     RgbIrSearchPage::route
 };
 inline constexpr unsigned smoke_page_count = sizeof(smoke_pages) / sizeof(smoke_pages[0]);

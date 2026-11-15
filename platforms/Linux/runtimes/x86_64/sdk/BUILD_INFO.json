@@ -1,6 +1,6 @@
 {
-  "version": "0.8.11",
-  "channel": "Beta",
+  "version": "0.8.12",
+  "channel": "stable",
   "architecture": "x86_64",
   "glibc_baseline": "2.35",
   "cxx_runtime": "statically linked libc++/libc++abi/libunwind",

@@ -20,6 +20,7 @@ import com.hiface.sdk.capture.FaceCaptureListener;
 import com.hiface.sdk.capture.FaceCaptureResult;
 import com.hiface.sdk.common.HiFaceError;
 import com.hiface.sdk.demo.R;
+import com.hiface.sdk.demo.storage.FacePhotoStore;
 import com.hiface.sdk.demo.camera.CameraFlowActivity;
 import com.hiface.sdk.demo.ui.CaptureStatusUi;
 import com.hiface.sdk.demo.ui.DemoErrorUi;
@@ -104,10 +105,9 @@ public final class FaceEnrollmentActivity extends CameraFlowActivity {
     }
 
     /**
-     * Display the capture; after confirmation, save only Face ID and feature text in the Demo's encrypted
-     * MMKV.
+     * After confirmation, save the feature and one crop in App-private no-backup storage.
      *
-     * 展示抓拍结果；确认后只在 Demo 的加密 MMKV 保存 Face ID 与特征字符串。
+     * 确认后保存特征和一张私有裁剪图，不保存完整相机画面。
      */
     private void showConfirmation(
             @NonNull FaceCaptureResult capture,
@@ -145,20 +145,25 @@ public final class FaceEnrollmentActivity extends CameraFlowActivity {
                 faceIdInput.setError(getString(R.string.enroll_face_id_required));
                 return;
             }
-            if (!featureStore.save(faceId, capture.getFeature())) {
-                Toast.makeText(
-                        getApplicationContext(),
-                        R.string.enroll_save_failed,
-                        Toast.LENGTH_SHORT).show();
-                return;
-            }
-            Toast.makeText(
-                    getApplicationContext(),
-                    R.string.enroll_capture_complete,
-                    Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-            setResult(RESULT_OK);
-            finish();
+            dialog.findViewById(R.id.confirmButton).setEnabled(false);
+            dialog.findViewById(R.id.retryButton).setEnabled(false);
+            FacePhotoStore.execute(() -> {
+                boolean saved = featureStore.save(faceId, capture.getFeature());
+                if (saved) FacePhotoStore.save(getApplicationContext(), faceId, capture);
+                runOnUiThread(() -> {
+                    if (isDestroyed() || !dialog.isShowing()) return;
+                    if (!saved) {
+                        dialog.findViewById(R.id.confirmButton).setEnabled(true);
+                        dialog.findViewById(R.id.retryButton).setEnabled(true);
+                        Toast.makeText(this, R.string.enroll_save_failed, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    Toast.makeText(this, R.string.enroll_capture_complete, Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                    setResult(RESULT_OK);
+                    finish();
+                });
+            });
         });
 
         Window window = dialog.getWindow();

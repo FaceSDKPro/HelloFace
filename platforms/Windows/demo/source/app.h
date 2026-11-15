@@ -4,10 +4,12 @@
 #include "data_exchange.h"
 #include "demo_service.h"
 #include <windows.h>
+#include <array>
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+#include <unordered_map>
 
 namespace hiface_demo {
 constexpr UINT kFrameReady = WM_APP + 1;
@@ -15,16 +17,20 @@ constexpr UINT kFrameReady = WM_APP + 1;
 // UI 只读取状态快照；SDK 句柄和相机对象保留在工作线程。
 struct Snapshot {
     Settings settings;
-    std::shared_ptr<const Image> preview, image_a, image_b, aligned_a, aligned_b, captured;
+    std::shared_ptr<const Image> preview, image_a, image_b, aligned_a, aligned_b, captured; // Comparison slots contain display-ready BGRA.
     Update update;
     std::shared_ptr<const Image> search_photo; // BGRA for the native view / 供原生视图显示的 BGRA。
     std::filesystem::path search_file;
     std::shared_ptr<const ImageSearchResult> image_search;
     std::vector<Person> people;
+    std::unordered_map<std::string, std::shared_ptr<const Image>> face_photos;
     std::vector<std::string> reference_ids;
     std::string reference_id, comparison_error_a, comparison_error_b, flow_summary;
     std::optional<float> comparison_similarity;
+    std::array<bool, 2> comparison_slot_ready{};
+    int comparison_extracting = -1;
     uint64_t flow_completion = 0;
+    bool flow_passed = false;
     bool pending_reference = false, comparison_ready = false;
     uint64_t total = 0, filtered = 0, search_population = 0;
     uint32_t offset = 0;

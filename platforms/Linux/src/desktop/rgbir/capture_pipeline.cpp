@@ -42,6 +42,12 @@ void Pairing::expire(Stamp& stamp, int64_t now) {
     if (stamp.time > now || now - stamp.time > max_age_ms) stamp = {};
 }
 
+void LatestPair::observe(Stamp rgb, Stamp ir) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    progress_.rgb = rgb;
+    progress_.ir = ir;
+}
+
 void LatestPair::publish(const Pair& stamp, RawCameraFrame& rgb, RawCameraFrame& ir, int64_t now) {
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -96,14 +102,20 @@ Capture::Capture(Camera& rgb, Camera& ir, LatestPair& latest, Preview preview, L
         Pairing pending;
         int64_t next_preview = 0;
         while (!stop_.load(std::memory_order_relaxed)) {
-            const auto ready = Camera::waitForFrames(rgb, ir, camera_poll_ms);
-            if (stop_.load(std::memory_order_relaxed)) break;
-            const bool read_rgb = (ready & 1u) && rgb.readRaw(pending.rgb.frame);
-            const bool read_ir = (ready & 2u) && ir.readRaw(pending.ir.frame);
+            bool read_rgb = false, read_ir = false;
+            try {
+                const auto ready = Camera::waitForFrames(rgb, ir, camera_poll_ms);
+                if (stop_.load(std::memory_order_relaxed)) break;
+                read_rgb = (ready & 1u) && rgb.readRaw(pending.rgb.frame);
+                read_ir = (ready & 2u) && ir.readRaw(pending.ir.frame);
+            } catch (const DemoError& error) {
+                throw CameraStreamError{error.message};
+            }
             if (!read_rgb && !read_ir && !lighting) continue;
             const auto now = nowMs();
             if (read_rgb) pending.rgb.received(now);
             if (read_ir) pending.ir.received(now);
+            if (read_rgb || read_ir) latest.observe(pending.rgb.last, pending.ir.last);
             if (const auto pair = pending.take(now)) {
                 // Preview borrows the raw frames before publish swaps out their buffers.
                 // Its cadence is independent of inference.

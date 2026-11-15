@@ -220,6 +220,17 @@ stop() {
     fi
     start-stop-daemon -K -q -p "$PIDFILE" -x "$DEMO_RUNTIME/bin/hiface_desktop" || true
     start-stop-daemon -K -q -p "$PIDFILE" -x "$DEMO_RUNTIME/bin/hiface_startup" || true
+    # The App switches its lights off while joining capture. Wait before the
+    # root cleanup changes GPIO ownership or a new instance opens the ISP.
+    for unused in 1 2 3 4 5 6 7 8; do
+        demo_running || break
+        sleep 1
+    done
+    if demo_running; then
+        log "Demo did not finish shutting down"
+        lights_off
+        return 1
+    fi
     rm -f "$PIDFILE"
     lights_off
 }

@@ -6,7 +6,7 @@
 
 人脸搜索识别要求摄像头成像清晰；室外环境下，摄像头宽动态范围须大于 100 dB。
 
-SDK正在Beta 迭代公测中，请及时升级SDK版本。
+请及时升级 SDK 版本。
 
 | 项目 | 当前范围 |
 |---|---|
@@ -14,7 +14,7 @@ SDK正在Beta 迭代公测中，请及时升级SDK版本。
 | ABI | `arm64-v8a`、`armeabi-v7a` |
 | 入口 | Java `com.hiface.sdk.HiFaceSdk` |
 
-当前接入示例版本为 `0.8.11`；Maven 渠道可用性以实际发布记录为准：
+当前接入示例版本为 `0.8.12`；Maven 渠道可用性以实际发布记录为准：
 
 ```kotlin
 repositories {
@@ -22,7 +22,7 @@ repositories {
     mavenCentral()
 }
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.11")
+    implementation("io.github.facesdkpro:hiface-android:0.8.12")
 }
 android {
     androidResources { noCompress += "bphfm" }
@@ -195,6 +195,11 @@ Session 支持 `pause()`、`resume()`、`setConfig()`、`close()`；暂停释放
 1:N 可启用同帧 S/M 静默活体，M:N 不执行活体；两者都不运行 468 点/头姿，要求人脸宽高均至少 100 px。
 `frameId` 关联同次采样，未评分不表示未匹配；业务先看 `endReason`，`SPOOF_DETECTED` 即使命中身份也不能放行。
 完整监听示例见 [FaceSearchActivity](../demo/src/main/java/com/hiface/sdk/demo/search/FaceSearchActivity.java)。
+
+0.8.12 的 `FaceSearchResult` 提供 `getFrameJpeg()`、`getFrameWidth()`、`getFrameHeight()`。
+JPEG 对应 `getFrame()` 的同一结束采样，包含完整 RGB 画面，已旋转、未镜像；等比缩小、不放大，
+宽高均 ≤480、编码质量 95，优先保证搜索吞吐。成功及业务失败尽力带图，无法出图时为 `null`、宽高为 0。
+框坐标仍按原采样尺寸计算；SDK 不落盘、不保存历史图，不截取回调时的最新预览。
 
 ## 帧、线程与错误
 

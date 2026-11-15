@@ -1,4 +1,5 @@
 import { DemoL10n } from '../ui/DemoL10n';
+import { FacePhotoStore, FacePhoto } from '../verification/FacePhotoStore';
 import { FaceVerificationFlow } from '../verification/FaceVerificationFlow';
 import { FaceLivenessFlow } from '../liveness/FaceLivenessFlow';
 import { SearchSettingsDialog } from '../search/SearchSettingsDialog';
@@ -88,6 +89,10 @@ export struct RealtimeCameraDemo {
   sdk: HiFaceSdk;
   @Prop initialMode: RealtimeMode = RealtimeMode.DETECTION;
   @Prop initialReferenceFeature: string = '';
+  @Prop recognitionConfigured: boolean = false;
+  @Prop recognitionActions: FaceAction[] = [];
+  @Prop recognitionSilent: boolean = true;
+  onRecognitionResult: (title: string, message: string, passed: boolean) => void = () => {};
   @Prop initialSearchConfig: FaceSearchSessionConfig = createDemoFaceSearchConfig();
   @Prop referenceFaceId: string = '';
   private readonly searchScreenPresentation: SearchScreenPresentation = new SearchScreenPresentation();
@@ -813,7 +818,7 @@ export struct RealtimeCameraDemo {
     if (actions === undefined) {
       return;
     }
-    const config = FaceVerificationFlow.config(referenceFeature, actions);
+    const config = FaceVerificationFlow.config(referenceFeature, actions, this.recognitionSilent);
     await this.awaitFlowStart(
       () => this.sdk.verification().startCameraVerification(config,
         this.createFlowListener(RealtimeMode.VERIFICATION, generation)),
@@ -892,8 +897,8 @@ export struct RealtimeCameraDemo {
       this.flowActive = true;
       this.lastSearchError = undefined;
       this.cameraController?.resumeAnalysis();
-      this.guideState = DemoL10n.text("等待人脸入镜");
-      this.resultState = DemoL10n.text("面向镜头，入镜后自动识别");
+      this.guideState = DemoL10n.text("请正对镜头");
+      this.resultState = DemoL10n.text("入镜即识别");
     } catch (error) {
       if (this.visible && generation === this.flowGeneration && this.currentMode === realtimeMode) {
         this.flowBusy = false;
@@ -983,6 +988,7 @@ export struct RealtimeCameraDemo {
 
   private async prepareChallengeActions(count: number, mode: RealtimeMode,
     generation: number): Promise<ReadonlyArray<FaceAction> | undefined> {
+    if (this.recognitionConfigured) return this.recognitionActions.slice();
     try {
       const actions: ReadonlyArray<FaceAction> = await FaceChallenge.randomActions(count);
       if (!this.visible || generation !== this.flowGeneration || mode !== this.currentMode) {
@@ -1022,6 +1028,7 @@ export struct RealtimeCameraDemo {
       this.cameraController?.pauseAnalysis();
       this.guideState = DemoL10n.text("流程启动失败");
       this.resultState = DemoL10n.text("启动流程异常：{0}", [String(error)]);
+      if (this.returnRecognitionResult(false)) return;
       this.drawOverlay();
     }
   }
@@ -1042,6 +1049,7 @@ export struct RealtimeCameraDemo {
       this.resultRetryVisible = DemoErrorUi.isRetryable(error);
       this.resultVisible = true;
       this.cameraController?.pauseAnalysis();
+      this.returnRecognitionResult(false);
       return;
     }
     this.activeRequest = result.requireValue();
@@ -1114,6 +1122,8 @@ export struct RealtimeCameraDemo {
       this.resultState = similarity === undefined
         ? outcomeMessage
         : DemoL10n.text("{0}\n相似度：{1}", [String(outcomeMessage), String(similarity.toFixed(4))]);
+      if (result.livenessScore !== undefined) this.resultState = DemoL10n.text("{0}\n静默活体分数：{1}",
+        [this.resultState, result.livenessScore.toFixed(4)]);
       this.resultVisible = true;
     } else if (mode === RealtimeMode.LIVENESS) {
       this.guideState = DemoL10n.text("活体检测");
@@ -1132,6 +1142,7 @@ export struct RealtimeCameraDemo {
       this.resultState = DemoL10n.text("未采集到合格人脸，请重试");
       this.resultVisible = true;
     }
+    if (this.returnRecognitionResult(result.isPassed())) return;
     this.drawOverlay();
   }
 
@@ -1150,8 +1161,11 @@ export struct RealtimeCameraDemo {
     const captureGeneration: number = this.captureGeneration;
     this.libraryBusy = true;
     this.enrollmentError = DemoL10n.text("正在保存 1:1 基准…");
+    const photo: FacePhoto | undefined = FacePhotoStore.capture(this.capturedFace);
+    const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
     try {
       const saved: boolean = await this.onReferenceConfirmed(faceId, feature);
+      if (saved) await FacePhotoStore.save(context, faceId, photo);
       if (!this.visible || captureGeneration !== this.captureGeneration) return;
       if (!saved) {
         this.enrollmentError = DemoL10n.text("Face ID 与特征安全保存失败，请重试");
@@ -1172,6 +1186,7 @@ export struct RealtimeCameraDemo {
         this.enrollmentError = DemoL10n.text("Face ID 与特征安全保存失败，请重试");
       }
     } finally {
+      if (photo !== undefined) new Uint8Array(photo.rgba).fill(0);
       if (this.visible && captureGeneration === this.captureGeneration) this.libraryBusy = false;
     }
   }
@@ -1248,9 +1263,12 @@ export struct RealtimeCameraDemo {
     if (!this.isCurrentLibraryTask(generation) || this.libraryBusy) return;
     this.libraryBusy = true;
     this.enrollmentError = overwrite ? DemoL10n.text("正在覆盖搜索库记录…") : DemoL10n.text("正在新增搜索库记录…");
+    const photo: FacePhoto | undefined = FacePhotoStore.capture(this.capturedFace);
+    const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
     try {
       const saved: HiFaceResult<boolean> =
         await database.saveFeature(faceId, feature, Date.now(), tag, group);
+      if (saved.isSuccess()) await FacePhotoStore.save(context, faceId, photo);
       if (!this.isCurrentLibraryTask(generation)) return;
       if (saved.isSuccess()) {
         try { this.getUIContext().getPromptAction().showToast({ message: DemoL10n.text("已录入 {0}", [String(faceId)]) }); } catch (_) {}
@@ -1267,6 +1285,7 @@ export struct RealtimeCameraDemo {
     } catch (error) {
       if (this.isCurrentLibraryTask(generation)) this.enrollmentError = DemoL10n.text("保存失败：{0}", [String(error)]);
     } finally {
+      if (photo !== undefined) new Uint8Array(photo.rgba).fill(0);
       if (this.isCurrentLibraryTask(generation)) this.libraryBusy = false;
     }
   }
@@ -1321,7 +1340,16 @@ export struct RealtimeCameraDemo {
     this.cameraController?.pauseAnalysis();
     this.guideState = DemoL10n.text("流程执行失败");
     this.resultState = DemoErrorUi.describe(error);
+    if (this.returnRecognitionResult(false)) return;
     this.drawOverlay();
+  }
+
+  private returnRecognitionResult(passed: boolean): boolean {
+    if (!this.recognitionConfigured || (this.currentMode !== RealtimeMode.VERIFICATION &&
+      this.currentMode !== RealtimeMode.LIVENESS)) return false;
+    this.resultVisible = false;
+    this.onRecognitionResult(this.guideState, this.resultState, passed);
+    return true;
   }
 
   /** 幂等结束流程，并作废在途回调。 */

@@ -1,6 +1,7 @@
 #include "demo_service.h"
 #include "data_exchange.h"
 #include "win_util.h"
+#include "face_photo_store.h"
 #include <iostream>
 
 namespace {
@@ -71,10 +72,14 @@ int wmain(int argc, wchar_t** argv) {
                 }
                 std::cout << "count=" << gallery.count(group, tag) << '\n';
             } else if (command == L"get") std::cout << gallery.get(utf8(argv[3])).feature << '\n';
-            else if (command == L"delete") std::cout << "deleted=" << gallery.remove(utf8(argv[3])) << '\n';
+            else if (command == L"delete") {
+                const auto id = utf8(argv[3]);
+                std::cout << "deleted=" << gallery.remove(id) << '\n';
+                FacePhotoStore::remove(id);
+            }
             else if (command == L"metadata") gallery.updateMetadata(utf8(argv[3]), utf8(argv[4]), utf8(argv[5]));
             else if (command == L"import-json") {
-                const auto result = importDataset(gallery, argv[3]);
+                const auto result = importDataset(gallery, argv[3], {}, FacePhotoStore::remove);
                 std::cout << "processed=" << result.processed << " saved=" << result.saved << " failed=" << result.failed << '\n';
                 if (result.failed) return 1;
             } else std::cout << "exported=" << exportDataset(gallery, argv[3], argc == 6 ? utf8(argv[4]) : "", argc == 6 ? utf8(argv[5]) : "") << '\n';
@@ -110,6 +115,7 @@ int wmain(int argc, wchar_t** argv) {
             } else {
                 Gallery gallery(argv[2]);
                 gallery.save({{utf8(argv[3]), argc == 7 ? utf8(argv[5]) : "", argc == 7 ? utf8(argv[6]) : "", encodeFeature(feature), 0}}, command == L"upsert");
+                FacePhotoStore::remove(utf8(argv[3]));
                 std::cout << "enrolled=" << utf8(argv[3]) << " gallery=" << gallery.count() << '\n';
             }
         }

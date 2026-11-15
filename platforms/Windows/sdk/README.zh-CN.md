@@ -1,4 +1,4 @@
-# HiFace Windows SDK · 0.8.11 Beta
+# HiFace Windows SDK · 0.8.12
 
 [English](README.md) | 简体中文
 
@@ -21,7 +21,7 @@ cmake --build build --config Release
 自己的 CMake 工程：
 
 ```cmake
-find_package(HiFace 0.8.11 CONFIG REQUIRED COMPONENTS C)
+find_package(HiFace 0.8.12 CONFIG REQUIRED COMPONENTS C)
 target_link_libraries(your_app PRIVATE HiFace::HiFace)
 ```
 
@@ -59,3 +59,7 @@ Demo 的 C++ 数据库适配层要求 ID 非空，ID、分组和标签各自最�
 找不到 DLL / `0xc000007b`：检查完整的 x64 DLL；初始化失败：检查状态和日志。
 相机由应用打开和送帧。当前模型不支持12周岁以下儿童人脸识别，不能用于金融相关场景。
 [反馈问题](https://github.com/FaceSDKPro/HelloFace/issues)时附版本、状态码和脱敏日志。
+
+## 搜索结束场景 JPEG（0.8.12）
+
+终态批次完成并读取后、送入另一帧/停止/销毁 batch 前调用 `hiface_session_search_copy_jpeg_v1(session, batch, sink, context)`。sink 成功时调用一次，参数为同一 `frame_id`、JPEG 宽高和借用字节；返回非零前按需复制。编码和回调在 Session 锁外执行。完整 RGB 画面已旋转、未镜像，等比缩小、不放大，最长边 480、质量 95。业务失败也尽力带图，出图失败不改变搜索结论或复用旧图，不落盘或缓存历史。

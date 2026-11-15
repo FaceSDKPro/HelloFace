@@ -64,6 +64,9 @@ struct DesktopWindow::Impl {
     std::string paste_target, clipboard_text;
     std::vector<pid_t> website_launches;
     std::chrono::steady_clock::time_point website_toast_until{};
+    bool reference_press_pending = false;
+    int reference_press_x = 0, reference_press_y = 0;
+    Time reference_press_time = 0;
 #define FN(name) decltype(&name) name##_fn = nullptr
     FN(XOpenDisplay); FN(XCloseDisplay); FN(XDefaultScreen); FN(XDisplayWidth); FN(XDisplayHeight); FN(XDefaultVisual); FN(XDefaultDepth); FN(XRootWindow);
     FN(XCreateSimpleWindow); FN(XDestroyWindow); FN(XMapWindow); FN(XResizeWindow); FN(XStoreName); FN(XSelectInput);
@@ -152,7 +155,7 @@ struct DesktopWindow::Impl {
                 XInternAtom_fn(display, "CARDINAL", False), 32, PropModeReplace,
                 reinterpret_cast<const unsigned char*>(icon.data()), static_cast<int>(icon.size()));
         }
-        XStoreName_fn(display, window, "HiFace - Linux Demo"); XSelectInput_fn(display, window, ExposureMask | KeyPressMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask | StructureNotifyMask | FocusChangeMask | PropertyChangeMask);
+        XStoreName_fn(display, window, HIFACE_DEMO_APP_NAME); XSelectInput_fn(display, window, ExposureMask | KeyPressMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask | StructureNotifyMask | FocusChangeMask | PropertyChangeMask);
         initializeCursor(embedded);
         delete_window = XInternAtom_fn(display, "WM_DELETE_WINDOW", False); clipboard = XInternAtom_fn(display, "CLIPBOARD", False); utf8 = XInternAtom_fn(display, "UTF8_STRING", False);
         paste_property = XInternAtom_fn(display, "HIFACE_PASTE", False); targets = XInternAtom_fn(display, "TARGETS", False); atom_type = XInternAtom_fn(display, "ATOM", False); string_type = XInternAtom_fn(display, "STRING", False);
@@ -536,9 +539,24 @@ std::vector<Command> DesktopWindow::events(const ViewState& state) {
             if (event.type == LeaveNotify) ui.pointer(event.xcrossing.x, event.xcrossing.y, false);
             if (event.type == MotionNotify) {
                 ui.pointer(event.xmotion.x, event.xmotion.y, true);
-                if (event.xmotion.state & Button1Mask) { const auto point=ui.logicalPoint(event.xmotion.x,event.xmotion.y);ui.ui.drag(point.first,point.second,state); }
+                if (event.xmotion.state & Button1Mask) {
+                    const auto point=ui.logicalPoint(event.xmotion.x,event.xmotion.y);
+                    if(ui.reference_press_pending && (std::abs(point.first-ui.reference_press_x)>12 || std::abs(point.second-ui.reference_press_y)>12))
+                        ui.reference_press_pending=false;
+                    ui.ui.drag(point.first,point.second,state);
+                }
             }
-            if (event.type == ButtonRelease) ui.ui.releasePointer();
+            if (event.type == ButtonRelease) {
+                if(ui.reference_press_pending && event.xbutton.button==Button1) {
+                    ui.pointer(event.xbutton.x,event.xbutton.y,true);
+                    const auto point=ui.logicalPoint(event.xbutton.x,event.xbutton.y);
+                    const bool still=ui.pointer_inside && std::abs(point.first-ui.reference_press_x)<=12 && std::abs(point.second-ui.reference_press_y)<=12;
+                    if(still && event.xbutton.time-ui.reference_press_time>=500)ui.ui.longPress(point.first,point.second,state);
+                    else if(still)ui.ui.click(point.first,point.second,state);
+                    ui.reference_press_pending=false;
+                }
+                ui.ui.releasePointer();
+            }
             if (event.type == KeyPress) ui.key(event.xkey, state);
             if (event.type == ButtonPress) {
                 // A click may arrive before motion, or in the same batch as
@@ -552,7 +570,11 @@ std::vector<Command> DesktopWindow::events(const ViewState& state) {
                     // the clicked window before typing into an input field.
                     // 无窗口管理器的嵌入式 X11 会话也能点击取得键盘输入焦点。
                     ui.XSetInputFocus_fn(ui.display, ui.window, RevertToParent, event.xbutton.time);
-                    ui.ui.click(point.first, point.second, state);
+                    if(ui.ui.defersClick(point.first,point.second)) {
+                        ui.reference_press_pending=true;ui.reference_press_x=point.first;ui.reference_press_y=point.second;
+                        ui.reference_press_time=event.xbutton.time;
+                        ui.ui.beginDeferredClick(point.first);
+                    } else ui.ui.click(point.first, point.second, state);
                 }
                 if (ui.pointer_inside && (event.xbutton.button == Button4 || event.xbutton.button == Button5))
                     ui.ui.scroll(event.xbutton.button == Button4 ? -1 : 1, point.first, point.second, state);

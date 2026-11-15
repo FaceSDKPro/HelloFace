@@ -18,6 +18,7 @@ import {
   FaceSearchImportSummary
 } from './FaceSearchDemoImporter';
 import { FaceSearchLibraryItem } from './FaceSearchLibraryItem';
+import { FacePhotoStore, FacePhotoThumbnail } from '../verification/FacePhotoStore';
 
 const LOAD_SIZE: number = 100;
 const PREFETCH_REMAINING: number = 10;
@@ -186,6 +187,7 @@ export struct FaceSearchLibraryDemo {
   @Builder
   private EntryCard(entry: FaceSearchLibraryItem) {
     Row({ space: 12 }) {
+      FacePhotoThumbnail({ faceId: entry.faceId })
       Column({ space: 5 }) {
         Text(entry.faceId)
           .fontSize(16).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
@@ -510,6 +512,10 @@ export struct FaceSearchLibraryDemo {
     this.busy = true;
     try {
       const deleted: HiFaceResult<boolean> = await database.delete(faceId);
+      if (deleted.isSuccess()) {
+        const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+        await FacePhotoStore.remove(context, faceId);
+      }
       if (!this.isTaskActive(token)) return;
       if (deleted.isFailure()) {
         this.showFailure(DemoL10n.text("删除失败"), deleted.requireError(), false);

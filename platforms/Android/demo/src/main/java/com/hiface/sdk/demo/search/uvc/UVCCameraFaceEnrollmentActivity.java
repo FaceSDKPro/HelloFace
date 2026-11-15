@@ -286,7 +286,7 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
         if (saving || store == null || state.pending == null || confirmation == null) return;
         saving = true; confirmation.setSaving(true);
         long epoch = generation;
-        saveRequest = store.save(id, state.pending.getFeature(), group, replace, saved -> {
+        saveRequest = store.save(id, state.pending, group, replace, saved -> {
             saveRequest = null; saving = false;
             if (!started || generation != epoch || confirmation == null || !confirmation.isShowing()) return;
             confirmation.setSaving(false);

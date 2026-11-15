@@ -10,21 +10,23 @@ namespace {
 std::string actionName(HiFaceFlowActionV1 action) {
     switch (action) {
         case HIFACE_ACTION_BLINK: return u8"眨眼"; case HIFACE_ACTION_MOUTH_OPEN: return u8"张嘴";
-        case HIFACE_ACTION_NOD_HEAD: return u8"点头"; default: return u8"摇头";
+        case HIFACE_ACTION_NOD_HEAD: return u8"点头"; case HIFACE_ACTION_SHAKE_HEAD: return u8"摇头";
+        default: return u8"完成当前动作";
     }
 }
-std::string progressText(const HiFaceFlowEventV1& event) {
+std::string progressText(const HiFaceFlowEventV1& event, FlowKind kind) {
     switch (event.stage) {
         case HIFACE_STAGE_MULTIPLE_FACES: return u8"请保持画面中只有一人";
         case HIFACE_STAGE_FACE_TOO_SMALL: return u8"请靠近摄像头";
-        case HIFACE_STAGE_HOLD_STILL: return u8"请保持正脸不动";
+        case HIFACE_STAGE_HOLD_STILL: return kind == FlowKind::Capture ? u8"请保持正脸不动" : u8"请正对镜头";
         case HIFACE_STAGE_FACE_UNSTABLE: return u8"请保持人脸稳定";
-        case HIFACE_STAGE_WAITING_FOR_FACE: return u8"请看向摄像头";
+        case HIFACE_STAGE_WAITING_FOR_FACE: return u8"请正对镜头";
         case HIFACE_STAGE_PERFORM_ACTION: return u8"请" + actionName(event.action) + " (" + std::to_string(event.step_number) + "/" + std::to_string(event.step_count) + ")";
-        default: return u8"请正对摄像头";
+        default: return u8"请正对镜头";
     }
 }
-std::string outcomeText(HiFaceFlowOutcomeV1 outcome) {
+}
+std::string flowOutcomeText(HiFaceFlowOutcomeV1 outcome) {
     switch (outcome) {
         case HIFACE_FLOW_OUTCOME_PASSED: return u8"通过";
         case HIFACE_FLOW_OUTCOME_NOT_MATCHED: return u8"身份不匹配";
@@ -33,11 +35,11 @@ std::string outcomeText(HiFaceFlowOutcomeV1 outcome) {
         case HIFACE_FLOW_OUTCOME_FACE_LOST: return u8"人脸丢失";
         case HIFACE_FLOW_OUTCOME_MULTIPLE_FACES: return u8"检测到多人";
         case HIFACE_FLOW_OUTCOME_ACTION_TIMEOUT: return u8"动作超时";
-        default: return u8"最终采样超时";
+        case HIFACE_FLOW_OUTCOME_FINAL_CAPTURE_TIMEOUT: return u8"最终采样超时";
+        default: return u8"检测未通过";
     }
 }
 
-}
 bool searchFaceAccepted(const Update& update, const HiFaceSearchCameraFaceV1& face) {
     return update.searching && update.matched && update.end_reason == HIFACE_SEARCH_END_MATCH_FOUND
         && face.has_similarity && face.threshold_passed && face.face_id[0];
@@ -88,7 +90,7 @@ std::string searchStatusText(const Update& update) {
     if (update.search_progress == HIFACE_SEARCH_STAGE_SUCCESS_INTERVAL) return u8"成功间隔中，稍后开始下一轮识别";
     if (update.search_progress == HIFACE_SEARCH_STAGE_FACE_TOO_SMALL) return u8"人脸太小，请靠近摄像头";
     if (update.end_reason == HIFACE_SEARCH_END_TIMEOUT) return u8"本轮未找到匹配人员，继续搜索";
-    return update.faces.empty() ? u8"等待人脸，请正对摄像头" : u8"正在搜索，尚未确认身份";
+    return update.faces.empty() ? u8"请正对镜头" : u8"正在搜索，尚未确认身份";
 }
 CaptureResult DemoService::captureEnrollmentImage(const Image& image) {
     auto faces = client_.captureFaces(image, 2);
@@ -99,22 +101,33 @@ CaptureResult DemoService::captureEnrollmentImage(const Image& image) {
 }
 DemoService::DemoService(const std::filesystem::path& database)
     : client_(database), database_(database) {}
-void DemoService::beginFlow(const FlowOptions& options) { client_.beginFlow(options); }
-void DemoService::cancelFlow() { client_.cancelFlow(); }
+void DemoService::beginFlow(const FlowOptions& options) {
+    client_.beginFlow(options);
+    progress_ = {};
+    flow_kind_ = options.kind;
+}
+void DemoService::cancelFlow() {
+    client_.cancelFlow();
+    progress_ = {};
+}
 // Translate structured SDK outcomes; never persist a person while processing a frame.
 // 逐帧调用只解释 SDK 状态，人员保存必须由确认命令执行。
 Update DemoService::process(const CameraFrame& frame, const std::function<bool()>& current) {
     Update update;
+    const auto frame_at_ms = flowClockMs();
     static_cast<hiface::FrameUpdate&>(update) = client_.process(frame, current);
     if (update.cancelled) { update.message = u8"已取消"; return update; }
     if (update.skipped) return update;
     if (update.result) {
         const auto& result = *update.result;
-        update.message = outcomeText(result.metadata.outcome);
+        update.message = flowOutcomeText(result.metadata.outcome);
         if (result.metadata.flags & HIFACE_FLOW_RESULT_HAS_LIVENESS) update.message += u8" | 活体=" + std::to_string(result.metadata.liveness_score);
         if (result.metadata.flags & HIFACE_FLOW_RESULT_HAS_SIMILARITY) update.message += u8" | 相似度=" + std::to_string(result.metadata.similarity);
-    } else if (update.flow_active) update.message = progressText(update.event);
-    else if (update.paused) update.message = u8"搜索已暂停";
+    } else if (update.flow_active) {
+        progress_.observe(update.event, frame_at_ms);
+        update.message = progressText(progress_.last, flow_kind_);
+        update.action_deadline_ms = progress_.deadline_ms;
+    } else if (update.paused) update.message = u8"搜索已暂停";
     else if (!update.searching) update.message = u8"检测到 " + std::to_string(update.faces.size()) + u8" 张人脸";
     else {
         update.message = searchStatusText(update);

@@ -17,14 +17,14 @@ import java.util.Objects;
  *
  * Demo 专用的1:1 加密 Face ID/特征 Key-Value 存储；不属于 SDK API。
  */
-final class FaceFeatureStore {
+public final class FaceFeatureStore {
     // HF1 contains no model identity; store references by feature space and display only the current space
     // after model changes.
     // HF1 本身不携带模型身份；按特征空间分开保存，换模型后只展示当前空间的参考特征。
     private static final String KEY_PREFIX = "face:" + FaceFeatureFormat.FEATURE_SPACE_ID + ":";
     private final MMKV mmkv = HiFaceDemoApplication.getMMKV();
 
-    boolean save(@NonNull String faceId, @NonNull String feature) {
+    public boolean save(@NonNull String faceId, @NonNull String feature) {
         String normalizedId = normalize(faceId);
         if (normalizedId.isEmpty() || feature.trim().isEmpty()) {
             return false;
@@ -33,15 +33,24 @@ final class FaceFeatureStore {
     }
 
     @Nullable
-    String getFeature(@NonNull String faceId) {
+    public String getFeature(@NonNull String faceId) {
         String normalizedId = normalize(faceId);
         return normalizedId.isEmpty()
                 ? null
                 : mmkv.decodeString(KEY_PREFIX + normalizedId, null);
     }
 
+    public boolean remove(@NonNull String faceId) {
+        String normalizedId = normalize(faceId);
+        if (normalizedId.isEmpty() || !mmkv.containsKey(KEY_PREFIX + normalizedId)) {
+            return false;
+        }
+        mmkv.removeValueForKey(KEY_PREFIX + normalizedId);
+        return true;
+    }
+
     @NonNull
-    List<String> getFaceIds() {
+    public List<String> getFaceIds() {
         String[] keys = mmkv.allKeys();
         if (keys == null || keys.length == 0) {
             return Collections.emptyList();

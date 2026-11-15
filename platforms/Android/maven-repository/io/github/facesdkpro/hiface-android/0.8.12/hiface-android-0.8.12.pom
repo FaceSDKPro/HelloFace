@@ -9,7 +9,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.github.facesdkpro</groupId>
   <artifactId>hiface-android</artifactId>
-  <version>0.8.11</version>
+  <version>0.8.12</version>
   <packaging>aar</packaging>
   <name>HiFace Android SDK</name>
   <description>Android face detection, capture, liveness, 1:1 verification, and 1:N/M:N face search SDK.</description>
@@ -17,7 +17,7 @@
   <inceptionYear>2026</inceptionYear>
   <licenses>
     <license>
-      <name>Hello Face Test Only</name>
+      <name>For discussion and evaluation only. For commercial use, contact FaceAISDK.Service@gmail.com.</name>
       <url>https://github.com/FaceSDKPro/HelloFace/blob/main/platforms/Android/LICENSE</url>
       <distribution>repo</distribution>
     </license>

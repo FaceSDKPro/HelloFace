@@ -1,5 +1,6 @@
 #pragma once
 #include "sdk_helpers.h"
+#include "search_frame_image.h"
 #include <memory>
 
 namespace hiface_linux_demo {
@@ -7,6 +8,7 @@ struct CameraFrame;
 
 // Preview frames update independently of the current analyzed pair's result.
 struct RgbIrView {
+    std::shared_ptr<const SearchFrameImage> frame_image;
     bool running = true;
     bool idle = false; // The renderer can reduce paint cadence while both previews remain live.
     std::string guidance = "Waiting...";

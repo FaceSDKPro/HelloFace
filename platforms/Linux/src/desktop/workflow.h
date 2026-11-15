@@ -4,6 +4,7 @@
 #include "image_search.h"
 #include "settings.h"
 #include "enrollment_draft.h"
+#include "search_frame_image.h"
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -34,6 +35,7 @@ public:
     bool process(const CameraFrame& frame);
     void stop();
     void applySettings(const DemoSettings& settings);
+    void applyRecognitionOptions(const DemoSettings& settings);
     const DemoSettings& settings() const { return settings_; }
     void setEnrollment(const std::string& id, const std::string& group, const std::string& tag);
     void confirmEnrollment(const std::string& id, const std::string& group, const std::string& tag, bool overwrite = false);
@@ -42,6 +44,7 @@ public:
     char pendingCaptureKind() const { return pending_capture_kind_; }
     void loadCapturedFaces();
     void selectCapturedReference(const std::string& id);
+    void deleteCapturedReference(const std::string& id);
     void previewComparisonPhoto(bool first, const std::string& path, const std::function<bool()>& cancelled = {});
     bool resultPending() const { return result_pending_; }
     void showFlowError(char mode, const DemoError& error);
@@ -69,6 +72,7 @@ public:
     void toggleMirror();
     char mode() const { return mode_; }
     std::string status = "Ready. Look at the camera.";
+    std::shared_ptr<const SearchFrameImage> search_frame_image;
     std::vector<Box> boxes;
     double inference_ms = 0;
     uint64_t gallery_count = 0;
@@ -84,6 +88,7 @@ public:
     uint64_t saved_capture_generation = 0, flow_result_generation = 0;
     char saved_capture_kind = 0;
     bool result_can_retry = true;
+    bool result_passed = false;
     bool comparison_first_ready = false, comparison_second_ready = false;
     std::string comparison_first_path, comparison_second_path, comparison_first_error, comparison_second_error;
     std::optional<float> comparison_similarity;

@@ -117,6 +117,41 @@ final class SearchPresentationUITests: XCTestCase {
     }
 }
 
+/// Keep the recognition controls compact and readable on a physical iPhone.
+/// 人脸识别参数保持紧凑，并在真机白色卡片上使用清晰的文字对比度。
+final class RecognitionLayoutUITests: XCTestCase {
+    @MainActor
+    func testRecognitionActionsUseOneReadableRow() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+
+        let entry = app.descendants(matching: .any)["demo.feature.recognition"].firstMatch
+        XCTAssertTrue(entry.waitForExistence(timeout: 10))
+        if !entry.isHittable { app.swipeUp() }
+        entry.tap()
+
+        XCTAssertTrue(app.navigationBars["人脸识别"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["选择检测方式与活体参数，结果将在本页显示"].exists)
+        let actionToggle = app.switches.matching(NSPredicate(format: "label CONTAINS %@", "动作活体")).firstMatch
+        XCTAssertTrue(actionToggle.waitForExistence(timeout: 5))
+        actionToggle.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        let enabled = NSPredicate(format: "value == %@", "1")
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: enabled, object: actionToggle)], timeout: 5), .completed)
+
+        let actions = ["眨眼", "张嘴", "摇头", "点头"].map { app.buttons[$0].firstMatch }
+        for action in actions { XCTAssertTrue(action.waitForExistence(timeout: 5)) }
+        let baseline = actions[0].frame.midY
+        for action in actions.dropFirst() { XCTAssertEqual(action.frame.midY, baseline, accuracy: 1) }
+
+        let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        screenshot.name = "Face recognition readable action row"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+}
+
 /// Static image search works without a camera and can run on a simulator.
 /// 静态图片搜索无需相机，可在模拟器运行。
 final class ImageFaceSearchUITests: XCTestCase {
