@@ -32,11 +32,21 @@ import CoreGraphics
         await FacePhotoStore.save(image: image(220), faceID: id)
         let second = await FacePhotoStore.thumbnail(faceID: id)!
         precondition(abs(shade(second) - 220) <= 4)
+        await FacePhotoStore.save(image: image(25), faceID: id, library: .reference)
+        let reference = await FacePhotoStore.thumbnail(faceID: id, library: .reference)!
+        precondition(abs(shade(reference) - 25) <= 4)
+        let search = await FacePhotoStore.thumbnail(faceID: id)!
+        precondition(abs(shade(search) - 220) <= 4)
         let other = await FacePhotoStore.thumbnail(faceID: id + "missing")
         precondition(other == nil)
         await FacePhotoStore.save(image: nil, faceID: id)
         let replaced = await FacePhotoStore.thumbnail(faceID: id)
         precondition(replaced == nil)
+        let retainedReference = await FacePhotoStore.thumbnail(faceID: id, library: .reference)!
+        precondition(abs(shade(retainedReference) - 25) <= 4)
+        await FacePhotoStore.remove(faceIDs: [id], library: .reference)
+        let removedReference = await FacePhotoStore.thumbnail(faceID: id, library: .reference)
+        precondition(removedReference == nil)
         await FacePhotoStore.save(image: image(25), faceID: id)
         await FacePhotoStore.remove(faceID: id)
         let removed = await FacePhotoStore.thumbnail(faceID: id)

@@ -9742,19 +9742,19 @@
         }
       }
     },
-    "当前 SDK 状态无法使用此功能": {
+    "功能不可用,请升级或联系技术支持": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This feature is unavailable for the current SDK state."
+            "value": "Feature unavailable. Update or contact support."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "当前 SDK 状态无法使用此功能"
+            "value": "功能不可用,请升级或联系技术支持"
           }
         }
       }

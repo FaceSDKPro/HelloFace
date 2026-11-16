@@ -58,11 +58,11 @@ public final class DemoErrorUi {
     /**
      * Use a generic unavailable message; diagnostics retain the original SDK error code.
      *
-     * 界面统一提示 SDK 不可用，诊断日志保留原始错误码。
+     * 界面统一提示功能不可用，诊断日志保留原始错误码。
      */
     @StringRes
     public static int licenseMessage(@NonNull HiFaceErrorCode code) {
-        return HiFaceErrorUi.isLicenseError(code) ? R.string.license_unavailable : 0;
+        return HiFaceErrorUi.isLicenseError(code) ? R.string.access_unavailable : 0;
     }
 
     private static void log(@NonNull HiFaceError error) {
@@ -76,8 +76,7 @@ public final class DemoErrorUi {
 
     @StringRes
     private static int messageResource(@NonNull HiFaceErrorCode code) {
-        return HiFaceErrorUi.isLicenseError(code)
-                ? R.string.license_unavailable
-                : HiFaceErrorUi.messageResource(code);
+        int accessMessage = licenseMessage(code);
+        return accessMessage != 0 ? accessMessage : HiFaceErrorUi.messageResource(code);
     }
 }

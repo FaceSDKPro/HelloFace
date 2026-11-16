@@ -65,7 +65,7 @@ typedef struct HiFaceLicenseIdentityV1 {
     char installation_id_sha256[65];
 } HiFaceLicenseIdentityV1;
 typedef HiFaceStatus (HIFACE_CALL *HiFaceLicenseIdentityCallbackV1)(void*, HiFaceLicenseIdentityV1*);
-/* 当前平台从 SQLite 读取经软件 MAC 和字段一致性校验的 256 字节状态。
+/* 当前平台从 SQLite 读取经软件 MAC 和字段一致性校验的 192 字节状态。
  * 未启用的新库可报告 NOT_FOUND；已启用库的状态缺失、损坏或读取失败必须报错，
  * 不得按首次启用重置。软件 MAC 不提供硬件防篡改或完整快照防回放保证。
  */
@@ -79,11 +79,6 @@ typedef HiFaceStatus (HIFACE_CALL *HiFaceLicenseCommitStateCallbackV1)(
         const char* envelope, size_t envelope_size);
 /* 从同一 SQLite 库读取经校验的正式证书原文；无正式证书时返回 NOT_FOUND。 */
 typedef HiFaceStatus (HIFACE_CALL *HiFaceLicenseReadEnvelopeCallbackV1)(void*, char*, size_t, size_t*);
-/* 含义由 SDK 私有时钟连续性模式决定：BootIdentity 使用真实系统启动标识摘要；
- * 五平台当前使用 ResettingUptime，SQLite 适配器返回固定域摘要，Core 校验真实 OS uptime
- * 的重置与持久时间高水位。该摘要不是墙钟或跨启动计时证据，不能推断关机经过时间。
- */
-typedef HiFaceStatus (HIFACE_CALL *HiFaceLicenseBootCallbackV1)(void*, uint8_t out_boot_digest[32]);
 typedef struct HiFaceLicenseDeviceProfileV1 {
     uint32_t struct_size;
     uint32_t sdk_int;
@@ -98,7 +93,6 @@ typedef struct HiFaceLicensePlatformV1 {
     HiFaceLicenseReadStateCallbackV1 read_state;
     HiFaceLicenseCommitStateCallbackV1 commit_state;
     HiFaceLicenseReadEnvelopeCallbackV1 read_envelope;
-    HiFaceLicenseBootCallbackV1 get_boot;
     HiFaceLicenseDeviceProfileCallbackV1 get_device_profile;
 } HiFaceLicensePlatformV1;
 typedef struct HiFaceLicenseInfoV1 {
@@ -110,14 +104,14 @@ typedef struct HiFaceLicenseInfoV1 {
     uint32_t maximum_gallery_entries;
     /* 0 无状态、1 本机试用、2 正式签名；不增加授权错误种类。 */
     uint32_t mode;
-    int64_t trial_started_at, not_before, license_expires_at;
+    int64_t not_before;
 } HiFaceLicenseInfoV1;
 #define HIFACE_LICENSE_IDENTITY_V1_MIN_SIZE 280u
-#define HIFACE_LICENSE_INFO_V1_MIN_SIZE 80u
+#define HIFACE_LICENSE_INFO_V1_MIN_SIZE 64u
 #if UINTPTR_MAX == UINT64_MAX
-#  define HIFACE_LICENSE_PLATFORM_V1_MIN_SIZE 64u
+#  define HIFACE_LICENSE_PLATFORM_V1_MIN_SIZE 56u
 #elif UINTPTR_MAX == UINT32_MAX
-#  define HIFACE_LICENSE_PLATFORM_V1_MIN_SIZE 36u
+#  define HIFACE_LICENSE_PLATFORM_V1_MIN_SIZE 32u
 #endif
 HIFACE_API HiFaceStatus HIFACE_CALL hiface_license_configure_v1(const HiFaceLicensePlatformV1*);
 HIFACE_API HiFaceStatus HIFACE_CALL hiface_license_import_v1(const char* envelope, size_t size);

@@ -25,10 +25,9 @@ enum DemoErrorPresentation {
         case .resourceExhausted: DemoL10n.text("设备资源不足，请关闭其他任务后重试")
         case .alreadyExists: DemoL10n.text("Face ID 已存在")
         case .internalError: DemoL10n.text("SDK 内部错误")
-        case .licenseMissing, .licenseInvalid, .licenseNotYetValid, .licenseExpired:
-            DemoL10n.text("当前 SDK 状态无法使用此功能")
-        case .licenseFeatureDenied: DemoL10n.text("当前 SDK 状态无法使用此功能")
-        case .licenseClockInvalid: DemoL10n.text("设备时间异常，请校准后重试")
+        case .licenseMissing, .licenseInvalid, .licenseNotYetValid, .licenseExpired,
+             .licenseFeatureDenied, .licenseClockInvalid:
+            DemoL10n.text("功能不可用,请升级或联系技术支持")
         @unknown default: DemoL10n.text("SDK 返回未知错误，请更新 Demo")
         }
     }

@@ -291,7 +291,7 @@ final class CameraDemoModel: ObservableObject {
                 feature: pendingReferenceFeature,
                 faceID: enrollmentFaceID
             )
-            FacePhotoStore.saveLater(image: alignedFace, faceID: faceID)
+            FacePhotoStore.saveLater(image: alignedFace, faceID: faceID, library: .reference)
             self.pendingReferenceFeature = nil
             enrollmentFaceID = faceID
             refreshReferenceFaces()

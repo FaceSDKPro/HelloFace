@@ -149,7 +149,7 @@ public final class FaceEnrollmentActivity extends CameraFlowActivity {
             dialog.findViewById(R.id.retryButton).setEnabled(false);
             FacePhotoStore.execute(() -> {
                 boolean saved = featureStore.save(faceId, capture.getFeature());
-                if (saved) FacePhotoStore.save(getApplicationContext(), faceId, capture);
+                if (saved) FacePhotoStore.REFERENCE.save(getApplicationContext(), faceId, capture);
                 runOnUiThread(() -> {
                     if (isDestroyed() || !dialog.isShowing()) return;
                     if (!saved) {

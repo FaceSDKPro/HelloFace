@@ -235,7 +235,7 @@
     <string name="search_metadata_group">分组</string>
     <string name="search_metadata_tag">标签</string>
     <string name="search_metadata_save">保存资料</string>
-    <string name="license_unavailable">SDK 当前不可用，请升级到最新版本或联系技术支持</string>
+    <string name="access_unavailable">功能不可用,请升级或联系技术支持</string>
     <string name="uvc_search_allow_camera">请允许访问相机。</string>
     <string name="uvc_search_stream_timeout">无画面，请检查连接。</string>
     <string name="uvc_search_choose_cameras">请在设置中选择两路相机。</string>

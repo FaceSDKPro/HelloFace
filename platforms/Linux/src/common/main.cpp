@@ -210,7 +210,8 @@ int main(int argc, char** argv) {
         }
         if (command.rfind("gallery-", 0) == 0) return galleryCommand(argc, argv);
         Session session;
-        loadModels(session, argv[2]);
+        if (command == "detect") loadBaseModels(session);
+        else loadModels(session, argv[2], command == "self-test");
         if (command == "self-test") selfTest(session);
         else if (command == "detect") detect(session, readImage(argv[3]));
         else if (command == "feature" || command == "capture") {

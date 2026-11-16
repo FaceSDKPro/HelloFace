@@ -22,7 +22,16 @@ export class DemoErrorUi {
     if (error.code === HiFaceErrorCode.IMAGE_FACE_TOO_SMALL) return DemoL10n.text("图片中的人脸过小，请选择更清晰的照片");
     if (error.code === HiFaceErrorCode.PROCESSING_FAILED) return DemoL10n.text("人脸处理未能完成，请重试");
     if (error.code === HiFaceErrorCode.RESOURCE_EXHAUSTED) return DemoL10n.text("设备资源不足，暂时无法完成人脸处理");
+    if (DemoErrorUi.isAccessUnavailable(error)) {
+      return DemoL10n.text("功能不可用,请升级或联系技术支持");
+    }
     return DemoL10n.text("人脸服务发生内部错误");
+  }
+
+  static isAccessUnavailable(error: HiFaceError): boolean {
+    return error.code === HiFaceErrorCode.LICENSE_MISSING || error.code === HiFaceErrorCode.LICENSE_INVALID ||
+      error.code === HiFaceErrorCode.LICENSE_NOT_YET_VALID || error.code === HiFaceErrorCode.LICENSE_EXPIRED ||
+      error.code === HiFaceErrorCode.LICENSE_FEATURE_DENIED || error.code === HiFaceErrorCode.LICENSE_CLOCK_INVALID;
   }
 
   /**

@@ -2,6 +2,7 @@
 
 ## [0.8.12]
 
+- Store authorization in hiface-runtime-v2/runtime_v2.db and preserve the existing authorization directory and app data on upgrade.
 - 本地候选准备中；构建、验收及发布批准待完成。
 
 ## [0.8.11]

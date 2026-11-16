@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cerrno>
 #include <cctype>
+#include <clocale>
+#include <string_view>
 #include <ctime>
 #include <sstream>
 
@@ -53,14 +55,13 @@ inline ErrorPresentation presentError(const std::string& raw, HiFaceStatus statu
     std::string lower = raw;
     std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
     const auto has = [&](const char* value) { return lower.find(value) != std::string::npos; };
-    if (status == HIFACE_STATUS_LICENSE_CLOCK_INVALID) {
-        result.summary = "Check device time."; result.advice = "Correct the clock, then retry."; result.clock = true;
-    } else if (status == HIFACE_STATUS_LICENSE_EXPIRED) {
-        result.summary = "Authorization expired."; result.advice = "Contact support.";
-    } else if (status >= HIFACE_STATUS_LICENSE_MISSING && status <= HIFACE_STATUS_LICENSE_FEATURE_DENIED) {
-        result.summary = "Authorization unavailable."; result.advice = "Check the installation, then retry.";
-        if (status == HIFACE_STATUS_LICENSE_FEATURE_DENIED) result.summary = "Feature unavailable.";
-        if (status == HIFACE_STATUS_LICENSE_NOT_YET_VALID) { result.summary = "Authorization not yet valid."; result.advice = "Check the clock and authorization dates."; result.clock = true; }
+    if ((status >= HIFACE_STATUS_LICENSE_MISSING && status <= HIFACE_STATUS_LICENSE_FEATURE_DENIED) ||
+        status == HIFACE_STATUS_LICENSE_CLOCK_INVALID) {
+        const char* locale = std::setlocale(LC_CTYPE, nullptr);
+        const bool chinese = locale && std::string_view(locale).rfind("zh", 0) == 0;
+        result.summary = chinese ? u8"功能不可用,请升级或联系技术支持" : "Feature unavailable. Update or contact support.";
+        result.advice.clear();
+        result.clock = status == HIFACE_STATUS_LICENSE_CLOCK_INVALID || status == HIFACE_STATUS_LICENSE_NOT_YET_VALID;
     } else if (system_error == ENOSPC || has("no space left") || has("disk full")) {
         result.summary = "Storage full."; result.advice = "Free space, then retry.";
     } else if (system_error == EACCES || system_error == EPERM || has("permission denied") || has("access denied") || has("read-only file system")) {

@@ -135,16 +135,27 @@ struct Database {
     Database& operator=(const Database&) = delete;
 };
 
-inline void loadModels(Session& session, const std::string&) {
-    HiFaceModelLoadReportV1 report{};
-    report.struct_size = sizeof(report);
-    check(hiface_linux_load_builtin_models_v1(session.handle, &report), "initialize SDK models");
+// Basic detection remains available when advanced capabilities are not licensed.
+inline void loadBaseModels(Session& session) {
+    HiFaceModelLoadReportV1 report{}; report.struct_size = sizeof(report);
+    check(hiface_linux_load_base_models_v1(session.handle, &report), "initialize detection models");
+}
+
+inline void loadModels(Session& session, const std::string&, bool liveness = true) {
+    HiFaceModelLoadReportV1 report{}; report.struct_size = sizeof(report);
+    auto status = hiface_linux_load_builtin_models_v1(session.handle, &report);
+    // The bundled loader loads feature before RGB liveness. Feature-only operations
+    // may use that partial load when only the unused liveness capability is denied.
+    if (!liveness && status == HIFACE_STATUS_LICENSE_FEATURE_DENIED
+            && report.feature_backend == HIFACE_MODEL_BACKEND_CPU) {
+        status = hiface_session_prepare_loaded_models_v1(session.handle, &report);
+    }
+    check(status, "initialize SDK models");
     require(report.detector_backend == HIFACE_MODEL_BACKEND_CPU
             && report.feature_backend == HIFACE_MODEL_BACKEND_CPU
             && report.landmarks_backend == HIFACE_MODEL_BACKEND_CPU
-            && report.silent_liveness_s_backend == HIFACE_MODEL_BACKEND_CPU
-            && report.silent_liveness_m_backend == HIFACE_MODEL_BACKEND_CPU,
-            "Expected CPU models");
+            && (!liveness || (report.silent_liveness_s_backend == HIFACE_MODEL_BACKEND_CPU
+                && report.silent_liveness_m_backend == HIFACE_MODEL_BACKEND_CPU)), "Expected CPU models");
 }
 
 struct Image {

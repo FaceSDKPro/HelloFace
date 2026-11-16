@@ -19,7 +19,10 @@ public final class FacePhotoStore {
     public interface Callback { void onLoaded(@Nullable Bitmap bitmap); }
     private static final Object LOCK = new Object();
     private static final ExecutorService IO = Executors.newSingleThreadExecutor(r -> new Thread(r, "HiFaceDemo-Photos"));
-    private FacePhotoStore() {}
+    public static final FacePhotoStore SEARCH = new FacePhotoStore("search");
+    public static final FacePhotoStore REFERENCE = new FacePhotoStore("reference");
+    private final String library;
+    private FacePhotoStore(String library) { this.library = library; }
 
     // Numeric IDs keep their readable filenames. Other UTF-8 IDs use reversible hex encoding,
     // avoiding path traversal, reserved Windows names and case-insensitive filename collisions.
@@ -33,8 +36,8 @@ public final class FacePhotoStore {
         return out.toString();
     }
 
-    private static File file(Context context, String id, boolean create) throws IOException {
-        File directory = new File(context.getNoBackupFilesDir(), "face-photos-v1");
+    private File file(Context context, String id, boolean create) throws IOException {
+        File directory = new File(context.getNoBackupFilesDir(), "face-photos-v1/" + library);
         String encoded = key(id);
         while (encoded.length() > 120) {
             directory = new File(directory, encoded.substring(0, 120));
@@ -45,13 +48,13 @@ public final class FacePhotoStore {
     }
 
     /** Call on a worker after the feature transaction succeeds; owns/recycles its own preview copy. */
-    public static boolean save(Context context, String id, FaceCaptureResult capture) {
+    public boolean save(Context context, String id, FaceCaptureResult capture) {
         Bitmap bitmap = capture.getAlignedFace();
         try { return save(context, id, bitmap); }
         finally { bitmap.recycle(); }
     }
 
-    public static boolean save(Context context, String id, Bitmap bitmap) {
+    public boolean save(Context context, String id, Bitmap bitmap) {
         synchronized (LOCK) {
             File temporary = null;
             try {
@@ -72,7 +75,7 @@ public final class FacePhotoStore {
     }
 
     /** A missing/corrupt photo is optional. Decode only a thumbnail, with no process-wide bitmap cache. */
-    @Nullable public static Bitmap load(Context context, String id) {
+    @Nullable public Bitmap load(Context context, String id) {
         synchronized (LOCK) {
             try {
                 File target = file(context, id, false);
@@ -101,7 +104,7 @@ public final class FacePhotoStore {
         }
     }
 
-    public static Request loadAsync(Context context, String id, Callback completion) {
+    public Request loadAsync(Context context, String id, Callback completion) {
         Context app = context.getApplicationContext();
         Handler main = new Handler(Looper.getMainLooper());
         Request request = new Request(completion);
@@ -115,12 +118,12 @@ public final class FacePhotoStore {
 
     public static void execute(Runnable work) { IO.execute(work); }
 
-    public static void remove(Context context, String id) {
+    public void remove(Context context, String id) {
         synchronized (LOCK) {
             try {
                 File target = file(context, id, false);
                 target.delete();
-                File root = new File(context.getNoBackupFilesDir(), "face-photos-v1");
+                File root = new File(context.getNoBackupFilesDir(), "face-photos-v1/" + library);
                 for (File parent = target.getParentFile(); parent != null && !parent.equals(root); parent = parent.getParentFile()) {
                     if (!parent.delete()) break;
                 }

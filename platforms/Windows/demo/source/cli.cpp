@@ -79,7 +79,7 @@ int wmain(int argc, wchar_t** argv) {
             }
             else if (command == L"metadata") gallery.updateMetadata(utf8(argv[3]), utf8(argv[4]), utf8(argv[5]));
             else if (command == L"import-json") {
-                const auto result = importDataset(gallery, argv[3], {}, FacePhotoStore::remove);
+                const auto result = importDataset(gallery, argv[3], {}, [](const std::string& id) { FacePhotoStore::remove(id); });
                 std::cout << "processed=" << result.processed << " saved=" << result.saved << " failed=" << result.failed << '\n';
                 if (result.failed) return 1;
             } else std::cout << "exported=" << exportDataset(gallery, argv[3], argc == 6 ? utf8(argv[4]) : "", argc == 6 ? utf8(argv[5]) : "") << '\n';

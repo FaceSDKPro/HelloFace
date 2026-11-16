@@ -201,7 +201,7 @@ private struct FaceRecognitionMenuView: View {
                         LazyHStack(alignment: .top, spacing: 14) {
                             ForEach(references, id: \.self) { faceID in
                                 VStack(spacing: 8) {
-                                    FacePhotoThumbnail(faceID: faceID, diameter: 64, circular: true)
+                                    FacePhotoThumbnail(faceID: faceID, library: .reference, diameter: 64, circular: true)
                                     Text(faceID).font(.caption).lineLimit(2).multilineTextAlignment(.center)
                                 }
                                 .frame(width: 80).padding(.vertical, 2)
@@ -319,7 +319,7 @@ private struct FaceRecognitionMenuView: View {
         do {
             try DemoFaceStore.delete(faceID: faceID)
             references.removeAll { $0 == faceID }
-            Task { await FacePhotoStore.remove(faceID: faceID) }
+            Task { await FacePhotoStore.remove(faceID: faceID, library: .reference) }
         } catch {
             result = RecognitionInlineResult(title: DemoL10n.text("删除失败"),
                 detail: error.localizedDescription, passed: false)

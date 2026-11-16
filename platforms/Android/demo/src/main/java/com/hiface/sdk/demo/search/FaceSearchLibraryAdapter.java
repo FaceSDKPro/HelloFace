@@ -162,7 +162,7 @@ final class FaceSearchLibraryAdapter extends ListAdapter<Person, FaceSearchLibra
             this.person = person;
             faceId = person.id;
             final String requestedId = faceId;
-            photoRequest = FacePhotoStore.loadAsync(itemView.getContext(), requestedId, bitmap -> {
+            photoRequest = FacePhotoStore.SEARCH.loadAsync(itemView.getContext(), requestedId, bitmap -> {
                 if (!requestedId.equals(faceId)) { if (bitmap != null) bitmap.recycle(); return; }
                 photoRequest = null;
                 photoBitmap = bitmap;

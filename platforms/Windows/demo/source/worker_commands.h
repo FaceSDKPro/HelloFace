@@ -41,6 +41,14 @@ inline bool replacesView(Action action) {
         default: return false;
     }
 }
+// Confirmed single writes outlive page navigation; imports remain explicitly cancellable.
+inline bool commitsData(Action action) {
+    switch (action) {
+        case Action::DeletePerson: case Action::DeleteReference: case Action::UpdatePerson:
+        case Action::SaveEnrollment: case Action::ReplaceEnrollment: case Action::SaveReference: return true;
+        default: return false;
+    }
+}
 // Queue mutation/take requires App's mutex. Photo request epochs are atomic
 // because a running extraction checks them outside that mutex.
 // 队列读写由 App 的互斥锁保护；图片请求代次供进行中的提取读取，因此使用原子量。
@@ -51,9 +59,9 @@ public:
         const int slot = photoSlot(command);
         const bool replace = replacesView(command.action);
         const auto obsolete = [&](const Command& old) {
-            return replace || old.generation != view || (slot >= 0 && photoSlot(old) == slot);
+            return !commitsData(old.action) && (replace || old.generation != view || (slot >= 0 && photoSlot(old) == slot));
         };
-        if (std::count_if(pending_.begin(), pending_.end(), [&](const Command& old) { return !obsolete(old); }) >= 4)
+        if (!replace && std::count_if(pending_.begin(), pending_.end(), [&](const Command& old) { return !obsolete(old); }) >= 4)
             throw std::runtime_error("Task queue is full; wait for the current task");
         command.generation = view;
         command.sequence = next_sequence_ + 1;
@@ -76,8 +84,8 @@ public:
     }
     bool current(const Command& command, uint64_t generation) const {
         const int slot = photoSlot(command);
-        return command.generation == generation
-            && (slot < 0 || command.photo_request == photo_requests_[slot]);
+        return commitsData(command.action) || (command.generation == generation
+            && (slot < 0 || command.photo_request == photo_requests_[slot]));
     }
 private:
     static int photoSlot(const Command& command) {

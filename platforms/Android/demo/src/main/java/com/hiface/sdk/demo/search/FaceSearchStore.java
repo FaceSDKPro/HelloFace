@@ -462,7 +462,7 @@ public final class FaceSearchStore implements AutoCloseable {
     Request<Boolean> delete(String faceId, Callback<Boolean> callback) {
         return execute((db, request) -> {
             HiFaceResult<Boolean> result = db.delete(faceId);
-            if (result.isSuccess() && photoContext != null) FacePhotoStore.remove(photoContext, faceId);
+            if (result.isSuccess() && photoContext != null) FacePhotoStore.SEARCH.remove(photoContext, faceId);
             return result;
         }, callback);
     }
@@ -500,7 +500,7 @@ public final class FaceSearchStore implements AutoCloseable {
             Callback<Boolean> callback) {
         return execute((db, request) -> {
             HiFaceResult<Boolean> result = saveFeature(db, faceId, feature, group, overwriteConfirmed, request);
-            if (result.isSuccess() && photoContext != null) FacePhotoStore.remove(photoContext, faceId);
+            if (result.isSuccess() && photoContext != null) FacePhotoStore.SEARCH.remove(photoContext, faceId);
             return result;
         }, callback);
     }
@@ -513,7 +513,7 @@ public final class FaceSearchStore implements AutoCloseable {
             List<FaceSearchFeatureEntry> batch, Context context) {
         HiFaceResult<Boolean> result = db.saveFeatures(batch);
         if (result.isSuccess() && context != null) {
-            for (FaceSearchFeatureEntry entry : batch) FacePhotoStore.remove(context, entry.getFaceId());
+            for (FaceSearchFeatureEntry entry : batch) FacePhotoStore.SEARCH.remove(context, entry.getFaceId());
         }
         return result;
     }
@@ -524,7 +524,7 @@ public final class FaceSearchStore implements AutoCloseable {
             boolean overwriteConfirmed, Callback<Boolean> callback) {
         return execute((db, request) -> {
             HiFaceResult<Boolean> result = saveFeature(db, faceId, capture.getFeature(), group, overwriteConfirmed, request);
-            if (result.isSuccess() && photoContext != null) FacePhotoStore.save(photoContext, faceId, capture);
+            if (result.isSuccess() && photoContext != null) FacePhotoStore.SEARCH.save(photoContext, faceId, capture);
             return result;
         }, callback);
     }

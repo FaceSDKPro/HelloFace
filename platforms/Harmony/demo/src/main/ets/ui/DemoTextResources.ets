@@ -575,7 +575,7 @@ export const DEMO_TEXT_RESOURCES: Record<string, DemoTextResource> = {
   "默认关闭；标记与预览左右相反时开启，不改变画面。": { name: "demo_9159e93924f3", english: "Off by default. Enable for mirrored overlays; the camera image is unchanged." },
   "默认更省性能；高清适合较远人脸。": { name: "demo_e6c4ca7b86f3", english: "Default uses less processing power; HD suits distant faces." },
   "（应用节流）": { name: "demo_bb0aa5fa3e4f", english: " (app throttled)" },
-  "当前 SDK 状态无法使用此功能": { name: "demo_101b1717f9df", english: "This feature is unavailable for the current SDK state." },
+  "功能不可用,请升级或联系技术支持": { name: "demo_f59655755224", english: "Feature unavailable. Update or contact support." },
   "设备时间异常，请校准后重试": { name: "demo_b38373c53f06", english: "The device time is invalid. Correct it and try again." },
   "1:1 人脸识别 + 活体检测": { name: "demo_17baa8a1e685", english: "1:1 Face Recognition + Liveness" },
   "人脸识别": { name: "demo_e8c92c9f1f1b", english: "Face Recognition" },

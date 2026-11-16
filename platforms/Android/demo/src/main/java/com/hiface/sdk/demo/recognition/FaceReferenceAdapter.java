@@ -67,7 +67,7 @@ public final class FaceReferenceAdapter extends RecyclerView.Adapter<FaceReferen
         holder.photo.setPadding(padding, padding, padding, padding);
         holder.photo.setImageResource(R.drawable.ic_search_person);
         holder.photo.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(holder.photo.getContext(), R.color.content_accent)));
-        holder.request = FacePhotoStore.loadAsync(holder.photo.getContext(), id, image -> {
+        holder.request = FacePhotoStore.REFERENCE.loadAsync(holder.photo.getContext(), id, image -> {
             if (closed) { if (image != null) image.recycle(); return; }
             holder.bitmap = image;
             if (image != null) {

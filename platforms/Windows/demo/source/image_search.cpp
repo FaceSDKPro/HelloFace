@@ -13,7 +13,7 @@ std::optional<ImageSearchResult> resolveImageFaces(const Gallery& database,
         ImageSearchFace face; face.face = capture.face; face.face.mesh = nullptr; face.status = capture.status;
         if (capture.status != HIFACE_STATUS_OK) {
             face.label = capture.status == HIFACE_STATUS_IMAGE_FACE_TOO_SMALL ? u8"人脸太小"
-                : SdkError(capture.status, "Capture face").what();
+                : demoErrorMessage(SdkError(capture.status, "Capture face"));
         } else {
             if (!capture.capture) throw std::runtime_error("Successful image face has no feature");
             face.preview = std::move(capture.capture->preview);
@@ -25,7 +25,7 @@ std::optional<ImageSearchResult> resolveImageFaces(const Gallery& database,
                     std::ostringstream label; label << face.match->entry.id << " | " << std::fixed << std::setprecision(2) << face.match->score;
                     face.label = label.str();
                 }
-            } catch (const SdkError& error) { face.status = error.status; face.label = error.what(); }
+            } catch (const SdkError& error) { face.status = error.status; face.label = demoErrorMessage(error); }
             capture.capture->feature.fill(0);
         }
         result.faces.push_back(std::move(face));

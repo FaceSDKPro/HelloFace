@@ -5,6 +5,7 @@ import SwiftUI
 
 /// Confirmed Demo crops only. App sandbox, excluded from backup; no shared URLs or image history.
 enum FacePhotoStore {
+    enum Library: String, Sendable { case search, reference }
     private static let queue = DispatchQueue(label: "HiFaceDemo.Photos", qos: .utility)
 
     private static func background<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {
@@ -13,11 +14,12 @@ enum FacePhotoStore {
         }
     }
 
-    private static func file(_ faceID: String, create: Bool) throws -> URL {
+    private static func file(_ faceID: String, library: Library, create: Bool) throws -> URL {
         guard !faceID.isEmpty, !faceID.contains("\0") else { throw CocoaError(.fileWriteInvalidFileName) }
         var root = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
                                               appropriateFor: nil, create: create)
             .appendingPathComponent("face-photos-v1", isDirectory: true)
+            .appendingPathComponent(library.rawValue, isDirectory: true)
         if create {
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
             var values = URLResourceValues()
@@ -34,9 +36,9 @@ enum FacePhotoStore {
         return root.appendingPathComponent(key + ".jpg")
     }
 
-    private static func write(_ image: CGImage?, faceID: String) {
+    private static func write(_ image: CGImage?, faceID: String, library: Library) {
         do {
-            let path = try file(faceID, create: true)
+            let path = try file(faceID, library: library, create: true)
             guard let image, image.width <= 720, image.height <= 720 else {
                 try? FileManager.default.removeItem(at: path)
                 return
@@ -55,33 +57,33 @@ enum FacePhotoStore {
             #endif
         } catch {
             // Feature has already committed. A failed replacement must not display the old face.
-            if let path = try? file(faceID, create: false) { try? FileManager.default.removeItem(at: path) }
+            if let path = try? file(faceID, library: library, create: false) { try? FileManager.default.removeItem(at: path) }
         }
     }
 
-    static func saveLater(image: CGImage?, faceID: String) {
-        queue.async { write(image, faceID: faceID) }
+    static func saveLater(image: CGImage?, faceID: String, library: Library = .search) {
+        queue.async { write(image, faceID: faceID, library: library) }
     }
 
-    static func save(image: CGImage?, faceID: String) async {
-        await background { write(image, faceID: faceID) }
+    static func save(image: CGImage?, faceID: String, library: Library = .search) async {
+        await background { write(image, faceID: faceID, library: library) }
     }
 
-    static func remove(faceID: String) async {
-        await remove(faceIDs: [faceID])
+    static func remove(faceID: String, library: Library = .search) async {
+        await remove(faceIDs: [faceID], library: library)
     }
 
-    static func remove(faceIDs: [String]) async {
+    static func remove(faceIDs: [String], library: Library = .search) async {
         await background {
             for faceID in faceIDs {
-                if let path = try? file(faceID, create: false) { try? FileManager.default.removeItem(at: path) }
+                if let path = try? file(faceID, library: library, create: false) { try? FileManager.default.removeItem(at: path) }
             }
         }
     }
 
-    static func thumbnail(faceID: String) async -> CGImage? {
+    static func thumbnail(faceID: String, library: Library = .search) async -> CGImage? {
         await background {
-            guard let path = try? file(faceID, create: false),
+            guard let path = try? file(faceID, library: library, create: false),
                   let info = try? path.resourceValues(forKeys: [.fileSizeKey]),
                   let count = info.fileSize, count > 0, count <= 1024 * 1024,
                   let data = try? Data(contentsOf: path), data.count <= 1024 * 1024,
@@ -97,13 +99,14 @@ enum FacePhotoStore {
 
 struct FacePhotoThumbnail: View {
     let faceID: String
+    let library: FacePhotoStore.Library
     let revision: Int
     let diameter: CGFloat
     let circular: Bool
     @State private var photo: CGImage?
-    private struct LoadKey: Hashable { let faceID: String; let revision: Int }
-    init(faceID: String, revision: Int = 0, diameter: CGFloat = 42, circular: Bool = false) {
-        self.faceID = faceID; self.revision = revision
+    private struct LoadKey: Hashable { let faceID: String; let library: FacePhotoStore.Library; let revision: Int }
+    init(faceID: String, library: FacePhotoStore.Library = .search, revision: Int = 0, diameter: CGFloat = 42, circular: Bool = false) {
+        self.faceID = faceID; self.library = library; self.revision = revision
         self.diameter = diameter; self.circular = circular
     }
     var body: some View {
@@ -117,9 +120,9 @@ struct FacePhotoThumbnail: View {
         .frame(width: diameter, height: diameter)
         .background(circular ? DemoTheme.contentAccent.opacity(0.08) : .white.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: circular ? diameter / 2 : 9))
-        .task(id: LoadKey(faceID: faceID, revision: revision)) {
+        .task(id: LoadKey(faceID: faceID, library: library, revision: revision)) {
             photo = nil
-            let loaded = await FacePhotoStore.thumbnail(faceID: faceID)
+            let loaded = await FacePhotoStore.thumbnail(faceID: faceID, library: library)
             guard !Task.isCancelled else { return }
             photo = loaded
         }

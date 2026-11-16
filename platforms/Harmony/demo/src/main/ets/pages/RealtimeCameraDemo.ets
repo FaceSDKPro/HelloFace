@@ -1,5 +1,5 @@
 import { DemoL10n } from '../ui/DemoL10n';
-import { FacePhotoStore, FacePhoto } from '../verification/FacePhotoStore';
+import { FacePhotoLibrary, FacePhotoStore, FacePhoto } from '../verification/FacePhotoStore';
 import { FaceVerificationFlow } from '../verification/FaceVerificationFlow';
 import { FaceLivenessFlow } from '../liveness/FaceLivenessFlow';
 import { SearchSettingsDialog } from '../search/SearchSettingsDialog';
@@ -981,7 +981,7 @@ export struct RealtimeCameraDemo {
     this.detectedPeople = 0;
     this.searchedPeople = 0;
     this.guideState = DemoL10n.text("连续搜索已暂停");
-    this.resultState = this.searchRetryVisible ? DemoErrorUi.describe(error) :
+    this.resultState = this.searchRetryVisible || DemoErrorUi.isAccessUnavailable(error) ? DemoErrorUi.describe(error) :
       DemoL10n.text("搜索恢复失败，请检查配置并重新进入。");
     this.drawOverlay();
   }
@@ -1165,7 +1165,7 @@ export struct RealtimeCameraDemo {
     const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
     try {
       const saved: boolean = await this.onReferenceConfirmed(faceId, feature);
-      if (saved) await FacePhotoStore.save(context, faceId, photo);
+      if (saved) await FacePhotoStore.save(context, faceId, photo, FacePhotoLibrary.REFERENCE);
       if (!this.visible || captureGeneration !== this.captureGeneration) return;
       if (!saved) {
         this.enrollmentError = DemoL10n.text("Face ID 与特征安全保存失败，请重试");

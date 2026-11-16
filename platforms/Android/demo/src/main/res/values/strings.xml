@@ -235,7 +235,7 @@
     <string name="search_metadata_group">Group</string>
     <string name="search_metadata_tag">Tag</string>
     <string name="search_metadata_save">Save metadata</string>
-    <string name="license_unavailable">The SDK is unavailable. Update to the latest version or contact support.</string>
+    <string name="access_unavailable">Feature unavailable. Update or contact support.</string>
     <string name="uvc_search_allow_camera">Allow camera access.</string>
     <string name="uvc_search_stream_timeout">No video. Check the connection.</string>
     <string name="uvc_search_choose_cameras">Select both cameras in Settings.</string>

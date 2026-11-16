@@ -40,7 +40,7 @@ struct Security {
             throw std::runtime_error("Cannot restrict photo directory");
     }
 };
-std::filesystem::path file(const std::string& id, bool create, Security* security = nullptr) {
+std::filesystem::path file(const std::string& id, FacePhotoStore::Library library, bool create, Security* security = nullptr) {
     if (id.empty() || id.find('\0') != std::string::npos) throw std::runtime_error("Invalid Face ID");
     PWSTR raw = nullptr;
     checkHr(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &raw), "Find private photo directory");
@@ -51,6 +51,8 @@ std::filesystem::path file(const std::string& id, bool create, Security* securit
     if (create) security->directory(root);
     root /= L"face-photos-v1";
     if (create) security->directory(root);
+    root /= library == FacePhotoStore::Library::Reference ? L"reference" : L"search";
+    if (create) security->directory(root);
     std::string key = id;
     if (!std::all_of(id.begin(), id.end(), [](unsigned char c) { return c >= '0' && c <= '9'; })) {
         const char* hex = "0123456789abcdef"; key = "~";
@@ -60,11 +62,11 @@ std::filesystem::path file(const std::string& id, bool create, Security* securit
     return root / widen(key + ".png");
 }
 }
-bool FacePhotoStore::save(const std::string& id, const Image* image) noexcept {
+bool FacePhotoStore::save(const std::string& id, const Image* image, Library library) noexcept {
     std::filesystem::path temporary;
     try {
         Security security;
-        const auto target = file(id, true, &security);
+        const auto target = file(id, library, true, &security);
         if (!image || image->width < 1 || image->height < 1 || image->width > 720 || image->height > 720)
             throw std::runtime_error("No confirmed crop");
         GUID guid{}; checkHr(CoCreateGuid(&guid), "Create photo transaction");
@@ -79,12 +81,12 @@ bool FacePhotoStore::save(const std::string& id, const Image* image) noexcept {
         return true;
     } catch (...) {
         if (!temporary.empty()) DeleteFileW(temporary.c_str());
-        remove(id); return false;
+        remove(id, library); return false;
     }
 }
-std::shared_ptr<const Image> FacePhotoStore::load(const std::string& id) noexcept {
+std::shared_ptr<const Image> FacePhotoStore::load(const std::string& id, Library library) noexcept {
     try {
-        const auto path = file(id, false);
+        const auto path = file(id, library, false);
         const auto flags = GetFileAttributesW(path.c_str());
         if (flags == INVALID_FILE_ATTRIBUTES || flags & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY)
                 || std::filesystem::file_size(path) > 1024 * 1024) return {};
@@ -99,7 +101,7 @@ std::shared_ptr<const Image> FacePhotoStore::load(const std::string& id) noexcep
         return thumbnail;
     } catch (...) { return {}; }
 }
-void FacePhotoStore::remove(const std::string& id) noexcept {
-    try { DeleteFileW(file(id, false).c_str()); } catch (...) {}
+void FacePhotoStore::remove(const std::string& id, Library library) noexcept {
+    try { DeleteFileW(file(id, library, false).c_str()); } catch (...) {}
 }
 }

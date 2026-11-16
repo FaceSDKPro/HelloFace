@@ -111,10 +111,10 @@ bool imageExtension(std::filesystem::path file) {
     return extension == ".jpg" || extension == ".jpeg" || extension == ".png" || extension == ".bmp" || extension == ".ppm";
 }
 }
-FaceWorkflow::FaceWorkflow(const std::string& models, const std::string& database)
+FaceWorkflow::FaceWorkflow(const std::string&, const std::string& database)
     : database_(database.c_str()), data_directory_(std::filesystem::path(database).has_parent_path()
         ? std::filesystem::path(database).parent_path() : std::filesystem::path(".")) {
-    loadModels(session_, models);
+    loadBaseModels(session_);
     captured_database_ = std::make_unique<Database>((data_directory_ / "captured-faces.db").c_str());
     loadCapturedFaces();
     recount();
@@ -161,7 +161,7 @@ void FaceWorkflow::confirmEnrollment(const std::string& id, const std::string& g
         if (exists) { duplicate_enrollment_id = id; throw DemoError{"ALREADY_EXISTS: confirm replacing this Face ID"}; }
     }
     enrollment_.save(target, id, capture ? "" : group, capture ? "" : tag, capture || overwrite);
-    FacePhotoStore(data_directory_).save(id, aligned_preview.get());
+    FacePhotoStore(data_directory_, capture ? FacePhotoStore::Library::Reference : FacePhotoStore::Library::Search).save(id, aligned_preview.get());
     saved_capture_kind = pending_capture_kind_; ++saved_capture_generation;
     pending_capture_kind_ = 0; duplicate_enrollment_id.clear();
     if (capture) { loadCapturedFaces(); status = "Face ID and feature saved: " + id; }
@@ -171,7 +171,7 @@ void FaceWorkflow::loadCapturedFaces() {
     captured_faces.clear();
     for (uint32_t offset = 0;; offset += 100) {
         auto rows = listGallery(*captured_database_, "", "", offset, 100);
-        for (auto& row : rows) row.photo = FacePhotoStore(data_directory_).load(row.id);
+        for (auto& row : rows) row.photo = FacePhotoStore(data_directory_, FacePhotoStore::Library::Reference).load(row.id);
         captured_faces.insert(captured_faces.end(), rows.begin(), rows.end());
         if (rows.size() < 100) break;
     }
@@ -187,7 +187,7 @@ void FaceWorkflow::selectCapturedReference(const std::string& id) {
 void FaceWorkflow::deleteCapturedReference(const std::string& id) {
     uint64_t deleted = 0;
     check(hiface_search_delete_v1(captured_database_->handle, id.c_str(), &deleted), "delete captured reference");
-    FacePhotoStore(data_directory_).remove(id);
+    FacePhotoStore(data_directory_, FacePhotoStore::Library::Reference).remove(id);
     if (id == reference_id && reference_from_captured_) clearReference();
     loadCapturedFaces();
     status = deleted ? "Deleted " + id : "Face ID not found";
@@ -252,6 +252,7 @@ void FaceWorkflow::beginFlow(char mode) {
         require(!exists, "ALREADY_EXISTS: choose a different enrollment ID");
     }
     stop();
+    loadModels(session_, "", mode == 'L' || (mode == 'V' && settings_.verification_liveness));
     HiFaceFlowConfigV1 config{};
     config.struct_size = sizeof(config); config.api_version = HIFACE_C_API_VERSION_V1;
     config.mode = mode == 'L' ? HIFACE_FLOW_ACTION_LIVENESS : mode == 'V'
@@ -280,6 +281,7 @@ void FaceWorkflow::action(char key) {
     if (key == 'C' || key == 'E' || key == 'L' || key == 'V') { beginFlow(key); return; }
     if (key == 'S') {
         stop();
+        loadModels(session_, "", settings_.search_liveness && !settings_.search_multi);
         check(hiface_search_warm_up_v1(database_.handle, settings_.group.c_str(), settings_.tag.c_str()), "warm search scope");
         HiFaceSearchCameraConfigV1 config{};
         config.struct_size = sizeof(config); config.max_faces = settings_.search_faces;
@@ -339,7 +341,7 @@ void FaceWorkflow::previewComparisonPhoto(bool first, const std::string& path, c
         return; // Android retains the previous photo/feature when the picker fails.
     }
     Feature feature{}; std::string failure;
-    try { feature = captureFeature(session_, *photo); }
+    try { loadModels(session_, "", false); feature = captureFeature(session_, *photo); }
     catch (const DemoError& error) { failure = error.message; }
     if (stopped()) return;
     stop(); aligned_preview.reset(); image_matches.clear(); boxes.clear(); comparison_similarity.reset();
@@ -455,6 +457,7 @@ void FaceWorkflow::imageOperation(const std::string& operation, const std::strin
         image_first=std::move(selected_image);image_second.reset();aligned_preview.reset();image_matches.clear();
         boxes = detectionBoxes(faces.data(), result.count); status = "Photo faces: " + std::to_string(result.count); return;
     }
+    loadModels(session_, "", false);
     std::vector<uint8_t> preview;
     const auto feature = captureFeature(session_, *selected_image, &preview);
     image_first=std::move(selected_image);image_second.reset();image_matches.clear();
@@ -484,6 +487,7 @@ void FaceWorkflow::searchPhoto(const std::string& path, const std::function<bool
     const auto begin = monotonicMilliseconds();
     auto image = std::make_shared<Image>(readSearchImage(path.c_str()));
     if (cancelled && cancelled()) return;
+    loadModels(session_, "", false);
     auto report = std::make_shared<ImageSearchReport>(searchImage(session_, database_, *image, cancelled));
     if (report->cancelled || (cancelled && cancelled())) return;
     search_photo = std::move(image); photo_search = std::move(report); search_photo_path = path;
@@ -533,6 +537,7 @@ void FaceWorkflow::startImport(const std::string& path, bool images, const std::
     import_entries_.clear(); import_images_.clear(); import_saved = import_failed = import_processed = 0;
     importing_images_ = images; import_group_ = group;
     if (images) {
+        loadModels(session_, "", false);
         require(std::filesystem::is_directory(path), "Select a local image directory");
         for (const auto& file : std::filesystem::directory_iterator(path)) if (file.is_regular_file() && imageExtension(file.path())) {
             require(import_images_.size() < HIFACE_SEARCH_MAX_ENTRIES, "Image directory exceeds 50000 entries"); import_images_.push_back(file.path());

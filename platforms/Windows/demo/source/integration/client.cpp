@@ -41,7 +41,7 @@ void validateImage(const Image& image) {
         throw std::runtime_error("Expected an even-sized, tightly packed RGBA image, at most 4096x4096");
 }
 }
-// Configure CPU, open the gallery and load only detection/feature capabilities.
+// Configure CPU, open the gallery and load only detection capabilities.
 // Flow/search-specific models are loaded lazily by their start methods.
 // 创建 CPU 会话并打开人脸库；动作/活体能力到实际使用时再加载。
 Client::Client(const std::filesystem::path& database) {
@@ -68,8 +68,6 @@ Client::Client(const std::filesystem::path& database) {
             if (database.has_parent_path()) std::filesystem::create_directories(database.parent_path());
             check(hiface_search_open_v1(path.c_str(), &database_), "open face database");
             load(HIFACE_MODEL_DETECTOR);
-            load(HIFACE_MODEL_FEATURE);
-            startSearch();
             break;
         } catch (const Error& error) {
             clear();
@@ -97,6 +95,7 @@ void Client::load(HiFaceModelIdV1 id) {
     loaded_.at(static_cast<size_t>(id)) = true;
 }
 void Client::loadAllModels() {
+    load(HIFACE_MODEL_FEATURE);
     load(HIFACE_MODEL_LANDMARKS);
     load(HIFACE_MODEL_SILENT_LIVENESS_S);
     load(HIFACE_MODEL_SILENT_LIVENESS_M);
@@ -137,6 +136,7 @@ HiFaceFlowConfigV1 flowConfig(const FlowOptions& options, const Feature* referen
 }
 void Client::startSearch() {
     if (!search_enabled_ || search_paused_ || flow_active_) return;
+    load(HIFACE_MODEL_FEATURE);
     if (search_.liveness) {
         load(HIFACE_MODEL_SILENT_LIVENESS_S);
         load(HIFACE_MODEL_SILENT_LIVENESS_M);
@@ -188,6 +188,7 @@ void Client::beginFlow(const FlowOptions& options) {
     ClearFeature clear{reference};
     if (options.kind == FlowKind::Verification) reference = decodeFeature(options.reference);
     const auto config = flowConfig(options, options.kind == FlowKind::Verification ? &reference : nullptr);
+    load(HIFACE_MODEL_FEATURE);
     load(HIFACE_MODEL_LANDMARKS);
     if (options.kind == FlowKind::Liveness || (options.kind == FlowKind::Verification && options.silent_liveness)) {
         load(HIFACE_MODEL_SILENT_LIVENESS_S); load(HIFACE_MODEL_SILENT_LIVENESS_M);
@@ -316,6 +317,7 @@ FrameUpdate Client::detectDetailed(const Image& image, uint32_t max_faces, bool 
 }
 CaptureResult Client::captureWithPreview(const Image& image) {
     validateImage(image);
+    load(HIFACE_MODEL_FEATURE);
     CaptureResult result;
     result.preview = {HIFACE_ALIGNED_PREVIEW_SIDE, HIFACE_ALIGNED_PREVIEW_SIDE, std::vector<uint8_t>(HIFACE_ALIGNED_PREVIEW_RGBA_BYTES)};
     check(hiface_session_capture_rgba_v1(session_, image.rgba.data(), image.rgba.size(), image.width,
@@ -324,6 +326,7 @@ CaptureResult Client::captureWithPreview(const Image& image) {
 }
 Feature Client::capture(const Image& image) {
     validateImage(image);
+    load(HIFACE_MODEL_FEATURE);
     Feature feature{};
     check(hiface_session_capture_rgba_v1(session_, image.rgba.data(), image.rgba.size(), image.width,
         image.height, feature.data(), feature.size(), nullptr, 0), "capture image");
@@ -331,6 +334,7 @@ Feature Client::capture(const Image& image) {
 }
 std::vector<ImageFaceCapture> Client::captureFaces(const Image& image, uint32_t maximum, bool previews) {
     validateImage(image);
+    load(HIFACE_MODEL_FEATURE);
     if (maximum < 1 || maximum > HIFACE_MAX_FACES)
         throw std::invalid_argument("Image capture supports 1-10 faces");
     std::vector<HiFaceFaceV1> faces(maximum);

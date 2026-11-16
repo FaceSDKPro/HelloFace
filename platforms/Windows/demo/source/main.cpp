@@ -372,7 +372,7 @@ INT_PTR CALLBACK metadataProcedure(HWND dialog, UINT message, WPARAM wparam, LPA
             editor->saving=editor->ui->app.enqueue({Action::UpdatePerson,std::move(settings),{},0});
             for(int id:{10,11,IDOK,IDCANCEL})EnableWindow(GetDlgItem(dialog,id),FALSE);
             SetTimer(dialog,1,50,nullptr);
-        }catch(const std::exception& error){MessageBoxW(dialog,widen(error.what()).c_str(),L"保存失败",MB_OK|MB_ICONERROR);}
+        }catch(const std::exception& error){MessageBoxW(dialog,widen(demoErrorMessage(std::current_exception())).c_str(),L"保存失败",MB_OK|MB_ICONERROR);}
         return TRUE;
     }
     if(message==WM_TIMER && editor->saving){
@@ -560,7 +560,7 @@ void layout(Ui& ui) {
                 const auto found = ui.recognition_photos.find(id);
                 if (found != ui.recognition_photos.end()) photos.emplace(id,found->second);
                 else {
-                    const auto photo = FacePhotoStore::load(id);
+                    const auto photo = FacePhotoStore::load(id, FacePhotoStore::Library::Reference);
                     photos.emplace(id,photo ? bgraImage(*photo) : nullptr);
                 }
             }
@@ -1337,7 +1337,7 @@ void create(Ui& ui) {
     ui.drafts[static_cast<size_t>(Page::Detection)].max_faces=L"10";
     SetTimer(window,kSearchDisplayTimer,100,nullptr);
     ui.creating = false; layout(ui);
-    try { refreshDevices(ui); } catch (const std::exception& error) { writeLog(error.what()); setText(window, Status, widen(error.what())); }
+    try { refreshDevices(ui); } catch (const std::exception& error) { writeLog(error.what()); setText(window, Status, widen(demoErrorMessage(std::current_exception()))); }
     ui.app.start();
 }
 bool prepareRecognitionDraft(Ui& ui,bool verification){
@@ -1683,7 +1683,7 @@ bool shortcut(Ui& ui, const MSG& message) {
     if (!(message.lParam & (LPARAM(1) << 30)) && IsWindowEnabled(child(ui.app.window, id))) {
         try { action(ui, id, BN_CLICKED); }
         catch (const std::exception& error) {
-            writeLog(error.what()); MessageBoxW(ui.app.window, widen(error.what()).c_str(), L"HiFace", MB_OK | MB_ICONERROR);
+            writeLog(error.what()); MessageBoxW(ui.app.window, widen(demoErrorMessage(std::current_exception())).c_str(), L"HiFace", MB_OK | MB_ICONERROR);
         }
     }
     return true;
@@ -1906,7 +1906,7 @@ LRESULT CALLBACK windowProcedure(HWND window, UINT message, WPARAM wparam, LPARA
             case WM_DESTROY: PostQuitMessage(0); return 0;
         }
     } catch (const std::exception& error) {
-        writeLog(error.what()); MessageBoxW(window, widen(error.what()).c_str(), L"HiFace", MB_OK | MB_ICONERROR);
+        writeLog(error.what()); MessageBoxW(window, widen(demoErrorMessage(std::current_exception())).c_str(), L"HiFace", MB_OK | MB_ICONERROR);
         if (message == WM_CREATE) return -1;
         return 0;
     }
@@ -1959,6 +1959,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         if (result == -1) throw std::runtime_error("Windows message loop failed");
         return 0;
     } catch (const std::exception& error) {
-        writeLog(error.what()); MessageBoxW(nullptr, widen(error.what()).c_str(), L"HiFace startup failed", MB_OK | MB_ICONERROR); return 1;
+        writeLog(error.what()); MessageBoxW(nullptr, widen(demoErrorMessage(std::current_exception())).c_str(), L"HiFace startup failed", MB_OK | MB_ICONERROR); return 1;
     }
 }

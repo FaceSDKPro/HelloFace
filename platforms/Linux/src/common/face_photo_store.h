@@ -10,7 +10,9 @@ namespace hiface_linux_demo {
 // Mode 0700/0600 isolates users; ordinary processes running under the same UID remain able to read.
 class FacePhotoStore {
 public:
-    explicit FacePhotoStore(std::filesystem::path directory) : root_(std::move(directory) / "face-photos-v1") {}
+    enum class Library { Search, Reference };
+    explicit FacePhotoStore(std::filesystem::path directory, Library library = Library::Search)
+        : root_(std::move(directory) / "face-photos-v1" / (library == Library::Reference ? "reference" : "search")) {}
     bool save(const std::string& id, const Image* image) const noexcept {
         try {
             const auto target = file(id, true);
@@ -77,6 +79,7 @@ private:
             const char* hex = "0123456789abcdef"; key = "~";
             for (unsigned char c : id) { key += hex[c >> 4]; key += hex[c & 15]; }
         }
+        directory(root_.parent_path(), create);
         auto path = root_; directory(path, create);
         while (key.size() > 120) { path /= key.substr(0, 120); key.erase(0, 120); directory(path, create); }
         return path / (key + ".ppm");

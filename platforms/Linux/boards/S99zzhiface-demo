@@ -64,8 +64,8 @@ prepare_runtime_storage() {
     case "$HIFACE_RUNTIME_STATE_KEY" in *[!0-9a-f]*|'') return 1;; esac
     [ "${#HIFACE_RUNTIME_STATE_KEY}" = 64 ] || return 1
     runtime_parent=/userdata/hiface-data/sdk-state/$HIFACE_RUNTIME_STATE_KEY
-    runtime_source=$runtime_parent/runtime_v1
-    runtime_target=${HIFACE_DEMO_HOME}/.local/state/hiface/$HIFACE_RUNTIME_STATE_KEY/runtime_v1
+    runtime_source=$runtime_parent/runtime_v2
+    runtime_target=${HIFACE_DEMO_HOME}/.local/state/hiface/$HIFACE_RUNTIME_STATE_KEY/runtime_v2
     for runtime_dir in /userdata/hiface-data/sdk-state "$runtime_parent" "$runtime_source" "$runtime_target"; do
         [ ! -L "$runtime_dir" ] || return 1
         mkdir -p "$runtime_dir" || return 1
@@ -73,7 +73,7 @@ prepare_runtime_storage() {
         chmod 0700 "$runtime_dir" || return 1
     done
     if ! grep -Fq " $runtime_target " /proc/mounts; then
-        if [ -e "$runtime_target/runtime_v1.db" ]; then
+        if [ -e "$runtime_target/runtime_v2.db" ]; then
             log "Unexpected runtime state under mount point; preserving it"
             return 1
         fi

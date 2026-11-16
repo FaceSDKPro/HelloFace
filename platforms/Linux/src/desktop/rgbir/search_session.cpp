@@ -6,7 +6,7 @@
 
 namespace hiface_linux_demo::rgbir {
 SearchSession::SearchSession(Database& database, const RgbIrSettings& settings) : database_(database) {
-    loadModels(session, "");
+    loadModels(session, "", false);
     HiFaceModelLoadReportV1 report{};
     report.struct_size = sizeof(report);
     check(hiface_linux_load_infrared_model_v1(session.handle, &report), "load infrared model");

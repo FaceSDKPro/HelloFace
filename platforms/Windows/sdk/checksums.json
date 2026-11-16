@@ -5,11 +5,11 @@
     "LICENSE": "d29e016e7677af48d5fa94efc45191ec6888f6cdbdc34e98b123b79666ad2133",
     "README.md": "20c320d97f3caa83e56cd437f706f7c3628c5ee32b65b0071312c6c895cb5458",
     "README.zh-CN.md": "e777312535adda13827741c9c08cbe99fce60859f8d527769a4dd5ffca8384fb",
-    "bin/hiface.dll": "8983c74dfaa5d89dc6a2e864326de62794485716507dab588c7eb96e1b6ac780",
+    "bin/hiface.dll": "b1d861a0f207f82f123520e0155ffadd91f30f0a06b66642b63e642136f2933b",
     "bin/libc++.dll": "b97586e466fbcbd3f801448802038a4f7550fc7e0381cd873b486cd59fdd2305",
     "bin/libomp.dll": "caa72f2795fd6bf82a137969ce417f8d43e8e88483b13c2e474069616e546bab",
     "bin/libunwind.dll": "0d86a6dfb5a20082b4d74c43a8ce36a30eb2748e4e779c336d174a876ef569c6",
-    "include/hiface/hiface_c_api.h": "74ecade839e24426056678f392215c68dcd90e63523611e6829daaaebbe3718b",
+    "include/hiface/hiface_c_api.h": "6bae015ed2175d7dd268fd9766979c5638417a4708c5e1b4aefaba730f8894f7",
     "include/hiface/hiface_contract_v1.h": "6ecb6815d3e49d46083d5775471fba7b4d1edef3780adcdd625dc1268f6e7b68",
     "include/hiface/hiface_windows.h": "63c1e84269c7fa8120c98a2b095ae040152860dba4270a7168e82e2bf659082f",
     "lib/cmake/HiFace/HiFaceConfig.cmake": "6fc1fc1f1096f41eced2f2b5abbdadf92f18f71a4a13fbb08ddec627fdef9d85",
@@ -23,7 +23,7 @@
     "licenses/mingw-w64/COPYING.MinGW-w64.txt": "f38e6194bd3bfa1b654f118e5acefe0aead437bbe669eee43957ccc65a7127f1",
     "licenses/mingw-w64/COPYING.winpthreads.txt": "63263614cdd29f2f93cba85e992f041b31f9fc7b4033692f31269489a8a1b177",
     "licenses/mingw-w64/COPYING.winstorecompat.txt": "fa7368d1f93d890c173177475d8ec7aff265a7d08f1f364d66f74d138978ce36",
-    "sdk-metadata.json": "08b77e74d97ae97bd9734c682301330e3ec411166c7e6432038e871cb86ba550",
+    "sdk-metadata.json": "492aedf697a104ce8d79fc602ea8472ccd14791b7efbdfe52c9291c289490140",
     "share/hiface/exports.txt": "e954b879a695da32ba9773e73cc0b2ec27403d1fe5a46c1e507ab52ded7bd8f1"
   }
 }

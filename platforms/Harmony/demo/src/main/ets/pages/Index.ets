@@ -1,7 +1,8 @@
 import { DemoL10n } from '../ui/DemoL10n';
+import { DemoErrorUi } from '../ui/DemoErrorUi';
 import { DemoPageHeader } from '../ui/DemoPageHeader';
 import { RecognitionOptionsPanel } from '../recognition/RecognitionOptionsPanel';
-import { FacePhotoStore, FacePhotoThumbnail } from '../verification/FacePhotoStore';
+import { FacePhotoLibrary, FacePhotoStore, FacePhotoThumbnail } from '../verification/FacePhotoStore';
 import { FaceReference, FaceFeatureStore } from '../verification/FaceFeatureStore';
 import { DemoTheme } from '../ui/DemoTheme';
 import { FaceAction, FaceSearchSessionConfig, HiFaceResult, HiFaceSdk } from 'hiface';
@@ -152,9 +153,15 @@ struct Index {
       this.initializingSdk = undefined;
       this.sdkInitializing = false;
       this.sdkFailed = ready.isFailure();
-      if (ready.isSuccess()) this.sdk = candidate;
-      else candidate.close();
-      this.sdkState = ready.isSuccess() ? DemoL10n.text("识别引擎已就绪") : DemoL10n.text("识别引擎初始化失败，请点击重试");
+      if (ready.isSuccess()) {
+        this.sdk = candidate;
+        this.sdkState = DemoL10n.text("识别引擎已就绪");
+      } else {
+        candidate.close();
+        const error = ready.requireError();
+        this.sdkState = DemoErrorUi.isAccessUnavailable(error) ? DemoErrorUi.describe(error) :
+          DemoL10n.text("识别引擎初始化失败，请点击重试");
+      }
     } catch (_) {
       candidate?.close();
       if (token !== this.lifecycleToken) return;
@@ -212,6 +219,11 @@ struct Index {
     this.cameraPageKey += 1;
   }
 
+  private keepsImageSearch(): boolean {
+    return this.activePage === DemoPage.IMAGE_SEARCH ||
+      (this.activePage === DemoPage.SEARCH_LIBRARY && this.backStack[this.backStack.length - 1] === DemoPage.IMAGE_SEARCH);
+  }
+
   private cameraMode(): RealtimeMode {
     if (this.activePage === DemoPage.ENROLLMENT) return RealtimeMode.CAPTURE;
     if (this.activePage === DemoPage.VERIFICATION) return RealtimeMode.VERIFICATION;
@@ -243,13 +255,16 @@ struct Index {
 
   build() {
     Stack() {
+      // Keep the photo-search instance while its library child is open; leaving the feature releases it.
+      if (this.keepsImageSearch() && this.sdk !== undefined) {
+        FaceImageSearchDemo({ sdk: this.sdk, onExit: (): void => this.goBack(),
+          onOpenLibrary: (): void => this.navigate(DemoPage.SEARCH_LIBRARY) })
+          .visibility(this.activePage === DemoPage.IMAGE_SEARCH ? Visibility.Visible : Visibility.Hidden)
+      }
       if (this.activePage === DemoPage.HOME) {
         this.Home()
       } else if (this.activePage === DemoPage.RECOGNITION) {
         this.RecognitionMenu()
-      } else if (this.activePage === DemoPage.IMAGE_SEARCH && this.sdk !== undefined) {
-        FaceImageSearchDemo({ sdk: this.sdk, onExit: (): void => this.goBack(),
-          onOpenLibrary: (): void => this.navigate(DemoPage.SEARCH_LIBRARY) })
       } else if (this.activePage === DemoPage.COMPARISON && this.sdk !== undefined) {
         StaticFaceComparisonDemo({ sdk: this.sdk, onExit: (): void => this.goBack() })
       } else if (this.activePage === DemoPage.CAMERA_SETTINGS) {
@@ -257,7 +272,7 @@ struct Index {
       } else if (this.activePage === DemoPage.SEARCH_LIBRARY && this.sdk !== undefined) {
         FaceSearchLibraryDemo({ sdk: this.sdk, cameraLifecycle: this.cameraLifecycle,
           onExit: (): void => this.goBack() })
-      } else if (this.sdk !== undefined) {
+      } else if (this.activePage !== DemoPage.IMAGE_SEARCH && this.sdk !== undefined) {
         ForEach([this.cameraPageKey], (_key: number) => {
           RealtimeCameraDemo({
             sdk: this.sdk!, cameraLifecycle: this.cameraLifecycle,
@@ -383,7 +398,7 @@ struct Index {
       // make a completed identity deletion look as though it failed.
       // 加密特征快照是权威数据；旧头像清理失败不能把已完成的身份删除显示成失败。
       try {
-        await FacePhotoStore.remove(context, faceId);
+        await FacePhotoStore.remove(context, faceId, FacePhotoLibrary.REFERENCE);
       } catch (_) {
         // The photo is only Demo presentation data and is no longer reachable.
       }
@@ -421,7 +436,7 @@ struct Index {
               ForEach(this.references, (entry: FaceReference) => {
                 ListItem() {
                   Column({ space: 8 }) {
-                    FacePhotoThumbnail({ faceId: entry.faceId, diameter: 72, circular: true })
+                    FacePhotoThumbnail({ faceId: entry.faceId, library: FacePhotoLibrary.REFERENCE, diameter: 72, circular: true })
                     Text(entry.faceId).fontSize(13).fontColor(DemoTheme.contentText).maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
                       .textAlign(TextAlign.Center).width('100%')
                   }.width(96).padding({ top: 4, bottom: 4 })

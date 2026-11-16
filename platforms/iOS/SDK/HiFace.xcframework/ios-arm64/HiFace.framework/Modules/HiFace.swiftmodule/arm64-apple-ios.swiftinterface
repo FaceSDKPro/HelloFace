@@ -30,9 +30,7 @@ public struct HiFaceAccessInfo : Swift.Sendable, Swift.Equatable {
   public let featureMask: Swift.UInt64
   public let maximumGalleryEntries: Swift.UInt32
   public let mode: HiFace.HiFaceAccessMode
-  public let trialStartedAtSeconds: Swift.Int64
   public let notBeforeSeconds: Swift.Int64
-  public let licenseExpiresAtSeconds: Swift.Int64
   public var isValid: Swift.Bool {
     get
   }

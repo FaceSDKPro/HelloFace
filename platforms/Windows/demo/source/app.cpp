@@ -323,7 +323,8 @@ void App::run() {
                                         }
                                     }
                                 } catch (const std::exception& failure) {
-                                    if (current()) error = (accepted ? u8"提取失败： " : u8"读取失败： ") + std::string(failure.what());
+                                    writeLog(failure.what());
+                                    if (current()) error = demoErrorMessage(std::current_exception(), accepted ? u8"提取失败： " : u8"读取失败： ");
                                 }
                                 state.comparison_extracting = -1;
                                 state.update = {};
@@ -389,13 +390,13 @@ void App::run() {
                         case Action::SaveReference:
                             if (state.settings.page != Page::Reference || !current()) break;
                             reference_draft.save(reference_store(), task.settings.id);
-                            FacePhotoStore::save(normalizeMetadata(task.settings.id), state.captured.get());
+                            FacePhotoStore::save(normalizeMetadata(task.settings.id), state.captured.get(), FacePhotoStore::Library::Reference);
                             state.pending_reference = false; state.captured.reset(); state.reference_ids = reference_store().ids();
                             state.update = {}; state.update.message = u8"采集基准已保存"; break;
                         case Action::DeleteReference: {
                             const auto id = normalizeMetadata(task.settings.id);
                             const bool removed = reference_store().remove(id);
-                            FacePhotoStore::remove(id);
+                            FacePhotoStore::remove(id, FacePhotoStore::Library::Reference);
                             if (state.reference_id == id) {
                                 if (sdk) sdk->cancelFlow();
                                 camera.reset(); reference.clear();
@@ -458,7 +459,7 @@ void App::run() {
                                     state.update.message = u8"导入 " + std::to_string(value.processed) + "/" + std::to_string(value.total) + u8" | 已保存=" + std::to_string(value.saved) + u8" | 失败=" + std::to_string(value.failed); publish(state);
                                 }
                                 return current();
-                            }, FacePhotoStore::remove);
+                            }, [](const std::string& id) { FacePhotoStore::remove(id); });
                             refresh(); state.update.message = std::string(progress.stopped ? u8"已停止导入" : u8"导入完成") + u8" | 保存=" + std::to_string(progress.saved) + u8" | 失败=" + std::to_string(progress.failed); break;
                         }
                         case Action::ExportJson:
@@ -470,7 +471,9 @@ void App::run() {
                                 try {
                                     const auto feature = engine.capture(readImage(task.files[i]));
                                     if (!current()) break;
-                                    gallery.save({{task.files[i].stem().u8string(), task.settings.group, task.settings.tag, encodeFeature(feature), 0}}, true); ++saved;
+                                    const auto id = task.files[i].stem().u8string();
+                                    gallery.save({{id, task.settings.group, task.settings.tag, encodeFeature(feature), 0}}, true);
+                                    FacePhotoStore::remove(id); ++saved;
                                 } catch (const std::exception& error) { ++failed; writeLog(error.what()); }
                                 state.update.message = u8"图片导入 " + std::to_string(i + 1) + "/" + std::to_string(task.files.size()) + u8" | 保存=" + std::to_string(saved) + u8" | 失败=" + std::to_string(failed); publish(state);
                             }
@@ -488,7 +491,7 @@ void App::run() {
                     // A failed old file/SDK request must not flash an error over its replacement.
                     // 已取消的旧文件/SDK 请求失败，不覆盖新请求的界面状态。
                     if (!stopping_ && command->generation == generation) {
-                        state.error = true; state.update.message = error.what();
+                        state.error = true; state.update.message = demoErrorMessage(std::current_exception());
                         notice = state.update.message; notice_until = std::chrono::steady_clock::now() + std::chrono::seconds(8);
                     }
                 }
@@ -606,7 +609,7 @@ void App::run() {
                 writeLog(error.what());
                 if (sdk) { try { sdk->cancelFlow(); } catch (...) {} }
                 camera.reset(); state.camera_open = state.flow_active = false;
-                state.error = true; state.update.message = std::string(u8"摄像头已停止: ") + error.what(); publish(state);
+                state.error = true; state.update.message = demoErrorMessage(std::current_exception(), u8"摄像头已停止: "); publish(state);
             }
         }
         // All Native owners and pending samples die on this worker before COM.
@@ -615,7 +618,7 @@ void App::run() {
     } catch (const std::exception& error) {
         writeLog(error.what()); state.busy = state.camera_open = state.flow_active = false;
         state.fatal = true;
-        state.update.message = std::string(u8"初始化失败: ") + error.what(); publish(state);
+        state.update.message = demoErrorMessage(std::current_exception(), u8"初始化失败: "); publish(state);
     }
     active_ = false;
 }

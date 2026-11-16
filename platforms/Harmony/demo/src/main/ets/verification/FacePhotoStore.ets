@@ -14,6 +14,8 @@ export class FacePhoto {
 }
 
 /** Demo-private, confirmed crops only. Backup is disabled by the Demo's backup profile. */
+export enum FacePhotoLibrary { SEARCH = 'search', REFERENCE = 'reference' }
+
 export class FacePhotoStore {
   private static operations: Promise<void> = Promise.resolve();
 
@@ -28,14 +30,14 @@ export class FacePhotoStore {
     } catch (_) { return undefined; }
   }
 
-  private static async path(context: common.UIAbilityContext, id: string, create: boolean): Promise<string> {
+  private static async path(context: common.UIAbilityContext, id: string, library: FacePhotoLibrary, create: boolean): Promise<string> {
     if (id.length === 0 || id.includes('\u0000')) throw new Error('Invalid Face ID');
     let key: string = /^[0-9]+$/.test(id) ? id : '~';
     if (key === '~') {
       const bytes: Uint8Array = util.TextEncoder.create('utf-8').encodeInto(id);
       for (let index: number = 0; index < bytes.length; ++index) key += bytes[index].toString(16).padStart(2, '0');
     }
-    let directory: string = context.filesDir + '/face-photos-v1';
+    let directory: string = context.filesDir + '/face-photos-v1/' + library;
     while (key.length > 120) { directory += '/' + key.slice(0, 120); key = key.slice(120); }
     if (create) {
       try { await fileIo.mkdir(directory, true); }
@@ -53,7 +55,8 @@ export class FacePhotoStore {
     return result;
   }
 
-  static save(context: common.UIAbilityContext, id: string, photo: FacePhoto | undefined): Promise<void> {
+  static save(context: common.UIAbilityContext, id: string, photo: FacePhoto | undefined,
+    library: FacePhotoLibrary = FacePhotoLibrary.SEARCH): Promise<void> {
     return FacePhotoStore.enqueue<void>(async (): Promise<void> => {
       let path: string = '';
       let temporary: string = '';
@@ -62,7 +65,7 @@ export class FacePhotoStore {
       let file: fileIo.File | undefined = undefined;
       let jpeg: ArrayBuffer | undefined = undefined;
       try {
-        path = await FacePhotoStore.path(context, id, true);
+        path = await FacePhotoStore.path(context, id, library, true);
         if (photo === undefined) throw new Error('No confirmed crop');
         pixels = await image.createPixelMap(photo.rgba, { size: { width: photo.width, height: photo.height },
           srcPixelFormat: image.PixelMapFormat.RGBA_8888, pixelFormat: image.PixelMapFormat.RGBA_8888, editable: false });
@@ -94,23 +97,23 @@ export class FacePhotoStore {
     });
   }
 
-  static remove(context: common.UIAbilityContext, id: string): Promise<void> {
-    return FacePhotoStore.removeMany(context, [id]);
+  static remove(context: common.UIAbilityContext, id: string, library: FacePhotoLibrary = FacePhotoLibrary.SEARCH): Promise<void> {
+    return FacePhotoStore.removeMany(context, [id], library);
   }
 
-  static removeMany(context: common.UIAbilityContext, ids: string[]): Promise<void> {
+  static removeMany(context: common.UIAbilityContext, ids: string[], library: FacePhotoLibrary = FacePhotoLibrary.SEARCH): Promise<void> {
     return FacePhotoStore.enqueue<void>(async (): Promise<void> => {
       for (const id of ids) {
-        try { await fileIo.unlink(await FacePhotoStore.path(context, id, false)); } catch (_) {}
+        try { await fileIo.unlink(await FacePhotoStore.path(context, id, library, false)); } catch (_) {}
       }
     });
   }
 
-  static thumbnail(context: common.UIAbilityContext, id: string): Promise<image.PixelMap | undefined> {
+  static thumbnail(context: common.UIAbilityContext, id: string, library: FacePhotoLibrary = FacePhotoLibrary.SEARCH): Promise<image.PixelMap | undefined> {
     return FacePhotoStore.enqueue<image.PixelMap | undefined>(async (): Promise<image.PixelMap | undefined> => {
       let source: image.ImageSource | undefined = undefined;
       try {
-        const path: string = await FacePhotoStore.path(context, id, false);
+        const path: string = await FacePhotoStore.path(context, id, library, false);
         const info: fileIo.Stat = await fileIo.stat(path);
         if (info.size > 1024 * 1024) return undefined;
         source = image.createImageSource(path);
@@ -126,6 +129,7 @@ export class FacePhotoStore {
 @Component
 export struct FacePhotoThumbnail {
   @Prop @Watch('reload') faceId: string = '';
+  @Prop @Watch('reload') library: FacePhotoLibrary = FacePhotoLibrary.SEARCH;
   diameter: number = 42;
   circular: boolean = false;
   @State private photo: image.PixelMap | undefined = undefined;
@@ -146,7 +150,7 @@ export struct FacePhotoThumbnail {
     this.photo = undefined;
     if (old !== undefined) await old.release();
     const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
-    const loaded: image.PixelMap | undefined = await FacePhotoStore.thumbnail(context, this.faceId);
+    const loaded: image.PixelMap | undefined = await FacePhotoStore.thumbnail(context, this.faceId, this.library);
     if (!this.visible || token !== this.generation) { if (loaded !== undefined) await loaded.release(); return; }
     this.photo = loaded;
   }
