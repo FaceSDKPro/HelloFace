@@ -104,7 +104,7 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
     </td>
     <td align="center" valign="top" width="33%">
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="../../images/GooglePlay.svg" alt="Google Play ダウンロード用 QR コード" width="180" height="180"></a><br>
-      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">ダウンロード</a>
+      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug&amp;referrer=utm_source%3Dgithub%26utm_medium%3Dreferral%26utm_campaign%3Dandroid_demo">ダウンロード</a>
     </td>
   </tr>
 </table>

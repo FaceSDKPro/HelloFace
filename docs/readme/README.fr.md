@@ -104,7 +104,7 @@ E-mail: [FaceAISDK.Service@gmail.com](mailto:FaceAISDK.Service@gmail.com)
     </td>
     <td align="center" valign="top" width="33%">
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="../../images/GooglePlay.svg" alt="Code QR de téléchargement sur Google Play" width="180" height="180"></a><br>
-      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug">Télécharger</a>
+      <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug&amp;referrer=utm_source%3Dgithub%26utm_medium%3Dreferral%26utm_campaign%3Dandroid_demo">Télécharger</a>
     </td>
   </tr>
 </table>
