@@ -78,7 +78,7 @@ public final class FaceSearchActivity extends AppCompatActivity {
         overlay = findViewById(R.id.searchOverlay);
         statusUi = new FaceSearchStatusUi(findViewById(android.R.id.content));
         overlay.setOnResultChanged(() -> statusUi.renderResult(overlay.resultText(),
-                overlay.bestMatchCaption(config.needsLiveness())));
+                overlay.bestScoreCaption(config.needsLiveness())));
         statusUi.renderConfig(config);
     }
 

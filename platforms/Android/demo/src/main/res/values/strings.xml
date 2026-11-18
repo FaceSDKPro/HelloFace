@@ -124,6 +124,7 @@
     <string name="search_ungrouped">No group</string>
     <string name="search_delete">Delete Face</string>
     <string name="search_ui_overlay_similarity">Similarity</string>
+    <string name="search_ui_result_max_sim">MaxSim</string>
     <string name="search_ui_overlay_liveness">Liveness</string>
     <string name="search_ui_overlay_unmatched">No match</string>
     <string name="search_ui_options">%1$s · %2$s</string>
@@ -231,7 +232,7 @@
     <string name="image_search_no_faces">No faces detected. Choose a clearer photo.</string>
     <string name="image_search_empty_library">The face library is empty. Enroll faces first.</string>
     <string name="image_search_face_too_small">Face too small</string>
-    <string name="search_metadata_edit">Edit metadata (always free)</string>
+    <string name="search_metadata_edit">Edit metadata</string>
     <string name="search_metadata_group">Group</string>
     <string name="search_metadata_tag">Tag</string>
     <string name="search_metadata_save">Save metadata</string>
@@ -250,7 +251,7 @@
     <string name="uvc_search_connect_cameras">Connect the RGB and IR cameras.</string>
     <string name="uvc_search_ready">Cameras ready. Tap Start.</string>
     <string name="uvc_search_choose_distinct">Select two different cameras.</string>
-    <string name="uvc_search_threshold_invalid">IR threshold must be 0.60–0.80</string>
+    <string name="uvc_search_threshold_invalid">IR threshold must be 0.80–0.99</string>
     <string name="uvc_search_ir_unavailable">IR check incomplete</string>
     <string name="uvc_search_opening">Opening cameras…</string>
     <string name="uvc_search_no_ir_face">No face in IR. Face the cameras.</string>
@@ -271,7 +272,7 @@
     <string name="uvc_search_settings">Dual-camera settings</string>
     <string name="uvc_search_settings_running">Settings unavailable while running</string>
     <string name="uvc_search_threshold_label">IR liveness threshold</string>
-    <string name="uvc_search_threshold_help">0.60–0.80, default 0.70. Calibrate on the target module before deployment.</string>
+    <string name="uvc_search_threshold_help">0.80–0.99, default 0.90. Calibrate on the target module before deployment.</string>
     <string name="uvc_search_refresh_devices">Refresh connected cameras</string>
     <string name="uvc_search_devices_found">UVC cameras detected · confirm RGB / IR</string>
     <string name="uvc_search_done">Done</string>

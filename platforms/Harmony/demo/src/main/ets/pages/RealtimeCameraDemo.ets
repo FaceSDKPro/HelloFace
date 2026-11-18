@@ -1619,7 +1619,7 @@ export struct RealtimeCameraDemo {
   private drawOverlay(): void {
     const resultText: string = this.isSearchMode() ? this.searchOverlayState.resultText() : '';
     if (this.searchResultText !== resultText) this.searchResultText = resultText;
-    const caption: string = this.isSearchMode() ? this.searchOverlayState.bestMatchCaption(
+    const caption: string = this.isSearchMode() ? this.searchOverlayState.bestScoreCaption(
       this.currentMode !== RealtimeMode.SEARCH_MULTI && this.searchConfiguration.needsLiveness) : '';
     if (this.searchMatchCaption !== caption) this.searchMatchCaption = caption;
     if (this.overlayFramePending) return;

@@ -66,9 +66,11 @@ private:
     static constexpr int search_result_height = 78, search_control_gap = 12,
         search_button_height = 46, search_bottom_padding = 14;
     void searchResults(const ViewState& state, Rect panel);
-    void drawSearchResults(Rect panel, const char* mode, std::string summary, bool red);
+    void drawSearchResults(Rect panel, const char* mode, std::string summary, bool red,
+                           Font mode_font = Font::Caption);
     void drawSearchScores(Rect panel, const char* mode, CameraSearchScores scores,
-                          float similarity_threshold, std::optional<float> liveness_threshold);
+                          float similarity_threshold, std::optional<float> liveness_threshold,
+                          Font mode_font = Font::Caption);
     void photos(const ViewState& state, Rect body);
     void imageSearch(const ViewState& state, Rect body);
     void library(const ViewState& state, Rect body);

@@ -124,6 +124,7 @@
     <string name="search_ungrouped">未分组</string>
     <string name="search_delete">删除人脸</string>
     <string name="search_ui_overlay_similarity">相似度</string>
+    <string name="search_ui_result_max_sim">最相似</string>
     <string name="search_ui_overlay_liveness">活体</string>
     <string name="search_ui_overlay_unmatched">未匹配</string>
     <string name="search_ui_options">%1$s · %2$s</string>
@@ -231,7 +232,7 @@
     <string name="image_search_no_faces">未检测到人脸，请更换清晰图片</string>
     <string name="image_search_empty_library">人脸库为空，请先到人脸库录入</string>
     <string name="image_search_face_too_small">人脸太小</string>
-    <string name="search_metadata_edit">编辑资料（永久免费）</string>
+    <string name="search_metadata_edit">编辑资料</string>
     <string name="search_metadata_group">分组</string>
     <string name="search_metadata_tag">标签</string>
     <string name="search_metadata_save">保存资料</string>
@@ -250,7 +251,7 @@
     <string name="uvc_search_connect_cameras">请连接 RGB 和 IR 摄像头。</string>
     <string name="uvc_search_ready">相机已就绪，点击开始搜索。</string>
     <string name="uvc_search_choose_distinct">请选择两台不同的相机。</string>
-    <string name="uvc_search_threshold_invalid">红外阈值须为 0.60–0.80</string>
+    <string name="uvc_search_threshold_invalid">红外阈值须为 0.80–0.99</string>
     <string name="uvc_search_ir_unavailable">红外校验未完成</string>
     <string name="uvc_search_opening">正在打开相机…</string>
     <string name="uvc_search_no_ir_face">红外未检出人脸，请正对镜头。</string>
@@ -271,7 +272,7 @@
     <string name="uvc_search_settings">双目相机设置</string>
     <string name="uvc_search_settings_running">运行中无法设置</string>
     <string name="uvc_search_threshold_label">IR活体阈值</string>
-    <string name="uvc_search_threshold_help">0.60–0.80，默认 0.70。上线前按目标模组标定。</string>
+    <string name="uvc_search_threshold_help">0.80–0.99，默认 0.90。上线前按目标模组标定。</string>
     <string name="uvc_search_refresh_devices">重新检测相机</string>
     <string name="uvc_search_devices_found">发现 UVC 摄像头，请确认 RGB / IR</string>
     <string name="uvc_search_done">完成</string>

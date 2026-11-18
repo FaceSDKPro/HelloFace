@@ -84,10 +84,10 @@ struct CameraSearchScores {
             (!liveness_threshold || (liveness && *liveness > *liveness_threshold));
     }
 
-    std::string caption(bool show_liveness = true) const {
+    std::string caption(bool show_liveness = true, const char* max_similarity_label = "MaxSim") const {
         std::ostringstream text;
         text.imbue(std::locale::classic());
-        text << (face_id.empty() ? "Similarity" : face_id) << '=' << std::fixed << std::setprecision(2);
+        text << (face_id.empty() ? max_similarity_label : face_id) << '=' << std::fixed << std::setprecision(2);
         if (similarity) text << *similarity;
         else text << "—";
         if (show_liveness) {

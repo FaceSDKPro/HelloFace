@@ -111,6 +111,21 @@ struct FaceSearchOverlayState {
         return Self.matchCaption(face: best.face, liveness: includeLiveness ? best.livenessScore : nil)
     }
 
+    func bestScoreCaption(includeLiveness: Bool,
+                          maxSimilarityLabel: String = DemoL10n.text("最相似")) -> String? {
+        if let matched = bestMatchCaption(includeLiveness: includeLiveness) { return matched }
+        let best = scores.compactMap { $0 }.filter {
+            $0.finalResult && $0.face.similarity?.isFinite == true
+        }.max { $0.face.similarity! < $1.face.similarity! }
+        guard let best else { return nil }
+        let locale = Locale(identifier: "en_US_POSIX")
+        var text = maxSimilarityLabel + String(format: "=%.2f", locale: locale, best.face.similarity!)
+        if includeLiveness, let liveness = best.livenessScore, liveness.isFinite {
+            text += String(format: ", Liveness=%.2f", locale: locale, liveness)
+        }
+        return text
+    }
+
     private static func matchCaption(face: FaceSearchFace, liveness: Float?) -> String? {
         guard let faceID = face.faceID, let similarity = face.similarity, similarity.isFinite else { return nil }
         let locale = Locale(identifier: "en_US_POSIX")

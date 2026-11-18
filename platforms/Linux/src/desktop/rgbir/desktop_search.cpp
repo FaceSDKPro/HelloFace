@@ -23,7 +23,7 @@ void DesktopSearch::run(const std::string& database, const RgbIrSettings& settin
     // snapshot so neither overwrites the other's latest state.
     std::mutex mutex;
     RgbIrView state;
-    CameraFramePool rgb_pool, ir_pool;
+    CameraFramePool rgb_pool;
     auto update = [&](auto change) {
         std::lock_guard<std::mutex> lock(mutex);
         if (stop_.load(std::memory_order_relaxed)) return;
@@ -56,20 +56,18 @@ void DesktopSearch::run(const std::string& database, const RgbIrSettings& settin
             callbacks.lighting = [&](bool active) {
                 require(infrared_light.setActive(active), "Infrared light GPIO write failed; search stopped");
             };
-        callbacks.preview = [&](const RawCameraFrame& rgb, const RawCameraFrame& ir) {
-            // Skip the entire display pair if the renderer still holds a buffer.
-            auto color = rgb_pool.acquire(), infrared = ir_pool.acquire();
-            if (!color || !infrared) return;
+        callbacks.preview = [&](const RawCameraFrame& rgb, const RawCameraFrame&) {
+            // Drop a preview if the renderer still holds all display buffers.
+            auto color = rgb_pool.acquire();
+            if (!color) return;
             try {
                 Camera::decodePreview(rgb, *color);
-                Camera::decodePreview(ir, *infrared);
             } catch (const DemoError&) {
                 return; // Inference handles decode failures separately.
             }
             update([&] {
                 if (!state.rgb) state.guidance = "Searching...";
                 state.rgb = std::move(color);
-                state.ir = std::move(infrared);
             });
         };
         callbacks.sample = [&](const Sample& sample, bool idle) {
@@ -93,7 +91,6 @@ void DesktopSearch::run(const std::string& database, const RgbIrSettings& settin
                 state.scores = {};
                 state.frame_image.reset();
                 state.rgb.reset();
-                state.ir.reset();
             });
         };
         callbacks.interrupted = [&] { clear_preview("Waiting for RGB/IR frames"); };

@@ -2,8 +2,8 @@
   "app": {
     "bundleName": "com.hiface.sdk.public",
     "vendor": "HiFace",
-    "versionCode": 1008012,
-    "versionName": "0.8.12",
+    "versionCode": 1008013,
+    "versionName": "0.8.13",
     "icon": "$media:app_icon",
     "label": "$string:app_name"
   }

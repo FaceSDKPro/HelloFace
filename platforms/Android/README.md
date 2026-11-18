@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-SDK / Demo: **0.8.12**.
+SDK / Demo: **0.8.13**.
 
 On-device detection, capture, liveness, 1:1 comparison, 1:N/M:N search and face-library management.
 
@@ -45,7 +45,7 @@ Use the SDK dependency and model compression configuration in the host App modul
 
 ```kotlin
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.12")
+    implementation("io.github.facesdkpro:hiface-android:0.8.13")
 }
 android {
     defaultConfig {

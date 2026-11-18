@@ -59,7 +59,7 @@ hiface_harden_demo(hiface_demo_common)
 # calibration and preview stay in the Demo and use installed public headers only.
 target_sources(hiface_demo_common PRIVATE src/desktop/rgbir/capture_pipeline.cpp
     src/desktop/rgbir/live_search.cpp src/desktop/rgbir/search_session.cpp
-    src/desktop/rgbir/desktop_search.cpp)
+    src/desktop/rgbir/desktop_search.cpp src/desktop/rgbir/ir_diagnostics.cpp)
 add_executable(hiface_demo src/common/main.cpp)
 target_link_libraries(hiface_demo PRIVATE hiface_demo_common)
 hiface_harden_demo(hiface_demo)
@@ -140,6 +140,10 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING AND EXISTS "${CMAKE_CURRENT_SOURCE
     target_include_directories(hiface_linux_rgbir_lighting_test PRIVATE src/common src/desktop ${hiface_sdk_headers})
     target_link_libraries(hiface_linux_rgbir_lighting_test PRIVATE Threads::Threads)
     add_test(NAME hiface_linux_rgbir_lighting_test COMMAND hiface_linux_rgbir_lighting_test)
+    add_executable(hiface_linux_ir_diagnostics_test tests/ir_diagnostics_test.cpp src/desktop/rgbir/ir_diagnostics.cpp)
+    target_compile_features(hiface_linux_ir_diagnostics_test PRIVATE cxx_std_17)
+    target_include_directories(hiface_linux_ir_diagnostics_test PRIVATE src/common src/desktop ${hiface_sdk_headers})
+    add_test(NAME hiface_linux_ir_diagnostics_test COMMAND hiface_linux_ir_diagnostics_test)
     foreach(test IN ITEMS frame lighting search_power camera_recovery gallery enrollment face_photo pipeline worker worker_start ui interaction feature_pages desktop error_ui image_search image_decode)
         set(test_sources "tests/${test}_test.cpp")
         if(test STREQUAL "pipeline")

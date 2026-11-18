@@ -76,6 +76,7 @@ public:
     ~RgaPreview() { if (library_) dlclose(library_); }
     RgaPreview(const RgaPreview&) = delete;
     RgaPreview& operator=(const RgaPreview&) = delete;
+    bool available() const { return library_ != nullptr; }
 
     void convert(const uint8_t* source, int dma_fd, int source_width, int source_height, int source_stride,
                  bool nv21, HiFaceYuvRangeV1 range, HiFaceYuvMatrixV1 matrix,
@@ -175,14 +176,23 @@ void Camera::open(const std::string& device, int width, int height, int fps, boo
 }
 void Camera::openRgbIr(const std::string& device, RgbIrCameraRole role, int rotation) {
     const bool infrared = role == RgbIrCameraRole::infrared;
-    const char* wide_device = std::getenv("HIFACE_RGBIR_WIDE_RGB_DEVICE");
+    const char* wide_device = std::getenv(infrared ? "HIFACE_RGBIR_WIDE_IR_DEVICE" : "HIFACE_RGBIR_WIDE_RGB_DEVICE");
     std::error_code error;
-    const bool wide_rgb = !infrared && wide_device && *wide_device &&
+    const bool preserve_wide_aspect = wide_device && *wide_device &&
         std::filesystem::equivalent(device, wide_device, error);
-    openStream(device, 640, wide_rgb ? 360 : 480, 30, !infrared, infrared, rotation);
-    if (wide_rgb && (width_ != 640 || height_ != 360)) {
+    const char* capture_720p = std::getenv("HIFACE_RGBIR_CAPTURE_720P");
+    const std::string_view capture_mode = capture_720p ? capture_720p : "0";
+    require(capture_mode == "0" || capture_mode == "1", "HIFACE_RGBIR_CAPTURE_720P must be 0 or 1");
+    const bool high_resolution = capture_mode == "1";
+    const int width = high_resolution ? 1280 : 640;
+    const int height = high_resolution ? 720 : preserve_wide_aspect ? 360 : 480;
+    // The T92P ISP scales the full 16:9 sensor image to the requested size.
+    // Require 16:9 output on its two main paths so neither image is stretched.
+    openStream(device, width, height, 30, !infrared, infrared, rotation);
+    if ((preserve_wide_aspect || high_resolution) && (width_ != width || height_ != height)) {
         close();
-        throw DemoError{"Board RGB camera did not negotiate 640x360: " + description_};
+        throw DemoError{std::string("Board ") + (infrared ? "IR" : "RGB") +
+            " camera did not negotiate " + std::to_string(width) + "x" + std::to_string(height) + ": " + description_};
     }
 }
 void Camera::verifyDistinct(const Camera& rgb, const Camera& ir) {
@@ -321,6 +331,22 @@ void CameraFrame::expandInfraredRgba() {
     }
 }
 void Camera::decodePreview(const RawCameraFrame& raw, CameraFrame& frame) {
+    // Paired capture must not block frame publication on a CPU color conversion.
+    // Reuse the board's RGA path while retaining the owned raw buffer until synchronous conversion ends.
+    if (!raw.infrared && raw.rotation != 180 &&
+        (raw.format == V4L2_PIX_FMT_NV12 || raw.format == V4L2_PIX_FMT_NV21) && rgaPreview().available()) {
+        require(raw.width >= 2 && raw.height >= 2 && !(raw.width & 1) && !(raw.height & 1) &&
+            raw.stride >= raw.width && raw.bytes.size() >= static_cast<size_t>(raw.stride) * raw.height +
+                static_cast<size_t>(raw.stride) * (raw.height / 2 - 1) + raw.width,
+            "Invalid NV12/NV21 paired preview frame");
+        const bool swap = raw.rotation == 90 || raw.rotation == 270;
+        const int rotation = raw.rotation == 90 ? kRgaRotate90 : raw.rotation == 270 ? kRgaRotate270 : 0;
+        rgaPreview().convert(raw.bytes.data(), -1, raw.width, raw.height, raw.stride,
+            raw.format == V4L2_PIX_FMT_NV21, raw.range, raw.matrix,
+            swap ? raw.height : raw.width, swap ? raw.width : raw.height, rotation, frame);
+        frame.monotonic_timestamp_ms = raw.monotonic_timestamp_ms;
+        return;
+    }
     convertCameraFrame(raw.bytes.data(), raw.bytes.size(), raw.width, raw.height, raw.stride, raw.format,
         raw.range, raw.matrix, raw.infrared, raw.rotation, frame, true);
     if (raw.infrared) frame.expandInfraredRgba();

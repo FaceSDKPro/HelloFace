@@ -19,7 +19,7 @@ import java.util.List;
 /** Main-thread device selection and validation; owns no capture session. 中文：仅管理双目设置表单。 */
 final class UvcCameraSettings {
     private static final int MAX_PAIR_SKEW_MS = 50, MAX_FRAME_AGE_MS = 150;
-    private static final String DEFAULT_IR_THRESHOLD = "0.70";
+    static final String DEFAULT_IR_THRESHOLD = "0.90";
 
     /** Validated settings for one start; USB roles never come from enumeration order or stale indices. */
     static final class Selection {
@@ -129,10 +129,10 @@ final class UvcCameraSettings {
         return new Selection(selectedRgbDevice(), cameras.selected(irDevice), config, infrared);
     }
 
-    private static Float parseThreshold(String text) {
+    static Float parseThreshold(String text) {
         try {
             double value = Double.parseDouble(text);
-            if (value >= .60 && value <= .80) return (float) value;
+            if (value >= .80 && value <= .99) return (float) value;
         } catch (NumberFormatException ignored) { /* Keep the draft open for correction. */ }
         return null;
     }

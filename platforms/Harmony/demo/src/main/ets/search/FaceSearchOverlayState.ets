@@ -134,6 +134,23 @@ export class FaceSearchOverlayState {
     return text;
   }
 
+  bestScoreCaption(includeLiveness: boolean, maxSimilarityLabel: string = DemoL10n.text("最相似")): string {
+    const matched: string = this.bestMatchCaption(includeLiveness);
+    if (matched.length > 0) return matched;
+    let best: HeldSearchScore | undefined = undefined;
+    for (const value of this.scores) {
+      if (value === undefined || !value.finalResult || value.face.similarity === undefined ||
+        !Number.isFinite(value.face.similarity)) continue;
+      if (best === undefined || value.face.similarity > best.face.similarity!) best = value;
+    }
+    if (best === undefined) return '';
+    let text: string = `${maxSimilarityLabel}=${best.face.similarity!.toFixed(2)}`;
+    if (includeLiveness && best.livenessScore !== undefined && Number.isFinite(best.livenessScore)) {
+      text += `, Liveness=${best.livenessScore.toFixed(2)}`;
+    }
+    return text;
+  }
+
   visual(index: number): FaceSearchOverlayVisual {
     return this.scores[index]?.visual() ?? UNSCORED_VISUAL;
   }

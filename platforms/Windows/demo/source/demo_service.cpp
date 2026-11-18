@@ -92,6 +92,24 @@ std::string searchStatusText(const Update& update) {
     if (update.end_reason == HIFACE_SEARCH_END_TIMEOUT) return u8"本轮未找到匹配人员，继续搜索";
     return update.faces.empty() ? u8"请正对镜头" : u8"正在搜索，尚未确认身份";
 }
+std::string bestSearchScoreCaption(const Update& update, bool include_liveness, bool chinese) {
+    const auto matched = bestSearchMatchCaption(update, include_liveness);
+    if (!matched.empty()) return matched;
+    if (!update.searching || update.paused || update.end_reason == HIFACE_SEARCH_END_NONE ||
+            update.end_reason == HIFACE_SEARCH_END_NO_FACE) return {};
+    const HiFaceSearchCameraFaceV1* best = nullptr;
+    for (const auto& face : update.faces) {
+        if (!face.has_similarity || !std::isfinite(face.similarity)) continue;
+        if (!best || face.similarity > best->similarity) best = &face;
+    }
+    if (!best) return {};
+    std::ostringstream text;
+    text.imbue(std::locale::classic());
+    text << (chinese ? u8"最相似" : "MaxSim") << '=' << std::fixed << std::setprecision(2) << best->similarity;
+    if (include_liveness && update.has_liveness && std::isfinite(update.liveness_score))
+        text << ", Liveness=" << update.liveness_score;
+    return text.str();
+}
 CaptureResult DemoService::captureEnrollmentImage(const Image& image) {
     auto faces = client_.captureFaces(image, 2);
     EnrollmentDraft::requireSingleFace(faces.size());

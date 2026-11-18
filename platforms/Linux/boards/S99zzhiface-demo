@@ -11,6 +11,8 @@ HIFACE_DISPLAY_ROTATE=270 # Clockwise 270 degrees = counter-clockwise 90 degrees
 HIFACE_CAMERA_ROTATE=right # Sensor mounting; independent of whole-UI rotation.
 HIFACE_START_SEARCH=1 # Set rgbir for public 0.8.8+ paired RGB/IR search.
 HIFACE_RGBIR_STATS=0
+HIFACE_RGBIR_CAPTURE_720P=0
+HIFACE_IR_DIAGNOSTICS=0
 HIFACE_DEMO_HOME=/home/hiface
 [ ! -r /etc/default/hiface-demo ] || . /etc/default/hiface-demo
 SELF=/etc/init.d/S99zzhiface-demo
@@ -129,7 +131,10 @@ launch_demo() {
         -c hiface:users -d "$HIFACE_DEMO_HOME" -O "$LOGFILE" -x /usr/bin/env -- \
         DISPLAY=:0 HOME="$HIFACE_DEMO_HOME" HIFACE_DATA_DIR="${HIFACE_DEMO_DATA_DIR:-/userdata/hiface-data}" \
         HIFACE_DISPLAY_MODE=embedded HIFACE_RGBIR_WIDE_RGB_DEVICE=/dev/video31 \
+        HIFACE_RGBIR_WIDE_IR_DEVICE=/dev/v4l/by-path/platform-rkisp-vir0-video-index0 \
+        HIFACE_RGBIR_CAPTURE_720P="$HIFACE_RGBIR_CAPTURE_720P" \
         HIFACE_START_SEARCH="$HIFACE_START_SEARCH" HIFACE_RGBIR_STATS="$HIFACE_RGBIR_STATS" \
+        HIFACE_IR_DIAGNOSTICS="$HIFACE_IR_DIAGNOSTICS" \
         HIFACE_CPU_THREADS=2 HIFACE_MOUSE_CURSOR=software HIFACE_FIXED_CAMERA_DEVICE=/dev/video31 \
         HIFACE_DISPLAY_ROTATE="$HIFACE_DISPLAY_ROTATE" HIFACE_CAMERA_ROTATE="$HIFACE_CAMERA_ROTATE" HIFACE_PREVIEW_DEVICE=/dev/video32 \
         HIFACE_PREVIEW_WIDTH=1280 HIFACE_PREVIEW_HEIGHT=720 HIFACE_PREVIEW_OUTPUT_WIDTH=576 \

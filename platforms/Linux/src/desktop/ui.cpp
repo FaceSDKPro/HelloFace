@@ -41,6 +41,16 @@ std::string trimText(const std::string& value) {
     return first == std::string::npos ? "" : value.substr(first, value.find_last_not_of(" \t\r\n\f\v") - first + 1);
 }
 std::string number(double value, int decimals = 1) { std::ostringstream s; s << std::fixed << std::setprecision(decimals) << value; return s.str(); }
+const char* maxSimilarityLabel() {
+    for (const char* name : {"LC_ALL", "LC_MESSAGES", "LANG"}) {
+        const char* value = std::getenv(name);
+        if (!value || !*value) continue;
+        const std::string language = value;
+        return language == "zh" || language.rfind("zh_", 0) == 0 || language.rfind("zh-", 0) == 0
+            ? u8"最相似" : "MaxSim";
+    }
+    return "MaxSim";
+}
 const char* modeName(char mode) {
     switch (mode) { case 'C': return "Capture"; case 'L': return "Liveness"; case 'V': return "Verify"; case 'E': return "Enroll"; case 'S': return "Search"; case 'P': return "Search paused"; default: return "Detection"; }
 }
@@ -1151,22 +1161,24 @@ void DemoUi::searchResults(const ViewState& s, Rect panel) {
     }
 }
 void DemoUi::drawSearchScores(Rect panel, const char* mode, CameraSearchScores scores,
-                              float similarity_threshold, std::optional<float> liveness_threshold) {
-    auto caption = scores.caption(liveness_threshold.has_value());
-    // Keep both scores visible when a long Face ID would crowd them out.
-    if (!scores.face_id.empty() && measure_(caption, Font::Result) > panel.w - 36) {
-        scores.face_id.clear();
-        caption = scores.caption(liveness_threshold.has_value());
+                              float similarity_threshold, std::optional<float> liveness_threshold, Font mode_font) {
+    // Keep the first eight UTF-8 characters of a matched ID without changing the stored ID.
+    size_t end = 0;
+    for (unsigned count = 0; count < 8 && end < scores.face_id.size(); ++count) {
+        ++end;
+        while (end < scores.face_id.size() && (static_cast<unsigned char>(scores.face_id[end]) & 0xc0) == 0x80) ++end;
     }
-    drawSearchResults(panel, mode, std::move(caption), !scores.exceeds(similarity_threshold, liveness_threshold));
+    scores.face_id.resize(end);
+    drawSearchResults(panel, mode, scores.caption(liveness_threshold.has_value(), maxSimilarityLabel()),
+        !scores.exceeds(similarity_threshold, liveness_threshold), mode_font);
 }
-void DemoUi::drawSearchResults(Rect panel, const char* mode, std::string summary, bool red) {
+void DemoUi::drawSearchResults(Rect panel, const char* mode, std::string summary, bool red, Font mode_font) {
     scene_.box(panel, dark);
     std::replace(summary.begin(), summary.end(), '\n', ' ');
     std::replace(summary.begin(), summary.end(), '\r', ' ');
     // Keep the two row baselines fixed, with a larger result line.
     // 两行基线保持固定，结果行使用更大字号。
-    text(panel.x + 18, panel.y + 24, mode, technology_green, panel.w - 36, Font::Caption);
+    text(panel.x + 18, panel.y + 24, mode, technology_green, panel.w - 36, mode_font);
     text(panel.x + 18, panel.y + 65, summary, red ? 0xff7777 : 0xffffff,
          panel.w - 36, Font::Result);
 }

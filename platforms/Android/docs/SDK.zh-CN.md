@@ -14,7 +14,7 @@
 | ABI | `arm64-v8a`、`armeabi-v7a` |
 | 入口 | Java `com.hiface.sdk.HiFaceSdk` |
 
-当前接入示例版本为 `0.8.12`；Maven 渠道可用性以实际发布记录为准：
+当前接入示例版本为 `0.8.13`；Maven 渠道可用性以实际发布记录为准：
 
 ```kotlin
 repositories {
@@ -22,7 +22,7 @@ repositories {
     mavenCentral()
 }
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.12")
+    implementation("io.github.facesdkpro:hiface-android:0.8.13")
 }
 android {
     androidResources { noCompress += "bphfm" }

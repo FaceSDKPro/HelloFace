@@ -122,6 +122,10 @@ final class UvcSearchStatusUi {
             text = context.getString(R.string.uvc_search_ir_unavailable);
             hint = infraredHint();
         }
+        if (match == null) {
+            String scores = diagnosticCaption(result, context.getString(R.string.search_ui_result_max_sim));
+            if (!scores.isEmpty()) text = scores;
+        }
         boolean first = fullResult == null;
         long now = SystemClock.uptimeMillis();
         resultDeadline = now + RESULT_HOLD_MS;
@@ -140,6 +144,18 @@ final class UvcSearchStatusUi {
     /** Use the standard caption format with the same sample's IR score, never the RGB liveness score. */
     static String matchCaption(FaceSearchFace face, InfraredSearchInfo infrared) {
         return SearchUi.matchCaption(face.getFaceId(), face.getSimilarity(), infrared.getRealScore());
+    }
+
+    static String diagnosticCaption(FaceSearchResult result, String maxSimilarityLabel) {
+        FaceSearchFace best = null;
+        for (FaceSearchFace face : result.getFrame().getFaces()) {
+            if (face.getSimilarity() == null || Float.isNaN(face.getSimilarity()) || Float.isInfinite(face.getSimilarity())) continue;
+            if (best == null || face.getSimilarity() > best.getSimilarity()) best = face;
+        }
+        InfraredSearchInfo ir = result.getFrame().getInfrared();
+        Float liveness = ir == null ? null : ir.getRealScore();
+        if (best == null && (liveness == null || Float.isNaN(liveness) || Float.isInfinite(liveness))) return "";
+        return SearchUi.scoreCaption(maxSimilarityLabel, best == null ? null : best.getSimilarity(), liveness);
     }
 
     static FaceSearchFace confirmedMatch(FaceSearchResult result) {
@@ -169,7 +185,7 @@ final class UvcSearchStatusUi {
 
     private static boolean validMatch(FaceSearchFace face) {
         return face.isThresholdPassed() && face.getFaceId() != null
-                && face.getSimilarity() != null && Float.isFinite(face.getSimilarity());
+                && face.getSimilarity() != null && !Float.isNaN(face.getSimilarity()) && !Float.isInfinite(face.getSimilarity());
     }
 
     void clear() {

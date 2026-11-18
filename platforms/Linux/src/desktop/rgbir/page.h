@@ -10,10 +10,10 @@ struct CameraFrame;
 struct RgbIrView {
     std::shared_ptr<const SearchFrameImage> frame_image;
     bool running = true;
-    bool idle = false; // The renderer can reduce paint cadence while both previews remain live.
+    bool idle = false; // The renderer can reduce paint cadence while the RGB preview remains live.
     std::string guidance = "Waiting...";
     CameraSearchScores scores;
-    std::shared_ptr<const CameraFrame> rgb, ir;
+    std::shared_ptr<const CameraFrame> rgb;
 };
 
 struct RgbIrSearchPage {

@@ -122,6 +122,21 @@ final class FaceSearchOverlayState {
                 includeLiveness ? best.livenessScore : null);
     }
 
+    String bestScoreCaption(boolean includeLiveness, String maxSimilarityLabel) {
+        String matched = bestMatchCaption(includeLiveness);
+        if (!matched.isEmpty()) return matched;
+        Score best = null;
+        for (Score value : scores) {
+            if (value == null || !value.finalResult || value.face.getSimilarity() == null
+                    || Float.isNaN(value.face.getSimilarity()) || Float.isInfinite(value.face.getSimilarity())) continue;
+            if (best == null || value.face.getSimilarity() > best.face.getSimilarity()) best = value;
+        }
+        if (best == null) return "";
+        // A diagnostic score never exposes a candidate ID or changes the SDK verdict.
+        return SearchUi.scoreCaption(maxSimilarityLabel, best.face.getSimilarity(),
+                includeLiveness ? best.livenessScore : null);
+    }
+
     Float livenessScore() {
         for (Score value : scores)
             if (value != null && value.finalResult && value.livenessScore != null)

@@ -395,6 +395,7 @@ export const DEMO_TEXT_RESOURCES: Record<string, DemoTextResource> = {
   "画面校正": { name: "demo_6f9d20916dd5", english: "Preview correction" },
   "疑似非真人": { name: "demo_e98002493e3a", english: "Suspected spoof" },
   "目标倍率": { name: "demo_dfb0432abcef", english: "Target zoom" },
+  "最相似": { name: "demo_d5cd81f04e02", english: "MaxSim" },
   "相似度": { name: "demo_747391190bc7", english: "Similarity" },
   "相似度 %.2f%%": { name: "demo_e19e75d6da1e", english: "Similarity %.2f%%" },
   "相似度 %.3f": { name: "demo_610a58dc7297", english: "Similarity %.3f" },

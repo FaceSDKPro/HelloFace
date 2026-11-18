@@ -1,4 +1,5 @@
 #include "live_search.h"
+#include "ir_diagnostics.h"
 #include "search_power.h"
 #include <cstdio>
 #include <sstream>
@@ -69,6 +70,9 @@ void runSearch(const std::string& database, const RgbIrSettings& settings, Camer
     openCamera(ir, settings.ir_device, RgbIrCameraRole::infrared, saved_rotation ? settings.ir_rotation : -1);
     Camera::verifyDistinct(rgb, ir);
     if (callbacks.opened) callbacks.opened(rgb.description(), ir.description());
+    const char* ir_diagnostics = std::getenv("HIFACE_IR_DIAGNOSTICS");
+    const bool report_ir = ir_diagnostics && std::string_view(ir_diagnostics) == "1";
+    if (report_ir) std::fputs("[IR-DIAG] enabled for this dual-camera search\n", stderr);
     const auto start = nowMs();
     LatestPair latest(start);
     Capture capture(rgb, ir, latest, callbacks.preview, callbacks.lighting);
@@ -169,6 +173,9 @@ void runSearch(const std::string& database, const RgbIrSettings& settings, Camer
         } else power.reset();
         capture.setSearchState(power.idle());
         if (callbacks.sample) callbacks.sample(*sample, power.idle());
+        if (report_ir && (sample->infrared.has_score || sample->search.end_reason != HIFACE_SEARCH_END_NONE))
+            reportIrDiagnostic(stderr, pair.ir, ir_frame, sample->infrared, sample->search.end_reason,
+                settings.ir_threshold);
     }
     if (diagnostics) stats.report(latest.progress(), power.idle(), nowMs());
 }

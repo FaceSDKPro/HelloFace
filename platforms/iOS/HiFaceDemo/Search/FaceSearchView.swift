@@ -105,7 +105,7 @@ struct FaceSearchView: View {
 
     private var resultCaption: String {
         let results = model.searchOverlay.confirmedResults
-        let best = model.searchOverlay.bestMatchCaption(includeLiveness: model.searchConfiguration.needsLiveness)
+        let best = model.searchOverlay.bestScoreCaption(includeLiveness: model.searchConfiguration.needsLiveness)
         let value = model.phase != .failed && model.cameraNotice == nil && !results.isEmpty
             ? best ?? results.map(\.title).joined(separator: " · ")
             : model.cameraNotice ?? model.detail ?? model.status

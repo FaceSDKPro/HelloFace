@@ -18,9 +18,15 @@ public final class FaceSearchOverlayStateTest {
         assertTrue(state.resultText().contains("Face ID: " + id));
         assertTrue(state.resultText().contains("0.000"));
         assertEquals(Float.valueOf(0f), state.livenessScore());
-        assertEquals(id + "=0.98, Liveness=0.00", state.bestMatchCaption(true));
+        assertEquals("XXXXXXXX=0.98, Liveness=0.00", state.bestMatchCaption(true));
         assertEquals(state.bestMatchCaption(true), state.caption(0));
-        assertEquals(id + "=0.98", state.bestMatchCaption(false));
+        assertEquals("XXXXXXXX=0.98", state.bestMatchCaption(false));
+        for (String[] example : new String[][] {
+                {"八字编号测试甲乙", "八字编号测试甲乙"},
+                {"八字编号测试甲乙丙", "八字编号测试甲乙"},
+                {"A中😀B文C字D尾", "A中😀B文C字D"}}) {
+            assertEquals(example[1] + "=0.98, Liveness=0.00", SearchUi.matchCaption(example[0], .98f, 0f));
+        }
         show(state, frame(2), 200);
         assertEquals("", state.resultText());
         assertNull(state.livenessScore());
@@ -37,6 +43,11 @@ public final class FaceSearchOverlayStateTest {
         state.complete(new FaceSearchResult(FaceSearchResult.EndReason.SPOOF_DETECTED, .2f, spoof), 2100);
         assertFalse(state.resultText().contains(id));
         assertEquals("", state.bestMatchCaption(true));
+        assertEquals("MaxSim=0.98, Liveness=0.20", state.bestScoreCaption(true, "MaxSim"));
+        assertEquals("最相似=0.98, Liveness=0.20", state.bestScoreCaption(true, "最相似"));
+        assertEquals("MaxSim=0.98", state.bestScoreCaption(false, "MaxSim"));
+        state.expire(3100);
+        assertEquals("", state.bestScoreCaption(true, "MaxSim"));
     }
     @Test public void captionSelectsHighestConfirmedMatchAndUsesRequestedFormat() {
         FaceSearchOverlayState state = newState();
@@ -45,8 +56,8 @@ public final class FaceSearchOverlayStateTest {
         state.accept(value, 0);
         assertEquals("", state.bestMatchCaption(true));
         state.complete(new FaceSearchResult(FaceSearchResult.EndReason.MATCH_FOUND, .98f, value), 100);
-        assertEquals("best-person=0.95, Liveness=0.98", state.bestMatchCaption(true));
-        assertEquals("best-person=0.95", state.bestMatchCaption(false));
+        assertEquals("best-per=0.95, Liveness=0.98", state.bestMatchCaption(true));
+        assertEquals("best-per=0.95", state.bestMatchCaption(false));
         state.expire(1000);
         assertEquals("", state.bestMatchCaption(true));
     }

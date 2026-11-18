@@ -14,7 +14,7 @@ Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/
 | ABI | `arm64-v8a`, `armeabi-v7a` |
 | Entry point | Java `com.hiface.sdk.HiFaceSdk` |
 
-Version `0.8.12` is used in these integration examples; check the publication record for Maven availability.
+Version `0.8.13` is used in these integration examples; check the publication record for Maven availability.
 
 ```kotlin
 repositories {
@@ -22,7 +22,7 @@ repositories {
     mavenCentral()
 }
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.12")
+    implementation("io.github.facesdkpro:hiface-android:0.8.13")
 }
 android {
     androidResources { noCompress += "bphfm" }

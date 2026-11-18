@@ -1,11 +1,25 @@
 #include "page.h"
 #include "ui.h"
 #include <algorithm>
+#include <cstdlib>
+#include <string_view>
 
 namespace hiface_linux_demo {
 namespace {
 constexpr uint32_t background = 0x0e1522, panel_color = 0x172233;
 constexpr uint32_t muted = 0xaebfd3;
+
+const char* infraredModeCaption() {
+    for (const char* variable : {"LC_ALL", "LC_MESSAGES", "LANG"}) {
+        const char* value = std::getenv(variable);
+        if (!value || !*value) continue;
+        const std::string_view language = value;
+        if (language == "zh" || language.substr(0, 3) == "zh_" || language.substr(0, 3) == "zh-")
+            return u8"1:N | 红外活体开启";
+        break;
+    }
+    return "1:N | IR liveness on";
+}
 }
 
 void DemoUi::uvcCameraFaceSearch(const ViewState& state, Rect bounds) {
@@ -28,15 +42,6 @@ void DemoUi::uvcCameraFaceSearch(const ViewState& state, Rect bounds) {
             scene_.clip = previous_clip.intersect(preview);
             scene_.image(fitImage(preview, color.width, color.height, true), color.rgba.data(),
                 color.width, color.height, false, color.x11_bgrx);
-            if (has_frame(live->ir.get()) && preview.w >= 2 && preview.h >= 3) {
-                const auto& infrared = *live->ir;
-                const int ir_h = preview.h / 3;
-                const int ir_w = std::clamp(ir_h * infrared.width / infrared.height, 1, preview.w / 2);
-                const Rect ir{preview.x + preview.w - ir_w, preview.y + preview.h - ir_h, ir_w, ir_h};
-                scene_.clip = scene_.clip.intersect(ir);
-                scene_.image(fitImage(ir, infrared.width, infrared.height, true), infrared.rgba.data(),
-                    infrared.width, infrared.height, false, infrared.x11_bgrx);
-            }
             scene_.clip = previous_clip;
         } else {
             text(preview.x + 8, preview.y + preview.h / 2 + 5, "No preview", muted, preview.w - 16, Font::Small, true);
@@ -48,16 +53,16 @@ void DemoUi::uvcCameraFaceSearch(const ViewState& state, Rect bounds) {
     button({bounds.x + bounds.w - 112, nav_y, 96, 36}, "Settings", "uvc-settings", 4, content_enabled_);
 
     const bool scored = state.rgbir_available && running && live->scores.available() && state.rgbir_settings_error.empty();
-    constexpr auto mode = "1:N | Liveness on";
+    const auto* mode = infraredModeCaption();
     if (scored) {
         const auto& settings = state.rgbir_settings;
-        drawSearchScores(panel, mode, live->scores, settings.similarity, settings.ir_threshold);
+        drawSearchScores(panel, mode, live->scores, settings.similarity, settings.ir_threshold, Font::Title);
     } else {
         const bool failed = !state.rgbir_settings_error.empty() || (live && !running);
         const std::string summary = !state.rgbir_available ? "Dual-camera search unavailable"
             : !state.rgbir_settings_error.empty() ? state.rgbir_settings_error
             : live ? live->guidance : configured ? "Start search" : "Select both cameras in Settings";
-        drawSearchResults(panel, mode, summary, failed);
+        drawSearchResults(panel, mode, summary, failed, Font::Title);
     }
 
     constexpr int inset = 12, gap = 6;

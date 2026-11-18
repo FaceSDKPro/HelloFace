@@ -31,6 +31,7 @@ std::string flowOutcomeText(HiFaceFlowOutcomeV1 outcome);
 bool searchFaceAccepted(const Update& update, const HiFaceSearchCameraFaceV1& face);
 std::string searchFaceText(const Update& update, const HiFaceSearchCameraFaceV1& face);
 std::string bestSearchMatchCaption(const Update& update, bool include_liveness);
+std::string bestSearchScoreCaption(const Update& update, bool include_liveness, bool chinese = false);
 std::string searchStatusText(const Update& update);
 // Worker-thread SDK calls and presentation text. Capture only returns a draft;
 // App confirms persistence through EnrollmentDraft or ReferenceDraft.

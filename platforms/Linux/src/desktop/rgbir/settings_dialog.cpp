@@ -29,7 +29,7 @@ void DemoUi::uvcSettingsDialog(const ViewState& state) {
     const int bottom = y + h - 49;
     if (uvc_settings_tab_ == UvcSettingsTab::display) {
         text(left, y + 120, "UI rotation", title_color, content, Font::Large);
-        wrap(left, y + 147, "Changes apply immediately to all Demo pages, including both previews.", muted, content, 2, Font::Small);
+        wrap(left, y + 147, "Changes apply immediately to all Demo pages, including the camera preview.", muted, content, 2, Font::Small);
         rotationButtons({left, y + 181, content, 36}, std::to_string(state.settings.ui_rotation), editable);
         wrap(left, y + 247, "To rotate one camera image, use its rotation control in Cameras.", muted, content, 2, Font::Small);
         if (!notice_.empty()) wrap(left, y + h - 89, notice_, 0xffb7ae, content, 2, Font::Small);

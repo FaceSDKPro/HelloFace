@@ -3,9 +3,9 @@
   "files": {
     "AI_USAGE_NOTICE.md": "f8521609a2938ce071be93b3b054d2e5e94591f6a8c104f84b16416c6695b4aa",
     "LICENSE": "d29e016e7677af48d5fa94efc45191ec6888f6cdbdc34e98b123b79666ad2133",
-    "README.md": "20c320d97f3caa83e56cd437f706f7c3628c5ee32b65b0071312c6c895cb5458",
-    "README.zh-CN.md": "e777312535adda13827741c9c08cbe99fce60859f8d527769a4dd5ffca8384fb",
-    "bin/hiface.dll": "b1d861a0f207f82f123520e0155ffadd91f30f0a06b66642b63e642136f2933b",
+    "README.md": "7eb0bcc7c68fa31948a7f61911d66dd548bd4c4be0af2bfaa71a92960196fb90",
+    "README.zh-CN.md": "eb52fbbd50ed7b02d255c593376a2e270d3d48aa2aca6a453746d4ef80f1739f",
+    "bin/hiface.dll": "7156d8cf834634cd3e7c791990dcb5dd2fa52adba5c28bac3cffc33f9f6f5f7a",
     "bin/libc++.dll": "b97586e466fbcbd3f801448802038a4f7550fc7e0381cd873b486cd59fdd2305",
     "bin/libomp.dll": "caa72f2795fd6bf82a137969ce417f8d43e8e88483b13c2e474069616e546bab",
     "bin/libunwind.dll": "0d86a6dfb5a20082b4d74c43a8ce36a30eb2748e4e779c336d174a876ef569c6",
@@ -13,7 +13,7 @@
     "include/hiface/hiface_contract_v1.h": "6ecb6815d3e49d46083d5775471fba7b4d1edef3780adcdd625dc1268f6e7b68",
     "include/hiface/hiface_windows.h": "63c1e84269c7fa8120c98a2b095ae040152860dba4270a7168e82e2bf659082f",
     "lib/cmake/HiFace/HiFaceConfig.cmake": "6fc1fc1f1096f41eced2f2b5abbdadf92f18f71a4a13fbb08ddec627fdef9d85",
-    "lib/cmake/HiFace/HiFaceConfigVersion.cmake": "050fcb0e867a5502ff440f4fa6fb2a8cb583bf438596776aa2f9b48ed329f486",
+    "lib/cmake/HiFace/HiFaceConfigVersion.cmake": "42473a7337a6687b4a8f548678114312a667345f96b4d14750896838f959023a",
     "lib/cmake/HiFace/HiFaceWindowsTargets-release.cmake": "582ff92c10d499209bbfa1ef4cd689f0412f95f0698575c7770eb62c29b4013f",
     "lib/cmake/HiFace/HiFaceWindowsTargets.cmake": "4362c30d2a8b3a9eaf58578c8c01bf3d0a6320a17d2204f5e3923b07810f12dc",
     "lib/hiface.lib": "bb5a2f920a2efbd41f87818bbd77ed4c95d0cad49b4fcea53cf9189d45ffa7e5",
@@ -23,7 +23,7 @@
     "licenses/mingw-w64/COPYING.MinGW-w64.txt": "f38e6194bd3bfa1b654f118e5acefe0aead437bbe669eee43957ccc65a7127f1",
     "licenses/mingw-w64/COPYING.winpthreads.txt": "63263614cdd29f2f93cba85e992f041b31f9fc7b4033692f31269489a8a1b177",
     "licenses/mingw-w64/COPYING.winstorecompat.txt": "fa7368d1f93d890c173177475d8ec7aff265a7d08f1f364d66f74d138978ce36",
-    "sdk-metadata.json": "492aedf697a104ce8d79fc602ea8472ccd14791b7efbdfe52c9291c289490140",
+    "sdk-metadata.json": "1131542a59a2685d9c1673228d1c7fd06973dc300f190332396959af0174ec77",
     "share/hiface/exports.txt": "e954b879a695da32ba9773e73cc0b2ec27403d1fe5a46c1e507ab52ded7bd8f1"
   }
 }

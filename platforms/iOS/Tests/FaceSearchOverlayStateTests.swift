@@ -75,6 +75,13 @@ struct FaceSearchOverlayStateTests {
         precondition(card.confirmedResults.first?.title == DemoL10n.text("活体未通过"))
         precondition(card.confirmedResults.first?.title.contains(longID) == false)
         precondition(card.bestMatchCaption(includeLiveness: true) == nil)
+        precondition(card.bestScoreCaption(includeLiveness: true, maxSimilarityLabel: "MaxSim") ==
+            "MaxSim=0.98, Liveness=0.20")
+        precondition(card.bestScoreCaption(includeLiveness: true, maxSimilarityLabel: "最相似") ==
+            "最相似=0.98, Liveness=0.20")
+        precondition(card.bestScoreCaption(includeLiveness: false, maxSimilarityLabel: "MaxSim") == "MaxSim=0.98")
+        _ = card.expire(now: 3.1)
+        precondition(card.bestScoreCaption(includeLiveness: true) == nil)
 
         var bestCard = FaceSearchOverlayState()
         let bestFrame = frame(1, [matched,

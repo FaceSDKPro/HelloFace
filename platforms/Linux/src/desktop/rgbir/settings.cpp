@@ -33,7 +33,7 @@ std::vector<FormField> rgbIrSettingsFields(const RgbIrSettings& s) {
         {"ir_device", "IR camera device", s.ir_device},
         {"rgb_rotation", "RGB rotation (clockwise)", std::to_string(s.rgb_rotation)},
         {"ir_rotation", "IR rotation (clockwise)", std::to_string(s.ir_rotation)},
-        {"ir_threshold", "IR liveness threshold (0.60–0.80)", decimal(s.ir_threshold)},
+        {"ir_threshold", "IR liveness threshold (0.80–0.99, default 0.90)", decimal(s.ir_threshold)},
         {"group", "Search group (empty = all)", s.group},
         {"similarity", "Identity similarity (0.75–0.85)", decimal(s.similarity)},
         {"interval_ms", "Success interval (0–3000 ms)", std::to_string(s.interval_ms)},
@@ -130,6 +130,7 @@ RgbIrSettings loadRgbIrSettings(const std::string& database) {
     require(bool(input), "Cannot read dual-camera settings.");
     auto fields = rgbIrSettingsFields({});
     std::map<std::string, bool> seen;
+    bool upgraded_threshold = false;
     for (std::string line; std::getline(input, line);) {
         if (line.empty()) continue;
         std::istringstream row(line);
@@ -139,10 +140,26 @@ RgbIrSettings loadRgbIrSettings(const std::string& database) {
         require(row.eof() && seen.emplace(key, true).second, "Invalid or duplicate dual-camera setting.");
         auto field = std::find_if(fields.begin(), fields.end(), [&](const FormField& f) { return f.key == key; });
         require(field != fields.end(), "Unknown dual-camera setting: " + key);
+        if (key == "ir_threshold") {
+            // Replace saved values from the previous 0.60–0.80 policy that are below the new minimum.
+            // Malformed/unknown values still fail normal validation; keep every other camera setting.
+            std::istringstream threshold(value);
+            threshold.imbue(std::locale::classic());
+            double previous = 0;
+            const bool numeric = bool(threshold >> previous);
+            threshold >> std::ws;
+            if (numeric && threshold.eof() && std::isfinite(previous) &&
+                    previous >= 0.60 && previous < rgbir_min_ir_threshold) {
+                value = field->value;
+                upgraded_threshold = true;
+            }
+        }
         field->value = value;
     }
     require(input.eof(), "Cannot read dual-camera settings.");
-    return parseFields(fields);
+    auto settings = parseFields(fields);
+    if (upgraded_threshold) saveRgbIrSettings(database, settings);
+    return settings;
 }
 
 void saveRgbIrSettings(const std::string& database, const RgbIrSettings& settings) {

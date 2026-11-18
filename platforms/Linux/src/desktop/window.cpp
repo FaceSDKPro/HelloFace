@@ -8,6 +8,7 @@
 #include <cerrno>
 #include <chrono>
 #include <clocale>
+#include <iconv.h>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -47,6 +48,9 @@ struct DesktopWindow::Impl {
     bool shared_image_attached = false, shared_memory_disabled = false;
     RenderPicture source_picture = 0, destination_picture = 0;
     std::array<XFontSet, size_t(Font::Result) + 1> fonts{}; XIM input_method = nullptr; XIC input_context = nullptr;
+    XFontStruct* unicode_title_font = nullptr;
+    GC unicode_title_gc = nullptr;
+    iconv_t unicode_title_encoding = (iconv_t)-1;
     Atom delete_window = 0, clipboard = 0, utf8 = 0, paste_property = 0, targets = 0, atom_type = 0, string_type = 0;
     int depth = 0, width = 1060, height = 740, physical_width = 1060, physical_height = 740;
     int min_width = 600, min_height = 540, buffer_width = 0, buffer_height = 0;
@@ -73,6 +77,7 @@ struct DesktopWindow::Impl {
     FN(XCreateGC); FN(XFreeGC); FN(XPending); FN(XNextEvent); FN(XSetForeground); FN(XFillRectangle); FN(XFillArc); FN(XDrawString);
     FN(XCreateImage); FN(XPutImage); FN(XFlush); FN(XSync); FN(XInternAtom); FN(XSetWMProtocols); FN(XCreatePixmap); FN(XFreePixmap); FN(XCopyArea);
     FN(XCreateFontSet); FN(XFreeFontSet); FN(XFreeStringList); FN(Xutf8DrawString); FN(Xutf8TextExtents);
+    FN(XLoadQueryFont); FN(XFreeFont); FN(XTextWidth16); FN(XDrawString16);
     FN(XOpenIM); FN(XCloseIM); FN(XCreateIC); FN(XDestroyIC); FN(XSetICFocus); FN(XUnsetICFocus); FN(Xutf8LookupString); FN(XFilterEvent);
     FN(XConvertSelection); FN(XGetWindowProperty); FN(XDeleteProperty); FN(XFree); FN(XSetSelectionOwner); FN(XChangeProperty); FN(XSendEvent);
     FN(XSetClipRectangles); FN(XSetClipMask);
@@ -102,6 +107,7 @@ struct DesktopWindow::Impl {
         LOAD(XCreateGC); LOAD(XFreeGC); LOAD(XPending); LOAD(XNextEvent); LOAD(XSetForeground); LOAD(XFillRectangle); LOAD(XFillArc); LOAD(XDrawString);
         LOAD(XCreateImage); LOAD(XPutImage); LOAD(XFlush); LOAD(XSync); LOAD(XInternAtom); LOAD(XSetWMProtocols); LOAD(XCreatePixmap); LOAD(XFreePixmap); LOAD(XCopyArea);
         LOAD(XCreateFontSet); LOAD(XFreeFontSet); LOAD(XFreeStringList); LOAD(Xutf8DrawString); LOAD(Xutf8TextExtents);
+        LOAD(XLoadQueryFont); LOAD(XFreeFont); LOAD(XTextWidth16); LOAD(XDrawString16);
         LOAD(XDrawSegments); LOAD(XFillRectangles); LOAD(XFillArcs); LOAD(XSetLineAttributes);
         LOAD(XOpenIM); LOAD(XCloseIM); LOAD(XCreateIC); LOAD(XDestroyIC); LOAD(XSetICFocus); LOAD(XUnsetICFocus); LOAD(Xutf8LookupString); LOAD(XFilterEvent);
         LOAD(XConvertSelection); LOAD(XGetWindowProperty); LOAD(XDeleteProperty); LOAD(XFree); LOAD(XSetSelectionOwner); LOAD(XChangeProperty); LOAD(XSendEvent);
@@ -174,6 +180,21 @@ struct DesktopWindow::Impl {
         const char* patterns[] = {"7x14,fixed", "6x12,fixed", "10x20,9x18B,fixed", "9x18B,10x20,fixed", "9x15bold,9x15,7x14,fixed",
             "-misc-fixed-medium-r-normal--30-*-*-*-*-*-iso10646-1,10x20,fixed"};
         for (size_t i = 0; i < fonts.size(); ++i) { char** missing = nullptr; int count = 0; char* fallback = nullptr; fonts[i] = XCreateFontSet_fn(display, patterns[i], &missing, &count, &fallback); if (missing) XFreeStringList_fn(missing); }
+        if (embedded) {
+            XRectangle ink{}, logical{};
+            if (const auto title_font = fonts[size_t(Font::Title)])
+                Xutf8TextExtents_fn(title_font, u8"中", sizeof(u8"中") - 1, &ink, &logical);
+            // The Buildroot C locale drops CJK glyphs in Xutf8DrawString even when the bitmap font is installed.
+            if (!ink.width) {
+                unicode_title_font = XLoadQueryFont_fn(display, "-misc-fixed-medium-r-normal-ja-18-*-*-*-*-*-iso10646-1");
+                if (unicode_title_font) {
+                    unicode_title_encoding = iconv_open("UCS-2BE", "UTF-8");
+                    XGCValues values{};
+                    values.font = unicode_title_font->fid;
+                    unicode_title_gc = XCreateGC_fn(display, window, GCFont, &values);
+                }
+            }
+        }
         input_method = XOpenIM_fn(display, nullptr, nullptr, nullptr);
         if (input_method) input_context = XCreateIC_fn(input_method, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, window, XNFocusWindow, window, static_cast<char*>(nullptr));
         XMapWindow_fn(display, window); XFlush_fn(display); queryPointer();
@@ -265,6 +286,9 @@ struct DesktopWindow::Impl {
         if (destination_picture) XRenderFreePicture_fn(display, destination_picture);
         destroyPreviewImage(); if (back_buffer) XFreePixmap_fn(display, back_buffer);
         if (input_context) XDestroyIC_fn(input_context); if (input_method) XCloseIM_fn(input_method);
+        if (unicode_title_encoding != (iconv_t)-1) iconv_close(unicode_title_encoding);
+        if (unicode_title_gc) XFreeGC_fn(display, unicode_title_gc);
+        if (unicode_title_font) XFreeFont_fn(display, unicode_title_font);
         for (auto font : fonts) if (font) XFreeFontSet_fn(display, font);
         if (mouse_cursor) XFreeCursor_fn(display, mouse_cursor);
         if (gc) XFreeGC_fn(display, gc); if (window) XDestroyWindow_fn(display, window); if (display) XCloseDisplay_fn(display);
@@ -275,9 +299,38 @@ struct DesktopWindow::Impl {
         auto channel = [](uint32_t v, unsigned long mask) { if (!mask) return 0UL; unsigned shift = 0; while (!((mask >> shift) & 1)) ++shift; return ((v * (mask >> shift) + 127) / 255 << shift) & mask; };
         return channel((rgb >> 16) & 255, visual->red_mask) | channel((rgb >> 8) & 255, visual->green_mask) | channel(rgb & 255, visual->blue_mask);
     }
+    std::vector<XChar2b> unicodeTitle(const std::string& text, Font font) const {
+        if (!unicode_title_gc || unicode_title_encoding == (iconv_t)-1 || font != Font::Title ||
+                std::none_of(text.begin(), text.end(), [](unsigned char c) { return c >= 0x80; })) return {};
+        static_assert(sizeof(XChar2b) == 2);
+        std::vector<XChar2b> glyphs(text.size());
+        auto* input = const_cast<char*>(text.data());
+        auto* output = reinterpret_cast<char*>(glyphs.data());
+        size_t remaining_input = text.size(), remaining_output = glyphs.size() * sizeof(XChar2b);
+        if (iconv(unicode_title_encoding, &input, &remaining_input, &output, &remaining_output) == size_t(-1)) return {};
+        glyphs.resize(glyphs.size() - remaining_output / sizeof(XChar2b));
+        return glyphs;
+    }
     int measure(const std::string& text, Font font) const {
+        const auto glyphs = unicodeTitle(text, font);
+        if (!glyphs.empty()) return XTextWidth16_fn(unicode_title_font, glyphs.data(), glyphs.size());
         if (fonts[size_t(font)]) { XRectangle ink{}, logical{}; Xutf8TextExtents_fn(fonts[size_t(font)], text.c_str(), text.size(), &ink, &logical); return logical.width; }
         return int(text.size()) * 7;
+    }
+    void paintText(const Draw& draw, Rect clip) {
+        const auto glyphs = unicodeTitle(draw.text, draw.font);
+        if (!glyphs.empty()) {
+            XRectangle rectangle{static_cast<short>(clip.x), static_cast<short>(clip.y),
+                static_cast<unsigned short>(clip.w), static_cast<unsigned short>(clip.h)};
+            XSetClipRectangles_fn(display, unicode_title_gc, 0, 0, &rectangle, 1, Unsorted);
+            XSetForeground_fn(display, unicode_title_gc, pixel(draw.color));
+            XDrawString16_fn(display, back_buffer, unicode_title_gc, draw.bounds.x, draw.bounds.y, glyphs.data(), glyphs.size());
+            return;
+        }
+        XSetForeground_fn(display, gc, pixel(draw.color));
+        if (const auto font = fonts[size_t(draw.font)])
+            Xutf8DrawString_fn(display, back_buffer, font, gc, draw.bounds.x, draw.bounds.y, draw.text.c_str(), draw.text.size());
+        else XDrawString_fn(display, back_buffer, gc, draw.bounds.x, draw.bounds.y, draw.text.c_str(), draw.text.size());
     }
     void box(const Draw& d, Drawable target = 0) {
         if (!target) target = back_buffer;
@@ -430,7 +483,7 @@ struct DesktopWindow::Impl {
             }
             else if (d.kind == Draw::Box) box(d);
             else if (d.kind == Draw::Image) picture(d);
-            else { XSetForeground_fn(display, gc, pixel(d.color)); if (fonts[size_t(d.font)]) Xutf8DrawString_fn(display, back_buffer, fonts[size_t(d.font)], gc, d.bounds.x, d.bounds.y, d.text.c_str(), d.text.size()); else XDrawString_fn(display, back_buffer, gc, d.bounds.x, d.bounds.y, d.text.c_str(), d.text.size()); }
+            else paintText(d, clip);
         }
         XSetClipMask_fn(display, gc, None);
         if (rotation == 0 && scale == 1) XCopyArea_fn(display, back_buffer, window, gc, 0, 0, width, height, 0, 0);

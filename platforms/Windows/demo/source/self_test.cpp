@@ -31,6 +31,7 @@ void runSelfTest() {
         update.faces = {face};
         require(!searchFaceAccepted(update, face), "A candidate must not be presented as a confirmed identity");
         require(bestSearchMatchCaption(update, true).empty(), "Pending samples must not enter the result caption");
+        require(bestSearchScoreCaption(update, true).empty(), "Pending samples must not enter diagnostic captions");
         update.matched = true; update.end_reason = HIFACE_SEARCH_END_MATCH_FOUND;
         require(searchFaceAccepted(update, face) && searchFaceText(update, face).find("person-001") != std::string::npos,
             "A completed match must identify the accepted person");
@@ -50,6 +51,9 @@ void runSelfTest() {
             "A real zero liveness score must not disappear");
         update.end_reason = HIFACE_SEARCH_END_SPOOF_DETECTED;
         require(bestSearchMatchCaption(update, true).empty(), "Spoof rejection must not display a matched caption");
+        require(bestSearchScoreCaption(update, true) == "MaxSim=0.95, Liveness=0.00" &&
+                bestSearchScoreCaption(update, true, true) == u8"最相似=0.95, Liveness=0.00",
+            "Rejected scores must use the localized diagnostic label without a candidate ID");
         require(!searchFaceAccepted(update, face) && searchFaceText(update, face).find(u8"不确认身份") != std::string::npos,
             "Liveness rejection must suppress identity confirmation despite a high similarity");
         update = {}; update.searching = true; update.search_progress = HIFACE_SEARCH_STAGE_EMPTY_GALLERY;
@@ -57,6 +61,7 @@ void runSelfTest() {
         update.search_progress = HIFACE_SEARCH_STAGE_FACE_TOO_SMALL;
         require(searchStatusText(update).find(u8"靠近") != std::string::npos, "Small-face progress must give actionable guidance");
         update.paused = true;
+        require(bestSearchScoreCaption(update, true).empty(), "Paused search must clear diagnostic captions");
         require(searchStatusText(update).find(u8"暂停") != std::string::npos, "Paused search must not claim continued recognition");
         EnrollmentDraft::requireSingleFace(1);
         for (size_t count : {size_t{0}, size_t{2}, size_t{10}}) {

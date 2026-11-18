@@ -40,7 +40,14 @@ public final class SearchUi {
     private SearchUi() {}
 
     public static String matchCaption(String faceId, float similarity, Float liveness) {
-        String text = faceId + String.format(Locale.ROOT, "=%.2f", similarity);
+        // Match Linux: display at most eight characters without splitting a UTF-16 surrogate pair.
+        int end = faceId.offsetByCodePoints(0, Math.min(8, faceId.codePointCount(0, faceId.length())));
+        return scoreCaption(faceId.substring(0, end), similarity, liveness);
+    }
+
+    public static String scoreCaption(String label, Float similarity, Float liveness) {
+        String text = label + "=" + (similarity != null && !Float.isNaN(similarity) && !Float.isInfinite(similarity)
+                ? String.format(Locale.ROOT, "%.2f", similarity) : "—");
         if (liveness != null && !Float.isNaN(liveness) && !Float.isInfinite(liveness))
             text += String.format(Locale.ROOT, ", Liveness=%.2f", liveness);
         return text;

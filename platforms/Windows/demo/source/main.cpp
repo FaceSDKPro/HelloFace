@@ -831,7 +831,7 @@ void update(Ui& ui) {
         else if (!ui.search_overlay_fresh) detail << L"等待新的识别结果…";
         else if (state->update.faces.empty()) detail << widen(state->update.message);
         else {
-            const auto best = bestSearchMatchCaption(state->update, !options.multi_face && options.liveness);
+            const auto best = bestSearchScoreCaption(state->update, !options.multi_face && options.liveness, chineseUi());
             detail << widen(best.empty() ? searchStatusText(state->update) : best);
         }
         const auto full=mode.str()+L"\r\n"+detail.str();

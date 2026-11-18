@@ -90,6 +90,8 @@ int main(int argc, char** argv) {
         const auto start = monotonicMilliseconds();
         int64_t next_preview = start, next_idle_paint = start, last_performance_log = start, paint_ms = 0;
         unsigned paints = 0;
+        unsigned rgbir_preview_frames = 0;
+        std::shared_ptr<const CameraFrame> last_rgbir_preview;
         while (window.open() && !interrupted) {
             const auto state = app.snapshot();
             auto commands = window.events(*state);
@@ -106,11 +108,17 @@ int main(int argc, char** argv) {
             if (painted) { window.paint(*state); next_idle_paint = paint_now + kSearchIdlePreviewIntervalMs; }
             if (performance_log && painted) {
                 paint_ms += monotonicMilliseconds() - paint_start; ++paints;
+                const auto rgbir_preview = state->rgbir ? state->rgbir->rgb : nullptr;
+                if (rgbir_preview && rgbir_preview != last_rgbir_preview) ++rgbir_preview_frames;
+                last_rgbir_preview = rgbir_preview;
                 if (monotonicMilliseconds() - last_performance_log >= 5000) {
-                    std::fprintf(stderr, "[Performance] preview=%.1f recognition=%.1f analysis_ms=%.1f paint_ms=%.1f faces=%zu search_idle=%d ready=%d connected=%d failed=%d status=%s\n",
-                        state->fps, state->analysis_fps, state->milliseconds, double(paint_ms) / paints, state->liveBoxes().size(), search_idle,
+                    const double rgbir_preview_fps = 1000.0 * rgbir_preview_frames /
+                        (monotonicMilliseconds() - last_performance_log);
+                    std::fprintf(stderr, "[Performance] preview=%.1f rgbir_preview=%.1f recognition=%.1f analysis_ms=%.1f paint_ms=%.1f faces=%zu search_idle=%d ready=%d connected=%d failed=%d status=%s\n",
+                        state->fps, rgbir_preview_fps, state->analysis_fps, state->milliseconds, double(paint_ms) / paints, state->liveBoxes().size(), search_idle,
                         state->ready, state->connected, state->failed, state->status.c_str());
                     last_performance_log = monotonicMilliseconds(); paint_ms = 0; paints = 0;
+                    rgbir_preview_frames = 0;
                 }
             }
             if (smoke) {
