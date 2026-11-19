@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat;
 
 import com.hiface.sdk.HiFaceSdk;
 import com.hiface.sdk.capture.FaceCaptureResult;
+import com.hiface.sdk.common.FaceRequest;
 import com.hiface.sdk.common.HiFaceResult;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.ui.DemoErrorUi;
@@ -27,10 +28,6 @@ import com.hiface.sdk.demo.ui.DemoWindowInsets;
 public final class FaceComparisonActivity extends AppCompatActivity {
     private TextView compareButton;
     private TextView similarityValue;
-    @Nullable
-    private Float similarity;
-    @Nullable
-    private String comparisonError;
     private FacePhotoSlot leftSlot;
     private FacePhotoSlot rightSlot;
     private FacePhotoPicker photoPicker;
@@ -84,7 +81,10 @@ public final class FaceComparisonActivity extends AppCompatActivity {
 
             @Override
             public void onError(@NonNull Throwable error) {
-                showPhotoPickerError(slot, getString(R.string.face_compare_photo_failed));
+                // A failed replacement keeps the existing preview and any completed comparison.
+                slot.cancelExtraction();
+                slot.error = getString(R.string.face_compare_photo_failed);
+                updateControls();
             }
         });
     }
@@ -96,22 +96,24 @@ public final class FaceComparisonActivity extends AppCompatActivity {
      * SDK 管理图片推理和主线程回调，页面销毁时自动取消请求。
      */
     private void extractPhotoFeature(@NonNull FacePhotoSlot slot, @NonNull Bitmap bitmap) {
-        slot.setBitmap(bitmap);
-        similarity = null;
-        comparisonError = null;
-        updateControls();
-        hiFaceSdk.capture().fromBitmap(bitmap, result -> {
+        slot.cancelExtraction();
+        slot.replaceBitmap(bitmap);
+        slot.feature = null;
+        slot.error = null;
+        similarityValue.setVisibility(View.GONE);
+        slot.request = hiFaceSdk.capture().fromBitmap(bitmap, result -> {
             // Ignore both success and error from an old image after the photo is replaced or its slot is released.
             // 已更换照片或释放槽位时，旧图片的成功结果和错误都不再更新界面。
-            if (slot.bitmap != bitmap) return;
+            if (slot.bitmap != bitmap || slot.request == null) return;
+            slot.request = null;
             if (result.isSuccess()) {
                 slot.setCapture(result.requireValue());
             } else {
-                slot.extracting = false;
                 slot.error = DemoErrorUi.messageFor(this, result.requireError());
             }
             updateControls();
         });
+        updateControls();
     }
 
     /**
@@ -123,30 +125,13 @@ public final class FaceComparisonActivity extends AppCompatActivity {
         String faceFeature1 = leftSlot.feature;
         String faceFeature2 = rightSlot.feature;
         if (faceFeature1 == null || faceFeature2 == null) return;
-        showComparisonResult(hiFaceSdk.verification().compare(faceFeature1, faceFeature2));
-    }
-
-    /**
-     * Keep the score on screen; do not interpret similarity as identity probability or invent a pass
-     * threshold.
-     *
-     * 分数常驻页面，不把相似度解释成身份概率或自行添加通过阈值。
-     */
-    private void showComparisonResult(@NonNull HiFaceResult<Float> result) {
-        similarity = result.isSuccess() ? result.requireValue() : null;
-        comparisonError = result.isFailure() ? DemoErrorUi.messageFor(this, result.requireError()) : null;
-        updateControls();
-    }
-
-    /**
-     * If reading a new photo fails, retain the slot's previous image and feature and show the error only
-     * in that slot.
-     *
-     * 新照片读取失败时保留槽位原有图片和特征，只在对应位置显示原因。
-     */
-    private void showPhotoPickerError(@NonNull FacePhotoSlot slot, @NonNull String message) {
-        slot.error = message;
-        updateControls();
+        HiFaceResult<Float> result = hiFaceSdk.verification().compare(faceFeature1, faceFeature2);
+        similarityValue.setVisibility(View.VISIBLE);
+        similarityValue.setTextColor(ContextCompat.getColor(this,
+                result.isSuccess() ? R.color.content_accent : R.color.content_error));
+        similarityValue.setText(result.isSuccess()
+                ? getString(R.string.face_compare_result, result.requireValue() * 100f)
+                : DemoErrorUi.messageFor(this, result.requireError()));
     }
 
     /**
@@ -159,26 +144,6 @@ public final class FaceComparisonActivity extends AppCompatActivity {
         compareButton.setEnabled(ready);
         leftSlot.render();
         rightSlot.render();
-        renderResult();
-    }
-
-    /**
-     * Use no screen space before a score exists; changing an image immediately clears the previous result.
-     *
-     * 未得到分数时不占页面空间；换图立即清除上一次结果。
-     */
-    private void renderResult() {
-        if (similarity != null) {
-            similarityValue.setVisibility(View.VISIBLE);
-            similarityValue.setTextColor(ContextCompat.getColor(this, R.color.content_accent));
-            similarityValue.setText(getString(R.string.face_compare_result, similarity * 100f));
-        } else if (comparisonError != null) {
-            similarityValue.setVisibility(View.VISIBLE);
-            similarityValue.setTextColor(ContextCompat.getColor(this, R.color.content_error));
-            similarityValue.setText(comparisonError);
-        } else {
-            similarityValue.setVisibility(View.GONE);
-        }
     }
 
     @Override
@@ -205,7 +170,8 @@ public final class FaceComparisonActivity extends AppCompatActivity {
         private Bitmap bitmap;
         @Nullable
         private String feature;
-        private boolean extracting;
+        // Each slot owns its pending extraction until its main-thread callback or a replacement.
+        @Nullable private FaceRequest request;
         @Nullable
         private String error;
 
@@ -224,17 +190,21 @@ public final class FaceComparisonActivity extends AppCompatActivity {
             container.setOnClickListener(listener);
         }
 
-        void setBitmap(@NonNull Bitmap value) {
-            recycleBitmap();
+        void replaceBitmap(@Nullable Bitmap value) {
+            Bitmap previous = bitmap;
             bitmap = value;
-            feature = null;
-            error = null;
-            extracting = true;
             imageView.setImageBitmap(value);
-            placeholder.setVisibility(View.GONE);
+            placeholder.setVisibility(value == null ? View.VISIBLE : View.GONE);
+            if (previous != null && previous != value) previous.recycle();
+        }
+
+        void cancelExtraction() {
+            if (request != null) request.cancel();
+            request = null;
         }
 
         void render() {
+            boolean extracting = request != null;
             loading.setVisibility(extracting ? View.VISIBLE : View.GONE);
             int statusText = extracting ? R.string.face_compare_photo_processing
                     : feature != null ? R.string.face_compare_photo_ready : 0;
@@ -259,25 +229,15 @@ public final class FaceComparisonActivity extends AppCompatActivity {
          * 只取一次独立 Bitmap，释放原图；槽位保存裁剪图和 String，不长期持有整份结果。
          */
         void setCapture(@NonNull FaceCaptureResult capture) {
-            setBitmap(capture.getAlignedFace());
+            replaceBitmap(capture.getAlignedFace());
             feature = capture.getFeature();
-            extracting = false;
         }
 
         @Override
         public void close() {
+            cancelExtraction();
             feature = null;
-            extracting = false;
-            imageView.setImageDrawable(null);
-            recycleBitmap();
-        }
-
-        private void recycleBitmap() {
-            Bitmap value = bitmap;
-            bitmap = null;
-            if (value != null && !value.isRecycled()) {
-                value.recycle();
-            }
+            replaceBitmap(null);
         }
     }
 }

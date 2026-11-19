@@ -28,13 +28,18 @@ struct Snapshot {
     std::string reference_id, comparison_error_a, comparison_error_b, flow_summary;
     std::optional<float> comparison_similarity;
     std::array<bool, 2> comparison_slot_ready{};
+    // Slot being extracted: 0 for A, 1 for B, -1 when idle.
     int comparison_extracting = -1;
+    // Monotonic completion number lets the UI open each guided-flow result dialog once.
     uint64_t flow_completion = 0;
     bool flow_passed = false;
     bool pending_reference = false, comparison_ready = false;
+    // Whole-library count, filtered management count, and current camera-search scope size.
     uint64_t total = 0, filtered = 0, search_population = 0;
     uint32_t offset = 0;
+    // Command completion, photo-search request, and view lifetime use separate counters.
     uint64_t completed_command = 0, search_generation = 0, view_generation = 0;
+    // Monotonic stamps for checking freshness separately for the preview and its analysis.
     int64_t preview_at_ms = -1, analysis_at_ms = -1;
     bool gallery_more = false, enrollment_conflict = false;
     std::string conflict_id;
@@ -53,11 +58,15 @@ public:
     // The worker checks this before publishing or writing.
     // 命令入队后推进代次；ID 输入立即失效旧查询。工作线程在发布/写库前检查。
     std::atomic<uint64_t> generation{0};
+    // Coalesce snapshots into one pending UI message. The UI reads the latest snapshot when it runs.
     std::atomic<bool> notification_pending{false};
     ~App();
     void start();
+    // Wake and join the worker before destroying its camera, database, or SDK resources.
     void stop();
+    // Return the admitted command sequence used by the UI to await its completion.
     uint64_t enqueue(Command command);
+    // Share an immutable snapshot; callers never lock or access the worker-owned SDK directly.
     std::shared_ptr<const Snapshot> current();
 private:
     std::atomic<bool> stopping_{false};
@@ -66,6 +75,7 @@ private:
     std::mutex mutex_;
     std::condition_variable changed_;
     WorkerCommands commands_;
+    // Replaced under mutex_ by publish(); existing readers keep their previous snapshot alive.
     std::shared_ptr<const Snapshot> snapshot_ = std::make_shared<Snapshot>();
     void publish(const Snapshot& state);
     void run();

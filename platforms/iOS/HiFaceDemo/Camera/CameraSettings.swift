@@ -1,8 +1,10 @@
 import SwiftUI
 
 struct CameraSettingsView: View {
+    // Persist a resolution preference; CameraPipeline negotiates the actual supported device format.
     @AppStorage(DemoCameraSettings.resolutionKey)
     private var resolution = CameraAnalysisResolution.medium.rawValue
+    // Extra overlay-coordinate correction is independent of the camera preview's mirroring.
     @AppStorage(DemoCameraSettings.mirrorCoordinatesKey)
     private var mirrorsOverlayCoordinates = false
 

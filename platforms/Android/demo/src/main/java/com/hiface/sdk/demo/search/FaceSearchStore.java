@@ -67,8 +67,10 @@ public final class FaceSearchStore implements AutoCloseable {
     private static final String IMAGE_FORMAT = "url";
     private static final String FEATURE_DEMO_ASSET = "face_search/features_10000.json";
     private static final String IMAGE_DEMO_ASSET = "face_search/images_1000.json";
+    // Rows per database transaction; image imports flush smaller batches while extracting serially.
     private static final int WRITE_BATCH_SIZE = 1_000;
     private static final int IMAGE_WRITE_BATCH_SIZE = 100;
+    // Bound concurrent downloads independently of the single extraction/database worker.
     private static final int IMAGE_PREFETCH_COUNT = 5;
     private static final int MAX_IMAGE_BYTES = 20 * 1024 * 1024;
     private static final int MAX_IMAGE_DIMENSION = 1_080;
@@ -102,8 +104,10 @@ public final class FaceSearchStore implements AutoCloseable {
      * 使旧任务失效：跳过尚未开始的工作并抑制结果回调；已提交的数据库批次保持有效。
      */
     public static final class Request<T> {
+        // Cancellation suppresses delivery. A graceful import stop still publishes its final summary.
         private volatile boolean cancelled;
         private volatile boolean stopRequested;
+        // Number of rows saved so far, including any batches that completed before a stop.
         private volatile int savedCount;
         private final boolean importOperation;
         private boolean finished;
@@ -111,9 +115,11 @@ public final class FaceSearchStore implements AutoCloseable {
         private Callback<T> callback;
         private HiFaceResult<T> result;
         private ProgressCallback progress;
+        // Keep the newest progress update while one main-thread delivery is queued.
         private ImportProgress pendingProgress;
         private boolean progressPosted;
         private final Dispatcher main;
+        // Owning store's live-request set; completion/cancellation detaches this request from it.
         private Set<Request<?>> owner;
         private boolean downloadsStopped;
         private final List<HttpURLConnection> connections = new ArrayList<>();

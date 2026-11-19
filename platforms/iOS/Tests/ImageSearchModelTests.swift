@@ -29,9 +29,12 @@ struct FaceSearchMatch: Sendable {
     let score: Float
 }
 actor FaceSearchDatabase {
-    func count() -> UInt64 { 1 }
-    func search(feature: String) -> [FaceSearchMatch] {
-        [FaceSearchMatch(entry: .init(faceID: feature), score: 0.95)]
+    func count() throws -> UInt64 { 1 }
+    func search(feature: String) throws -> [FaceSearchMatch] {
+        guard !feature.isEmpty else {
+            throw HiFaceError(code: .processingFailed, message: "Invalid feature")
+        }
+        return [FaceSearchMatch(entry: .init(faceID: feature), score: 0.95)]
     }
     func close() {}
 }
@@ -57,7 +60,7 @@ final class HiFaceSDK: Sendable {
     @MainActor static var latest: HiFaceSDK?
     let work = ImageSearchWork()
     @MainActor init() { Self.latest = self }
-    static func openSearchDatabase() -> FaceSearchDatabase { FaceSearchDatabase() }
+    static func openSearchDatabase() throws -> FaceSearchDatabase { FaceSearchDatabase() }
     func captureFaces(_ image: HiFaceRGBAImage) async -> Result<[FaceImageCapture], HiFaceError> {
         await work.capture(image)
     }
@@ -82,7 +85,8 @@ final class HiFaceSDK: Sendable {
         try await replacingPhotoRejectsOldResult()
         try await stopRejectsPendingSearch()
         try await pickerFailurePreservesCompletedPhoto()
-        print("Image search model: 4 cancellation/replacement/preservation regressions passed")
+        try await searchErrorOnlyAffectsOneFace()
+        print("Image search model: 5 cancellation/replacement/preservation/error regressions passed")
     }
 
     @MainActor static func pickerFailureRejectsPendingSearch() async throws {
@@ -134,5 +138,16 @@ final class HiFaceSDK: Sendable {
         model.pickerFailed(HiFaceError(code: .unsupportedFormat, message: "Unreadable replacement"))
         precondition(model.preview == "ready" && model.faces.first?.label == "READY,0.95")
         precondition(!model.processing && model.status == "Unreadable replacement")
+    }
+
+    @MainActor static func searchErrorOnlyAffectsOneFace() async throws {
+        let model = ImageSearchModel()
+        let work = HiFaceSDK.latest!.work
+        model.load(HiFaceRGBAImage(name: "group"))
+        try await waitUntil { await work.hasCapture("group") }
+        await work.complete("group", with: [face(""), face("MATCH")])
+        try await waitUntil { !model.processing }
+        precondition(model.faces.map(\.label) == ["Invalid feature", "MATCH,0.95"])
+        precondition(model.faces.map(\.matched) == [false, true])
     }
 }

@@ -47,7 +47,7 @@ enum Control {
     DetectionBoxes,
     RecognitionSilent = 4900, RecognitionVerifyActions, RecognitionVerifyBlink, RecognitionVerifyMouth,
     RecognitionVerifyShake, RecognitionVerifyNod, RecognitionLiveActions, RecognitionLiveBlink, RecognitionLiveMouth,
-    RecognitionLiveShake, RecognitionLiveNod, RecognitionStart, RecognitionAdd, RecognitionScroll, RecognitionPageScroll,
+    RecognitionLiveShake, RecognitionLiveNod, RecognitionStart, RecognitionAlbum, RecognitionAdd, RecognitionScroll, RecognitionPageScroll,
     RecognitionReferenceBase = 8000,
     HomeVersion = 4998, WebsiteToast, ParameterPane = 5000, NavBase = 6000, HomeBase = 7000
 };
@@ -85,11 +85,14 @@ struct Ui {
     HWND pane = nullptr;
     RECT canvas{}, parameters{};
     int scroll = 0, content_height = 0, view_height = 0;
+    // pending_command tracks the worker reply. search_request_generation identifies the current photo search.
     uint64_t pending_command = 0, search_request_generation = 0;
     bool creating = true, dirty = false, rendering_list = false;
     Page page = Page::Home;
     PageHistory history;
+    // Index of the first visible reference tile and capacity of the horizontal strip.
     int recognition_offset=0,recognition_visible=1;
+    // Avoid posting duplicate navigation while a flow result is on its way back to the recognition page.
     bool recognition_return_pending = false;
     RecognitionOutcome recognition_outcome = RecognitionOutcome::Canceled;
     std::wstring recognition_result_title,recognition_result_message;
@@ -98,6 +101,8 @@ struct Ui {
     std::unordered_map<std::string,std::shared_ptr<const Image>> recognition_photos;
     bool parameters_open = false;
     bool capture_preview = false;
+    bool album_reference = false; // The shared reference preview hides camera controls for album input.
+    // Suppress duplicate replacement prompts by command ID and duplicate result handling by flow number.
     uint64_t handled_conflict = 0, handled_flow_completion = 0;
     std::vector<std::string> rendered_reference_ids;
     bool comparison_score_visible = false;
@@ -105,6 +110,7 @@ struct Ui {
     bool gallery_append_queued = false;
     bool metadata_editor_open = false;
     int home_scroll = 0;
+    // Command IDs for returning after a successful gallery or 1:1 reference write. Zero means no return requested.
     uint64_t return_after_save = 0, return_after_reference = 0;
     unsigned initial_camera = 0;
     uint64_t rendered_gallery = UINT64_MAX;
@@ -143,7 +149,6 @@ bool hasRecognitionAction(HWND window, bool verification) {
         if (checked(window, first + i)) return true;
     return false;
 }
-bool guidedRecognition(Page page) { return page == Page::Verification || page == Page::Liveness; }
 int selection(HWND window, int id) { return static_cast<int>(send(window, id, CB_GETCURSEL, 0, 0)); }
 unsigned integer(HWND window, int id, unsigned minimum, unsigned maximum) {
     try {
@@ -270,7 +275,7 @@ Settings readSettings(Ui& ui) {
 // 先校验参数再入队，成功入队才推进代次，避免错误输入静默停止当前分析。
 void submit(Ui& ui, Action action, std::vector<std::filesystem::path> files = {}) {
     const bool independent = action == Action::Cancel || action == Action::CloseCamera || action == Action::Pause
-        || action == Action::NextPage || action == Action::ReleaseMemory
+        || action == Action::SetImageReference || action == Action::NextPage || action == Action::ReleaseMemory
         || action == Action::ExportPreview || action == Action::ExportFeature;
     auto settings = independent ? ui.app.current()->settings : readSettings(ui);
     if (action == Action::Pause && !ui.app.current()->paused && ui.dirty)
@@ -463,7 +468,7 @@ void layout(Ui& ui) {
     auto move=[&](int id,int x,int y,int w,int h=34){MoveWindow(child(window,id),px(x),px(y),px(std::max(1,w)),px(std::max(1,h)),TRUE);};
     const bool menu=menuPage(ui.page),home=ui.page==Page::Home,gallery=ui.page==Page::Gallery,comparison=ui.page==Page::Comparison,settings=ui.page==Page::CameraSettings;
     const bool recognition = ui.page == Page::Recognition, guided = guidedRecognition(ui.page);
-    const bool capture=ui.page==Page::Reference||ui.page==Page::Enrollment;
+    const bool capture=isCapturePage(ui.page);
     const bool pane=!menu&&!gallery&&!comparison&&!settings&&ui.page!=Page::ImageSearch&&(!capture||ui.capture_preview)&&(!hasFeatureParameters(ui.page)||ui.parameters_open);
     ui.main_left=24;ui.parameter_width=width<1100?272:296;
     for(int id:{PickA,PickB,ImageEnroll,ImageReference,ImportReference,StartFlow}){
@@ -532,7 +537,9 @@ void layout(Ui& ui) {
         };
         const auto& v = view.verification;
         const auto& l = view.liveness;
-        for (int id = RecognitionSilent; id <= RecognitionAdd; ++id) font(id,ui.theme.recognition);
+        for (int id = RecognitionSilent; id <= RecognitionStart; ++id) font(id,ui.theme.recognition);
+        font(RecognitionAlbum,ui.theme.parameter_title);
+        font(RecognitionAdd,ui.theme.parameter_title);
         show(RecognitionSilent,v.passive);
         show(RecognitionVerifyActions,v.action_toggle);
         show(RecognitionLiveActions,l.action_toggle);
@@ -540,6 +547,7 @@ void layout(Ui& ui) {
             show(RecognitionVerifyBlink+i,v.choices[i]);
             show(RecognitionLiveBlink+i,l.choices[i]);
         }
+        show(RecognitionAlbum,v.album_reference);
         show(RecognitionAdd,v.add_reference);
         ui.recognition_strip = view.visible(v.strip);
         ui.recognition_visible = std::clamp((v.strip.width() + RecognitionCardLayout::tile_step -
@@ -589,7 +597,7 @@ void layout(Ui& ui) {
     }
     ToolbarLayout toolbar(32,width-24,86);
     auto tool=[&](int id,int w){const auto area=toolbar.place(w);move(id,area.left,area.top,area.width(),id==Device||id==ReferenceChoice||id==Resolution||id==Rotation?280:34);ShowWindow(child(window,id),SW_SHOW);};
-    const bool camera=usesCamera(ui.page)&&!(capture&&ui.capture_preview);
+    const bool camera=usesCamera(ui.page)&&!ui.album_reference&&!(capture&&ui.capture_preview);
     if(camera){
         tool(Device,width<1100?180:224);tool(RefreshDevices,48);
         const auto area=toolbar.place(104);move(Open,area.left,area.top,area.width());move(Close,area.left,area.top,area.width());
@@ -601,7 +609,8 @@ void layout(Ui& ui) {
     if(ui.page==Page::ImageSearch)tool(GoGallery,104);
     if(ui.page==Page::Verification){if(ui.rendered_reference_ids.empty())tool(GoGallery,124);else tool(ReferenceChoice,width<1100?220:280);}
     if(hasFeatureParameters(ui.page))tool(Parameters,104);
-    if(capture&&!ui.capture_preview){tool(PickA,136);tool(ui.page==Page::Enrollment?ImageEnroll:ImageReference,136);if(ui.page==Page::Reference)tool(ImportReference,116);}
+    if (!ui.capture_preview && ui.page == Page::Enrollment) { tool(PickA,136); tool(ImageEnroll,136); }
+    if (!ui.capture_preview && ui.page == Page::Reference) { tool(ImageReference,136); tool(ImportReference,116); }
     if(comparison){tool(PickA,144);tool(PickB,144);}
     if(gallery){tool(QueryId,std::max(180,width-338));tool(LookupPerson,72);tool(ClearQuery,64);tool(GalleryMenu,72);}
     setText(window,GoGallery,ui.page==Page::Verification?L"先采集基准":L"人脸库");
@@ -628,7 +637,7 @@ void layout(Ui& ui) {
     if(capture&&ui.capture_preview){move(SearchGuide,8,y-ui.scroll,ui.parameter_width-54,62);ShowWindow(child(window,SearchGuide),SW_SHOW);y+=72;row(PersonId);if(ui.page==Page::Enrollment){row(Group);row(Tag);}}
     switch(ui.page){
         case Page::Detection:row(MaxFaces);row(Details,false);row(DetectionBoxes,false);break;
-        case Page::Reference:if(ui.capture_preview){row(PickA,false);row(ImageReference,false);row(ImportReference,false);row(ExportPreview,false);}break;
+        case Page::Reference:if(ui.capture_preview){row(ImageReference,false);row(ImportReference,false);row(ExportPreview,false);}break;
         case Page::Enrollment:if(ui.capture_preview){row(PickA,false);row(ImageEnroll,false);}break;
         case Page::Verification:row(Threshold);row(Actions,false);if(selection(window,Actions)==7)row(CustomActions);row(Silent,false);row(Multiple,false);row(ExportFeature,false);break;
         case Page::Liveness:row(Actions,false);if(selection(window,Actions)==7)row(CustomActions);row(Multiple,false);row(ExportPreview,false);break;
@@ -676,6 +685,21 @@ std::wstring updatedTime(int64_t milliseconds) {
 // 仅根据快照更新 UI；页面/请求代次匹配后才显示身份或弹窗，此处不调用 SDK。
 void update(Ui& ui) {
     const auto state = ui.app.current(); const auto window = ui.app.window;
+    // Keep recognition visible while the worker validates a photo. Open the shared preview only for its result.
+    if (ui.page == Page::Recognition && ui.pending_command && state->completed_command == ui.pending_command &&
+        state->view_generation == ui.app.generation && !state->busy) {
+        if (state->settings.page == Page::Reference && state->pending_reference) {
+            ui.history.moved(Page::Recognition, Page::Reference);
+            ui.page = Page::Reference;
+            ui.album_reference = true;
+            ui.scroll = 0;
+            ui.creating = true;
+            setText(window, PersonId, L"");
+            ui.creating = false;
+        } else if (state->error) {
+            ui.parameter_notice = widen(state->update.message);
+        }
+    }
     const bool current_view = state->view_generation == ui.app.generation && state->settings.page == ui.page;
     ui.search_overlay_fresh = searchOverlayFresh(std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count(), state->preview_at_ms, state->analysis_at_ms);
@@ -695,7 +719,11 @@ void update(Ui& ui) {
         for(size_t i=0;i<ui.rendered_reference_ids.size();++i){const auto value=widen(ui.rendered_reference_ids[i]);send(window,ReferenceChoice,CB_ADDSTRING,0,reinterpret_cast<LPARAM>(value.c_str()));if(ui.rendered_reference_ids[i]==id)selected=static_cast<int>(i);}
         send(window,ReferenceChoice,CB_SETCURSEL,selected,0);ui.creating=creating;layout(ui);
     }
-    if (ui.capture_preview != preview) { ui.capture_preview = preview; layout(ui); }
+    if (ui.capture_preview != preview) {
+        ui.capture_preview = preview;
+        layout(ui);
+        if (preview && ui.album_reference) SetFocus(child(window, PersonId));
+    }
     setText(window, Status, ui.page==Page::Home&&!state->error&&!state->fatal?L"人脸数据在本机处理与保存":ui.parameter_notice.empty() ? widen(state->update.message) : ui.parameter_notice);
     ShowWindow(child(window,Metrics),menuPage(ui.page)||ui.page==Page::Search||ui.page==Page::Comparison?SW_HIDE:SW_SHOW);
     ShowWindow(child(window,Status),ui.page==Page::Search||ui.page==Page::Comparison?SW_HIDE:SW_SHOW);
@@ -709,18 +737,18 @@ void update(Ui& ui) {
     setText(window, Metrics, metrics.str());
     if (state->completed_command >= ui.pending_command) ui.pending_command = 0;
     if (state->fatal) { ui.pending_command=ui.return_after_save=ui.return_after_reference=ui.close_settings_after=0; }
-    const bool ready = !state->busy && !ui.pending_command && !state->flow_active && !state->fatal;
+    const bool can_select_input = !state->busy && !ui.pending_command && !state->fatal;
+    const bool ready = can_select_input && !state->flow_active;
     for (int id = PersonId; id <= ReleaseMemory; ++id) EnableWindow(child(window, id), ready);
     EnableWindow(child(window, Open), ready && !state->camera_open && !ui.app.cameras.empty() && usesCamera(ui.page));
-    const bool camera_tools=usesCamera(ui.page)&&!((ui.page==Page::Reference||ui.page==Page::Enrollment)&&ui.capture_preview);
+    const bool camera_tools=usesCamera(ui.page)&&!ui.album_reference&&!(isCapturePage(ui.page)&&ui.capture_preview);
     ShowWindow(child(window,Open),camera_tools&&(!current_view||!state->camera_open)?SW_SHOW:SW_HIDE);
     ShowWindow(child(window,Close),camera_tools&&current_view&&state->camera_open?SW_SHOW:SW_HIDE);
     EnableWindow(child(window, Close), state->camera_open || state->busy);
-    EnableWindow(child(window, StartFlow), ready && (state->camera_open||((ui.page==Page::Reference||ui.page==Page::Enrollment)&&!ui.app.cameras.empty())) && (ui.page != Page::Verification || state->has_reference));
+    EnableWindow(child(window, StartFlow), ready && (state->camera_open||(isCapturePage(ui.page)&&!ui.app.cameras.empty())) && (ui.page != Page::Verification || state->has_reference));
     EnableWindow(child(window, Enroll), ready);
     EnableWindow(child(window, Pause), ready && state->camera_open);
-    EnableWindow(child(window, Cancel), state->flow_active || state->busy);
-    EnableWindow(child(window, Device),!state->busy&&!ui.pending_command&&!state->fatal&&!state->pending_enrollment&&!state->pending_reference&&(ui.page!=Page::Verification||state->has_reference));
+    EnableWindow(child(window, Device),can_select_input&&!state->pending_enrollment&&!state->pending_reference&&(ui.page!=Page::Verification||state->has_reference));
     EnableWindow(child(window, RefreshDevices), ready && !state->camera_open);
     EnableWindow(child(window, Resolution), ready);
     const bool can_navigate = (!state->busy && !ui.pending_command) || ui.page == Page::ImageSearch;
@@ -740,11 +768,13 @@ void update(Ui& ui) {
     EnableWindow(child(window, CustomActions), ready && selection(window, Actions) == 7);
     EnableWindow(child(window, Compare), ready && state->comparison_ready);
     EnableWindow(child(window,SaveReference),ready&&state->pending_reference);
-    EnableWindow(child(window,ReferenceChoice),!state->busy&&!ui.pending_command&&!state->fatal);
+    EnableWindow(child(window,ReferenceChoice),can_select_input);
     if(ui.page==Page::Comparison)for(int id:{PickA,PickB})EnableWindow(child(window,id),!state->fatal);
-    EnableWindow(child(window, ImageReference), ready && state->image_a);
+    EnableWindow(child(window, ImageReference), can_select_input);
     EnableWindow(child(window, ImageEnroll), ready && state->image_a);
-    if(ui.page==Page::Enrollment||ui.page==Page::Reference){EnableWindow(child(window,PickA),!state->busy&&!ui.pending_command&&!state->fatal);EnableWindow(child(window,ImportReference),!state->busy&&!ui.pending_command&&!state->fatal);}
+    if (isCapturePage(ui.page)) {
+        for (int id : {PickA, ImportReference}) EnableWindow(child(window, id), can_select_input);
+    }
     EnableWindow(child(window, SaveEnrollment), ready && state->pending_enrollment);
     EnableWindow(child(window, ExportFeature), ready && state->has_reference);
     EnableWindow(child(window, ExportPreview), ready && state->captured);
@@ -792,8 +822,8 @@ void update(Ui& ui) {
     }
     if(ui.page==Page::Reference){
         setText(window,SearchGuide,L"核对预览与 Face ID。\r\n确认后保存到独立采集参考库。\r\n已有同名参考将更新。");
-        setText(window,Primary,state->pending_reference?L"确认保存":state->camera_open?L"重新采集基准":L"打开摄像头重试");
-        EnableWindow(child(window,Primary),ready&&(state->pending_reference||state->camera_open||!ui.app.cameras.empty()));
+        setText(window,Primary,state->pending_reference?L"确认保存":ui.album_reference?L"重新选图":state->camera_open?L"重新采集基准":L"打开摄像头重试");
+        EnableWindow(child(window,Primary),ready&&(state->pending_reference||ui.album_reference||state->camera_open||!ui.app.cameras.empty()));
     }
     if(ui.page==Page::Liveness||ui.page==Page::Verification){
         setText(window,Primary,state->camera_open ? primaryTitle(ui.page) : L"重试摄像头");
@@ -928,7 +958,7 @@ void paint(Ui& ui) {
                  : status == RecognitionOutcome::Canceled ? L"已取消" : L"发生错误");
             label(dc,heading.c_str(),rect(result.left+16,result.top+8,result.width()-32,32),ui.theme.title,
                 status == RecognitionOutcome::Passed ? colors::success : status == RecognitionOutcome::Canceled ? colors::muted : colors::error);
-            label(dc,ui.recognition_result_message.c_str(),rect(result.left+16,result.top+44,result.width()-32,result.height()-54),
+            label(dc,ui.recognition_result_message.c_str(),rect(result.left+16,result.top+48,result.width()-32,result.height()-58),
                 ui.theme.recognition,colors::ink,wrapped);
         }
         for (const bool verification : {true,false}) {
@@ -945,15 +975,13 @@ void paint(Ui& ui) {
             const auto hint_fill = missing ? RGB(255,238,237) : colors::selected;
             card(dc,hint_area,hint_fill,hint_fill,px(10));
             InflateRect(&hint_area,-px(12),-px(3));
-            label(dc,hint,hint_area,ui.theme.recognition,missing ? colors::error : colors::primary,
+            label(dc,hint,hint_area,ui.theme.recognition,missing ? colors::error : colors::muted,
                 DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
             if (verification) {
                 label(dc,L"已采集的人脸",nativeRect(a.reference_title),ui.theme.result,colors::ink);
-                if (ui.rendered_reference_ids.empty()) {
-                    label(dc,L"请先采集人脸并保存 Face ID。",nativeRect(a.reference_help),ui.theme.recognition,colors::muted,wrapped);
-                } else {
-                    label(dc,L"拖动浏览 · 点击验证 · 右键或 Delete 删除",nativeRect(a.reference_help),ui.theme.recognition,colors::muted,wrapped);
-                }
+                const wchar_t* help = ui.rendered_reference_ids.empty() ? L"暂无已录入的人脸。" : L"拖动浏览 · 点击验证 · 右键或 Delete 删除";
+                label(dc,ui.parameter_notice.empty() ? help : ui.parameter_notice.c_str(),nativeRect(a.reference_help),
+                    ui.theme.recognition,ui.parameter_notice.empty() ? colors::muted : colors::error,wrapped);
             }
         }
         RestoreDC(dc,saved);
@@ -980,7 +1008,7 @@ void paint(Ui& ui) {
         (ui.page != Page::Comparison || current_view)) {
         InflateRect(&area, -px(2), -px(2));
         const auto saved = SaveDC(dc); IntersectClipRect(dc, area.left, area.top, area.right, area.bottom);
-        SelectObject(dc, ui.theme.body); SetBkMode(dc, TRANSPARENT); SetTextColor(dc, RGB(240, 240, 240));
+        SelectObject(dc, ui.theme.body); SetBkMode(dc, TRANSPARENT); SetTextColor(dc, colors::text_on_dark);
         if (ui.page == Page::Comparison) {
             const ComparisonLayout view({area.left,area.top,area.right,area.bottom},static_cast<int>(ui.theme.dpi));
             const std::shared_ptr<const Image> photos[]={state->image_a,state->image_b};
@@ -989,34 +1017,36 @@ void paint(Ui& ui) {
                 const auto& bounds=view.slots[slot];const RECT box{bounds.left,bounds.top,bounds.right,bounds.bottom};
                 fill(dc,box,RGB(31,43,60));
                 if(photos[slot])bitmap(dc,*photos[slot],box);
-                else label(dc,slot?L"点击选择图片 B":L"点击选择图片 A",box,ui.theme.body,RGB(220,230,240),DT_CENTER|DT_VCENTER|DT_SINGLELINE);
+                else label(dc,slot?L"点击选择图片 B":L"点击选择图片 A",box,ui.theme.body,colors::secondary_on_dark,DT_CENTER|DT_VCENTER|DT_SINGLELINE);
                 const auto& error=view.errors[slot];const RECT detail{error.left,error.top,error.right,error.bottom};
                 const auto caption = !errors[slot].empty() ? widen(errors[slot])
                     : state->comparison_extracting == slot ? L"正在提取特征…"
                     : state->comparison_slot_ready[slot] ? (slot ? L"图片 B · 特征已就绪" : L"图片 A · 特征已就绪")
                     : (slot ? L"图片 B" : L"图片 A");
                 label(dc,caption.c_str(),detail,ui.theme.body,
-                    errors[slot].empty()?RGB(220,230,240):RGB(255,150,150),DT_CENTER|DT_WORDBREAK|DT_END_ELLIPSIS);
+                    errors[slot].empty()?colors::secondary_on_dark:colors::error_on_dark,DT_CENTER|DT_WORDBREAK|DT_END_ELLIPSIS);
             }
-        } else if ((ui.page == Page::Enrollment || ui.page == Page::Reference) && state->captured && (state->pending_enrollment || state->pending_reference)) {
+        } else if (isCapturePage(ui.page) && state->captured && (state->pending_enrollment || state->pending_reference)) {
             bitmap(dc, *bgraImage(*state->captured), area);
         } else if (!state->preview) {
             RECT title = area; title.left += px(24); title.right -= px(24);
             title.top = (area.top + area.bottom) / 2 - px(38); title.bottom = title.top + px(34);
-            label(dc, L"准备开始", title, ui.theme.title, RGB(230, 237, 250), DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+            label(dc, L"准备开始", title, ui.theme.title, colors::text_on_dark, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
             title.top += px(42); title.bottom = title.top + px(70);
             const wchar_t* hint = state->pending_reference ? L"已导入 HF1 基准；此文件不包含预览图片。请填写 Face ID 并确认保存。" : ui.page == Page::Detection ? L"打开摄像头查看实时结果，或选择图片检测"
                 : ui.page == Page::CameraSettings ? L"选择设备并打开以检查画面；分辨率、旋转和镜像修改后自动保存"
                 : ui.page == Page::Enrollment ? L"相机采集或选择图片，核对预览后确认保存人员"
                 : ui.page == Page::Search ? L"打开摄像头开始搜索；录入人员请进入独立录入页"
                 : L"选择并打开摄像头，然后点击下方开始按钮";
-            if (guided) {
+            if (ui.album_reference) {
+                hint = state->busy || ui.pending_command ? L"正在准备照片预览…" : L"请选择一张仅含一张人脸的照片";
+            } else if (guided) {
                 if (state->busy || ui.pending_command) hint = L"正在准备摄像头…";
                 else if (ui.page == Page::Verification && !state->has_reference) hint = L"选择已采集的人脸，开始验证。";
                 else if (state->camera_open) hint = L"请正对镜头。";
                 else hint = L"选择摄像头后重试。";
             }
-            label(dc, hint, title, guided?ui.theme.recognition:ui.theme.body, RGB(157, 176, 204), DT_CENTER | DT_WORDBREAK);
+            label(dc, hint, title, guided?ui.theme.recognition:ui.theme.body, colors::secondary_on_dark, DT_CENTER | DT_WORDBREAK);
         } else if (state->preview) {
             const auto fit = bitmap(dc, *state->preview, area);
             const auto old_brush = SelectObject(dc, GetStockObject(NULL_BRUSH));
@@ -1042,7 +1072,7 @@ void paint(Ui& ui) {
                     const int tag_y = std::max<int>(area.top,top-px(22));
                     const RECT tag{tag_x,tag_y,tag_x+px(50),tag_y+px(20)};
                     fill(dc,tag,colors::canvas);
-                    label(dc,score.c_str(),tag,ui.theme.body,RGB(248,249,252),DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                    label(dc,score.c_str(),tag,ui.theme.body,colors::text_on_dark,DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                 }
                 if (i < state->update.details.size()) {
                     const auto& detail = state->update.details[i];
@@ -1071,7 +1101,7 @@ void paint(Ui& ui) {
                 SelectObject(dc, previous_pen); DeleteObject(pen);
             }
             SelectObject(dc, old_brush);
-            if((ui.page==Page::Enrollment||ui.page==Page::Reference||guided)&&!state->pending_enrollment&&!state->pending_reference){
+            if((isCapturePage(ui.page)||guided)&&!state->pending_enrollment&&!state->pending_reference){
                 RECT guide = area;
                 if (guided && !state->update.message.empty()) {
                     RECT hint{area.left+px(12),area.top+px(8),area.right-px(12),area.top+px(70)};
@@ -1081,15 +1111,15 @@ void paint(Ui& ui) {
                         const auto seconds = (std::max<int64_t>(0,state->update.action_deadline_ms-flowClockMs())+999)/1000;
                         RECT remaining{hint.left,hint.bottom-px(25),hint.right,hint.bottom};
                         label(dc,(L"动作剩余 " + std::to_wstring(seconds) + L" 秒").c_str(),remaining,ui.theme.recognition,
-                            RGB(186,209,242),DT_CENTER|DT_VCENTER|DT_SINGLELINE);
+                            colors::secondary_on_dark,DT_CENTER|DT_VCENTER|DT_SINGLELINE);
                         hint.bottom = remaining.top;
                     }
-                    label(dc,widen(state->update.message).c_str(),hint,ui.theme.title,RGB(245,248,255),
+                    label(dc,widen(state->update.message).c_str(),hint,ui.theme.title,colors::text_on_dark,
                         DT_CENTER | DT_WORDBREAK | DT_EDITCONTROL | DT_END_ELLIPSIS);
                     guide.top += px(76);
                 } else if (!guided) {
                     RECT hint{area.left+px(12),area.top+px(8),area.right-px(12),area.top+px(54)};
-                    label(dc,widen(state->update.message).c_str(),hint,ui.theme.body,RGB(255,255,255),DT_CENTER|DT_WORDBREAK);
+                    label(dc,widen(state->update.message).c_str(),hint,ui.theme.body,colors::text_on_dark,DT_CENTER|DT_WORDBREAK);
                 }
                 const int size = std::min(guide.right-guide.left,guide.bottom-guide.top)*3/4;
                 const int cx = (guide.left+guide.right)/2, cy = (guide.top+guide.bottom)/2;
@@ -1099,7 +1129,7 @@ void paint(Ui& ui) {
                 SelectObject(dc,previous_pen);SelectObject(dc,previous_brush);DeleteObject(pen);
             }
         }
-        if (state->captured && ui.page != Page::Comparison && ui.page != Page::Detection && ui.page != Page::Enrollment && ui.page != Page::Reference) {
+        if (state->captured && ui.page != Page::Comparison && ui.page != Page::Detection && !isCapturePage(ui.page)) {
             RECT thumb{area.right - px(170), area.bottom - px(196), area.right - px(6), area.bottom - px(6)};
             FillRect(dc, &thumb, static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH))); bitmap(dc, *bgraImage(*state->captured), thumb);
             TextOutW(dc, thumb.left, thumb.top - px(20), L"最近对齐抓拍", 6);
@@ -1227,7 +1257,8 @@ void create(Ui& ui) {
         checkBox(window,id,i==0||i==3);
     }
     checkBox(window,RecognitionSilent,true);
-    button(ui,RecognitionStart,L"开始活体检测");button(ui,RecognitionAdd,L"＋ 采集人脸");
+    button(ui,RecognitionStart,L"开始活体检测");
+    button(ui,RecognitionAlbum,L"相册添加");button(ui,RecognitionAdd,L"相机录入");
     control(ui,L"SCROLLBAR",L"",RecognitionScroll,SBS_HORZ|WS_TABSTOP);
     control(ui,L"SCROLLBAR",L"",RecognitionPageScroll,SBS_VERT);
     for (int i = 0; i < 24; ++i) {
@@ -1265,7 +1296,7 @@ void create(Ui& ui) {
     button(ui, StartFlow, L"开始本轮"); button(ui, Enroll, L"人脸录入");
     button(ui, SaveEnrollment, L"确认预览并保存人员"); button(ui, Cancel, L"取消流程 / 停止导入"); button(ui, Pause, L"暂停搜索 / 释放缓存");
     button(ui, PickA, L"选择图片 A"); button(ui, PickB, L"选择图片 B"); button(ui, Compare, L"比对两张图片（最大人脸）");
-    button(ui, ImageReference, L"从图片采集"); button(ui, ImportReference, L"导入 HF1");
+    button(ui, ImageReference, L"相册添加"); button(ui, ImportReference, L"导入 HF1");
     button(ui, ExportFeature, L"导出 1:1 基准 HF1"); button(ui, ExportPreview, L"导出最近对齐抓拍 PNG"); button(ui, ImageEnroll, L"从图片采集");
     button(ui, RefreshGallery, L"按分组 / 标签筛选并刷新"); button(ui, NextPage, L"下一页（100 条）"); button(ui, DeletePerson, L"删除该人员 ID"); button(ui, UpdatePerson, L"保存人员分组 / 标签");
     button(ui, ImportJson, L"批量导入 Android HF1 JSON"); button(ui, ExportJson, L"导出筛选结果 HF1 JSON"); button(ui, ImportImages, L"多选本地图片提取并导入"); button(ui, ReleaseMemory, L"释放数据库内存缓存");
@@ -1322,9 +1353,10 @@ void create(Ui& ui) {
         after = field;
     };
     for (int id = RecognitionSilent; id <= RecognitionVerifyNod; ++id) tabStop(id);
-    tabStop(RecognitionAdd);
     for (int i = 0; i < 24; ++i) tabStop(RecognitionReferenceBase+i);
     tabStop(RecognitionScroll);
+    tabStop(RecognitionAlbum);
+    tabStop(RecognitionAdd);
     for (int id = RecognitionLiveActions; id <= RecognitionStart; ++id) tabStop(id);
     const int tab_order[] = {Enroll, GoGallery, ReferenceChoice, QueryId, LookupPerson, ClearQuery, GalleryMenu, Parameters, Device, RefreshDevices, Open, Close, Resolution, Rotation, Mirror, Apply, ParameterPane, Primary, SearchImageAgain, Cancel, SearchResults, People, Logs, Help, HomeVersion};
     for (const int id : tab_order) tabStop(id);
@@ -1377,7 +1409,13 @@ void action(Ui& ui, int id, int notification) {
     std::string recognition_reference;
     if(ui.page==Page::Recognition){
         if(id>=RecognitionSilent&&id<=RecognitionLiveNod){ui.parameter_notice.clear();layout(ui);update(ui);InvalidateRect(window,nullptr,TRUE);return;}
-        if(id==RecognitionAdd){action(ui,NavBase+static_cast<int>(Page::Reference),BN_CLICKED);return;}
+        if (id == RecognitionAlbum) {
+            if (ui.pending_command || ui.app.current()->busy) return;
+            auto files = choose(window, false, false, kImages);
+            if (!files.empty()) submit(ui, Action::SetImageReference, std::move(files));
+            return;
+        }
+        if (id == RecognitionAdd) id = NavBase + static_cast<int>(Page::Reference);
         if(id>=RecognitionReferenceBase&&id<RecognitionReferenceBase+ui.recognition_visible){
             const int index=ui.recognition_offset+id-RecognitionReferenceBase;
             if(index<0||index>=int(ui.rendered_reference_ids.size())||!prepareRecognitionDraft(ui,true))return;
@@ -1391,6 +1429,7 @@ void action(Ui& ui, int id, int notification) {
         ui.parameters_open = !ui.parameters_open;
         layout(ui); update(ui); InvalidateRect(window, nullptr, TRUE); SetFocus(child(window, ui.parameters_open ? Apply : Back)); return;
     }
+    if (id == Cancel && ui.album_reference) id = Back;
     if (id == Back) {
         if (ui.page == Page::Home) return;
         if ((ui.return_after_save || ui.return_after_reference) && ui.pending_command) return;
@@ -1423,6 +1462,7 @@ void action(Ui& ui, int id, int notification) {
         KillTimer(window,kGalleryQueryTimer);
         if(next_page==Page::Recognition)ui.recognition_photos.clear();
         ui.recognition_return_pending=false;
+        ui.album_reference = false;
         ui.page = next_page; ui.scroll = 0; ui.dirty = false; ui.search_request_generation = 0; ui.parameters_open = false;
         ui.capture_preview=false;ui.handled_flow_completion=ui.app.current()->flow_completion;ui.gallery_append_queued=false;ui.close_settings_after=0;
         if (next_page==Page::Gallery) { ui.rendered_people.clear();ListView_DeleteAllItems(child(window,People));ui.rendered_gallery=UINT64_MAX; }
@@ -1454,7 +1494,7 @@ void action(Ui& ui, int id, int notification) {
     }
     if (id == Primary) { if (!IsWindowEnabled(child(window, Primary))) return;
         const auto state=ui.app.current();
-        id = ui.page==Page::Reference&&state->pending_reference?SaveReference:ui.page==Page::Enrollment&&state->pending_enrollment?SaveEnrollment
+        id = ui.page==Page::Reference&&state->pending_reference?SaveReference:ui.album_reference?ImageReference:ui.page==Page::Enrollment&&state->pending_enrollment?SaveEnrollment
             : ui.page!=Page::Detection&&usesCamera(ui.page)&&!state->camera_open?Open:primaryAction(ui.page);
     }
     if (id==QueryId && notification==EN_CHANGE && ui.page==Page::Gallery) {
@@ -1584,7 +1624,11 @@ void action(Ui& ui, int id, int notification) {
         }
         case GoGallery: action(ui, NavBase + static_cast<int>(ui.page==Page::Verification?Page::Reference:Page::Gallery), BN_CLICKED); break;
         case Compare: submit(ui, Action::Compare); break;
-        case ImageReference: submit(ui, Action::SetImageReference); break;
+        case ImageReference: {
+            auto files = choose(window, false, false, kImages);
+            if (!files.empty()) submit(ui, Action::SetImageReference, std::move(files));
+            break;
+        }
         case ImportReference: {
             auto files = choose(window, false, false, kFeature); if (!files.empty()) submit(ui, Action::ImportReference, std::move(files)); break;
         }
@@ -1846,7 +1890,9 @@ LRESULT CALLBACK windowProcedure(HWND window, UINT message, WPARAM wparam, LPARA
                     return TRUE;
                 }
                 if (ui->page == Page::Home) ui->theme.homeButton(item, item.CtlID == HomeVersion);
-                else ui->theme.button(item, item.CtlID == Primary || item.CtlID == Open || item.CtlID == RecognitionStart, item.CtlID == Parameters && ui->parameters_open, false);
+                else if (item.CtlID == RecognitionAlbum || item.CtlID == RecognitionAdd) ui->theme.button(item, ButtonStyle::Enrollment);
+                else if (item.CtlID == Primary || item.CtlID == Open || item.CtlID == RecognitionStart) ui->theme.button(item, ButtonStyle::Primary);
+                else ui->theme.button(item, ButtonStyle::Standard);
                 return TRUE;
             }
             case WM_CTLCOLORSTATIC: case WM_CTLCOLOREDIT: case WM_CTLCOLORBTN: {
@@ -1856,7 +1902,7 @@ LRESULT CALLBACK windowProcedure(HWND window, UINT message, WPARAM wparam, LPARA
                 const bool panel = GetParent(control) == ui->pane || id == WebsiteToast
                     || (ui->page == Page::Recognition && id >= RecognitionSilent && id <= RecognitionLiveNod);
                 if (ui->page == Page::Home && !panel) {
-                    SetTextColor(dc, GetDlgCtrlID(control) == Status && (state->error || state->fatal) ? home_colors::error : home_colors::secondary);
+                    SetTextColor(dc, GetDlgCtrlID(control) == Status && (state->error || state->fatal) ? colors::error_on_dark : home_colors::secondary);
                     SetBkColor(dc, home_colors::background);
                     return reinterpret_cast<LRESULT>(ui->theme.home_background);
                 }

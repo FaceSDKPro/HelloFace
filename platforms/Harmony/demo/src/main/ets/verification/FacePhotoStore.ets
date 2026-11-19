@@ -17,8 +17,10 @@ export class FacePhoto {
 export enum FacePhotoLibrary { SEARCH = 'search', REFERENCE = 'reference' }
 
 export class FacePhotoStore {
+  // Shared queue protects each crop's temporary-file replacement from overlapping writes/deletes.
   private static operations: Promise<void> = Promise.resolve();
 
+  // Copy pixels synchronously before the confirmation page can replace or release its PixelMap.
   static capture(pixelMap: image.PixelMap | undefined): FacePhoto | undefined {
     if (pixelMap === undefined) return undefined;
     try {

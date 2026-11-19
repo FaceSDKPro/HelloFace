@@ -5,6 +5,7 @@
 namespace hiface_linux_demo {
 namespace {
 uint8_t clip(double value) { return static_cast<uint8_t>(std::clamp(std::lround(value), 0L, 255L)); }
+// Expand planar Y/U/V into an RGBA display copy using the frame's declared range and color matrix.
 void preview(CameraFrame& frame) {
     const size_t count = static_cast<size_t>(frame.width) * frame.height;
     frame.rgba.resize(count * 4);
@@ -44,6 +45,7 @@ void rotateRgba90(const uint8_t* source, int source_width, int source_height,
                 source + (static_cast<size_t>(source_y) * source_width + source_x) * 4, 4);
         }
 }
+// Rotate each populated representation together so SDK coordinates and the preview stay aligned.
 void rotateFrame90(CameraFrame& frame, bool clockwise) {
     require(frame.width >= 2 && frame.height >= 2 && !(frame.width & 1) && !(frame.height & 1),
         "Camera rotation requires even dimensions");
@@ -70,6 +72,7 @@ void rotateFrame90(CameraFrame& frame, bool clockwise) {
 }
 }
 HiFaceYuv420FrameV1 CameraFrame::view() const {
+    // Packed I420 stores full-size Y followed by quarter-size U and V planes.
     const size_t count = static_cast<size_t>(width) * height;
     HiFaceYuv420FrameV1 frame{};
     frame.struct_size = sizeof(frame); frame.width = width; frame.height = height;

@@ -11,13 +11,9 @@ import { PixelMapResource } from '../ui/PixelMapResource';
  */
 export class FacePhotoPicker {
   static readonly IMAGE_SEARCH_MAX_SIDE: number = RgbaImage.MAX_SIDE_PIXELS;
-  readonly rgba: RgbaImage;
 
-  constructor(rgba: RgbaImage) {
-    this.rgba = rgba;
-  }
-
-  static async select(maximumSide: number = 1080): Promise<FacePhotoPicker | undefined> {
+  /** Load one authorized photo. Cancelling returns undefined without opening a file. */
+  static async select(maximumSide: number = 1080): Promise<RgbaImage | undefined> {
     try {
       const options = new photoAccessHelper.PhotoSelectOptions();
       options.MIMEType = photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE;
@@ -40,7 +36,7 @@ export class FacePhotoPicker {
         // revocation.
         // 不把 PhotoViewPicker 的临时授权 URI 交给 ArkUI 再次解码。RGBA 数据已经完全
         // 复制到应用内存，选择器关闭后只使用这份数据，避免图库授权回收时的并发访问。
-        return new FacePhotoPicker(await FacePhotoPicker.decodeSource(source, maximumSide));
+        return await FacePhotoPicker.decodeSource(source, maximumSide);
       } finally {
         try { await source?.release(); } finally { await fileIo.close(file); }
       }

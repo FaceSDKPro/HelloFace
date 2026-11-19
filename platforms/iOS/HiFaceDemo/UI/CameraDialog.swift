@@ -214,7 +214,8 @@ extension View {
 /// Use brand green for ordinary actions, a light background for cancel, and system-red semantics for
 /// destructive actions such as deletion.
 /// 普通操作以品牌绿突出，取消使用浅底，删除等破坏性操作保留系统红色语义。
-private struct DemoDialogButtonStyle: ButtonStyle {
+struct DemoDialogButtonStyle: ButtonStyle {
+    var minimumHeight: CGFloat? = nil
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
@@ -224,9 +225,9 @@ private struct DemoDialogButtonStyle: ButtonStyle {
             .font(.body.weight(.semibold))
             .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, minHeight: 24)
+            .frame(maxWidth: .infinity, minHeight: minimumHeight ?? 24)
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.vertical, minimumHeight == nil ? 12 : 0)
             .foregroundStyle(isCancel ? Color.primary : Color.white)
             .background(isCancel ? Color(uiColor: .secondarySystemBackground) : accent,
                         in: RoundedRectangle(cornerRadius: 12, style: .continuous))

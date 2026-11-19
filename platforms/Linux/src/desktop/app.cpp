@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <string_view>
 #include <sys/statvfs.h>
 
 namespace hiface_linux_demo {
@@ -149,9 +150,10 @@ std::shared_ptr<const ViewState> DesktopApp::snapshot() {
                 view->status = "Updating...";
             }
         }
-        if (view->camera_stalled) {
+        if (!view->connected || view->camera_stalled) {
             view->fps = view->analysis_fps = 0;
-            if (!view->failed) view->status = view->mode == 'S' ? "Camera stalled. Reconnect." : "No fresh camera frames. Use Reconnect to retry the current camera.";
+            if (view->camera_stalled && !view->failed)
+                view->status = view->mode == 'S' ? "Camera stalled. Reconnect." : "No fresh camera frames. Use Reconnect to retry the current camera.";
         }
         if (!capture_state_.error.empty()) {
             view->failed = true;
@@ -198,6 +200,19 @@ void DesktopApp::captureLoop() {
     Camera camera, preview_camera;
     CameraFramePool preview_pool, analysis_pool;
     CameraLighting lighting;
+    auto disconnect = [&](std::string_view message) {
+        lighting.setActive(false);
+        camera.close();
+        preview_camera.close();
+        std::lock_guard<std::mutex> lock(mutex_);
+        capture_state_.ready = false;
+        capture_state_.dual_preview = false;
+        capture_state_.fps = 0;
+        capture_state_.frame.reset();
+        capture_state_.analysis_frame.reset();
+        capture_state_.error = message;
+        capture_state_.description = "Camera disconnected";
+    };
     uint64_t handled = 0;
     bool idle_applied = false;
     int64_t fps_start = monotonicMilliseconds(), next_synthetic = fps_start, next_analysis_capture = fps_start;
@@ -233,27 +248,27 @@ void DesktopApp::captureLoop() {
                     if (smoke_) {
                         auto frame = std::make_shared<CameraFrame>();
                         rgbaFrame(Image{640, 360, std::vector<uint8_t>(640 * 360 * 4, 128)}, *frame);
-                        next.ready = true;
                         next.description = "Synthetic frame / desktop smoke test";
                         next.frame = std::move(frame);
                     } else {
                         camera.open(request.device, request.width, request.height, request.fps, request.mjpeg, request.rotation);
-                        next.ready = true;
                         next.description = camera.description();
                         const bool wants_dual = !request.preview_device.empty() && request.preview_device != request.device;
                         if (wants_dual) try {
                             preview_camera.open(request.preview_device, request.preview_width,
                                 request.preview_height, request.fps, false, request.rotation);
-                            next.dual_preview = true;
                             next.description = "Preview: " + preview_camera.description() + " -> " +
                                 std::to_string(request.preview_output_width) + "x" +
                                 std::to_string(request.preview_output_height) + " RGA | Recognition: " +
                                 camera.description();
+                            next.dual_preview = true;
                         } catch (const DemoError& error) {
                             preview_camera.close();
                             next.description += " | HD preview fallback: " + error.message;
                         }
                     }
+                    // A failed open closes both handles. Publish readiness only after setup succeeds.
+                    next.ready = true;
                 }
             } catch (const DemoError& error) {
                 next.error = error.message;
@@ -400,25 +415,9 @@ void DesktopApp::captureLoop() {
                 fps_start = captured;
             }
         } catch (const DemoError& error) {
-            lighting.setActive(false);
-            camera.close();
-            preview_camera.close();
-            std::lock_guard<std::mutex> lock(mutex_);
-            capture_state_.ready = false;
-            capture_state_.frame.reset();
-            capture_state_.analysis_frame.reset();
-            capture_state_.error = error.message;
-            capture_state_.description = "Camera disconnected";
+            disconnect(error.message);
         } catch (const std::exception& error) {
-            lighting.setActive(false);
-            camera.close();
-            preview_camera.close();
-            std::lock_guard<std::mutex> lock(mutex_);
-            capture_state_.ready = false;
-            capture_state_.frame.reset();
-            capture_state_.analysis_frame.reset();
-            capture_state_.error = error.what();
-            capture_state_.description = "Camera disconnected";
+            disconnect(error.what());
         }
     }
     camera.close();
@@ -746,6 +745,11 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 catch (const std::exception& error) { failed = true; workflow.status = error.what(); }
                 catch (...) { failed = true; workflow.status = "Unexpected command failure"; }
                 if(writesData(command))--pending_writes_;
+                // The recognition menu keeps only confirmed portraits after its preview closes.
+                if (page == "recognition" && !workflow.pendingEnrollment()) {
+                    workflow.image_first.reset();
+                    workflow.aligned_preview.reset();
+                }
             }
             if (workflow.importing()) {
                 try {

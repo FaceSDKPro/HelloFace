@@ -33,6 +33,8 @@ inline constexpr Page navigation_pages[] = {Page::Home, Page::Detection, Page::R
     Page::Search, Page::Comparison, Page::ImageSearch, Page::CameraSettings, Page::Enrollment, Page::Gallery, Page::Recognition};
 static_assert(sizeof(feature_pages) / sizeof(Page) == kFeatureCount);
 static_assert(sizeof(navigation_pages) / sizeof(Page) == kPageCount);
+inline bool isCapturePage(Page page) { return page == Page::Reference || page == Page::Enrollment; }
+inline bool guidedRecognition(Page page) { return page == Page::Verification || page == Page::Liveness; }
 inline bool usesCamera(Page page) { return page_info[static_cast<std::size_t>(page)].camera; }
 inline bool startsCameraOnEntry(Page page, bool parameters_valid = true) {
     return parameters_valid && usesCamera(page) && page != Page::CameraSettings && page != Page::Verification;
@@ -48,7 +50,7 @@ struct PageHistory {
     std::vector<Page> pages;
     Page parent(Page current) const {
         if (!pages.empty()) return pages.back();
-        if (current == Page::Verification || current == Page::Liveness) return Page::Recognition;
+        if (guidedRecognition(current)) return Page::Recognition;
         return current == Page::Enrollment || current == Page::Gallery ? Page::Search : Page::Home;
     }
     void moved(Page from, Page next) {
@@ -57,7 +59,7 @@ struct PageHistory {
         else if (next == Page::Home) pages.clear();
         else if (homeIndex(next) >= 0) pages = {Page::Home};
         else if (from == Page::Home) pages = {Page::Home,
-            next == Page::Verification || next == Page::Liveness ? Page::Recognition : Page::Search};
+            guidedRecognition(next) ? Page::Recognition : Page::Search};
         else pages.push_back(from);
     }
 };

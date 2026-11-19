@@ -30,11 +30,14 @@ import com.hiface.sdk.flow.FaceFlowProgress;
  */
 public final class FaceSearchEnrollmentActivity extends CameraFlowActivity {
     private FaceSearchStore store;
+    // Cancels delivery of an abandoned save; a database batch already committed stays saved.
     private FaceSearchStore.Request<?> saveRequest;
     private AlertDialog captureError;
     private AlertDialog confirmation;
     private AlertDialog overwriteDialog;
+    // Unsaved capture retained while confirmation or duplicate-ID handling is visible.
     private FaceCaptureResult pending;
+    // Prevent save/retake from racing the asynchronous database write.
     private boolean saving;
 
     /**
@@ -57,7 +60,7 @@ public final class FaceSearchEnrollmentActivity extends CameraFlowActivity {
      */
     @Override
     protected void startCameraFlow() {
-        if (!canStartCameraFlow() || pending != null || captureError != null) {
+        if (pending != null || captureError != null) {
             return;
         }
         startCameraFlowRequest(() -> hiFaceSdk.capture().startCameraCapture(new FaceCaptureListener() {

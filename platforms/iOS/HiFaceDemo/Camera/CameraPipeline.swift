@@ -9,6 +9,7 @@ import HiFace
 /// 这里只管理权限、会话、镜头、预览和同步送帧；人脸流程、模型线程与业务终态由 SDK 负责。
 /// `@unchecked Sendable` 依赖 `sessionQueue`、`frameQueue` 和 `controlLock` 的隔离约束。
 final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable {
+    // A coalesced UI result carries the frame generation that produced its coordinates.
     private struct PendingDetection {
         let result: FaceDetectionResult
         let previewMirrored: Bool
@@ -28,6 +29,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     // 活跃帧率是该页面上限；搜索页分别降低预览和 SDK 分析频率。
     private let sessionFramesPerSecond: Int32
     private let minimumSessionFramesPerSecond: Int32
+    // Session configuration and device changes run here. SDK frame submission uses frameQueue.
     private let sessionQueue = DispatchQueue(
         label: "com.hiface.demo.camera.session",
         autoreleaseFrequency: .workItem
@@ -37,17 +39,23 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         qos: .userInteractive,
         autoreleaseFrequency: .workItem
     )
+    // Protect cross-queue control flags and pending deliveries; configure AVFoundation on sessionQueue.
     private let controlLock = NSLock()
     private var position: AVCaptureDevice.Position = .front
     private var configured = false
+    // Requested session state. analysisEnabled separately gates SDK delivery while preview can continue.
     private var wantsRunning = false
     private var analysisEnabled = true
+    // Drop frame submissions while a lens change is in progress.
     private var inputTransitioning = false
     private var sessionUnavailable = false
+    // Start/stop invalidates session callbacks. A pause or lens change also invalidates earlier frames.
     private var lifecycleGeneration = 0
     private var frameGeneration = 0
+    // At most one main-actor delivery is queued. It takes the newest result under controlLock.
     private var pendingDetection: PendingDetection?
     private var detectionDeliveryScheduled = false
+    // Suppress repeated frame errors with the same SDK code until useful output resumes.
     private var lastReportedError: HiFaceErrorCode?
     private var resolutionAdjusted = false
     private var reportedFrameWidth = 0
@@ -57,7 +65,9 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     // 受 controlLock 保护；先更新应用侧门禁，再由 sessionQueue 串行修改 AVCaptureDevice。
     private var targetSessionFramesPerSecond: Int32
     private var targetAnalysisFramesPerSecond: Int32
+    // Throttle SDK submission on frameQueue even if the device delivers preview frames faster.
     private var applicationFrameIntervalSeconds: Double = 0
+    // Timestamp of the last SDK submission, in sample-buffer seconds on frameQueue.
     private var lastAcceptedFrameSeconds: Double?
 
     // MARK: - Main actor callbacks
@@ -168,7 +178,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
             inputTransitioning = false
             sessionUnavailable = false
             lifecycleGeneration += 1
-            frameGeneration += 1
+            invalidatePendingFrames()
             return lifecycleGeneration
         }
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -197,8 +207,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
             inputTransitioning = false
             sessionUnavailable = false
             lifecycleGeneration += 1
-            frameGeneration += 1
-            pendingDetection = nil
+            invalidatePendingFrames()
         }
         // The OS may suspend the process before queued background cleanup runs, while foreground start()
         // advances the lifecycle generation. Never cancel queued stop by generation; the shared serial queue
@@ -215,15 +224,14 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     func pauseAnalysis() {
         withControlLock {
             analysisEnabled = false
-            frameGeneration += 1
-            pendingDetection = nil
+            invalidatePendingFrames()
         }
     }
 
     func resumeAnalysis() {
         withControlLock {
             analysisEnabled = true
-            frameGeneration += 1
+            invalidatePendingFrames()
             lastAcceptedFrameSeconds = nil
         }
         frameQueue.async { [weak self] in self?.lastReportedError = nil }
@@ -254,15 +262,18 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         }
     }
 
-    func switchCamera(completion: @escaping @MainActor @Sendable (Bool) -> Void) {
+    /// Returns true once the switch is reserved and SDK input is paused. Completion runs on the
+    /// main actor after frames from the previous lens drain, if this session is still current.
+    @MainActor
+    func switchCamera(completion: @escaping @MainActor @Sendable (Bool) -> Void) -> Bool {
         let generation = withControlLock { () -> Int? in
             guard wantsRunning, !inputTransitioning, !sessionUnavailable else { return nil }
             inputTransitioning = true
-            frameGeneration += 1
-            pendingDetection = nil
+            analysisEnabled = false
+            invalidatePendingFrames()
             return lifecycleGeneration
         }
-        guard let generation else { return }
+        guard let generation else { return false }
         sessionQueue.async { [weak self] in
             guard let self, isCurrentLifecycle(generation) else { return }
             let target = withControlLock {
@@ -274,11 +285,15 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
             frameQueue.async { [weak self] in
                 Task { @MainActor [weak self] in
                     guard let self, self.isCurrentLifecycle(generation) else { return }
-                    self.withControlLock { self.inputTransitioning = false }
-                    completion(usable)
+                    let available = self.withControlLock {
+                        self.inputTransitioning = false
+                        return !self.sessionUnavailable
+                    }
+                    completion(usable && available)
                 }
             }
         }
+        return true
     }
 
     // MARK: - Session configuration
@@ -471,8 +486,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         guard configured else {
             let generation = withControlLock {
                 position = target
-                frameGeneration += 1
-                pendingDetection = nil
+                invalidatePendingFrames()
                 return lifecycleGeneration
             }
             reportMirroring(generation: generation)
@@ -727,8 +741,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
             guard wantsRunning else { return nil }
             if !sessionUnavailable {
                 sessionUnavailable = true
-                frameGeneration += 1
-                pendingDetection = nil
+                invalidatePendingFrames()
             }
             return (lifecycleGeneration, frameGeneration)
         }
@@ -853,6 +866,12 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
 
     // MARK: - Synchronization
     // 同步。
+
+    /// Call under controlLock. A queued main-actor delivery may still pick up a newer result.
+    private func invalidatePendingFrames() {
+        frameGeneration += 1
+        pendingDetection = nil
+    }
 
     private func withControlLock<T>(_ body: () -> T) -> T {
         controlLock.lock()

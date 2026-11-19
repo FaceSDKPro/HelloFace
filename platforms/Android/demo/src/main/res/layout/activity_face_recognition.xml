@@ -9,25 +9,26 @@
         </LinearLayout>
         <LinearLayout android:id="@+id/verificationCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="14dp" android:layout_marginTop="8dp" android:background="@drawable/bg_recognition_card">
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/recognition_verification_title" android:textSize="18sp" android:textStyle="bold" android:textColor="@color/content_text"/>
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:layout_marginBottom="10dp" android:text="@string/recognition_verification_hint" android:textSize="12sp" android:textColor="@color/content_text_secondary"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4.4dp" android:layout_marginBottom="11dp" android:text="@string/recognition_verification_hint" android:textSize="12sp" android:textColor="@color/content_text_secondary"/>
             <include android:id="@+id/verificationOptions" layout="@layout/view_recognition_options"/>
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="10dp">
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/recognition_references" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/content_text"/>
-                <Button android:id="@+id/addReference" style="@style/Widget.AppCompat.Button.Borderless" android:layout_width="wrap_content" android:layout_height="42dp" android:text="@string/recognition_add_reference" android:textAllCaps="false" android:textColor="@color/content_accent"/>
-            </LinearLayout>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="11dp" android:text="@string/recognition_references" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/content_text"/>
             <TextView android:id="@+id/referenceHint" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/recognition_tap_reference" android:textSize="12sp" android:textColor="@color/content_text_secondary"/>
-            <androidx.recyclerview.widget.RecyclerView android:id="@+id/referenceList" android:layout_width="match_parent" android:layout_height="116dp" android:layout_marginTop="6dp" android:clipToPadding="false" android:overScrollMode="never"/>
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/referenceList" android:layout_width="match_parent" android:layout_height="116dp" android:layout_marginTop="6.6dp" android:clipToPadding="false" android:overScrollMode="never"/>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="8dp">
+                <Button android:id="@+id/albumReference" style="@style/Widget.HiFace.Recognition.EnrollmentButton" android:text="@string/add_from_album"/>
+                <Button android:id="@+id/addReference" style="@style/Widget.HiFace.Recognition.EnrollmentButton" android:layout_marginStart="16dp" android:text="@string/recognition_add_reference"/>
+            </LinearLayout>
         </LinearLayout>
         <LinearLayout android:id="@+id/livenessCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="14dp" android:layout_marginTop="12dp" android:background="@drawable/bg_recognition_card">
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/recognition_liveness_title" android:textSize="18sp" android:textStyle="bold" android:textColor="@color/content_text"/>
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:layout_marginBottom="6dp" android:text="@string/recognition_liveness_hint" android:textSize="12sp" android:textColor="@color/content_text_secondary"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4.4dp" android:layout_marginBottom="6.6dp" android:text="@string/recognition_liveness_hint" android:textSize="12sp" android:textColor="@color/content_text_secondary"/>
             <include android:id="@+id/livenessOptions" layout="@layout/view_recognition_options"/>
             <androidx.appcompat.widget.AppCompatButton android:id="@+id/startLiveness" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="12dp" android:text="@string/recognition_start_liveness" android:textAllCaps="false" android:backgroundTint="@color/content_accent" android:textColor="@android:color/white"/>
         </LinearLayout>
         <LinearLayout android:id="@+id/recognitionResult" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="14dp" android:background="@drawable/bg_recognition_card" android:layout_marginTop="12dp" android:visibility="gone" android:accessibilityLiveRegion="polite">
             <TextView android:id="@+id/resultStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:textStyle="bold" android:textSize="12sp"/>
-            <TextView android:id="@+id/resultHeading" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textSize="17sp" android:textStyle="bold" android:textColor="@color/content_text"/>
-            <TextView android:id="@+id/resultSummary" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textSize="14sp" android:textColor="@color/content_text_secondary" android:textIsSelectable="true"/>
+            <TextView android:id="@+id/resultHeading" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4.4dp" android:textSize="17sp" android:textStyle="bold" android:textColor="@color/content_text"/>
+            <TextView android:id="@+id/resultSummary" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6.6dp" android:textSize="14sp" android:textColor="@color/content_text_secondary" android:textIsSelectable="true"/>
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

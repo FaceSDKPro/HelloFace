@@ -48,9 +48,13 @@ export class FaceReference {
  * 整份快照使用单一随机 nonce 和单一 Preferences 值提交，避免 ID 与特征分开写入造成半更新状态。
  */
 export class FaceFeatureStore {
+  // In-memory 1:1 snapshot; publish replacements only after the encrypted write has flushed.
   private references: FaceReference[] = [];
+  // False also covers failed/unreadable loads, which must be retried or explicitly reset.
   private loaded: boolean = false;
+  // clear() invalidates queued operations and suppresses results from already-running work.
   private generation: number = 0;
+  // Promise tail serializes read-modify-write operations and remains usable after a failure.
   private operations: Promise<void> = Promise.resolve();
   private readonly encoder: util.TextEncoder = util.TextEncoder.create('utf-8');
   private readonly decoder: util.TextDecoder = util.TextDecoder.create('utf-8', { fatal: true });

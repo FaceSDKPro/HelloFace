@@ -20,8 +20,11 @@ const IMAGE_ASSET: string = 'face_search/images_1000.json';
 const FEATURE_COUNT: number = 10000;
 const IMAGE_COUNT: number = 1000;
 const FEATURE_BATCH_SIZE: number = 1000;
+// Image extraction retains fewer pending features before committing each batch.
 const IMAGE_BATCH_SIZE: number = 100;
+// Bound outstanding downloads while consuming/extracting their results serially.
 const IMAGE_PREFETCH_COUNT: number = 5;
+// Yield after this many manifest rows so parsing does not monopolize the ArkUI thread.
 const PARSE_YIELD_SIZE: number = 100;
 const MAX_IMAGE_BYTES: number = 20 * 1024 * 1024;
 

@@ -1633,8 +1633,12 @@
       "value": "Similarity threshold %.2f"
     },
     {
+      "name": "demo_a3b22a45fd7d",
+      "value": "Choose a photo with exactly one face."
+    },
+    {
       "name": "demo_3527c657daa9",
-      "value": "Choose from Album"
+      "value": "Add from Album"
     },
     {
       "name": "demo_af9354105039",
@@ -2401,8 +2405,8 @@
       "value": "Enrolled references"
     },
     {
-      "name": "demo_77552d9522cb",
-      "value": "+ Capture face"
+      "name": "demo_3f589c176388",
+      "value": "Use Camera"
     },
     {
       "name": "demo_9a9cb1c6461d",
@@ -2421,8 +2425,8 @@
       "value": "Deleted {0}"
     },
     {
-      "name": "demo_c6e967cd2353",
-      "value": "No reference faces yet. Capture a face and save its Face ID."
+      "name": "demo_19a52e918c8d",
+      "value": "No faces enrolled yet."
     },
     {
       "name": "demo_8019bffb92c6",

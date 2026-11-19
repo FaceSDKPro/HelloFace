@@ -17,7 +17,7 @@
         android:layout_height="wrap_content"
         android:fontFamily="sans-serif-medium"
         android:text="@string/enroll_confirm_title"
-        android:textColor="@color/api_background"
+        android:textColor="@color/content_text"
         android:textSize="18sp"
         android:textStyle="bold" />
 
@@ -37,7 +37,7 @@
         android:layout_marginTop="14dp"
         android:gravity="center"
         android:text="@string/enroll_confirm_helper"
-        android:textColor="@color/api_background"
+        android:textColor="@color/content_text_secondary"
         android:textSize="14sp" />
 
     <EditText
@@ -65,7 +65,7 @@
             android:focusable="true"
             android:gravity="center"
             android:text="@string/enroll_retry"
-            android:textColor="@color/api_background"
+            android:textColor="@color/content_text"
             android:textSize="16sp" />
 
         <TextView
@@ -80,7 +80,7 @@
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
             android:text="@string/enroll_confirm"
-            android:textColor="@android:color/white"
+            android:textColor="@color/content_text"
             android:textSize="16sp" />
     </LinearLayout>
 </LinearLayout>

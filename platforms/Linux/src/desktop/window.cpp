@@ -299,8 +299,8 @@ struct DesktopWindow::Impl {
         auto channel = [](uint32_t v, unsigned long mask) { if (!mask) return 0UL; unsigned shift = 0; while (!((mask >> shift) & 1)) ++shift; return ((v * (mask >> shift) + 127) / 255 << shift) & mask; };
         return channel((rgb >> 16) & 255, visual->red_mask) | channel((rgb >> 8) & 255, visual->green_mask) | channel(rgb & 255, visual->blue_mask);
     }
-    std::vector<XChar2b> unicodeTitle(const std::string& text, Font font) const {
-        if (!unicode_title_gc || unicode_title_encoding == (iconv_t)-1 || font != Font::Title ||
+    std::vector<XChar2b> fallbackGlyphs(const std::string& text, Font font) const {
+        if (!unicode_title_gc || unicode_title_encoding == (iconv_t)-1 || (font != Font::Title && font != Font::Caption) ||
                 std::none_of(text.begin(), text.end(), [](unsigned char c) { return c >= 0x80; })) return {};
         static_assert(sizeof(XChar2b) == 2);
         std::vector<XChar2b> glyphs(text.size());
@@ -312,19 +312,22 @@ struct DesktopWindow::Impl {
         return glyphs;
     }
     int measure(const std::string& text, Font font) const {
-        const auto glyphs = unicodeTitle(text, font);
-        if (!glyphs.empty()) return XTextWidth16_fn(unicode_title_font, glyphs.data(), glyphs.size());
+        const auto glyphs = fallbackGlyphs(text, font);
+        if (!glyphs.empty()) return XTextWidth16_fn(unicode_title_font, glyphs.data(), glyphs.size()) + (font == Font::Caption);
         if (fonts[size_t(font)]) { XRectangle ink{}, logical{}; Xutf8TextExtents_fn(fonts[size_t(font)], text.c_str(), text.size(), &ink, &logical); return logical.width; }
         return int(text.size()) * 7;
     }
     void paintText(const Draw& draw, Rect clip) {
-        const auto glyphs = unicodeTitle(draw.text, draw.font);
+        const auto glyphs = fallbackGlyphs(draw.text, draw.font);
         if (!glyphs.empty()) {
             XRectangle rectangle{static_cast<short>(clip.x), static_cast<short>(clip.y),
                 static_cast<unsigned short>(clip.w), static_cast<unsigned short>(clip.h)};
             XSetClipRectangles_fn(display, unicode_title_gc, 0, 0, &rectangle, 1, Unsorted);
             XSetForeground_fn(display, unicode_title_gc, pixel(draw.color));
             XDrawString16_fn(display, back_buffer, unicode_title_gc, draw.bounds.x, draw.bounds.y, glyphs.data(), glyphs.size());
+            // The embedded CJK bitmap font has only a regular face.
+            if (draw.font == Font::Caption)
+                XDrawString16_fn(display, back_buffer, unicode_title_gc, draw.bounds.x + 1, draw.bounds.y, glyphs.data(), glyphs.size());
             return;
         }
         XSetForeground_fn(display, gc, pixel(draw.color));

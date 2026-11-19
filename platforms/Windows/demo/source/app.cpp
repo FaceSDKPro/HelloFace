@@ -60,8 +60,10 @@ void App::run() {
             if(!references)throw std::runtime_error(u8"采集参考库不可用，原文件保留："+reference_store_error);
             return *references;
         };
+        // Separate unsaved 1:1 reference and search-library enrollment drafts.
         ReferenceDraft reference_draft;
         PhotoComparisonCache comparison;
+        // Selected 1:1 feature stays on the worker; snapshots expose only its Face ID.
         std::string reference;
         EnrollmentDraft enrollment;
         auto clear_enrollment = [&] {
@@ -75,6 +77,7 @@ void App::run() {
         GalleryListing listing;
         std::string enrollment_notice;
         std::shared_ptr<const Image> search_source;
+        // Preserve one photo-search result during a temporary visit to library management.
         struct SuspendedPhoto {
             std::shared_ptr<const Image> source, photo;
             std::shared_ptr<const ImageSearchResult> result;
@@ -158,9 +161,11 @@ void App::run() {
         refresh();
         if (state.update.message.empty()) state.update.message = u8"选择功能和摄像头后打开；图片和人脸库功能无需摄像头";
         publish(state);
+        // Camera-flow ownership follows the command generation that started it.
         uint64_t flow_generation = 0;
         auto last_frame = std::chrono::steady_clock::now(), metric_time = last_frame;
         auto notice_until = last_frame;
+        // Independent steady-clock deadlines let preview and SDK analysis use different rates.
         auto next_search_preview = last_frame, next_search_analysis = last_frame;
         SearchPreviewPower search_power;
         std::string notice;
@@ -218,7 +223,7 @@ void App::run() {
                         metric_time = last_frame = std::chrono::steady_clock::now();
                         state.update = {}; state.update.message = u8"摄像头已打开";
                         if (task.settings.page == Page::Reference) { clear_reference(); state.captured.reset(); }
-                        if (task.settings.page == Page::Enrollment || task.settings.page == Page::Reference || task.settings.page == Page::Verification || task.settings.page == Page::Liveness) {
+                        if (isCapturePage(task.settings.page) || guidedRecognition(task.settings.page)) {
                             begin_flow();
                         } else if (task.settings.page == Page::Search && !enrollment_notice.empty()) {
                             state.update.message = std::move(enrollment_notice); enrollment_notice.clear();
@@ -282,7 +287,7 @@ void App::run() {
                             if (state.settings.page == Page::Search && sdk) { sdk->pauseSearch(true); state.paused = true; }
                             clear_enrollment();
                             clear_reference();
-                            if (state.settings.page == Page::Enrollment || state.settings.page == Page::Reference) state.captured.reset();
+                            if (isCapturePage(state.settings.page)) state.captured.reset();
                             if (state.settings.page == Page::ImageSearch) state.image_search.reset();
                             state.update = {}; state.update.message = state.paused ? u8"搜索已停止，点击恢复搜索重新识别" : u8"已取消；未确认的人脸不会写入人脸库"; break;
                         case Action::Pause:
@@ -336,12 +341,11 @@ void App::run() {
                             if (state.settings.page == Page::Enrollment) { clear_enrollment(); state.captured.reset(); }
                             if (task.action == Action::LoadA) { state.image_a = image; state.aligned_a.reset(); }
                             else { state.image_b = image; state.aligned_b.reset(); }
-                            if (task.settings.page == Page::Reference) { clear_reference(); state.captured.reset(); }
                             if (task.settings.page == Page::Detection) {
                                 state.update = ensure().detectDetailed(*image, task.settings.detection_max, task.settings.detailed);
                                 camera.reset(); state.camera_open = false; state.settings.mirror = false;
                                 state.preview = bgraImage(*image);
-                            } else if (task.settings.page == Page::Reference || task.settings.page == Page::Enrollment) {
+                            } else if (task.settings.page == Page::Enrollment) {
                                 if (sdk) sdk->cancelFlow(); camera.reset(); state.camera_open = false; state.settings.mirror = false;
                                 state.preview = bgraImage(*image);
                                 state.update.message = u8"已选择图片，请采集待确认人脸或设为 1:1 基准";
@@ -373,12 +377,21 @@ void App::run() {
                             break;
                         }
                         case Action::SetImageReference: {
-                            if (!state.image_a) throw std::runtime_error(u8"请先选择基准照片");
-                            const auto captured = ensure().captureEnrollmentImage(*state.image_a);
+                            if (sdk) sdk->cancelFlow();
+                            camera.reset(); state.camera_open = state.flow_active = false;
+                            clear_reference(); state.captured.reset(); state.preview.reset();
+                            const auto image = readImage(task.files.at(0), true);
                             if (!current()) break;
-                            reference_draft.stage(captured.text); state.pending_reference = true;
-                            state.captured = std::make_shared<Image>(captured.preview);
-                            state.update = {}; state.update.message = u8"基准采集成功，填写 Face ID 并确认后保存"; break;
+                            const auto captured = ensure().captureEnrollmentImage(image);
+                            // Image processing can outlive its page. Stage only the current result.
+                            if (!current()) break;
+                            auto preview = std::make_shared<Image>(captured.preview);
+                            reference_draft.stage(captured.text);
+                            state.captured = std::move(preview);
+                            state.pending_reference = true;
+                            state.update = {}; state.update.message = u8"基准采集成功，填写 Face ID 并确认后保存";
+                            if (state.settings.page == Page::Recognition) state.settings.page = Page::Reference;
+                            break;
                         }
                         case Action::ImportReference: {
                             const auto value = readFeatureFile(task.files.at(0));
@@ -521,7 +534,7 @@ void App::run() {
                 }
                 last_frame = captured_at; frame.rotation_degrees = state.settings.rotation;
                 if (state.settings.page == Page::CameraSettings || state.pending_enrollment || state.pending_reference
-                    || ((state.settings.page == Page::Enrollment || state.settings.page == Page::Reference || state.settings.page == Page::Verification || state.settings.page == Page::Liveness) && !state.flow_active) || state.paused) {
+                    || ((isCapturePage(state.settings.page) || guidedRecognition(state.settings.page)) && !state.flow_active) || state.paused) {
                     search_power.reset();
                     state.preview = std::make_shared<Image>(frame.displayBgra(state.settings.mirror));
                     state.update.faces.clear(); state.update.details.clear();
@@ -577,7 +590,7 @@ void App::run() {
                         enrollment.stage(*update.result); state.pending_enrollment = true;
                         update.message = u8"采集成功，尚未入库；请核对预览和 ID 后确认保存，或重新采集";
                     }
-                    if (state.settings.page == Page::Verification || state.settings.page == Page::Liveness) {
+                    if (guidedRecognition(state.settings.page)) {
                         state.flow_passed = update.matched;
                         const auto& result = update.result->metadata;
                         std::ostringstream summary;

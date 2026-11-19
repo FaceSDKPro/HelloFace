@@ -7,12 +7,12 @@
 ```json5
 {
   "dependencies": {
-    "hiface": "file:../libs/hiface-0.8.13.har"
+    "hiface": "file:../libs/hiface-0.8.14.har"
   }
 }
 ```
 
-在项目根目录运行 `ohpm install`。同版本在仓库上架后，可改用 `ohpm install hiface@0.8.13`，或把依赖改为 `"hiface": "0.8.13"`。用下面的代码替换入口页 `pages/Index.ets`，签名并在设备上运行应用。点击 **Run HiFace**，空白图应显示 `1201`（`IMAGE_NO_FACE`）。
+在项目根目录运行 `ohpm install`。同版本在仓库上架后，可改用 `ohpm install hiface@0.8.14`，或把依赖改为 `"hiface": "0.8.14"`。用下面的代码替换入口页 `pages/Index.ets`，签名并在设备上运行应用。点击 **Run HiFace**，空白图应显示 `1201`（`IMAGE_NO_FACE`）。
 
 ```typescript
 import { common } from '@kit.AbilityKit';

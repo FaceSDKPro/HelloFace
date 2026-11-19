@@ -7,7 +7,7 @@ Ubuntu 22.04 / glibc 2.35 baseline; Ubuntu 24.04 compatibility target. X11 or Wa
 **Please keep the SDK version up to date. The current model does not support face recognition for people under 12 and must not be used in financial scenarios.**
 Target-device desktop, fonts, USB camera and recognition acceptance remains pending; cross-builds are not device acceptance.
 
-Face Recognition owns the ordered action choices and the 1:1 passive-liveness switch. Swipe or scroll the enrolled portraits and select a Face ID to start verification directly. Independent liveness always performs passive checks, with optional actions. Both camera flows return their outcomes to this page without a result dialog. Confirmed captures save a private portrait; older references without photos show a placeholder. Capture new references from Face Recognition; Home has no separate capture card.
+Face Recognition owns the ordered action choices and the 1:1 passive-liveness switch. Swipe or scroll the enrolled portraits and select a Face ID to start verification directly. Independent liveness always performs passive checks, with optional actions. Both camera flows return their outcomes to this page without a result dialog. Confirmed captures save a private portrait; older references without photos show a placeholder. On Face Recognition, select Add from Album on the left to open the file picker directly, or Use Camera on the right for guided capture. The photo must contain exactly one detected face. Review the portrait and confirm the Face ID to save. Capture new references from Face Recognition; Home has no separate capture card.
 
 ## Landscape desktop behavior
 
@@ -49,8 +49,8 @@ Use `./run-demo.sh` for the GUI so an SDK loading failure still opens an operabl
 Home and error pages show Demo/actual SDK versions and support contacts. If the SDK version cannot be read,
 the expected version is labeled explicitly. Copy diagnostics includes versions, error code and time, without application data.
 `src/` is the integration Demo; `runtimes/{arch}/sdk/` holds only the closed-source SDK, public declarations,
-protected model resources. Demo integration examples are outside the SDK. Read its [English SDK API](runtimes/x86_64/sdk/README.md) or
-[Chinese SDK API](runtimes/x86_64/sdk/README.zh-CN.md) (same APIs for ARM64).
+protected model resources. Demo integration examples are outside the SDK. Read its [English SDK guide](runtimes/x86_64/sdk/README.md) or
+[Chinese SDK guide](runtimes/x86_64/sdk/README.zh-CN.md) (same APIs for ARM64).
 
 A package may use `runtimes/{arch}/` or direct `bin/` and `sdk/` directories. Extract the complete archive, enter its root directory, then choose the runtime:
 
@@ -123,9 +123,9 @@ HIFACE_MOUSE_CURSOR=software ./run-demo.sh /dev/video0
 Camera keys choose pages: D detection, C capture, L liveness, V verify, E enroll, S search, P pause/resume,
 X cancel, M mirror, N reconnect, Q quit. Text inputs support UTF-8, Tab/Shift+Tab, copy/paste and Enter submit.
 Back returns to the previous page, cancelling an active photo search or confirming that an import should stop first. Esc closes a dialog/input/menu before returning. F1..F4 and Ctrl+F5 switch primary features; dialogs retain focus. Settings preserve drafts and ask before discarding changes. Camera Menu contains only device and current-feature options.
-Detection, liveness, verification and face search expose only their own feature settings. Face Capture requires preview confirmation and a Face ID, saves only its HF1 reference in a separate captured-ID store, and returns to Face Recognition. Capture is opened from Face Recognition rather than Home. Verification first selects a captured ID before opening its camera; an empty store asks the user to capture first. Choose Face ID changes that reference. Original HF1 text is retained without requantization. Returning from Face library to Image Search restores the existing photo and results.
+Detection, liveness, verification and face search expose only their own feature settings. Face Recognition opens the file picker directly or starts guided capture. Both sources stage a draft. After the user confirms the preview and Face ID, the Demo saves the HF1 feature in the reference library, attempts to save the aligned portrait and returns to Face Recognition. Verification first selects a captured ID before opening its camera; an empty store asks the user to capture first. Choose Face ID changes that reference. Original HF1 text is retained without requantization. Returning from Face library to Image Search restores the existing photo and results.
 Search enrollment stages a preview and ID/group/tag. An existing ID requires a separate Replace confirmation; keeping it preserves the draft. Capture updates an existing reference ID like Android. Batch replacement and deletion require confirmation.
-Liveness defaults to three distinct random actions and verification to two; retries choose a fresh sequence. Each has independent settings. Custom sequences allow up to four actions, including repeats; empty actions mean silent liveness. Verification enables silent liveness by default. Action instructions stay centered above the circle until the step changes; remaining seconds are not displayed. Results and failures offer Retry and Close.
+Face Recognition starts with action challenges disabled. If enabled, the checked actions run in the order shown on this page. Verification also has an independent passive-liveness switch, enabled by default. The standalone camera settings retain optional random and custom sequences. Action instructions stay above the circle until the step changes. Camera flows started from Face Recognition return their result to that page.
 1:N search can use silent liveness; M:N omits it. Spoof rejection takes priority over a matching ID/score.
 
 The full-screen search page captures and previews the newest frame at 25 FPS. Recognition consumes only the newest
@@ -222,9 +222,8 @@ a restart and does not change models, features, thresholds or liveness checks.
 `HIFACE_PERF_LOG=1` enables five-second preview/recognition/paint timing logs for diagnostics.
 
 Default data directory: `${XDG_DATA_HOME:-$HOME/.local/share}/hiface-demo`, overridden by `HIFACE_DATA_DIR`.
-It holds `hiface-search.db`, a separate `captured-faces.db`, the selected `reference.hf1` and settings. Guided previews are not saved as photos. Existing images saved by earlier versions remain untouched.
-SQLite/HF1 are unencrypted; applications own data protection and cleanup. The UI uses English labels;
-UTF-8 file paths/IDs depend on desktop fonts and input methods.
+It holds `hiface-search.db`, a separate `captured-faces.db`, the selected `reference.hf1` and settings. After feature confirmation, aligned portraits are saved separately in `face-photos-v1/reference/` or `face-photos-v1/search/`. An unconfirmed preview stays in memory. A missing portrait uses a placeholder.
+SQLite, HF1 and local portraits are unencrypted. Applications own data protection and cleanup. UTF-8 file paths and IDs depend on desktop fonts and input methods.
 
 ```bash
 ./diagnose.sh > linux-diagnostic.txt 2>&1

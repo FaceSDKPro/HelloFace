@@ -38,6 +38,7 @@ public:
     void applyRecognitionOptions(const DemoSettings& settings);
     const DemoSettings& settings() const { return settings_; }
     void setEnrollment(const std::string& id, const std::string& group, const std::string& tag);
+    // Persist the staged sample after confirmation. overwrite is for confirmed search-library replacement.
     void confirmEnrollment(const std::string& id, const std::string& group, const std::string& tag, bool overwrite = false);
     bool pendingEnrollment() const { return enrollment_.pending(); }
     uint64_t enrollmentGeneration() const { return enrollment_generation_; }
@@ -45,6 +46,7 @@ public:
     void loadCapturedFaces();
     void selectCapturedReference(const std::string& id);
     void deleteCapturedReference(const std::string& id);
+    // Extract one comparison slot; cancelled suppresses results from a later photo/page selection.
     void previewComparisonPhoto(bool first, const std::string& path, const std::function<bool()>& cancelled = {});
     bool resultPending() const { return result_pending_; }
     void showFlowError(char mode, const DemoError& error);
@@ -64,6 +66,7 @@ public:
     void clearReference();
     void exportGallery(const std::string& path, const std::string& group, const std::string& tag);
     void startImport(const std::string& path, bool images, const std::string& group);
+    // Process one bounded import step so the worker can observe queued cancellation between steps.
     void stepImport();
     void cancelImport();
     bool importing() const { return importing_; }
@@ -85,6 +88,7 @@ public:
     std::string reference_id;
     std::vector<GalleryEntry> captured_faces;
     std::string duplicate_enrollment_id, result_title;
+    // UI acknowledgment counters for successful saves and new guided-flow result dialogs.
     uint64_t saved_capture_generation = 0, flow_result_generation = 0;
     char saved_capture_kind = 0;
     bool result_can_retry = true;
@@ -95,23 +99,28 @@ public:
     std::shared_ptr<Image> image_first, image_second, aligned_preview;
     uint32_t import_saved = 0, import_failed = 0, import_processed = 0, import_total = 0;
 private:
+    // Consume the SDK terminal result, staging a capture or exposing a verification/liveness result.
     void finishFlow();
     void beginFlow(char mode);
+    void stageEnrollment(const Feature& feature, char kind);
     void saveReference(const Feature& feature, const std::string& id);
     void recount();
     Session session_;
     Database database_;
+    // Separate store for 1:1 captured references. database_ serves the search library.
     std::unique_ptr<Database> captured_database_;
     std::filesystem::path data_directory_;
     Feature reference_{};
+    // The source flag tells each store's deletion handler whether to clear the selected reference.
     bool has_reference_ = false, reference_from_captured_ = false;
     char mode_ = 'D';
     DemoSettings settings_;
     std::string enrollment_id_, enrollment_group_, enrollment_tag_;
     EnrollmentDraft enrollment_;
-    uint64_t enrollment_generation_ = 0;
-    char pending_capture_kind_ = 0;
+    uint64_t enrollment_generation_ = 0; // The UI uses this to show each new draft once.
+    char pending_capture_kind_ = 0; // 'C' is 1:1 reference, 'E' is search enrollment, 0 is idle.
     bool result_pending_ = false;
+    // Features stay on the workflow thread; UI snapshots receive only previews and comparison scores.
     Feature comparison_first_feature_{}, comparison_second_feature_{};
     bool importing_ = false, importing_images_ = false;
     std::string import_group_;

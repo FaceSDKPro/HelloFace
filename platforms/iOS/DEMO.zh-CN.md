@@ -4,6 +4,12 @@
 
 接口与接入要求见 [SDK API](SDK/API.zh-CN.md)。
 
+## 1:1 参考录入
+
+在人脸识别页勾选有序动作、设置 1:1 静默活体开关后，左右滑动或滚动已录入人员的头像列表，点击 Face ID 直接验证。独立活体始终执行静默检测，可叠加动作。两种相机流程都将结果返回本页展示，不再弹出结果框。确认采集后保存私有头像，没有照片的旧参考记录显示占位头像。点击“相册添加”直接打开系统相册，取消即回到人脸识别页。选择单人脸照片后，核对预览并确认 Face ID 即可保存。「相机录入」直接开始引导采集。两种方式共用带「重试」和「完成」的确认框。相册录入的「重试」重新打开选图器，相机录入的「重试」重新开始引导采集。 1:1 确认按钮的最小高度为 42 pt，大字号下可随文字增高。
+
+[FaceRecognitionView](HiFaceDemo/Recognition/FaceRecognitionView.swift) 负责选图，离开人脸识别页时取消正在进行的提取。[CameraDemoModel](HiFaceDemo/Camera/CameraDemoModel.swift) 校验并暂存样本，[CaptureConfirmation](HiFaceDemo/Capture/FaceCaptureView.swift) 在用户点击「完成」后保存参考。
+
 ## 示例代码
 
 | 模块 | 示例入口 |

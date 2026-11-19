@@ -42,6 +42,8 @@ public:
     void rejectSettings(const std::string& message) { settings_pending_ = false; reportError(message); }
     const std::vector<Control>& controls() const { return controls_; }
 private:
+    static constexpr uint32_t text_on_dark = 0xffffff, secondary_on_dark = 0xc5c8cc;
+    static constexpr uint32_t error_on_dark = 0xff7777;
     void text(int x, int y, std::string value, uint32_t color, int max_width, Font font = Font::Body, bool centered = false);
     int wrap(int x, int y, const std::string& value, uint32_t color, int width, int max_lines = 2, Font font = Font::Body);
     void card(Rect rect);
@@ -106,10 +108,12 @@ private:
     std::vector<Control> controls_;
     std::vector<Command> commands_;
     std::map<std::string, std::string> values_;
+    // selected_task_ is the camera action code to send when the user starts the current task.
     std::string page_ = "home", settings_tab_ = "detection", library_tab_ = "people", selected_task_ = "S";
     std::vector<std::string> page_history_;
     std::string focused_, keyboard_focus_, notice_, invalid_field_;
     int home_scroll_ = 0, home_max_scroll_ = 0;
+    // The recognition page scrolls vertically. Its enrolled-reference strip scrolls horizontally.
     int recognition_scroll_ = 0, recognition_max_scroll_ = 0, reference_scroll_ = 0, reference_max_scroll_ = 0;
     Rect recognition_reference_area_;
     std::string recognition_result_title_, recognition_result_message_;
@@ -127,7 +131,9 @@ private:
     uint64_t library_attempt_ = 0, library_revision_ = 0;
     bool metadata_dialog_ = false, metadata_pending_ = false, metadata_error_ = false;
     uint64_t metadata_attempt_ = 0;
+    // Last enrollment draft shown by this UI, to avoid reopening the same confirmation on redraw.
     uint64_t enrollment_generation_ = 0;
+    // Last save and flow-completion events consumed by the UI.
     uint64_t saved_capture_generation_ = 0, flow_result_generation_ = 0;
     int reference_offset_ = 0;
     bool result_dialog_ = false, replacement_declined_ = false;
@@ -142,6 +148,7 @@ private:
     bool soft_keyboard_upper_ = false, soft_keyboard_symbols_ = false;
     std::string soft_keyboard_target_, soft_keyboard_label_;
     bool enrollment_saving_ = false;
+    // Worker attempt counter at submission time. A later counter acknowledges the save attempt.
     uint64_t enrollment_attempt_ = 0;
     int selected_image_face_ = 0, image_face_offset_ = 0, image_face_rows_ = 3;
     Rect image_result_area_;
@@ -154,6 +161,7 @@ private:
     bool copied_ = false;
     bool confirming_ = false, browsing_ = false, enrolling_ = false;
     bool settings_pending_ = false, camera_menu_ = false;
+    // Remember manual search pause across settings, gallery, and enrollment round trips.
     bool search_was_paused_ = false;
     enum class UvcSettingsTab { camera, search, display };
     UvcSettingsTab uvc_settings_tab_ = UvcSettingsTab::camera;

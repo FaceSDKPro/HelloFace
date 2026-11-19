@@ -35,7 +35,9 @@ enum FaceSearchDemoImporter {
     private static let featureCount = 10_000
     private static let imageCount = 1000
     private static let featureBatchSize = 1_000
+    // Keep fewer extracted image features pending before each database commit.
     private static let imageBatchSize = 100
+    // Downloads overlap; the loop consumes and extracts one completed image at a time.
     private static let imagePrefetchCount = 5
     private static let maximumImageBytes = 20 * 1_024 * 1_024
 

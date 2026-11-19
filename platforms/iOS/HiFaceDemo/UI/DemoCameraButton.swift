@@ -5,6 +5,7 @@ struct DemoCameraButton: View {
     let label: String
     var onDark = false
     let action: () -> Void
+    @Environment(\.isEnabled) private var isEnabled
     @ScaledMetric(relativeTo: .body) private var symbolSize = 20
 
     var body: some View {
@@ -23,19 +24,8 @@ struct DemoCameraButton: View {
                 }
                 .contentShape(Circle())
         }
-        .buttonStyle(CameraIconButtonStyle())
+        .buttonStyle(.plain)
+        .opacity(isEnabled ? 1 : 0.42)
         .accessibilityLabel(label)
-    }
-}
-
-private struct CameraIconButtonStyle: ButtonStyle {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.isEnabled) private var isEnabled
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .opacity(isEnabled ? (configuration.isPressed ? 0.72 : 1) : 0.42)
-            .scaleEffect(isEnabled && configuration.isPressed && !reduceMotion ? 0.94 : 1)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }

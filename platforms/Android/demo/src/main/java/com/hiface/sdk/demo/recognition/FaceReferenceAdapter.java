@@ -22,6 +22,7 @@ public final class FaceReferenceAdapter extends RecyclerView.Adapter<FaceReferen
     private final List<String> ids = new ArrayList<>();
     private final Selection selection;
     private final Selection deletion;
+    // Track created holders so closing the page can release portraits beyond currently visible rows.
     private final List<Holder> holders = new ArrayList<>();
     private boolean closed;
 
@@ -98,6 +99,7 @@ public final class FaceReferenceAdapter extends RecyclerView.Adapter<FaceReferen
             photo.setClipToOutline(true);
             name = view.findViewById(R.id.referenceFaceId);
         }
+        // Cancel this binding's load before recycling its Bitmap and reusing the holder for another ID.
         void clear() {
             if (request != null) { request.cancel(); request = null; }
             itemView.setOnTouchListener(null);

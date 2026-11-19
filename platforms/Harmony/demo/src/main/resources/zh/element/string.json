@@ -1633,6 +1633,10 @@
       "value": "相似度阈值 %.2f"
     },
     {
+      "name": "demo_a3b22a45fd7d",
+      "value": "请选择只有一张人脸的照片。"
+    },
+    {
       "name": "demo_3527c657daa9",
       "value": "相册添加"
     },
@@ -2401,8 +2405,8 @@
       "value": "已录入的人脸"
     },
     {
-      "name": "demo_77552d9522cb",
-      "value": "＋ 采集人脸"
+      "name": "demo_3f589c176388",
+      "value": "相机录入"
     },
     {
       "name": "demo_9a9cb1c6461d",
@@ -2421,8 +2425,8 @@
       "value": "已删除 {0}"
     },
     {
-      "name": "demo_c6e967cd2353",
-      "value": "暂无参考人脸，请先采集并保存 Face ID。"
+      "name": "demo_19a52e918c8d",
+      "value": "暂无已录入的人脸。"
     },
     {
       "name": "demo_8019bffb92c6",

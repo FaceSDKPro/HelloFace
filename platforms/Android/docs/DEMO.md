@@ -2,7 +2,13 @@
 
 English | [简体中文](DEMO.zh-CN.md)
 
-See the [SDK API](SDK.md) for APIs and integration requirements.
+See the [SDK API](SDK.md) for integration requirements and API details.
+
+## 1:1 reference enrollment
+
+On Face Recognition, choose ordered action challenges and the 1:1 passive-liveness switch before opening the camera. Swipe the enrolled reference portraits and tap a Face ID to verify. Independent liveness always performs passive checks with optional actions. Verification and liveness return their result to this page without a result dialog. Confirmed captures save a private portrait; older feature-only references use a placeholder. Choose **Add from Album** to open the system picker directly or **Use Camera** to start guided capture. A photo must contain exactly one detected face. Both paths show the same confirmation before saving the reference under the entered Face ID.
+
+[FaceRecognitionActivity](../demo/src/main/java/com/hiface/sdk/demo/recognition/FaceRecognitionActivity.java) opens the picker and invokes SDK photo capture. [CameraFlowActivity](../demo/src/main/java/com/hiface/sdk/demo/camera/CameraFlowActivity.java) checks camera readiness and cancels active requests on stop. Both reference capture paths use [ReferenceConfirmation](../demo/src/main/java/com/hiface/sdk/demo/verification/ReferenceConfirmation.java) to save the feature and attempt to store its aligned portrait.
 
 ## Sample code
 

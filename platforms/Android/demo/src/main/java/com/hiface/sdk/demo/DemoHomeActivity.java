@@ -22,6 +22,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.hiface.sdk.demo.comparison.FaceComparisonActivity;
 import com.hiface.sdk.demo.camera.CameraSettingsActivity;
 import com.hiface.sdk.demo.detection.FaceDetectionActivity;
+import com.hiface.sdk.demo.recognition.FaceRecognitionActivity;
 import com.hiface.sdk.demo.search.FaceSearchActivity;
 import com.hiface.sdk.demo.search.uvc.UVCCameraFaceSearchActivity;
 import com.hiface.sdk.demo.ui.DemoWindowInsets;

@@ -121,18 +121,81 @@ final class SearchPresentationUITests: XCTestCase {
 /// 人脸识别参数保持紧凑，并在真机白色卡片上使用清晰的文字对比度。
 final class RecognitionLayoutUITests: XCTestCase {
     @MainActor
-    func testRecognitionActionsUseOneReadableRow() {
-        continueAfterFailure = false
+    private func openRecognition(references: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        if !references.isEmpty {
+            app.launchEnvironment["HIFACE_UI_TEST_REFERENCE_IDS"] = references.joined(separator: ",")
+        }
         app.launch()
-
         let entry = app.descendants(matching: .any)["demo.feature.recognition"].firstMatch
         XCTAssertTrue(entry.waitForExistence(timeout: 10))
         if !entry.isHittable { app.swipeUp() }
         entry.tap()
-
         XCTAssertTrue(app.navigationBars["人脸识别"].waitForExistence(timeout: 5))
+        return app
+    }
+
+    @MainActor
+    func testDraggingAcrossPortraitsScrollsWithoutVerifyingOrDeleting() {
+        continueAfterFailure = false
+        let prefix = UUID().uuidString.prefix(8)
+        let ids = (1...12).map { "\(prefix)-\($0)" }
+        let app = openRecognition(references: ids)
+        func portrait(_ index: Int) -> XCUIElement {
+            app.buttons["验证 \(ids[index])，长按删除"].firstMatch
+        }
+        let first = portrait(0), third = portrait(2)
+        XCTAssertTrue(first.isHittable && third.isHittable)
+        // Start both drags on a portrait, away from the screen-edge navigation gesture.
+        let origin = app.coordinate(withNormalizedOffset: .zero)
+        let left = origin.withOffset(CGVector(dx: first.frame.midX, dy: first.frame.midY))
+        let right = origin.withOffset(CGVector(dx: third.frame.midX, dy: third.frame.midY))
+        right.press(forDuration: 0.05, thenDragTo: left, withVelocity: .slow, thenHoldForDuration: 0.2)
+        XCTAssertTrue(portrait(4).isHittable)
+        XCTAssertFalse(first.isHittable)
+        left.press(forDuration: 0.05, thenDragTo: right, withVelocity: .slow, thenHoldForDuration: 0.2)
+        XCTAssertTrue(first.isHittable)
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        first.press(forDuration: 0.8)
+        app.buttons["删除"].firstMatch.tap()
+        let deletion = app.alerts["删除这条人脸？"]
+        XCTAssertTrue(deletion.waitForExistence(timeout: 5))
+        deletion.buttons["取消"].tap()
+        XCTAssertTrue(first.isHittable)
+        first.tap()
+        // The in-memory ID has no stored feature, so verification returns an inline result.
+        XCTAssertTrue(app.staticTexts["检测未通过"].waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    func testAlbumPickerCanCancelBackToRecognition() {
+        let app = openRecognition()
+        let album = app.buttons["相册添加"].firstMatch
+        XCTAssertTrue(album.waitForExistence(timeout: 5))
+        let camera = app.buttons["相机录入"].firstMatch
+        XCTAssertTrue(camera.exists)
+        XCTAssertEqual(album.frame.midY, camera.frame.midY, accuracy: 1)
+        XCTAssertEqual(camera.frame.minX - album.frame.maxX, 16, accuracy: 1)
+        let empty = app.staticTexts["暂无已录入的人脸。"]
+        let portrait = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "验证 ")).firstMatch
+        let above = empty.exists ? empty : portrait
+        XCTAssertTrue(above.exists)
+        XCTAssertLessThanOrEqual(above.frame.maxY, album.frame.minY)
+        if !album.isHittable { app.swipeUp() }
+        album.tap()
+        let cancel = app.buttons.matching(NSPredicate(format: "label IN %@", ["Cancel", "取消"])).firstMatch
+        XCTAssertTrue(cancel.waitForExistence(timeout: 10))
+        cancel.tap()
+        XCTAssertTrue(app.navigationBars["人脸识别"].waitForExistence(timeout: 5))
+        XCTAssertTrue(camera.isHittable)
+        XCTAssertFalse(app.navigationBars["录入参考人脸"].exists)
+    }
+
+    @MainActor
+    func testRecognitionActionsUseOneReadableRow() {
+        continueAfterFailure = false
+        let app = openRecognition()
         XCTAssertFalse(app.staticTexts["选择检测方式与活体参数，结果将在本页显示"].exists)
         let actionToggle = app.switches.matching(NSPredicate(format: "label CONTAINS %@", "动作活体")).firstMatch
         XCTAssertTrue(actionToggle.waitForExistence(timeout: 5))

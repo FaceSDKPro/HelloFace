@@ -78,6 +78,7 @@ public final class CameraPreviewFragment extends Fragment {
     private CameraInfo selectedCamera;
     private List<Size> analysisSizes;
     private int resolutionIndex;
+    // started tracks the view lifecycle. cameraRequested tracks the caller’s intent, and analysisPaused gates SDK input.
     private boolean started, cameraRequested, analysisPaused, permissionPending, providerLoading;
     private boolean overlayEnabled;
     // Zero preserves the device default; search uses 15 FPS active and 10 FPS idle preview.
@@ -86,6 +87,7 @@ public final class CameraPreviewFragment extends Fragment {
     private volatile int targetSessionFrameRate;
     private volatile int targetAnalysisFrameRate;
     private PreviewView.ScaleType scaleType = PreviewView.ScaleType.FIT_CENTER;
+    // A main-thread decision read by the analysis executor before delivering a frame to the SDK.
     private volatile boolean deliverFrames;
     private volatile FrameListener frameListener;
     private Runnable cameraReadyListener;
@@ -488,6 +490,7 @@ public final class CameraPreviewFragment extends Fragment {
         if (isAdded()) Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
     }
 
+    // Invalidate the binding first, then detach its callbacks and CameraX use cases.
     private void unbind() {
         Binding old = binding;
         binding = null;
@@ -515,8 +518,10 @@ public final class CameraPreviewFragment extends Fragment {
         Camera camera;
         boolean opened;
         private boolean released;
+        // The first valid analysis frame marks camera readiness, even while SDK delivery is paused.
         volatile boolean hasFrame;
         volatile FrameMapping mapping;
+        // Camera timestamp used to throttle SDK input. MIN_VALUE means the rate limiter has no prior sample.
         volatile long lastDeliveredTimestampNanos = Long.MIN_VALUE;
 
         /**

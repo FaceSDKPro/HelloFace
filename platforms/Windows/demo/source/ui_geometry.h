@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 
@@ -17,14 +18,16 @@ struct UiRect {
 struct RecognitionCardLayout {
     static constexpr int tile_width = 104, tile_step = 112;
     UiRect bounds, title, description, passive, action_toggle, choices[4], hint;
-    UiRect start, add_reference, reference_title, reference_help, strip, strip_scroll;
+    UiRect start, album_reference, add_reference, reference_title, reference_help, strip, strip_scroll;
 
     RecognitionCardLayout(int x, int y, int width, bool verification, bool actions, bool has_references = false) {
         const int left = x + 16, right = x + width - 16;
-        int row = y + 12;
+        double row = y + 12;
         auto place = [&](int height, int gap) {
-            const UiRect area{left, row, right, row + height};
-            row += height + gap;
+            // Round at placement so that small gaps accumulate across the card.
+            const int top = static_cast<int>(std::lround(row));
+            const UiRect area{left, top, right, top + height};
+            row += height + gap * 1.1;
             return area;
         };
         title = place(32, 2);
@@ -42,18 +45,20 @@ struct RecognitionCardLayout {
         }
         hint = place(42, 10);
         if (verification) {
-            reference_title = place(42, 4);
-            add_reference = {right - 124, reference_title.top, right, reference_title.bottom};
-            reference_title.right = add_reference.left - 8;
+            reference_title = place(28, 4);
             reference_help = place(36, 4);
             if (has_references) {
                 strip = place(112, 4);
-                strip_scroll = place(20, 0);
+                strip_scroll = place(20, 6);
             }
+            const auto sources = place(38, 0);
+            const int middle = left + sources.width() / 2;
+            album_reference = {left, sources.top, middle - 8, sources.bottom};
+            add_reference = {middle + 8, sources.top, right, sources.bottom};
         } else {
             start = place(46, 0);
         }
-        bounds = {x, y, x + width, row + 14};
+        bounds = {x, y, x + width, static_cast<int>(std::lround(row)) + 14};
     }
 };
 

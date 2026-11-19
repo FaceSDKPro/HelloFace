@@ -16,7 +16,9 @@ import java.util.Locale;
 
 /** Run the selected reference/options once, then return the result to the recognition page. */
 public final class FaceVerificationActivity extends CameraFlowActivity {
+    // Display identity loaded from the Demo's 1:1 store; the SDK receives its feature in config.
     private String faceId;
+    // Snapshot the selected reference and options for this camera run.
     private FaceVerificationConfig config;
 
     @Override protected void onCreate(Bundle state) {
@@ -42,7 +44,7 @@ public final class FaceVerificationActivity extends CameraFlowActivity {
     }
 
     @Override protected void startCameraFlow() {
-        if (config == null || !canStartCameraFlow()) return;
+        if (config == null) return;
         startCameraFlowRequest(() -> hiFaceSdk.verification().startCameraVerification(config, new FaceFlowListener() {
             @Override public void onProgress(@NonNull FaceFlowProgress progress) {
                 if (isCameraFlowRunning()) FaceFlowUi.renderVerifyProgress(captureOverlay, progress, config.getActionTimeoutMillis());
@@ -70,6 +72,7 @@ public final class FaceVerificationActivity extends CameraFlowActivity {
         }));
     }
 
+    // Return display text and outcome to the recognition page, which owns the result card.
     private void complete(String message, String status) {
         setResult(RESULT_OK, RecognitionFlowContract.result(getString(R.string.recognition_verification_title), message, status));
         finish();

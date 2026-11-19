@@ -4,11 +4,11 @@
 
 使用 Android 6.0 / API 23 或更高版本的 ARM64 或 ARMv7 设备。
 
-当前接入示例版本为 `0.8.13`。将随包提供的 `maven-repository` 加入项目的 Gradle 仓库配置，保留 `google()` 和 `mavenCentral()` 下载依赖。通过 Maven Central 获取 HiFace 前请确认同版本已上架。在应用模块添加：
+当前接入示例版本为 `0.8.14`。将随包提供的 `maven-repository` 加入项目的 Gradle 仓库配置，保留 `google()` 和 `mavenCentral()` 下载依赖。通过 Maven Central 获取 HiFace 前请确认同版本已上架。在应用模块添加：
 
 ```kotlin
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.13")
+    implementation("io.github.facesdkpro:hiface-android:0.8.14")
 }
 android {
     androidResources { noCompress += "bphfm" }

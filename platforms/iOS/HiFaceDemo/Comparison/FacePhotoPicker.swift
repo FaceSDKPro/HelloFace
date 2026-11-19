@@ -8,6 +8,7 @@ import UniformTypeIdentifiers
 struct FacePhotoPicker: UIViewControllerRepresentable {
     static let imageSearchMaximumPixelSize = 4_096
     let maximumPixelSize: Int
+    // nil means user cancellation; a non-nil result carries decoded pixels or a decoding error.
     let onCompletion: @MainActor (Result<HiFaceRGBAImage, HiFaceError>?) -> Void
 
     init(maximumPixelSize: Int = 1_080,
@@ -38,6 +39,7 @@ struct FacePhotoPicker: UIViewControllerRepresentable {
     final class Coordinator: NSObject, PHPickerViewControllerDelegate {
         private let parent: FacePhotoPicker
         private var decoding: Progress?
+        // Dismantling the picker invalidates deliveries already queued for MainActor.
         private var invalidated = false
 
         init(parent: FacePhotoPicker) { self.parent = parent }

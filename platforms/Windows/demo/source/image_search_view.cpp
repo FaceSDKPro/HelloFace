@@ -110,11 +110,11 @@ void ImageSearchView::paint() {
     RECT title{px(14), px(6), client.right - px(14), px(30)};
     const auto hint = busy_ ? L"正在搜索…  可取消，或直接选择其他图片" : result_ && !result_->faces.empty()
         ? L"点击人脸或结果 · 方向键切换 · 滚轮浏览 · 文字可复制" : L"Ctrl+O 选择图片 · F5 重新搜索 · Esc 返回";
-    label(dc, hint, title, theme_->small, RGB(180, 195, 216), DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+    label(dc, hint, title, theme_->small, colors::secondary_on_dark, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
     std::wstring source = filename_.empty() ? L"JPEG / PNG / BMP / TIFF · 最多 10 张脸" : filename_;
     if (photo_) source += L"  ·  " + std::to_wstring(photo_->width) + L" × " + std::to_wstring(photo_->height);
     title.top = px(30); title.bottom = std::min(px(54), static_cast<int>(layout.photo.top));
-    label(dc, source.c_str(), title, theme_->small, RGB(167, 186, 214), DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_PATH_ELLIPSIS);
+    label(dc, source.c_str(), title, theme_->small, colors::secondary_on_dark, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_PATH_ELLIPSIS);
     const auto area = layout.photo;
     if (photo_) {
         drawImage(dc, *photo_, area);
@@ -143,7 +143,7 @@ void ImageSearchView::paint() {
     } else {
         auto empty = native(area);
         label(dc, busy_ ? L"正在读取图片并检测人脸…" : error_ ? L"图片搜索未完成，请查看结果提示" : L"选择图片，查看每张人脸的匹配结果\n支持多人合照，无需打开摄像头",
-            empty, theme_->body, RGB(167, 186, 214), DT_CENTER | DT_VCENTER | DT_WORDBREAK);
+            empty, theme_->body, colors::secondary_on_dark, DT_CENTER | DT_VCENTER | DT_WORDBREAK);
     }
     if (busy_ || error_ || result_ || photo_) {
         auto details = native(layout.details); fill(dc, details, colors::surface);

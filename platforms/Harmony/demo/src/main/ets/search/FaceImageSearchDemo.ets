@@ -11,14 +11,18 @@ import { PixelMapResource } from '../ui/PixelMapResource';
 
 class ImageSearchFace {
   readonly index: number;
-  readonly face: FaceImageCapture;
-  // ID、分数只格式化一次，照片与缩略图直接复用。
+  // Drawing needs only the bounds. The SDK feature and aligned RGBA can be released after search.
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
   readonly label: string;
   readonly matched: boolean;
   readonly crop: image.PixelMap | undefined;
   constructor(index: number, face: FaceImageCapture, label: string, matched: boolean,
     crop: image.PixelMap | undefined) {
-    this.index = index; this.face = face; this.label = label;
+    this.index = index; this.label = label;
+    this.x = face.x; this.y = face.y; this.width = face.width; this.height = face.height;
     this.matched = matched; this.crop = crop;
   }
 }
@@ -31,11 +35,11 @@ export struct FaceImageSearchDemo {
   onOpenLibrary: () => void = () => {};
   @State private preview: image.PixelMap | undefined = undefined;
   @State private faces: ImageSearchFace[] = [];
-  @State private status: string = DemoL10n.text("选择一张包含人脸的图片");
+  @State private status: string = '';
   @State private processing: boolean = false;
   @State private pickerOpen: boolean = false;
   private visible: boolean = false;
-  // 页面退出或换图后，旧异步结果不再更新 UI；旧任务创建的 PixelMap 由 finally 释放。
+  // Shared by the picker and inference. Leaving the page or replacing a photo invalidates older work.
   private generation: number = 0;
   private imageWidth: number = 0;
   private imageHeight: number = 0;
@@ -44,9 +48,14 @@ export struct FaceImageSearchDemo {
   private canvasHeight: number = 0;
   private context: CanvasRenderingContext2D = new CanvasRenderingContext2D(new RenderingContextSettings(true));
 
-  aboutToAppear(): void { this.visible = true; }
+  aboutToAppear(): void {
+    this.visible = true;
+    this.status = DemoL10n.text("选择一张包含人脸的图片");
+  }
   aboutToDisappear(): void {
     this.visible = false; this.generation += 1;
+    this.pickerOpen = false;
+    this.processing = false;
     this.releaseImages();
   }
 
@@ -98,26 +107,41 @@ export struct FaceImageSearchDemo {
       Text(this.status).fontSize(13).textAlign(TextAlign.Center).fontColor(DemoTheme.contentText)
         .padding({ left: 20, right: 20 })
       Button(DemoL10n.text("相册添加")).width('calc(100% - 40vp)').height(56).borderRadius(16)
-        .backgroundColor(DemoTheme.contentAccent).fontColor('#FFFFFF')
+        .backgroundColor(DemoTheme.contentAccent).fontColor(DemoTheme.textOnDark)
         .enabled(!this.pickerOpen).margin({ bottom: 16 }).onClick(() => this.pick())
     }.width('100%').height('100%').backgroundColor(DemoTheme.contentBackground)
   }
 
   private async pick(): Promise<void> {
-    if (this.pickerOpen) return;
+    if (!this.visible || this.pickerOpen) return;
     this.pickerOpen = true;
-    let picked: FacePhotoPicker | undefined = undefined;
-    try { picked = await FacePhotoPicker.select(FacePhotoPicker.IMAGE_SEARCH_MAX_SIDE); }
-    catch (_) { if (this.visible) this.status = DemoL10n.text("图片读取失败，请重新选择"); }
-    finally { this.pickerOpen = false; }
-    if (!this.visible || picked === undefined) return;
-    await this.load(picked.rgba);
+    const token: number = this.generation;
+    let input: RgbaImage | undefined = undefined;
+    try {
+      input = await FacePhotoPicker.select(FacePhotoPicker.IMAGE_SEARCH_MAX_SIDE);
+    } catch (_) {
+      if (this.current(token)) {
+        this.status = DemoL10n.text("图片读取失败，请重新选择");
+        this.processing = false;
+        this.pickerOpen = false;
+        this.generation++;
+      }
+      return;
+    }
+    if (!this.current(token)) return;
+    this.pickerOpen = false;
+    if (input !== undefined) await this.load(input);
   }
 
   private async load(input: RgbaImage): Promise<void> {
     const token: number = ++this.generation;
     const preview: image.PixelMap | undefined = await PixelMapResource.createRgba(input.data, input.width, input.height);
     if (!this.current(token)) { await PixelMapResource.release(preview); return; }
+    if (preview === undefined) {
+      this.status = DemoL10n.text("图片读取失败，请重新选择");
+      this.processing = false;
+      return;
+    }
     this.releaseImages();
     this.preview = preview; this.imageWidth = input.width; this.imageHeight = input.height;
     this.selected = -1; this.draw();
@@ -125,7 +149,7 @@ export struct FaceImageSearchDemo {
     this.status = DemoL10n.text("正在检测、矫正并搜索…");
     let database: FaceSearchDatabase | undefined = undefined;
     const results: ImageSearchFace[] = [];
-    // 成功时把缩略图交给页面；旧任务或异常退出由 finally 释放临时结果。
+    // Until published to ArkUI, the task owns all thumbnails and releases them on early exit.
     let committed: boolean = false;
     try {
       const extracted: HiFaceResult<FaceImageCapture[]> = await this.sdk.capture().facesFromRgba(input);
@@ -198,13 +222,12 @@ export struct FaceImageSearchDemo {
     // 与原图 ImageFit.Contain 共用同一缩放/留白偏移；标签固定 10vp。
     c.font = '10vp sans-serif';
     this.faces.forEach((result: ImageSearchFace) => {
-      const f: FaceImageCapture = result.face;
-      const x: number = dx + f.x * scale; const y: number = dy + f.y * scale;
+      const x: number = dx + result.x * scale; const y: number = dy + result.y * scale;
       c.strokeStyle = result.matched ? '#20B946' : '#CF7E14';
       c.lineWidth = this.selected === result.index ? 4 : 2;
-      c.strokeRect(x, y, f.width * scale, f.height * scale);
+      c.strokeRect(x, y, result.width * scale, result.height * scale);
       let label: string = result.label;
-      const maxLabelWidth: number = Math.min(this.canvasWidth - 12, Math.max(f.width * scale, 96));
+      const maxLabelWidth: number = Math.min(this.canvasWidth - 12, Math.max(result.width * scale, 96));
       while (c.measureText(label).width > maxLabelWidth && label.length > 2)
         label = label.substring(0, label.length - 2) + '…';
       const w: number = c.measureText(label).width + 8;

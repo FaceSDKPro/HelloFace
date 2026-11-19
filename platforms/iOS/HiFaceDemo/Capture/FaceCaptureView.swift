@@ -5,12 +5,6 @@ import SwiftUI
 struct FaceCaptureView: View {
     @ObservedObject var model: CameraDemoModel
     let onClose: () -> Void
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @FocusState private var focusedField: InputField?
-    private let capturedFacePreviewSize: CGFloat = 144 * 1.1
-
-    private enum InputField: String, Hashable { case faceID, group }
-
     var body: some View {
         ZStack {
             FaceCaptureCameraView(model: model, onClose: onClose)
@@ -20,11 +14,27 @@ struct FaceCaptureView: View {
                 .ignoresSafeArea(.keyboard, edges: .bottom)
                 .allowsHitTesting(model.pendingReferenceFeature == nil)
                 .accessibilityHidden(model.pendingReferenceFeature != nil)
-            if model.pendingReferenceFeature != nil { captureConfirmation }
+            if model.pendingReferenceFeature != nil {
+                CaptureConfirmation(model: model, onRetry: model.restartFlow, onClose: onClose)
+            }
+        }
+        .onChange(of: model.enrollmentCompleted) { completed in
+            if completed { onClose() }
         }
     }
+}
 
-    private var captureConfirmation: some View {
+struct CaptureConfirmation: View {
+    @ObservedObject var model: CameraDemoModel
+    let onRetry: () -> Void
+    let onClose: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @FocusState private var focusedField: InputField?
+    private let capturedFacePreviewSize: CGFloat = 144 * 1.1
+
+    private enum InputField: String, Hashable { case faceID, group }
+
+    var body: some View {
         CameraDialog(horizontalMargin: model.enrollsInSearchLibrary ? 17 : 12,
                      scrollTarget: focusedField?.rawValue) {
             CameraDialogTitle(
@@ -72,7 +82,7 @@ struct FaceCaptureView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         } actions: {
-            dialogActions
+            dialogActions.controlSize(.large)
         }
         .disabled(model.isSavingCapture)
         .toolbar {
@@ -81,38 +91,42 @@ struct FaceCaptureView: View {
                 Button(DemoL10n.text("完成")) { focusedField = nil }
             }
         }
-        .onChange(of: model.enrollmentCompleted) { completed in
-            if completed { onClose() }
-        }
     }
 
     @ViewBuilder private var dialogActions: some View {
         if dynamicTypeSize.isAccessibilitySize {
-            VStack(spacing: 10) {
-                retryButton.frame(maxWidth: .infinity)
-                saveButton.frame(maxWidth: .infinity)
-            }
+            VStack(spacing: 10) { buttons }
         } else {
-            HStack(spacing: 10) {
+            HStack(spacing: 10) { buttons }
+        }
+    }
+
+    @ViewBuilder private var buttons: some View {
+        if model.enrollsInSearchLibrary {
+            retryButton.buttonStyle(.bordered)
+            saveButton.buttonStyle(.borderedProminent)
+        } else {
+            // Keep the 1:1 confirmation compact. Larger text can still grow the buttons.
+            Group {
                 retryButton
                 saveButton
             }
+            .buttonStyle(DemoDialogButtonStyle(minimumHeight: 42))
         }
     }
 
     private var retryButton: some View {
-        Button {
+        Button(role: model.enrollsInSearchLibrary ? nil : .cancel) {
             var transaction = Transaction(animation: nil)
             transaction.disablesAnimations = true
             withTransaction(transaction) {
                 focusedField = nil
-                model.restartFlow()
+                onRetry()
             }
         } label: {
-            Text(model.enrollsInSearchLibrary ? DemoL10n.text("重拍") : DemoL10n.text("重试")).frame(maxWidth: .infinity)
+            Text(model.enrollsInSearchLibrary ? DemoL10n.text("重拍") : DemoL10n.text("重试"))
+                .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.bordered)
-        .controlSize(.large)
     }
 
     private var saveButton: some View {
@@ -130,9 +144,7 @@ struct FaceCaptureView: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.borderedProminent)
         .foregroundStyle(.white)
-        .controlSize(.large)
         .disabled(!model.canSaveCapturedReference)
     }
 

@@ -41,7 +41,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".FaceRecognitionActivity"
+            android:name=".recognition.FaceRecognitionActivity"
             android:exported="false"
             android:theme="@style/Theme.HiFace.Content.Soft" />
         <activity

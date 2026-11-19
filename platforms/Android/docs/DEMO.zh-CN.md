@@ -4,6 +4,12 @@
 
 接口与接入要求见 [SDK API](SDK.zh-CN.md)。
 
+## 1:1 参考录入
+
+在人脸识别页选择有序动作与 1:1 静默活体开关后再进入相机。左右滑动已录入人员的头像列表，点击 Face ID 直接验证。独立活体始终执行静默检测，可叠加动作。验证与活体结果返回本页展示，不再弹出结果对话框。确认采集后保存私有头像，只有特征的旧参考记录显示占位头像。点击「相册添加」直接打开系统相册，点击「相机录入」进入引导采集。所选照片须恰好检测到一张人脸。两种方式共用确认框，核对对齐头像并确认 Face ID 后才保存。
+
+[FaceRecognitionActivity](../demo/src/main/java/com/hiface/sdk/demo/recognition/FaceRecognitionActivity.java) 打开相册并调用 SDK 提取照片中的人脸。[CameraFlowActivity](../demo/src/main/java/com/hiface/sdk/demo/camera/CameraFlowActivity.java) 检查相机是否就绪，并在页面停止时取消请求。两种参考录入方式都通过 [ReferenceConfirmation](../demo/src/main/java/com/hiface/sdk/demo/verification/ReferenceConfirmation.java) 保存特征，并尝试保存对齐头像。
+
 ## 示例代码
 
 | 模块 | 示例入口 |

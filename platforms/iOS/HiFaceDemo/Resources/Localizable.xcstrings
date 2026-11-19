@@ -6835,13 +6835,30 @@
         }
       }
     },
+    "请选择只有一张人脸的照片。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a photo with exactly one face."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择只有一张人脸的照片。"
+          }
+        }
+      }
+    },
     "相册添加": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose from Album"
+            "value": "Add from Album"
           }
         },
         "zh-Hans": {
@@ -10099,19 +10116,19 @@
         }
       }
     },
-    "＋ 采集人脸": {
+    "相机录入": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "+ Capture face"
+            "value": "Use Camera"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "＋ 采集人脸"
+            "value": "相机录入"
           }
         }
       }
@@ -10184,19 +10201,19 @@
         }
       }
     },
-    "暂无参考人脸，请先采集并保存 Face ID。": {
+    "暂无已录入的人脸。": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No reference faces yet. Capture a face and save its Face ID."
+            "value": "No faces enrolled yet."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "暂无参考人脸，请先采集并保存 Face ID。"
+            "value": "暂无已录入的人脸。"
           }
         }
       }

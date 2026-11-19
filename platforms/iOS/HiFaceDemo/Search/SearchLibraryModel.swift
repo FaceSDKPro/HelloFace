@@ -26,6 +26,7 @@ final class SearchLibraryModel: ObservableObject {
     @Published var status = DemoL10n.text("读取中…")
     @Published var query = ""
     @Published private(set) var people: [SearchLibraryPerson] = []
+    // Reload thumbnails after writes even when a row keeps the same Face ID.
     @Published private(set) var photoRevision = 0
     @Published private(set) var isLookup = false
     @Published private(set) var isWorking = false
@@ -39,14 +40,18 @@ final class SearchLibraryModel: ObservableObject {
 
     private static let loadSize = 100
     private static let prefetchRemaining = 10
-    private var imageImportSDK: HiFaceSDK?
+    // Concurrent page operations share one connection-opening task for this screen.
     private var databaseTask: Task<FaceSearchDatabase, Error>?
+    // A late database-open failure belongs to the connection that requested it.
     private var databaseGeneration = 0
     private var operationTask: Task<Void, Never>?
+    // Only the latest lookup, page, or import may update the visible rows.
     private var operationGeneration = 0
+    // Count rows consumed from the database, including IDs merged into existing rows.
     private var nextOffset = 0
     private var canLoadMore = false
     private var importControl: FaceSearchImportControl?
+    // Set when the user returns while a stopped import is still saving its final batch.
     private var resumeAfterImport = false
 
     private struct ListSnapshot: Sendable {
@@ -56,9 +61,10 @@ final class SearchLibraryModel: ObservableObject {
 
     func refresh() {
         if isImporting { resumeAfterImport = true; return }
-        query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? loadFirstPage() : lookup()
+        lookup()
     }
 
+    // An empty query restores paging; a nonempty query performs an exact Face ID lookup.
     func lookup() {
         let faceID = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !faceID.isEmpty else {
@@ -173,20 +179,9 @@ final class SearchLibraryModel: ObservableObject {
         isStoppingImport = false
         importSaved = 0
         importNotice = nil
-        let sdk: HiFaceSDK? = kind == .images ? {
-            // Each import owns an independent SDK; never reuse an old import's instance while it is closing.
-            // 每次导入独立持有 SDK；旧导入仍在退出时不能复用其即将关闭的实例。
-            let value = HiFaceSDK()
-            imageImportSDK = value
-            return value
-        }() : nil
         operationTask = Task { [weak self] in
             guard let self else { return }
             defer {
-                if kind == .images {
-                    sdk?.close()
-                    if imageImportSDK === sdk { imageImportSDK = nil }
-                }
                 if importControl === control {
                     importControl = nil
                     isImporting = false
@@ -215,9 +210,9 @@ final class SearchLibraryModel: ObservableObject {
                         progress: progress
                     )
                 case .images:
-                    guard let sdk else {
-                        throw HiFaceError(code: .internalError, message: "Image importer SDK is unavailable")
-                    }
+                    // Extraction owns its SDK until the importer saves its final batch or throws.
+                    let sdk = HiFaceSDK()
+                    defer { sdk.close() }
                     summary = try await FaceSearchDemoImporter.importImages(
                         sdk: sdk,
                         database: database,
@@ -256,8 +251,6 @@ final class SearchLibraryModel: ObservableObject {
         }
         operationTask?.cancel()
         operationTask = nil
-        imageImportSDK?.close()
-        imageImportSDK = nil
         let opening = databaseTask
         databaseGeneration &+= 1
         databaseTask = nil
@@ -269,11 +262,7 @@ final class SearchLibraryModel: ObservableObject {
         }
         isWorking = false
         canLoadMore = false
-        pendingDeleteFaceID = nil
-        pendingImport = nil
     }
-
-    deinit { imageImportSDK?.close() }
 
     func requestStopImport() {
         guard isImporting else { return }

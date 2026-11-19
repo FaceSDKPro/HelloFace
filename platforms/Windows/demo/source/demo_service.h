@@ -11,6 +11,7 @@ inline int64_t flowClockMs() {
 // the whole action sequence, including temporary face loss between actions.
 struct GuidedFlowProgress {
     HiFaceFlowEventV1 last{};
+    // steady_clock milliseconds; zero means no action-sequence countdown is active.
     int64_t deadline_ms = 0;
 
     void observe(const HiFaceFlowEventV1& event, int64_t now_ms) {
@@ -57,6 +58,7 @@ public:
     std::vector<HiFaceFaceV1> detect(const Image& image) { return client_.detect(image); }
     Feature capture(const Image& image) { return client_.capture(image); }
     CaptureResult captureWithPreview(const Image& image) { return client_.captureWithPreview(image); }
+    // Reject an album photo once a second face is detected, before staging enrollment.
     CaptureResult captureEnrollmentImage(const Image& image);
     void insertFeature(const std::string& id, const Feature& feature) { client_.insertFeature(id, feature); }
     std::vector<std::pair<std::string, float>> query(const Feature& feature) { return client_.query(feature); }

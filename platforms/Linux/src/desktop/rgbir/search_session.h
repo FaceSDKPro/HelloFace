@@ -14,8 +14,10 @@ namespace hiface_linux_demo::rgbir {
 struct Pair;
 
 struct Sample {
+    // Both results belong to one completed RGB/IR batch; neither is a reusable pass for later frames.
     HiFaceSearchCameraResultV1 search{};
     HiFaceSearchInfraredResultV1 infrared{};
+    // Owned scene copy survives destruction of the SDK's temporary search batch.
     std::shared_ptr<const SearchFrameImage> frame_image;
 };
 

@@ -16,6 +16,7 @@ struct Settings {
     bool parameters_valid = true; // Invalid saved drafts may navigate, but must not start a fallback flow. / 无效草稿允许进页，但不自动启动回退参数的流程。
     int rotation = 0;
     std::wstring camera_link;
+    // id/group/tag are edit drafts; filter_group/filter_tag/query_id select management rows.
     std::string id = "person-001", group, tag, filter_group, filter_tag, query_id, reference_id;
 };
 enum class Action { Apply, EnterPage, OpenCamera, CloseCamera, StartFlow, Cancel, Pause,
@@ -27,6 +28,7 @@ struct Command {
     Action action = Action::Apply;
     Settings settings;
     std::vector<std::filesystem::path> files;
+    // generation identifies the view, sequence identifies the worker reply, and photo_request identifies a slot load.
     uint64_t generation = 0, sequence = 0, photo_request = 0;
 };
 // A new view/flow invalidates old work only after its command is admitted.
@@ -82,6 +84,7 @@ public:
         if (empty()) return std::nullopt;
         auto command = std::move(pending_.front()); pending_.pop_front(); return command;
     }
+    // Confirmed writes stay valid across navigation. Other work must match the view and any photo slot request.
     bool current(const Command& command, uint64_t generation) const {
         const int slot = photoSlot(command);
         return commitsData(command.action) || (command.generation == generation
@@ -93,7 +96,9 @@ private:
         return command.action == Action::LoadA ? 0 : command.action == Action::LoadB ? 1 : -1;
     }
     std::deque<Command> pending_;
+    // Advance only after push succeeds so UI completion tracking never acknowledges rejected work.
     uint64_t next_sequence_ = 0;
+    // Per-slot epochs are also read by extraction running outside App's queue mutex.
     std::atomic<uint64_t> photo_requests_[2]{{0}, {0}};
 };
 }

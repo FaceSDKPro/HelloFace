@@ -36,19 +36,24 @@ export struct FaceSearchLibraryDemo {
   @State private faceId: string = '';
   @State private stateText: string = DemoL10n.text("正在打开人脸库…");
   @State private busy: boolean = false;
+  // Exact-ID results disable normal paging until the query is cleared.
   @State private lookupMode: boolean = false;
   @State private failed: boolean = false;
   // 本页显式打开的库由本页关闭；相机搜索使用 SDK 自己管理的连接。
   private database: FaceSearchDatabase | undefined = undefined;
+  // A lifecycle token belongs to one foreground visit. A task token selects the current query or page.
   private lifecycleToken: number = 0;
   private taskToken: number = 0;
+  // Count database rows consumed, including entries merged into an existing visible row.
   private nextOffset: number = 0;
   private canLoadMore: boolean = false;
   private lifecycleBinding: number | undefined = undefined;
   private active: boolean = false;
   private importer: FaceSearchDemoImporter | undefined = undefined;
   private importTask: Promise<void> | undefined = undefined;
+  // Reopening waits for the previous import's final batch and database close.
   private importCleanup: Promise<void> = Promise.resolve();
+  // Back navigation waits for the import's final committed batch before closing the page.
   private exitAfterImport: boolean = false;
   private stoppingImport: boolean = false;
   private exitDialogShowing: boolean = false;
@@ -68,6 +73,7 @@ export struct FaceSearchLibraryDemo {
     this.stopPage();
   }
 
+  // Each foreground visit gets a fresh lifecycle token before asynchronously reopening the database.
   private startPage(): void {
     if (this.active) return;
     this.active = true;
@@ -106,9 +112,9 @@ export struct FaceSearchLibraryDemo {
           .width(42).height(42).backgroundColor(Color.Transparent)
           .accessibilityText(DemoL10n.text("返回")).onClick(() => this.requestExit())
         Text(DemoL10n.text("人脸库"))
-          .fontSize(21).fontWeight(FontWeight.Bold).fontColor('#FFFFFF').layoutWeight(1)
+          .fontSize(21).fontWeight(FontWeight.Bold).fontColor(DemoTheme.textOnDark).layoutWeight(1)
         Button({ type: ButtonType.Circle }) {
-          Text('⋮').fontSize(27).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+          Text('⋮').fontSize(27).fontWeight(FontWeight.Bold).fontColor(DemoTheme.textOnDark)
         }
           .width(42).height(42).backgroundColor(DemoTheme.surfaceOnDark)
           .enabled(!this.busy)
@@ -127,7 +133,7 @@ export struct FaceSearchLibraryDemo {
       Row({ space: 4 }) {
         TextInput({ text: this.faceId, placeholder: DemoL10n.text("输入 Face ID 查找") })
           .enabled(!this.busy)
-          .layoutWeight(1).height(40).fontSize(14).fontColor('#FFFFFF')
+          .layoutWeight(1).height(40).fontSize(14).fontColor(DemoTheme.textOnDark)
           .placeholderColor(DemoTheme.textOnDarkSecondary)
           .backgroundColor(Color.Transparent)
           .enterKeyType(EnterKeyType.Search)
@@ -173,11 +179,11 @@ export struct FaceSearchLibraryDemo {
     Column({ space: 8 }) {
       Text(this.failed ? DemoL10n.text("操作失败") :
         this.lookupMode ? DemoL10n.text("未找到该 Face ID") : DemoL10n.text("当前范围内暂无已录入人脸"))
-        .fontSize(17).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+        .fontSize(17).fontWeight(FontWeight.Bold).fontColor(DemoTheme.textOnDark)
       Text(this.failed ? DemoL10n.text("请重试，或在右上角菜单刷新。") :
         this.lookupMode ? DemoL10n.text("请检查 Face ID，或清空输入返回全部记录。") :
           DemoL10n.text("从右上角菜单导入演示数据。"))
-        .fontSize(12).lineHeight(18).fontColor('#98A2B3')
+        .fontSize(12).lineHeight(18).fontColor(DemoTheme.textOnDarkSecondary)
         .textAlign(TextAlign.Center).width('100%')
     }
     .justifyContent(FlexAlign.Center).layoutWeight(1)
@@ -190,11 +196,11 @@ export struct FaceSearchLibraryDemo {
       FacePhotoThumbnail({ faceId: entry.faceId })
       Column({ space: 5 }) {
         Text(entry.faceId)
-          .fontSize(16).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+          .fontSize(16).fontWeight(FontWeight.Bold).fontColor(DemoTheme.textOnDark)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
         Text(DemoL10n.text("分组：{0}", [String(entry.group.length === 0 ? DemoL10n.text("未分组") : entry.group)]) +
           (entry.tag.length === 0 ? '' : DemoL10n.text(" · 标签：{0}", [String(entry.tag)])))
-          .fontSize(12).fontColor('#98A2B3')
+          .fontSize(12).fontColor(DemoTheme.textOnDarkSecondary)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
       }
       .alignItems(HorizontalAlign.Start).layoutWeight(1)
@@ -230,7 +236,7 @@ export struct FaceSearchLibraryDemo {
       }
       this.database = opened.requireValue();
       this.busy = false;
-      if (this.faceId.trim().length > 0) this.lookup(); else this.loadFirstPage();
+      this.lookup();
     } catch (error) {
       if (lifecycle === this.lifecycleToken) {
         this.failed = true;
@@ -374,10 +380,12 @@ export struct FaceSearchLibraryDemo {
     });
   }
 
-  /** 页面只负责进度和结果；解析、下载、提取及分批写库由导入器完成。 */
+  /** Repeated confirmations share the pending import so background cleanup waits for the real writer. */
   private startImport(images: boolean): Promise<void> {
+    if (this.importTask !== undefined) return this.importTask;
+    if (!this.active || this.database === undefined || this.busy) return Promise.resolve();
     const token: number = this.lifecycleToken;
-    const operation: Promise<void> = this.runImport(images).catch((error: Error): void => {
+    const operation: Promise<void> = this.runImport(images, this.database).catch((error: Error): void => {
       this.importer = undefined;
       if (!this.active || token !== this.lifecycleToken) return;
       this.busy = false;
@@ -394,9 +402,7 @@ export struct FaceSearchLibraryDemo {
     return operation;
   }
 
-  private async runImport(images: boolean): Promise<void> {
-    const database: FaceSearchDatabase | undefined = this.database;
-    if (database === undefined || this.busy) return;
+  private async runImport(images: boolean, database: FaceSearchDatabase): Promise<void> {
     const token: number = ++this.taskToken;
     this.busy = true;
     this.failed = false;
@@ -565,7 +571,7 @@ export struct FaceSearchLibraryDemo {
 
   private stateColor(): string {
     if (this.failed) return DemoTheme.searchError;
-    return '#B8C8DD';
+    return DemoTheme.textOnDarkSecondary;
   }
 
   private showToast(message: string): void {

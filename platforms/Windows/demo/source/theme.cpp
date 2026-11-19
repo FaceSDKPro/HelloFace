@@ -60,22 +60,21 @@ void Theme::style(HWND control) {
         SetWindowSubclass(control, buttonProcedure, kButtonTheme, 0);
     if (std::wstring(type) == L"Edit") SendMessageW(control, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELPARAM(px(8), px(8)));
 }
-void Theme::button(const DRAWITEMSTRUCT& item, bool primary, bool selected, bool navigation) const {
+void Theme::button(const DRAWITEMSTRUCT& item, ButtonStyle style) const {
     const bool enabled = !(item.itemState & ODS_DISABLED), pressed = item.itemState & ODS_SELECTED;
     const bool hover = GetPropW(item.hwndItem, L"HiFaceHover") != nullptr;
-    RECT area = item.rcItem; fill(item.hDC, area, navigation ? colors::background : colors::surface);
+    RECT area = item.rcItem; fill(item.hDC, area, colors::surface);
     InflateRect(&area, -1, -1);
     COLORREF background_color = colors::surface, text_color = colors::ink, border = colors::line;
-    if (navigation) { background_color = selected ? colors::selected : hover ? RGB(234, 239, 247) : colors::background; border = background_color; text_color = selected ? colors::primary : colors::muted; }
-    else if (primary) { background_color = enabled ? pressed ? RGB(30, 73, 174) : hover ? RGB(33, 83, 201) : colors::primary : RGB(220, 228, 242); border = background_color; text_color = enabled ? RGB(255,255,255) : colors::muted; }
+    if (style == ButtonStyle::Enrollment) {
+        text_color = (pressed || hover) ? home_colors::surface : home_colors::background;
+    } else if (style == ButtonStyle::Primary) { background_color = enabled ? pressed ? RGB(30, 73, 174) : hover ? RGB(33, 83, 201) : colors::primary : RGB(220, 228, 242); border = background_color; text_color = colors::text_on_dark; }
     else if (hover || pressed) background_color = colors::selected;
-    if (!enabled) text_color = RGB(154, 164, 180);
-    card(item.hDC, area, background_color, border, px(10));
-    if (navigation && selected) { RECT bar{area.left, area.top + px(10), area.left + px(3), area.bottom - px(10)}; fill(item.hDC, bar, colors::primary); }
+    if (!enabled) text_color = colors::muted;
+    if (style != ButtonStyle::Enrollment) card(item.hDC, area, background_color, border, px(10));
     wchar_t text[256]{}; GetWindowTextW(item.hwndItem, text, 256);
-    if (navigation) area.left += px(16);
     const auto font = reinterpret_cast<HFONT>(SendMessageW(item.hwndItem, WM_GETFONT, 0, 0));
-    label(item.hDC, text, area, font ? font : body, text_color, (navigation ? DT_LEFT : DT_CENTER) | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+    label(item.hDC, text, area, font ? font : body, text_color, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
     if (item.itemState & ODS_FOCUS) { InflateRect(&area, -px(4), -px(4)); DrawFocusRect(item.hDC, &area); }
 }
 void Theme::homeButton(const DRAWITEMSTRUCT& item, bool secondary) const {

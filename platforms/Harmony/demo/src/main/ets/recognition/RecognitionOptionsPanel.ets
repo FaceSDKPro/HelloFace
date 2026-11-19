@@ -10,11 +10,11 @@ export struct RecognitionOptionsPanel {
   private readonly titles: string[] = ['眨眼', '张嘴', '摇头', '点头'];
 
   build() {
-    Column({ space: 10 }) {
+    Column({ space: 11 }) {
       if (!this.standalone) {
         Row({ space: 12 }) {
-          Column({ space: 3 }) {
-            Text(DemoL10n.text('静默活体')).fontSize(15).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText)
+          Column({ space: 3.3 }) {
+            Text(DemoL10n.text('静默活体')).fontSize(17).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText)
             Text(DemoL10n.text('检测是否为真人，无需指定动作')).fontSize(12).fontColor(DemoTheme.contentSecondary)
           }.alignItems(HorizontalAlign.Start).layoutWeight(1)
           Toggle({ type: ToggleType.Switch, isOn: this.silent }).selectedColor(DemoTheme.contentAccent)
@@ -23,8 +23,8 @@ export struct RecognitionOptionsPanel {
         }.width('100%')
       }
       Row({ space: 12 }) {
-        Column({ space: 3 }) {
-          Text(DemoL10n.text('动作活体')).fontSize(15).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText)
+        Column({ space: 3.3 }) {
+          Text(DemoL10n.text('动作活体')).fontSize(17).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText)
           Text(DemoL10n.text('勾选需要完成的动作')).fontSize(12).fontColor(DemoTheme.contentSecondary)
         }.alignItems(HorizontalAlign.Start).layoutWeight(1)
         Toggle({ type: ToggleType.Switch, isOn: this.actionsEnabled }).selectedColor(DemoTheme.contentAccent)
@@ -49,7 +49,7 @@ export struct RecognitionOptionsPanel {
       }
       Text(DemoL10n.text(this.actionsEnabled ? '按勾选顺序完成动作，再正对镜头完成检测。' : this.standalone || this.silent ?
         '正对镜头即可，无需做指定动作。' : '仅进行 1:1 人脸比对，不进行活体检测。'))
-        .fontSize(12).fontColor(DemoTheme.contentAccent).width('100%').padding(10)
+        .fontSize(12).fontColor(DemoTheme.contentSecondary).width('100%').padding(10)
         .backgroundColor('#EFF7F3').borderRadius(10)
     }.width('100%').alignItems(HorizontalAlign.Start)
   }

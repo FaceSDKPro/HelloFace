@@ -30,6 +30,7 @@ export class CameraPreviewController {
   private targetSessionFrameRate: number;
   private targetAnalysisFrameRate: number;
   private analysisOutputRateLimited: boolean = false;
+  // Minimum spacing between SDK submissions, in uptime milliseconds.
   private applicationFrameInterval: number = 0;
   private cameraDevice: camera.CameraDevice | undefined = undefined;
   private cameraInput: camera.CameraInput | undefined = undefined;
@@ -43,13 +44,17 @@ export class CameraPreviewController {
   private previewAspect: number = 0.75;
   private rotationDegrees: number = 0;
   private generation: number = 0;
+  // Reading/copying a camera image and consuming its copied frame have separate completion tasks.
   private frameTask: Promise<void> | undefined = undefined;
   private consumerTask: Promise<void> | undefined = undefined;
+  // Keep only the newest copied frame while the previous SDK submission is still running.
   private pendingFrame: Yuv420Frame | undefined = undefined;
+  // Serialize hardware startup/teardown across controller instances that share the same camera.
   private static lifecycleTask: Promise<void> = Promise.resolve();
   private droppedFrames: number = 0;
   private consecutiveFrameErrors: number = 0;
   private frameWatchdog: number = -1;
+  // Uptime milliseconds for camera-stall detection and the independent analysis-rate gate.
   private lastFrameAt: number = 0;
   private lastAnalysisFrameAt: number = -1;
   private analysisPaused: boolean = false;
@@ -320,6 +325,7 @@ export class CameraPreviewController {
     await task;
   }
 
+  // Stop arrivals first, await readers/consumers, then release the hardware and image receiver.
   private async stopInternal(): Promise<void> {
     ++this.attempt;
     this.startupError = undefined;

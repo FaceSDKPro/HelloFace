@@ -25,10 +25,14 @@ final class FaceSearchOverlayState {
     // detection.
     // 搜索最多选中五张脸，双缓冲避免每次检测都新建评分数组。
     private Score[] scores = new Score[5], scratch = new Score[5];
+    // Bit i marks a fresh score already accepted for face slot i in the current frame.
     private int scoredThisFrame;
+    // Track the newest accepted frame and the inclusive cutoff for incoming scores that must stay hidden.
     private long newestFrameId = -1, rejectedThrough = -1;
+    // Monotonic times for dropping stale boxes and checking continuity with the previous frame.
     private long frameDeadline, lastFrameAt;
     private boolean associationEnabled = true;
+    // Ignore terminal callbacks at or below the last completed frame ID.
     private long completedThrough = -1;
     private final String similarityLabel;
     private final String livenessLabel;

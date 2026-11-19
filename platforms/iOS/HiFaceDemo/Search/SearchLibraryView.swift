@@ -46,7 +46,7 @@ struct SearchLibraryView: View {
                 if model.isWorking { ProgressView().tint(DemoTheme.searchAccent) }
             }
             .font(.caption)
-            .foregroundStyle(.white.opacity(0.72))
+            .foregroundStyle(DemoTheme.secondaryTextOnDark)
             .frame(minHeight: 22)
 
             records.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -163,7 +163,7 @@ struct SearchLibraryView: View {
                      ? DemoL10n.text("请检查 Face ID，或清空输入返回全部记录。")
                      : DemoL10n.text("从右上角菜单导入演示数据。"))
                     .font(.footnote)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(DemoTheme.secondaryTextOnDark)
                     .multilineTextAlignment(.center)
             }
             .padding(24)
@@ -197,7 +197,7 @@ struct SearchLibraryView: View {
                     Text(DemoL10n.text("分组：{0}", [String(describing: person.group.isEmpty ? DemoL10n.text("未分组") : person.group)]) +
                          (person.tag.isEmpty ? "" : DemoL10n.text(" · 标签：{0}", [String(describing: person.tag)])))
                         .font(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(DemoTheme.secondaryTextOnDark)
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

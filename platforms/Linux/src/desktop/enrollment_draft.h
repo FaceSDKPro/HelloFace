@@ -8,6 +8,7 @@ public:
     bool pending() const { return !feature_.empty(); }
     void clear() { feature_.clear(); }
     void stage(const Feature& feature) { clear(); const auto text = encodeFeature(feature); feature_ = text.data(); }
+    // Keep the confirmed sample available for retry if validation or the database write fails.
     void save(Database& database, const std::string& id, const std::string& group, const std::string& tag, bool overwrite = false) {
         require(pending(), "Capture a face before confirming enrollment");
         require(id.find_first_not_of(" \t\r\n") != std::string::npos && id.find_first_of("\r\n") == std::string::npos

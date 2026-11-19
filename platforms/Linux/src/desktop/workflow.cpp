@@ -153,6 +153,12 @@ void FaceWorkflow::clearPageResults() {
     comparison_first_ready = comparison_second_ready = false;
     comparison_first_path.clear(); comparison_second_path.clear(); comparison_first_error.clear(); comparison_second_error.clear(); comparison_similarity.reset();
 }
+// Publish a new draft for confirmation after either camera or album capture.
+void FaceWorkflow::stageEnrollment(const Feature& feature, char kind) {
+    enrollment_.stage(feature);
+    pending_capture_kind_ = kind;
+    ++enrollment_generation_;
+}
 void FaceWorkflow::confirmEnrollment(const std::string& id, const std::string& group, const std::string& tag, bool overwrite) {
     const bool capture = pending_capture_kind_ == 'C';
     auto& target = capture ? *captured_database_ : database_;
@@ -161,6 +167,7 @@ void FaceWorkflow::confirmEnrollment(const std::string& id, const std::string& g
         if (exists) { duplicate_enrollment_id = id; throw DemoError{"ALREADY_EXISTS: confirm replacing this Face ID"}; }
     }
     enrollment_.save(target, id, capture ? "" : group, capture ? "" : tag, capture || overwrite);
+    // Store the aligned crop separately. A missing crop is displayed as a placeholder.
     FacePhotoStore(data_directory_, capture ? FacePhotoStore::Library::Reference : FacePhotoStore::Library::Search).save(id, aligned_preview.get());
     saved_capture_kind = pending_capture_kind_; ++saved_capture_generation;
     pending_capture_kind_ = 0; duplicate_enrollment_id.clear();
@@ -309,11 +316,11 @@ void FaceWorkflow::finishFlow() {
                 + reference_id + " | similarity " + percent.str() + "%";
     }
     if (result.flags & HIFACE_FLOW_RESULT_HAS_PREVIEW)
-        aligned_preview = std::make_shared<Image>(Image{HIFACE_ALIGNED_PREVIEW_SIDE, HIFACE_ALIGNED_PREVIEW_SIDE, preview});
+        aligned_preview = std::make_shared<Image>(Image{HIFACE_ALIGNED_PREVIEW_SIDE, HIFACE_ALIGNED_PREVIEW_SIDE, std::move(preview)});
     if (result.outcome == HIFACE_FLOW_OUTCOME_PASSED && (finished_mode == 'C' || finished_mode == 'E')) {
         require(result.flags & HIFACE_FLOW_RESULT_HAS_FEATURE, "Capture returned no feature");
         require(result.flags & HIFACE_FLOW_RESULT_HAS_PREVIEW, "Capture returned no aligned preview");
-        enrollment_.stage(feature); pending_capture_kind_ = finished_mode; ++enrollment_generation_;
+        stageEnrollment(feature, finished_mode);
         status = "Capture ready. Review the preview and enter a Face ID before saving.";
         return;
     }
@@ -430,6 +437,25 @@ bool FaceWorkflow::process(const CameraFrame& input) {
     inference_ms = monotonicMilliseconds() - begin;
     return true;
 }
+// Request two slots so a second detection, including one with a failed crop, rejects the photo.
+static Feature captureEnrollmentPhoto(Session& session, const Image& image, std::vector<uint8_t>& preview) {
+    constexpr uint32_t capacity = 2;
+    std::array<HiFaceFaceV1, capacity> faces{};
+    std::array<HiFaceStatus, capacity> statuses{};
+    std::array<float, capacity * HIFACE_FACE_FEATURE_DIMENSION> features{};
+    uint32_t count = 0;
+    preview.resize(capacity * HIFACE_ALIGNED_PREVIEW_RGBA_BYTES);
+    check(hiface_session_capture_faces_rgba_v1(session.handle, image.rgba.data(), image.rgba.size(),
+        image.width, image.height, faces.data(), statuses.data(), features.data(), capacity, &count,
+        preview.data(), preview.size()), "capture enrollment photo");
+    require(count == 1, "Choose a photo with exactly one face");
+    check(statuses[0], "capture the face in the enrollment photo");
+    preview.resize(HIFACE_ALIGNED_PREVIEW_RGBA_BYTES);
+    Feature feature{};
+    std::copy_n(features.begin(), feature.size(), feature.begin());
+    return feature;
+}
+
 void FaceWorkflow::imageOperation(const std::string& operation, const std::string& first, const std::string& second,
         const std::string& id, const std::string& group, const std::string& tag) {
     if (operation == "compare") {
@@ -459,21 +485,22 @@ void FaceWorkflow::imageOperation(const std::string& operation, const std::strin
     }
     loadModels(session_, "", false);
     std::vector<uint8_t> preview;
-    const auto feature = captureFeature(session_, *selected_image, &preview);
+    const auto feature = operation == "search" ? captureFeature(session_, *selected_image, &preview)
+                                               : captureEnrollmentPhoto(session_, *selected_image, preview);
     image_first=std::move(selected_image);image_second.reset();image_matches.clear();
     aligned_preview = std::make_shared<Image>(Image{HIFACE_ALIGNED_PREVIEW_SIDE, HIFACE_ALIGNED_PREVIEW_SIDE, std::move(preview)});
-    if (operation == "reference") {
-        enrollment_.stage(feature); pending_capture_kind_ = 'C'; ++enrollment_generation_;
-        status = "Review the photo and enter a Face ID before saving.";
-    } else if (operation == "enroll") {
-        enrollment_.stage(feature); pending_capture_kind_ = 'E'; ++enrollment_generation_;
-        status = "Photo capture ready. Review the preview and confirm saving; nothing has been added yet.";
-    } else if (operation == "search") {
+    if (operation == "search") {
         HiFaceSearchResultsHandle raw = nullptr;
         check(hiface_search_query_v1(database_.handle, feature.data(), feature.size(), settings_.group.c_str(), settings_.tag.c_str(), 5, settings_.search_threshold, &raw), "search photo");
         SearchResults owned(raw, hiface_search_results_destroy_v1); image_matches = readResults(raw);
         status = "Photo Top-5 matches: " + std::to_string(image_matches.size());
-    } else throw DemoError{"Unknown image operation"};
+        return;
+    }
+
+    stageEnrollment(feature, operation == "reference" ? 'C' : 'E');
+    status = operation == "reference"
+        ? "Review the photo and enter a Face ID before saving."
+        : "Photo capture ready. Review the preview and confirm saving; nothing has been added yet.";
 }
 void FaceWorkflow::clearPhotoSearch() { search_photo.reset(); photo_search.reset(); search_photo_path.clear(); }
 std::string FaceWorkflow::photoSearchSummary() const {

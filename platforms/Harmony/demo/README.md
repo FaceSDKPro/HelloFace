@@ -2,7 +2,13 @@
 
 English | [简体中文](README.zh-CN.md)
 
-See the [SDK API](../SDK.md) for APIs and integration requirements.
+See the [SDK API](../SDK.md) for integration requirements and API details.
+
+## 1:1 reference enrollment
+
+Face Recognition owns the ordered action choices and the 1:1 passive-liveness switch. Swipe through the enrolled portraits and select a Face ID to start verification directly. A thin indicator shows the scroll position while browsing the list. Independent liveness always performs passive checks, with optional actions. Both camera flows return their outcomes to this page without a result dialog. Confirmed captures save a private portrait; older references without photos show a placeholder. Add from Album opens the system photo picker directly from Face Recognition. Cancel to return to the same page, or select a photo with exactly one face and confirm the preview and Face ID to save it. **Use Camera** starts guided capture. Both sources reuse the same confirmation before saving a reference.
+
+[Index](src/main/ets/pages/Index.ets) opens the picker and discards results after navigation. [RealtimeCameraDemo](src/main/ets/pages/RealtimeCameraDemo.ets) handles confirmation for both input sources.
 
 ## Sample code
 

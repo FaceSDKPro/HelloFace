@@ -8,10 +8,12 @@ export class CameraPageLifecycle {
   private leaveHandler: (() => void) | undefined = undefined;
   private bindingSequence: number = 0;
   private backHandler: (() => boolean) | undefined = undefined;
+  // Foreground state survives child-page rebinding so a new page can pause immediately.
   private active: boolean = true;
   private pauseHandler: (() => void) | undefined = undefined;
   private resumeHandler: (() => void) | undefined = undefined;
 
+  // Return the binding ID the caller must use when unregistering its callbacks.
   bind(pause: () => void, resume: () => void, back?: () => boolean, leave?: () => void): number {
     const binding: number = ++this.bindingSequence;
     this.leaveHandler = leave;

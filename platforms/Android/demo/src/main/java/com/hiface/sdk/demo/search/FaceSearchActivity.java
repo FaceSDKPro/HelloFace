@@ -72,7 +72,7 @@ public final class FaceSearchActivity extends AppCompatActivity {
     private void bindViews() {
         camera = CameraPreviewFragment.require(getSupportFragmentManager(), R.id.searchCamera);
         // Start at 15 FPS; idle preview uses 10 FPS while SDK analysis remains at 5 FPS.
-        // 初始 15 FPS，无人脸待机时降至 5 FPS。
+        // 初始 15 FPS；待机预览 10 FPS，SDK 分析独立降至 5 FPS。
         camera.configureSessionFrameRate(15);
         camera.configureOverlayPreview(PreviewView.ScaleType.FILL_CENTER);
         overlay = findViewById(R.id.searchOverlay);

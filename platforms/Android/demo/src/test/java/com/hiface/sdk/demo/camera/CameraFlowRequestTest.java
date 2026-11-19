@@ -108,6 +108,38 @@ public final class CameraFlowRequestTest {
         assertTrue(flow.start(() -> () -> {}));
     }
 
+    @Test public void synchronousRetryKeepsTheNewHandleWhenTheOldStartReturns() {
+        CameraFlowRequest flow = new CameraFlowRequest();
+        AtomicInteger old = new AtomicInteger(), retry = new AtomicInteger();
+        flow.start(() -> {
+            flow.finish();
+            flow.start(() -> retry::incrementAndGet);
+            return old::incrementAndGet;
+        });
+        assertEquals(1, old.get());
+        flow.cancel();
+        assertEquals(1, retry.get());
+    }
+
+    @Test public void synchronousRetrySurvivesAnExceptionFromTheOldStart() {
+        CameraFlowRequest flow = new CameraFlowRequest();
+        AtomicInteger retry = new AtomicInteger();
+        RuntimeException failure = new IllegalStateException("old start failed");
+        try {
+            flow.start(() -> {
+                flow.finish();
+                flow.start(() -> retry::incrementAndGet);
+                throw failure;
+            });
+            fail("Expected startup failure");
+        } catch (RuntimeException error) {
+            assertSame(failure, error);
+        }
+        assertTrue(flow.isActive());
+        flow.cancel();
+        assertEquals(1, retry.get());
+    }
+
     @Test public void missingHandleRollsBackInsteadOfLeavingFrameGateOpen() {
         CameraFlowRequest flow = new CameraFlowRequest();
         try {

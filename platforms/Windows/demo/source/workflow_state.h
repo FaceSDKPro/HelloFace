@@ -37,6 +37,7 @@ public:
     bool pending() const { return !feature_.empty(); }
     void clear() { feature_.clear(); }
     void stage(const std::string& feature) { decodeFeature(feature); feature_ = feature; }
+    // A confirmed 1:1 reference is saved to its own store, independently of the search gallery.
     void save(CapturedReferences& store, const std::string& id) {
         if (!pending()) throw std::runtime_error(u8"请先采集或导入基准，再确认保存");
         store.save(id, feature_); clear();
@@ -63,6 +64,7 @@ public:
         return compareFeatureText(features_[0], features_[1]);
     }
 private:
+    // Slot 0 is photo A, slot 1 is photo B; only validated feature strings are cached.
     std::array<std::string, 2> features_;
 };
 struct ContourLine { HiFacePointV1 start, end; };

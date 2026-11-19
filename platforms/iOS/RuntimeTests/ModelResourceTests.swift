@@ -1,4 +1,5 @@
 import Foundation
+import AVFoundation
 import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
@@ -13,6 +14,75 @@ final class ModelResourceTests: XCTestCase {
         #if targetEnvironment(simulator)
         throw XCTSkip("The simulator SDK is compile/link-only; native runtime acceptance requires a physical iOS device")
         #endif
+    }
+
+    /// Supply the synthetic 224 x 224 gray fixture in the private XCTest bundle for physical-device inference.
+    @MainActor
+    func testAlbumReferenceWithSyntheticPortraitOnDevice() async throws {
+        try requireDeviceRuntime()
+        guard let url = Bundle(for: Self.self).url(forResource: "synthetic-face", withExtension: "gray") else {
+            throw XCTSkip("Supply synthetic-face.gray in the test bundle")
+        }
+        let gray = try Data(contentsOf: url)
+        XCTAssertEqual(gray.count, 224 * 224)
+        let model = CameraDemoModel(mode: .capture)
+        let existing = try DemoFaceStore.faceIDs()
+        let selection = try DemoFaceStore.selectedFaceID(among: existing)
+        let id = "album-device-" + UUID().uuidString
+        defer {
+            try? DemoFaceStore.delete(faceID: id)
+            if let selection { try? DemoFaceStore.select(faceID: selection) }
+        }
+        for count in [0, 2, 1] {
+            let width = 224 * max(count, 1)
+            var rgba = Data(capacity: width * 224 * 4)
+            for y in 0..<224 {
+                for x in 0..<width {
+                    let level: UInt8 = count == 0 ? 128 : gray[y * 224 + x % 224]
+                    rgba.append(contentsOf: [level, level, level, 255])
+                }
+            }
+            let image = try HiFaceRGBAImage(rgba: rgba, width: width, height: 224)
+            do {
+                try await model.prepareAlbumReference(image)
+                XCTAssertEqual(count, 1)
+            } catch ReferencePhotoError.requiresSingleFace {
+                XCTAssertNotEqual(count, 1)
+            }
+            XCTAssertEqual(model.pendingReferenceFeature != nil, count == 1)
+            XCTAssertNil(try DemoFaceStore.feature(for: id))
+        }
+        model.enrollmentFaceID = id
+        XCTAssertTrue(model.saveCapturedReference())
+        XCTAssertNil(model.alignedFace)
+        XCTAssertNil(model.pendingReferenceFeature)
+        XCTAssertTrue(try DemoFaceStore.feature(for: id)?.hasPrefix("HF1:") == true)
+        await FacePhotoStore.remove(faceID: id, library: .reference)
+    }
+
+    @MainActor
+    func testAlbumReferenceRequiresOneUsableFaceAndConfirmation() throws {
+        let model = CameraDemoModel(mode: .capture)
+        let bounds = FaceBounds(x: 0, y: 0, width: 224, height: 224)
+        let crop = try HiFaceAlignedImage(rgba: Data(repeating: 128, count: 333 * 333 * 4))
+        let sample = FaceCaptureResult(feature: "HF1:" + String(repeating: "A", count: 600), alignedFace: crop)
+        let face = FaceImageCapture(bounds: bounds, capture: .success(sample))
+        let small = FaceImageCapture(bounds: bounds, capture: .failure(HiFaceError(code: .imageFaceTooSmall, message: "")))
+        let id = "album-test-" + UUID().uuidString
+        model.enrollmentFaceID = id
+        for invalid in [[], [small], [face, small], [face, face]] {
+            XCTAssertThrowsError(try model.stageAlbumReference(invalid))
+            XCTAssertFalse(model.canSaveCapturedReference)
+        }
+        try model.stageAlbumReference([face])
+        XCTAssertNotNil(model.alignedFace)
+        XCTAssertFalse(model.previewMirrored)
+        XCTAssertNil(try DemoFaceStore.feature(for: id))
+        XCTAssertTrue(model.canSaveCapturedReference)
+        model.clearPendingCapture()
+        XCTAssertNil(model.alignedFace)
+        XCTAssertFalse(model.saveCapturedReference())
+        XCTAssertNil(try DemoFaceStore.feature(for: id))
     }
 
     @MainActor
@@ -211,5 +281,71 @@ final class ModelResourceTests: XCTestCase {
         }
         XCTFail("Native SDK initialization did not complete within five seconds")
         return .failure(HiFaceError(code: .notReady, message: "Initialization timeout"))
+    }
+}
+
+final class CameraSwitchTests: XCTestCase {
+    @MainActor
+    func testChangingSearchSettingsWhileSuspendedKeepsCameraStopped() {
+        let model = CameraDemoModel(mode: .search)
+        model.start()
+        defer { model.stop() }
+        model.suspend()
+        model.updateSearchConfiguration(model.searchConfiguration)
+        model.resumeSearch()
+
+        XCTAssertFalse(model.cameraReady)
+        XCTAssertFalse(model.pipeline.switchCamera { _ in XCTFail("Suspended camera switched lenses") })
+    }
+
+    @MainActor
+    func testRejectedSwitchLeavesTheVisibleFlowRunning() {
+        let model = CameraDemoModel(mode: .detection)
+        model.start()
+        defer { model.stop() }
+
+        // The screen still shows a running flow while the pipeline can no longer accept a switch.
+        model.pipeline.stop()
+        model.pipeline.onStarted?()
+        XCTAssertEqual(model.phase, .running)
+        let status = model.status
+        model.switchCamera()
+        XCTAssertFalse(model.isSwitchingCamera)
+        XCTAssertEqual(model.phase, .running)
+        XCTAssertEqual(model.status, status)
+    }
+
+    @MainActor
+    func testInterruptionBeforeSwitchRecoversOnDevice() async throws {
+        #if targetEnvironment(simulator)
+        throw XCTSkip("Requires an active capture session on a physical iPhone")
+        #else
+        let model = CameraDemoModel(mode: .detection)
+        model.start()
+        defer { model.stop() }
+        try await waitForRunningCamera(model)
+
+        // AVFoundation notifies the pipeline synchronously. The screen learns of it on the next turn.
+        let session = model.pipeline.captureSession
+        NotificationCenter.default.post(name: AVCaptureSession.wasInterruptedNotification, object: session)
+        model.switchCamera()
+        XCTAssertFalse(model.isSwitchingCamera)
+        XCTAssertEqual(model.phase, .running)
+        for _ in 0..<100 where model.cameraReady {
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        XCTAssertFalse(model.cameraReady)
+        NotificationCenter.default.post(name: AVCaptureSession.interruptionEndedNotification, object: session)
+        try await waitForRunningCamera(model)
+        #endif
+    }
+
+    @MainActor
+    private func waitForRunningCamera(_ model: CameraDemoModel) async throws {
+        for _ in 0..<200 {
+            if model.cameraReady && model.phase == .running { return }
+            try await Task.sleep(nanoseconds: 50_000_000)
+        }
+        XCTFail("Camera did not return to the running phase")
     }
 }

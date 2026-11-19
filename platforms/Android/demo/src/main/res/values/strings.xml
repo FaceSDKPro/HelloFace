@@ -226,7 +226,7 @@
     <string name="image_search_guide">Up to 10 faces · Threshold 0.80 · No liveness check</string>
     <string name="image_search_prompt">Choose a photo containing faces</string>
     <string name="image_search_processing">Detecting, aligning and searching…</string>
-    <string name="image_search_album">Choose from Album</string>
+    <string name="add_from_album">Add from Album</string>
     <string name="image_search_unmatched">No match</string>
     <string name="image_search_summary">Detected %1$d faces, matched %2$d</string>
     <string name="image_search_no_faces">No faces detected. Choose a clearer photo.</string>
@@ -315,13 +315,14 @@
     <string name="recognition_identity_hint">Compare identity only, without liveness detection.</string>
     <string name="recognition_combined_hint">Perform the selected actions in order, then face the camera to finish.</string>
     <string name="recognition_references">Enrolled references</string>
-    <string name="recognition_add_reference">+ Capture face</string>
+    <string name="recognition_add_reference">Use Camera</string>
     <string name="recognition_tap_reference">Swipe sideways; tap a portrait to verify, or touch and hold to delete</string>
-    <string name="recognition_no_reference">No reference faces yet. Capture a face and save its Face ID.</string>
+    <string name="recognition_no_reference">No faces enrolled yet.</string>
     <string name="recognition_verify_person">Verify Face ID: %1$s; touch and hold to delete</string>
     <string name="recognition_start_liveness">Start liveness detection</string>
     <string name="recognition_canceled">Detection canceled</string>
     <string name="recognition_passed">Passed</string>
     <string name="recognition_rejected">Not passed</string>
     <string name="recognition_invalid_options">Invalid detection options. Return and select them again.</string>
+    <string name="enroll_single_photo">Choose a photo with exactly one face.</string>
 </resources>

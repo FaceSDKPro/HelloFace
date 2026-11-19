@@ -36,7 +36,7 @@ public final class FaceLivenessActivity extends CameraFlowActivity {
     }
 
     @Override protected void startCameraFlow() {
-        if (config == null || !canStartCameraFlow()) return;
+        if (config == null) return;
         startCameraFlowRequest(() -> hiFaceSdk.liveness().startCameraLiveness(config, new FaceFlowListener() {
             @Override public void onProgress(@NonNull FaceFlowProgress progress) {
                 if (isCameraFlowRunning()) FaceFlowUi.renderVerifyProgress(captureOverlay, progress, config.getActionTimeoutMillis());

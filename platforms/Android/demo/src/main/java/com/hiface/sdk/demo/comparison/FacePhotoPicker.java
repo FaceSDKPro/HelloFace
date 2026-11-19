@@ -37,6 +37,7 @@ import java.util.concurrent.RejectedExecutionException;
 public final class FacePhotoPicker implements AutoCloseable {
     private static final int DEFAULT_MAX_DIMENSION_PX = 1080;
     public static final int IMAGE_SEARCH_MAX_DIMENSION_PX = 4096;
+    // Longest decoded side in pixels; each caller chooses its own memory/quality limit.
     private final int maximumDimension;
 
     private final ContentResolver resolver;
@@ -48,14 +49,17 @@ public final class FacePhotoPicker implements AutoCloseable {
     });
     private final ActivityResultLauncher<PickVisualMediaRequest> launcher;
 
+    // Main thread only. The system returns a URI without identifying which photo slot launched it.
     @Nullable
     private Callback pendingCallback;
-    private int requestVersion;
     private boolean closed;
 
     @FunctionalInterface
     public interface Callback {
+        // The recipient owns the decoded Bitmap and releases it after its last use.
         void onPicked(@NonNull Bitmap bitmap);
+
+        default void onCanceled() {}
 
         default void onError(@NonNull Throwable error) {
         }
@@ -77,9 +81,8 @@ public final class FacePhotoPicker implements AutoCloseable {
     }
 
     /**
-     * Open the system photo picker; repeated calls deliver only the latest request.
-     *
-     * 打开系统图片选择器；连续调用时只交付最后一次请求。
+     * Admit one system picker at a time. Once it returns, its decode keeps the original callback
+     * and another slot can open the picker. The single worker delivers photos in selection order.
      */
     @MainThread
     public void pick(@NonNull Callback callback) {
@@ -89,58 +92,59 @@ public final class FacePhotoPicker implements AutoCloseable {
             return;
         }
 
+        if (pendingCallback != null) return;
         pendingCallback = callback;
-        requestVersion++;
-        launcher.launch(new PickVisualMediaRequest.Builder()
-                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
-                .build());
+        try {
+            launcher.launch(new PickVisualMediaRequest.Builder()
+                    .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                    .build());
+        } catch (RuntimeException error) {
+            pendingCallback = null;
+            callback.onError(error);
+        }
     }
 
     @MainThread
     private void handlePickerResult(@Nullable Uri uri) {
         Callback callback = pendingCallback;
-        int version = requestVersion;
-        if (callback == null || closed) {
-            return;
-        }
+        pendingCallback = null;
+        if (callback == null || closed) return;
         if (uri == null) {
-            pendingCallback = null;
+            callback.onCanceled();
             return;
         }
 
         try {
-            executor.execute(() -> decodeInBackground(uri, version, callback));
+            executor.execute(() -> decodeInBackground(uri, callback));
         } catch (RejectedExecutionException error) {
-            deliver(version, callback, null, error);
+            callback.onError(error);
         }
     }
 
+    // Keep provider I/O and image allocation off the main thread, then transfer the result to the UI.
     private void decodeInBackground(
             @NonNull Uri uri,
-            int version,
             @NonNull Callback callback) {
         try {
             Bitmap bitmap = decode(uri);
-            if (!mainHandler.post(() -> deliver(version, callback, bitmap, null))) {
+            if (!mainHandler.post(() -> deliver(callback, bitmap, null))) {
                 recycle(bitmap);
             }
         } catch (Exception | OutOfMemoryError error) {
-            mainHandler.post(() -> deliver(version, callback, null, error));
+            mainHandler.post(() -> deliver(callback, null, error));
         }
     }
 
     @MainThread
     private void deliver(
-            int version,
             @NonNull Callback callback,
             @Nullable Bitmap bitmap,
             @Nullable Throwable error) {
-        if (closed || version != requestVersion || callback != pendingCallback) {
+        if (closed) {
             recycle(bitmap);
             return;
         }
 
-        pendingCallback = null;
         if (bitmap != null) {
             callback.onPicked(bitmap);
         } else {
@@ -173,9 +177,9 @@ public final class FacePhotoPicker implements AutoCloseable {
     }
 
     /**
-     * On API 26-27, use BitmapFactory and read the media-library orientation field.
+     * On API 23–27, use BitmapFactory and read the media-library orientation field.
      *
-     * API 26-27 使用 BitmapFactory，并读取媒体库方向字段。
+     * API 23–27 使用 BitmapFactory，并读取媒体库方向字段。
      */
     @Nullable
     private Bitmap decodeWithBitmapFactory(@NonNull Uri uri) throws IOException {
@@ -340,7 +344,6 @@ public final class FacePhotoPicker implements AutoCloseable {
             return;
         }
         closed = true;
-        requestVersion++;
         pendingCallback = null;
         launcher.unregister();
         executor.shutdownNow();

@@ -13,6 +13,7 @@ public:
     enum class Library { Search, Reference };
     explicit FacePhotoStore(std::filesystem::path directory, Library library = Library::Search)
         : root_(std::move(directory) / "face-photos-v1" / (library == Library::Reference ? "reference" : "search")) {}
+    // Best-effort save after feature commit; discard an obsolete crop when saving fails.
     bool save(const std::string& id, const Image* image) const noexcept {
         try {
             const auto target = file(id, true);
@@ -26,6 +27,7 @@ public:
             return true;
         } catch (...) { remove(id); return false; }
     }
+    // Load only an owner-private, fixed-size crop and return a small RGBA thumbnail for the UI.
     std::shared_ptr<const Image> load(const std::string& id) const noexcept {
         try {
             const auto target = file(id, false);

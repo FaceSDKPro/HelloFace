@@ -35,6 +35,7 @@ public:
         if (result.preview.rgba.empty()) throw std::runtime_error("Enrollment requires an aligned preview");
         decodeFeature(result.text); feature_ = result.text;
     }
+    // Retain the draft on write failure; clear it only after the database accepts the confirmed save.
     void save(Gallery& gallery, const std::string& raw_id, const std::string& raw_group, const std::string& raw_tag, bool overwrite = false) {
         if (!pending()) throw std::runtime_error(u8"请先采集人脸并核对预览，再确认保存");
         const auto id = normalizeMetadata(raw_id), group = normalizeMetadata(raw_group), tag = normalizeMetadata(raw_tag);

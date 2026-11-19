@@ -7,7 +7,6 @@
 namespace hiface_linux_demo {
 namespace {
 constexpr uint32_t background = 0x0e1522, panel_color = 0x172233;
-constexpr uint32_t muted = 0xaebfd3;
 
 const char* infraredModeCaption() {
     for (const char* variable : {"LC_ALL", "LC_MESSAGES", "LANG"}) {
@@ -44,7 +43,7 @@ void DemoUi::uvcCameraFaceSearch(const ViewState& state, Rect bounds) {
                 color.width, color.height, false, color.x11_bgrx);
             scene_.clip = previous_clip;
         } else {
-            text(preview.x + 8, preview.y + preview.h / 2 + 5, "No preview", muted, preview.w - 16, Font::Small, true);
+            text(preview.x + 8, preview.y + preview.h / 2 + 5, "No preview", secondary_on_dark, preview.w - 16, Font::Small, true);
         }
     }
 

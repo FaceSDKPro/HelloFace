@@ -33,7 +33,7 @@ export struct SearchSettingsDialog {
     Stack() {
       Column().width('100%').height('100%').backgroundColor('#99000000').onClick(() => {})
       Column({ space: 12 }) {
-        Text(DemoL10n.text("搜索设置")).fontSize(20).fontWeight(FontWeight.Medium).fontColor('#FFFFFF').width('100%')
+        Text(DemoL10n.text("搜索设置")).fontSize(20).fontWeight(FontWeight.Medium).fontColor(DemoTheme.textOnDark).width('100%')
           .padding({ left: 16, right: 16, top: 20 })
         Scroll() {
           Column({ space: 12 }) {
@@ -46,7 +46,7 @@ export struct SearchSettingsDialog {
               DemoL10n.text("识别最大的人脸；默认开启静默活体。") : DemoL10n.text("搜索多人，不检测头姿与活体。"))
               .fontSize(12).fontColor(DemoTheme.textOnDarkSecondary).width('100%')
             Row() {
-              Text(DemoL10n.text("活体检测")).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF').layoutWeight(1)
+              Text(DemoL10n.text("活体检测")).fontSize(15).fontWeight(FontWeight.Bold).fontColor(DemoTheme.textOnDark).layoutWeight(1)
               Toggle({ type: ToggleType.Switch, isOn: this.draftSearchLiveness })
                 .enabled(this.draftSearchMode === FaceSearchMode.SINGLE_FACE).selectedColor(DemoTheme.searchAccent)
                 .onChange((value: boolean) => { this.draftSearchLiveness = value; })
@@ -64,7 +64,7 @@ export struct SearchSettingsDialog {
             Text(DemoL10n.text("指定分组；留空搜索全部。")).fontSize(12)
               .fontColor(DemoTheme.textOnDarkSecondary).width('100%')
             TextInput({ text: this.draftSearchGroup, placeholder: DemoL10n.text("例如 1A") })
-              .height(52).fontSize(14).fontColor('#FFFFFF').backgroundColor('#243247').borderRadius(12)
+              .height(52).fontSize(14).fontColor(DemoTheme.textOnDark).backgroundColor('#243247').borderRadius(12)
               .border({ width: 1, color: DemoTheme.searchBorder }).caretColor(DemoTheme.searchAccent)
               .placeholderColor(DemoTheme.textOnDarkSecondary)
               .enterKeyType(EnterKeyType.Done).onSubmit(() => this.dismissKeyboard())
@@ -88,7 +88,7 @@ export struct SearchSettingsDialog {
           Button(DemoL10n.text("重置")).height(48).fontSize(14).fontColor(DemoTheme.searchAccent).backgroundColor(Color.Transparent)
             .onClick(() => this.resetSearchSettingsDraft())
           Blank()
-          Button(DemoL10n.text("取消")).height(48).fontSize(14).fontColor('#FFFFFF').backgroundColor(Color.Transparent)
+          Button(DemoL10n.text("取消")).height(48).fontSize(14).fontColor(DemoTheme.textOnDark).backgroundColor(Color.Transparent)
             .onClick(() => { this.dismissKeyboard(); this.onCancel(); })
           Button(DemoL10n.text("应用")).height(48).fontSize(14).fontColor(DemoTheme.searchBackground).backgroundColor(DemoTheme.searchAccent)
             .onClick(() => this.commitSearchSettingsDraft())
@@ -102,7 +102,7 @@ export struct SearchSettingsDialog {
   private SearchModeButton(title: string, mode: FaceSearchMode) {
     Button(title).height(48).layoutWeight(1).fontSize(13).borderRadius(12)
       .border({ width: 1, color: DemoTheme.searchBorder })
-      .fontColor(this.draftSearchMode === mode ? DemoTheme.searchBackground : '#FFFFFF')
+      .fontColor(this.draftSearchMode === mode ? DemoTheme.searchBackground : DemoTheme.textOnDark)
       .backgroundColor(this.draftSearchMode === mode ? DemoTheme.searchAccent : '#243247')
       .onClick(() => {
         if (this.draftSearchMode !== mode) {
@@ -114,7 +114,7 @@ export struct SearchSettingsDialog {
 
   @Builder
   private SectionTitle(title: string) {
-    Text(title).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+    Text(title).fontSize(15).fontWeight(FontWeight.Bold).fontColor(DemoTheme.textOnDark)
       .padding({ top: 16 }).width('100%')
   }
 
@@ -122,8 +122,8 @@ export struct SearchSettingsDialog {
   private SearchField(label: string, value: string, hint: string, change: (value: string) => void,
     inputType: InputType = InputType.Number) {
     Column({ space: 6 }) {
-      Text(label).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF').width('100%')
-      TextInput({ text: value }).height(52).fontSize(14).type(inputType).fontColor('#FFFFFF')
+      Text(label).fontSize(15).fontWeight(FontWeight.Bold).fontColor(DemoTheme.textOnDark).width('100%')
+      TextInput({ text: value }).height(52).fontSize(14).type(inputType).fontColor(DemoTheme.textOnDark)
         .backgroundColor('#243247').borderRadius(12).border({ width: 1, color: DemoTheme.searchBorder })
         .caretColor(DemoTheme.searchAccent).enterKeyType(EnterKeyType.Done)
         .onSubmit(() => this.dismissKeyboard()).onChange(change)

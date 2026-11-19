@@ -23,6 +23,7 @@ import com.google.android.material.textfield.TextInputLayout;
 import com.hiface.sdk.HiFaceSdk;
 import com.hiface.sdk.common.HiFaceError;
 import com.hiface.sdk.common.HiFaceErrorCode;
+import com.hiface.sdk.common.HiFaceResult;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.search.FaceSearchStore.Person;
 import com.hiface.sdk.demo.ui.DemoWindowInsets;
@@ -53,7 +54,7 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
     private View menuButton;
     private TextInputLayout queryField;
     private AlertDialog dialog;
-    private HiFaceSdk imageSdk;
+    // Database and list-diff callbacks may update only the foreground query that started them.
     private int generation;
     private int nextOffset;
     private long total;
@@ -63,6 +64,7 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
     private boolean importing;
     private boolean stoppingImport;
     private boolean exitAfterImport;
+    // The stopped import still owns its final batch. Reopen the library after its completion callback.
     private boolean importCleanupPending;
     private boolean pageStarted;
     private int importSaved;
@@ -203,8 +205,7 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
      * 页面只选择导入类型；JSON 解析、下载、特征提取和分批写库都由 Store 串行完成。
      */
     private void startImport(boolean images) {
-        if (store == null) return;
-        cancelTask();
+        if (store == null || loading) return;
         int requestId = ++generation;
         int count = images ? FaceSearchStore.IMAGE_DEMO_COUNT
                 : FaceSearchStore.FEATURE_DEMO_COUNT;
@@ -216,7 +217,6 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
         // Bind the image-import SDK to this screen and close it explicitly during import cleanup.
         // 批量图片导入的临时 SDK 绑定当前页面生命周期，并在导入清理时显式关闭。
         final HiFaceSdk ownedSdk = images ? HiFaceSdk.builder(this).lifecycleOwner(this).build() : null;
-        imageSdk = ownedSdk;
         status.setText(getString(R.string.search_ui_import_progress, 0, count, 0));
         updateActions();
         FaceSearchStore.ProgressCallback progress = value -> {
@@ -228,7 +228,6 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
         };
         FaceSearchStore.Callback<FaceSearchStore.ImportSummary> complete = result -> {
             if (ownedSdk != null) ownedSdk.close();
-            if (imageSdk == ownedSdk) imageSdk = null;
             if (requestId != generation) {
                 if (importCleanupPending) {
                     importCleanupPending = false;
@@ -466,18 +465,10 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
     }
 
     private void saveMetadata(String id, String group, String tag) {
-        cancelTask();
+        if (store == null || loading) return;
         int requestId = ++generation;
-        loading = true;
-        updateActions();
-        pendingTask = store.updateMetadata(id, group, tag, result -> {
-            if (requestId != generation) return;
-            pendingTask = null;
-            loading = false;
-            if (result.isFailure()) showError(result.requireError(), adapter.getItemCount() == 0);
-            else if (lookupMode) lookup();
-            else loadFirstPage();
-        });
+        showLoading(false);
+        pendingTask = store.updateMetadata(id, group, tag, result -> onEntryChanged(requestId, result));
     }
 
     /**
@@ -510,25 +501,20 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
      * 串行删除指定 ID，成功后刷新当前查询或从首批重新加载。
      */
     private void delete(String faceId) {
-        if (store == null) return;
-        cancelTask();
+        if (store == null || loading) return;
         int requestId = ++generation;
-        loading = true;
-        updateActions();
-        pendingTask = store.delete(faceId, result -> {
-            if (requestId != generation) {
-                return;
-            }
-            pendingTask = null;
-            loading = false;
-            if (result.isFailure()) {
-                showError(result.requireError(), adapter.getItemCount() == 0);
-            } else if (lookupMode) {
-                lookup();
-            } else {
-                loadFirstPage();
-            }
-        });
+        showLoading(false);
+        pendingTask = store.delete(faceId, result -> onEntryChanged(requestId, result));
+    }
+
+    /** Both edits and deletions refresh the view the user was browsing when the write began. */
+    private void onEntryChanged(int requestId, HiFaceResult<Boolean> result) {
+        if (requestId != generation) return;
+        pendingTask = null;
+        loading = false;
+        if (result.isFailure()) showError(result.requireError(), adapter.getItemCount() == 0);
+        else if (lookupMode) lookup();
+        else loadFirstPage();
     }
 
     /**
@@ -579,19 +565,6 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
                     if (pendingTask != null) pendingTask.stop();
                 }).create();
         dialog.show();
-    }
-
-    /**
-     * Release models after image import or screen exit; recreate them for the next import instead of
-     * retaining search-screen memory.
-     *
-     * 图片导入结束或页面离开后释放模型；下次导入独立创建，不长期占用搜索页的内存。
-     */
-    private void releaseImageSdk() {
-        if (imageSdk != null) {
-            imageSdk.close();
-            imageSdk = null;
-        }
     }
 
     /**
@@ -654,11 +627,7 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
     private void openAndLoad() {
         if (store == null) store = new FaceSearchStore(this);
         loading = false;
-        if (query.getText().toString().trim().isEmpty()) {
-            loadFirstPage();
-        } else {
-            lookup();
-        }
+        lookup();
     }
 
     /**
@@ -677,7 +646,6 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
             pendingTask = null;
         } else {
             cancelTask();
-            if (!importCleanupPending) releaseImageSdk();
         }
         if (store != null) store.close();
         store = null;

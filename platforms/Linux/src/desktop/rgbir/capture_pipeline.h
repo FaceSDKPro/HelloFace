@@ -11,6 +11,7 @@
 #include <thread>
 
 namespace hiface_linux_demo::rgbir {
+// Monotonic milliseconds for pairing skew, admissible age, stream-gap detection, and transport timeout.
 constexpr int64_t max_skew_ms = 50, max_age_ms = 150, pair_gap_ms = 500, pair_timeout_ms = 5000;
 
 struct CameraStreamError : DemoError {
@@ -20,6 +21,7 @@ struct CameraStreamError : DemoError {
 int64_t nowMs();
 
 struct Stamp {
+    // Sequence zero means no usable frame; time is the V4L2 CLOCK_MONOTONIC timestamp in milliseconds.
     uint64_t sequence = 0;
     int64_t time = 0;
 };
@@ -32,6 +34,7 @@ struct Pair {
 };
 struct Slot {
     RawCameraFrame frame;
+    // pending is eligible for one pair; last remembers the latest accepted timestamp across consumption.
     Stamp pending, last;
     void received(int64_t now);
 };
@@ -39,6 +42,7 @@ struct Slot {
 class Pairing {
 public:
     Slot rgb, ir;
+    // Consume both eligible stamps together; an older unmatched stamp can expire independently.
     std::optional<Pair> take(int64_t now);
 private:
     static void expire(Stamp& stamp, int64_t now);
@@ -52,6 +56,7 @@ struct CapturedPair {
 struct CaptureProgress {
     int64_t last_pair_at;
     int64_t stream_started_at = 0;
+    // Produced pairs, overwritten unconsumed pairs, and pairs rejected as stale by the consumer.
     uint64_t paired = 0, replaced = 0, expired = 0;
     Stamp rgb{}, ir{};
 };
@@ -64,6 +69,7 @@ public:
     void observe(Stamp rgb, Stamp ir);
     void publish(const Pair& stamp, RawCameraFrame& rgb, RawCameraFrame& ir, int64_t now);
     void fail(std::exception_ptr error);
+    // due is the next analysis deadline in monotonic milliseconds; stale pairs are discarded on take.
     bool waitTake(int64_t due, CapturedPair& output);
     CaptureProgress progress();
 private:

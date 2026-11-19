@@ -12,6 +12,9 @@ enum CameraDemoPhase: Equatable {
     case completed
     case failed
     case needsReference
+
+    /// Only these phases resume processing when the camera returns.
+    var needsCameraFlow: Bool { self == .preparing || self == .running }
 }
 
 /// Camera-screen coordinator connecting AVFoundation, SDK requests, and SwiftUI state. UI and Search
@@ -20,12 +23,14 @@ enum CameraDemoPhase: Equatable {
 /// 文案映射由 UI 与 Search 分组负责。
 @MainActor
 final class CameraDemoModel: ObservableObject {
+    // Demo countdown duration for the final stable-capture prompt, expressed in milliseconds.
     private static let captureStableCountdownMilliseconds: Int64 = 700
 
     // MARK: - Published presentation state
     // 公开的展示状态。
 
     @Published var detection: FaceDetectionResult?
+    // Preview mirroring and overlay coordinate correction are tracked separately.
     @Published var previewMirrored = true
     @Published var overlayMirrored = true
     @Published var cameraResolution = DemoL10n.text("等待相机画面")
@@ -36,6 +41,7 @@ final class CameraDemoModel: ObservableObject {
     @Published var alignedFace: CGImage?
     @Published var enrollmentFaceID = ""
     @Published var enrollmentGroup = ""
+    // A duplicate search-library ID needs a second, explicit replacement confirmation.
     @Published var confirmsSearchOverwrite = false
     @Published private(set) var isSavingCapture = false
     @Published private(set) var enrollmentCompleted = false
@@ -44,9 +50,11 @@ final class CameraDemoModel: ObservableObject {
     @Published private(set) var needsCameraSettings = false
     @Published private(set) var failureAllowsRetry = true
     @Published private(set) var isSwitchingCamera = false
+    // Feature paired with alignedFace while the capture waits for confirmation.
     @Published private(set) var pendingReferenceFeature: String?
     @Published private(set) var referenceFaceIDs: [String] = []
     @Published private(set) var selectedReferenceID: String?
+    // Fraction of the current countdown remaining, from 1 at start to 0 at expiry.
     @Published private(set) var actionCountdownProgress: Double = 1
     @Published private(set) var searchOverlay = FaceSearchOverlayState()
     @Published private(set) var searchDetectedCount = 0
@@ -68,12 +76,14 @@ final class CameraDemoModel: ObservableObject {
     // 当前模型负责创建和关闭 SDK，相机管线复用同一实例。
     let sdk: HiFaceSDK
     let pipeline: CameraPipeline
+    // nil uses the camera screen’s default challenge. An empty array explicitly requests no actions.
     private let recognitionActions: [FaceAction]?
     private let recognitionSilent: Bool
     private let recognitionReferenceID: String?
     @Published private(set) var completedPassed = false
     private let mode: CameraDemoMode
     let enrollsInSearchLibrary: Bool
+    // Capture, liveness, and verification finish once. Search keeps its session across scene pauses.
     private var request: FaceRequest?
     private var searchSession: FaceSearchSession?
     private var lastSearchError: HiFaceError?
@@ -81,10 +91,14 @@ final class CameraDemoModel: ObservableObject {
     private var actionCountdown = FaceActionCountdown()
     private var actionStepCount = 0
     private var searchStaleTask: Task<Void, Never>?
+    // Accumulate frame and terminal search callbacks here before publishing the visible overlay.
     private var searchDisplayState = FaceSearchOverlayState()
     private var searchExpirySchedule = FaceSearchOverlayExpirySchedule()
+    // Owns the confirmed search-library save until it completes or the screen cancels it.
     private var enrollmentTask: Task<Void, Never>?
+    // SDK action budget used by the visible countdown; the SDK decides the terminal outcome.
     private var actionTimeoutMilliseconds: Int64 = 0
+    // The page remains started while suspended. Leaving the page closes its search session.
     private var started = false
     private var suspended = false
 
@@ -184,10 +198,11 @@ final class CameraDemoModel: ObservableObject {
         pipeline.start(analysisEnabled: false)
     }
 
+    // Start or resume SDK work only after the current camera configuration reports readiness.
     private func cameraDidStart() {
         guard started, !suspended, !isSwitchingCamera else { return }
         cameraReady = true
-        if phase == .preparing || phase == .running {
+        if phase.needsCameraFlow {
             if mode == .search, let searchSession {
                 searchSession.resume()
                 phase = .running
@@ -200,6 +215,7 @@ final class CameraDemoModel: ObservableObject {
         if phase == .running { pipeline.resumeAnalysis() }
     }
 
+    // Leaving the page closes search and camera resources; the model retains its SDK until deinit.
     func stop() {
         guard started else { return }
         started = false
@@ -216,10 +232,9 @@ final class CameraDemoModel: ObservableObject {
     func suspend() {
         guard started, !suspended else { return }
         suspended = true
-        let shouldRestart = phase == .preparing || phase == .running
         cancelPendingCameraWork()
         searchSession?.pause()
-        if shouldRestart {
+        if phase.needsCameraFlow {
             phase = .preparing
             status = DemoL10n.text("返回前台后恢复相机")
             detail = mode == .search
@@ -267,10 +282,8 @@ final class CameraDemoModel: ObservableObject {
         request = nil
         searchSession?.close()
         searchSession = nil
-        pendingReferenceFeature = nil
-        alignedFace = nil
+        clearPendingCapture()
         detection = nil
-        detail = nil
         clearSearchDisplay()
         resetActionProgress()
         failureAllowsRetry = true
@@ -283,6 +296,7 @@ final class CameraDemoModel: ObservableObject {
     // MARK: - Capture and enrollment
     // 采集与录入。
 
+    // Save the confirmed 1:1 feature first, then queue its optional portrait.
     @discardableResult
     func saveCapturedReference() -> Bool {
         guard canSaveCapturedReference, let pendingReferenceFeature else { return false }
@@ -292,7 +306,7 @@ final class CameraDemoModel: ObservableObject {
                 faceID: enrollmentFaceID
             )
             FacePhotoStore.saveLater(image: alignedFace, faceID: faceID, library: .reference)
-            self.pendingReferenceFeature = nil
+            clearPendingCapture()
             enrollmentFaceID = faceID
             refreshReferenceFaces()
             status = DemoL10n.text("已保存 1:1 参考人脸")
@@ -326,8 +340,7 @@ final class CameraDemoModel: ObservableObject {
                 guard let self, !Task.isCancelled, started else { return }
                 isSavingCapture = false
                 enrollmentTask = nil
-                pendingReferenceFeature = nil
-                alignedFace = nil
+                clearPendingCapture()
                 status = DemoL10n.text("人脸已保存")
                 detail = "Face ID：\(faceID)"
                 enrollmentCompleted = true
@@ -456,29 +469,27 @@ final class CameraDemoModel: ObservableObject {
         // 不可恢复错误保持原提示，应用设置不能让被拒绝的会话重新启动。
         if let lastSearchError, !FaceSearchPresentation.canResumeSearch(lastSearchError) { return }
         lastSearchError = nil
-        clearSearchDisplay()
-        phase = .preparing
-        status = DemoL10n.text("正在准备")
-        detail = DemoL10n.text("准备完成后自动开始")
-        guard started else { return }
-        pipeline.start(analysisEnabled: false)
+        prepareSearchPreview()
     }
 
     func resumeSearch() {
-        guard started, !isSwitchingCamera else { return }
+        guard started, !suspended, !isSwitchingCamera else { return }
         if let lastSearchError, !FaceSearchPresentation.canResumeSearch(lastSearchError) { return }
         lastSearchError = nil
         guard mode == .search, searchSession != nil else {
             restartFlow()
             return
         }
+        prepareSearchPreview()
+    }
+
+    /// Camera startup rechecks permission. Only cameraDidStart may resume search and admit frames.
+    private func prepareSearchPreview() {
         clearSearchDisplay()
         phase = .preparing
         status = DemoL10n.text("正在准备")
         detail = DemoL10n.text("准备完成后自动开始")
-        // Recheck camera permission on resume.
-        // 恢复时重新检查相机权限。
-        pipeline.start(analysisEnabled: false)
+        if started && !suspended { pipeline.start(analysisEnabled: false) }
     }
 
     // MARK: - Camera controls
@@ -486,40 +497,36 @@ final class CameraDemoModel: ObservableObject {
 
     func switchCamera() {
         guard started, cameraReady, !isSwitchingCamera else { return }
-        let wasRunning = phase == .running || phase == .preparing
-        // Match Android: retain the current secure challenge when switching cameras so switching cannot reroll
-        // the actions.
-        // 与 Android 一致：活体切摄保留当前安全挑战，避免切摄重新随机“换题”。
+        // Keep the same liveness challenge across a lens switch.
         let preservesLivenessRequest = mode == .liveness && phase == .running && request != nil
+        let accepted = pipeline.switchCamera { [weak self] usable in
+            guard let self, started else { return }
+            isSwitchingCamera = false
+            guard usable, cameraReady, phase.needsCameraFlow else { return }
+            if preservesLivenessRequest, request != nil {
+                pipeline.resumeAnalysis()
+            } else if mode == .search, searchSession != nil {
+                resumeSearch()
+            } else {
+                startFlowIfNeeded()
+                if phase == .running { pipeline.resumeAnalysis() }
+            }
+        }
+        // An interruption can reach the pipeline before its notification reaches this screen.
+        guard accepted else { return }
         isSwitchingCamera = true
         cameraNotice = nil
-        pipeline.pauseAnalysis()
         if !preservesLivenessRequest {
             request?.cancel()
             request = nil
+            resetActionProgress()
         }
         searchSession?.pause()
         detection = nil
         clearSearchDisplay()
-        if !preservesLivenessRequest { resetActionProgress() }
-        if wasRunning && !preservesLivenessRequest {
+        if phase.needsCameraFlow && !preservesLivenessRequest {
             phase = .preparing
             status = DemoL10n.text("正在切换摄像头")
-        }
-        pipeline.switchCamera { [weak self] usable in
-            guard let self, started else { return }
-            isSwitchingCamera = false
-            guard usable else { return }
-            if wasRunning {
-                if preservesLivenessRequest {
-                    pipeline.resumeAnalysis()
-                } else if mode == .search, searchSession != nil {
-                    resumeSearch()
-                } else {
-                    startFlowIfNeeded()
-                    if phase == .running { pipeline.resumeAnalysis() }
-                }
-            }
         }
     }
 
@@ -628,21 +635,50 @@ final class CameraDemoModel: ObservableObject {
     private func handleCapture(_ result: FaceCaptureResult) {
         guard started else { return }
         request = nil
-        guard DemoFaceStore.isValidFeature(result.feature),
-              let alignedFace = result.alignedFace?.makeCGImage() else {
-            handleFlowError(HiFaceError(
-                code: .processingFailed,
-                message: "Camera capture completed without a valid HF1 feature or aligned preview"
-            ))
+        if case .failure(let error) = stageCapture(result) {
+            handleFlowError(error)
             return
         }
         pipeline.pauseAnalysis()
         resetActionProgress()
         phase = .completed
+    }
+
+    // Discard the feature and its matching preview together when retaking or replacing a sample.
+    func clearPendingCapture() {
+        pendingReferenceFeature = nil
+        alignedFace = nil
+        detail = nil
+    }
+
+    // Extract an album candidate for the same confirmation UI used by guided capture.
+    func prepareAlbumReference(_ image: HiFaceRGBAImage) async throws {
+        let faces = try await sdk.captureFaces(image).get()
+        try Task.checkCancellation()
+        try stageAlbumReference(faces)
+    }
+
+    func stageAlbumReference(_ faces: [FaceImageCapture]) throws {
+        clearPendingCapture()
+        // A second detection counts even when its feature could not be extracted.
+        guard faces.count == 1 else {
+            throw ReferencePhotoError.requiresSingleFace
+        }
+        try stageCapture(faces[0].capture.get()).get()
+        previewMirrored = false
+    }
+
+    // Camera and album sources share this validation step before exposing a saveable draft.
+    private func stageCapture(_ result: FaceCaptureResult) -> Result<Void, HiFaceError> {
+        guard DemoFaceStore.isValidFeature(result.feature),
+              let preview = result.alignedFace?.makeCGImage() else {
+            return .failure(HiFaceError(code: .processingFailed, message: "Invalid capture feature or aligned preview"))
+        }
         pendingReferenceFeature = result.feature
-        self.alignedFace = alignedFace
+        alignedFace = preview
         status = DemoL10n.text("人脸采集完成")
         detail = enrollsInSearchLibrary ? DemoL10n.text("请确认照片与录入信息") : DemoL10n.text("请确认照片，再保存为 1:1 验证样本")
+        return .success(())
     }
 
     private func handle(_ result: FaceFlowResult) {
@@ -794,11 +830,11 @@ final class CameraDemoModel: ObservableObject {
         guard started else { return }
         cameraReady = available
         cameraNotice = message
-        guard !available else {
+        guard phase.needsCameraFlow else { return }
+        if available {
             // On recovery notification, invalidate the interrupted flow; CameraPipeline then calls cameraDidStart
             // to rebuild it.
             // 恢复通知到达时作废中断前的流程；CameraPipeline 随后调用 cameraDidStart 重建流程。
-            guard phase == .running || phase == .preparing else { return }
             request?.cancel()
             request = nil
             searchSession?.pause()
@@ -808,9 +844,7 @@ final class CameraDemoModel: ObservableObject {
             phase = .preparing
             status = DemoL10n.text("正在恢复相机流程")
             detail = DemoL10n.text("系统相机恢复后重新开始本轮检测")
-            return
-        }
-        if phase == .running || phase == .preparing {
+        } else {
             status = DemoL10n.text("相机暂时不可用")
             detail = DemoL10n.text("当前流程已暂停，系统释放相机后会自动重新开始")
         }
@@ -917,4 +951,9 @@ final class CameraDemoModel: ObservableObject {
         }
         return values.joined(separator: " · ")
     }
+}
+
+enum ReferencePhotoError: LocalizedError {
+    case requiresSingleFace
+    var errorDescription: String? { DemoL10n.text("请选择只有一张人脸的照片。") }
 }

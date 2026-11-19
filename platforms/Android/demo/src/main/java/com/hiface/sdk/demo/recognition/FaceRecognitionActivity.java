@@ -1,36 +1,56 @@
-package com.hiface.sdk.demo;
+package com.hiface.sdk.demo.recognition;
 
+import android.app.Dialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.ScrollView;
 import android.widget.TextView;
+
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.Lifecycle;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.hiface.sdk.HiFaceSdk;
+import com.hiface.sdk.common.FaceRequest;
+import com.hiface.sdk.demo.R;
+import com.hiface.sdk.demo.comparison.FacePhotoPicker;
 import com.hiface.sdk.demo.liveness.FaceLivenessActivity;
-import com.hiface.sdk.demo.recognition.FaceReferenceAdapter;
-import com.hiface.sdk.demo.recognition.RecognitionFlowContract;
 import com.hiface.sdk.demo.storage.FacePhotoStore;
+import com.hiface.sdk.demo.ui.DemoErrorUi;
 import com.hiface.sdk.demo.ui.DemoWindowInsets;
 import com.hiface.sdk.demo.verification.FaceEnrollmentActivity;
 import com.hiface.sdk.demo.verification.FaceFeatureStore;
 import com.hiface.sdk.demo.verification.FaceVerificationActivity;
+import com.hiface.sdk.demo.verification.ReferenceConfirmation;
 import com.hiface.sdk.flow.FaceAction;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /** Configure the next camera request, choose a confirmed reference, and display returned results. */
 public final class FaceRecognitionActivity extends AppCompatActivity {
+    // Independent drafts for 1:1 verification and standalone liveness.
     private Options verification, liveness;
+    private FacePhotoPicker picker;
+    // Create the photo SDK on first selection and bind it to this Activity's lifecycle.
+    private HiFaceSdk photoSdk;
+    // Cancel a pending extraction when this screen stops.
+    private FaceRequest photoRequest;
+    // The shared confirmation holds the album sample until the user saves or dismisses it.
+    private Dialog photoConfirmation;
     private RecyclerView references;
+    private TextView referenceHint;
     private FaceReferenceAdapter referenceAdapter;
+    // The first three fields describe the inline result. pendingTitle labels a canceled camera launch.
     private String resultTitle, resultMessage, resultStatus, pendingTitle;
     private final ActivityResultLauncher<Intent> cameraFlow = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -60,7 +80,10 @@ public final class FaceRecognitionActivity extends AppCompatActivity {
         findViewById(R.id.backButton).setOnClickListener(view -> finish());
         verification = new Options(findViewById(R.id.verificationOptions), false, state, "verification.");
         liveness = new Options(findViewById(R.id.livenessOptions), true, state, "liveness.");
+        picker = new FacePhotoPicker(this, FacePhotoPicker.IMAGE_SEARCH_MAX_DIMENSION_PX);
+        findViewById(R.id.albumReference).setOnClickListener(view -> pickReference());
         references = findViewById(R.id.referenceList);
+        referenceHint = findViewById(R.id.referenceHint);
         references.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
         referenceAdapter = new FaceReferenceAdapter(id -> {
             if (!verification.validate()) return;
@@ -84,13 +107,79 @@ public final class FaceRecognitionActivity extends AppCompatActivity {
 
     @Override protected void onResume() { super.onResume(); refreshReferences(false); }
 
+    // Allow thumbnail reload on confirmed writes, including updates that keep the same Face ID.
     private void refreshReferences(boolean reloadPhotos) {
         if (references == null || isDestroyed()) return;
         List<String> ids = new FaceFeatureStore().getFaceIds();
         referenceAdapter.update(ids, reloadPhotos);
         references.setVisibility(ids.isEmpty() ? View.GONE : View.VISIBLE);
-        ((TextView) findViewById(R.id.referenceHint)).setText(ids.isEmpty()
+        referenceHint.setText(defaultReferenceHint());
+    }
+
+    private String defaultReferenceHint() {
+        return getString(referenceAdapter.getItemCount() == 0
                 ? R.string.recognition_no_reference : R.string.recognition_tap_reference);
+    }
+
+    // Disable repeat album selection until the picker or extraction resolves.
+    private void pickReference() {
+        findViewById(R.id.albumReference).setEnabled(false);
+        picker.pick(new FacePhotoPicker.Callback() {
+            @Override public void onPicked(Bitmap photo) {
+                try {
+                    if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) extractReference(photo);
+                    else finishPhotoSelection(defaultReferenceHint());
+                } finally {
+                    photo.recycle(); // The SDK snapshots the pixels before returning the request.
+                }
+            }
+            @Override public void onCanceled() { finishPhotoSelection(defaultReferenceHint()); }
+            @Override public void onError(Throwable error) {
+                finishPhotoSelection(getString(R.string.face_compare_photo_failed));
+            }
+        });
+    }
+
+    /** Stage a single aligned face for confirmation. Saving stays in ReferenceConfirmation. */
+    private void extractReference(Bitmap photo) {
+        if (photoSdk == null) photoSdk = HiFaceSdk.builder(this).lifecycleOwner(this).build();
+        referenceHint.setText(R.string.image_search_processing);
+        photoRequest = photoSdk.capture().facesFromBitmap(photo, result -> {
+            photoRequest = null;
+            if (result.isFailure()) {
+                finishPhotoSelection(DemoErrorUi.messageFor(this, result.requireError()));
+                return;
+            }
+            var faces = result.requireValue();
+            // Count all detections before inspecting their individual extraction results.
+            if (faces.size() != 1) {
+                finishPhotoSelection(getString(R.string.enroll_single_photo));
+                return;
+            }
+            var captured = faces.get(0).getCapture();
+            if (captured.isFailure()) {
+                finishPhotoSelection(DemoErrorUi.messageFor(this, captured.requireError()));
+                return;
+            }
+            finishPhotoSelection(defaultReferenceHint());
+            photoConfirmation = ReferenceConfirmation.show(this, captured.requireValue(), false,
+                    this::pickReference, () -> refreshReferences(true));
+            photoConfirmation.setCancelable(true);
+        });
+    }
+
+    private void finishPhotoSelection(String message) {
+        findViewById(R.id.albumReference).setEnabled(true);
+        referenceHint.setText(message);
+    }
+
+    @Override protected void onStop() {
+        if (photoRequest != null) {
+            photoRequest.cancel();
+            photoRequest = null;
+            finishPhotoSelection(defaultReferenceHint());
+        }
+        super.onStop();
     }
 
     private void launch(Intent intent) {
@@ -135,6 +224,8 @@ public final class FaceRecognitionActivity extends AppCompatActivity {
     }
 
     @Override protected void onDestroy() {
+        picker.close();
+        if (photoConfirmation != null) photoConfirmation.dismiss();
         if (referenceAdapter != null) referenceAdapter.close();
         super.onDestroy();
     }

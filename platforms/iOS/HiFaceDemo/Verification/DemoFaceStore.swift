@@ -13,6 +13,7 @@ enum DemoFaceStore {
     private static let selectionAccount = "selected-face-id"
     private static let featureLength = 604
 
+    // Add or replace the normalized Face ID, then remember it as the selected 1:1 reference.
     static func save(feature: String, faceID rawFaceID: String) throws -> String {
         let faceID = try validatedFaceID(rawFaceID)
         guard isValidFeature(feature), let data = feature.data(using: .utf8) else {
@@ -42,6 +43,7 @@ enum DemoFaceStore {
         return faceID
     }
 
+    // Missing IDs return nil; unreadable or malformed Keychain records propagate as errors.
     static func feature(for rawFaceID: String) throws -> String? {
         let faceID = try validatedFaceID(rawFaceID)
         var query = identityQuery(faceID: faceID)
@@ -59,6 +61,7 @@ enum DemoFaceStore {
         return feature
     }
 
+    // List Keychain account names without loading face features into the reference carousel.
     static func faceIDs() throws -> [String] {
         var query = baseQuery
         query[kSecReturnAttributes as String] = true

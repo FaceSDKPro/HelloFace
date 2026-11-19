@@ -111,9 +111,10 @@ struct FaceSearchDemoImportProgress { let processed: Int; let total: Int; let im
         try await staleOpeningCannotClearNewConnection()
         try await stopWaitsForImportBeforeClosingAndReopening()
         try await requestedStopPublishesSavedCount()
+        try await imageImportFailureClosesSDKAndAllowsFeatureImport()
         try await paginationUsesTailIdentitiesAndReusesConnection()
         try await stopClearsConfirmations()
-        print("SearchLibraryModelTests passed (6 lifecycle/pagination/import regressions)")
+        print("SearchLibraryModelTests passed (7 lifecycle/pagination/import regressions)")
     }
 
     @MainActor static func paginationUsesTailIdentitiesAndReusesConnection() async throws {
@@ -258,5 +259,26 @@ struct FaceSearchDemoImportProgress { let processed: Int; let total: Int; let im
         model.requestImport(.features)
         model.stop()
         assert(model.pendingImport == nil)
+    }
+
+    @MainActor static func imageImportFailureClosesSDKAndAllowsFeatureImport() async throws {
+        HiFaceSDK.opener.configure([{ FaceSearchDatabase() }])
+        resetImporter()
+        let model = SearchLibraryModel()
+        defer { model.stop() }
+
+        model.requestImport(.images)
+        model.confirmImport()
+        try await waitUntil { FaceSearchDemoImporter.pending.count == 1 }
+        FaceSearchDemoImporter.pending[0].resume(throwing: CocoaError(.fileReadCorruptFile))
+        try await waitUntil { !model.isImporting }
+        assert(model.hasError && !model.isWorking)
+        assert(HiFaceSDK.instances.count == 1 && HiFaceSDK.instances[0].isClosed)
+
+        model.requestImport(.features)
+        model.confirmImport()
+        try await waitUntil { !model.isImporting }
+        assert(!model.hasError && !model.isWorking)
+        assert(HiFaceSDK.instances.count == 1, "Feature import needs only the database")
     }
 }

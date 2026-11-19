@@ -182,6 +182,7 @@ if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING AND EXISTS "${CMAKE_CURRENT_SOURCE
     target_link_libraries(hiface_linux_search_wake_test PRIVATE hiface_demo_common Threads::Threads)
     add_test(NAME hiface_linux_capture_lifecycle_test COMMAND hiface_linux_search_wake_test "${HIFACE_TEST_MODEL_DIR}" --recovery-only)
     if(HIFACE_TEST_FACE_PHOTO)
+        add_test(NAME hiface_linux_reference_photo_test COMMAND hiface_linux_pipeline_test "${HIFACE_TEST_MODEL_DIR}" "${HIFACE_TEST_FACE_PHOTO}")
         add_test(NAME hiface_linux_search_wake_test COMMAND hiface_linux_search_wake_test "${HIFACE_TEST_MODEL_DIR}" "${HIFACE_TEST_FACE_PHOTO}")
     endif()
 endif()

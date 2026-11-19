@@ -21,6 +21,7 @@ private:
     std::shared_ptr<const Image> photo_;
     std::shared_ptr<const ImageSearchResult> result_;
     std::vector<Image> thumbnails_;
+    // Pixel offset along the active strip orientation and selected face index; -1 means no selection.
     int scroll_ = 0, selected_ = -1;
     bool busy_ = false, error_ = false;
     std::wstring message_, filename_;

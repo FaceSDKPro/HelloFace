@@ -5,6 +5,7 @@ import Foundation
 final class FaceSearchImportControl: @unchecked Sendable {
     private let lock = NSLock()
     private var stopping = false
+    // Each active download registers one cancellation closure under its own ID.
     private var downloads: [UUID: @Sendable () -> Void] = [:]
 
     var isStopped: Bool {
@@ -18,6 +19,7 @@ final class FaceSearchImportControl: @unchecked Sendable {
         let cancellations = Array(downloads.values)
         downloads.removeAll()
         lock.unlock()
+        // Invoke client code after unlocking so cancellation cannot reenter the lock.
         cancellations.forEach { $0() }
     }
 

@@ -226,7 +226,7 @@
     <string name="image_search_guide">最多检测 10 张脸 · 匹配阈值 0.80 · 不检测活体</string>
     <string name="image_search_prompt">选择一张包含人脸的图片</string>
     <string name="image_search_processing">正在检测、矫正并搜索…</string>
-    <string name="image_search_album">相册添加</string>
+    <string name="add_from_album">相册添加</string>
     <string name="image_search_unmatched">未匹配</string>
     <string name="image_search_summary">检测到 %1$d 个人脸，搜索匹配成功 %2$d 个</string>
     <string name="image_search_no_faces">未检测到人脸，请更换清晰图片</string>
@@ -315,13 +315,14 @@
     <string name="recognition_identity_hint">仅进行 1:1 人脸比对，不进行活体检测。</string>
     <string name="recognition_combined_hint">按勾选顺序完成动作，再正对镜头完成检测。</string>
     <string name="recognition_references">已录入的人脸</string>
-    <string name="recognition_add_reference">＋ 采集人脸</string>
+    <string name="recognition_add_reference">相机录入</string>
     <string name="recognition_tap_reference">左右滑动，点击头像开始 1:1 验证，长按删除</string>
-    <string name="recognition_no_reference">暂无参考人脸，请先采集并保存 Face ID。</string>
+    <string name="recognition_no_reference">暂无已录入的人脸。</string>
     <string name="recognition_verify_person">验证 Face ID：%1$s；长按删除</string>
     <string name="recognition_start_liveness">开始活体检测</string>
     <string name="recognition_canceled">检测已取消</string>
     <string name="recognition_passed">检测通过</string>
     <string name="recognition_rejected">检测未通过</string>
     <string name="recognition_invalid_options">检测参数无效，请返回重新选择。</string>
+    <string name="enroll_single_photo">请选择只有一张人脸的照片。</string>
 </resources>

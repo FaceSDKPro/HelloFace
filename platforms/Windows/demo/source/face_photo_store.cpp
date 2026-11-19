@@ -7,6 +7,7 @@
 
 namespace hiface_demo {
 namespace {
+// Own the protected DACL granting crop-directory access to the current user and SYSTEM.
 struct Security {
     PSECURITY_DESCRIPTOR descriptor = nullptr;
     SECURITY_ATTRIBUTES attributes{sizeof(SECURITY_ATTRIBUTES), nullptr, FALSE};

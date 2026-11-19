@@ -5,7 +5,7 @@
 namespace hiface_linux_demo {
 namespace {
 constexpr uint32_t background = 0x0e1522, panel_color = 0x172233;
-constexpr uint32_t border = 0x2c3b50, title_color = 0xecf3fc, muted = 0xaebfd3;
+constexpr uint32_t border = 0x2c3b50;
 bool cameraSetting(const std::string& key) { return key.rfind("rgb_", 0) == 0 || key.rfind("ir_", 0) == 0; }
 }
 
@@ -18,7 +18,7 @@ void DemoUi::uvcSettingsDialog(const ViewState& state) {
     const bool editable = !state.busy && !uvc_settings_pending_ && !settings_pending_;
     scene_.box({x, y, w, h}, border, 14);
     scene_.box({x + 1, y + 1, w - 2, h - 2}, panel_color, 13);
-    text(left, y + 33, "Dual-camera search settings", title_color, content, Font::Large);
+    text(left, y + 33, "Dual-camera search settings", text_on_dark, content, Font::Large);
     const int tab_width = (content - 16) / 3;
     button({left, y + 48, tab_width, 36}, "Cameras", "uvc-tab-camera",
            uvc_settings_tab_ == UvcSettingsTab::camera ? 2 : 0, editable);
@@ -28,11 +28,11 @@ void DemoUi::uvcSettingsDialog(const ViewState& state) {
            uvc_settings_tab_ == UvcSettingsTab::display ? 2 : 0, editable);
     const int bottom = y + h - 49;
     if (uvc_settings_tab_ == UvcSettingsTab::display) {
-        text(left, y + 120, "UI rotation", title_color, content, Font::Large);
-        wrap(left, y + 147, "Changes apply immediately to all Demo pages, including the camera preview.", muted, content, 2, Font::Small);
+        text(left, y + 120, "UI rotation", text_on_dark, content, Font::Large);
+        wrap(left, y + 147, "Changes apply immediately to all Demo pages, including the camera preview.", secondary_on_dark, content, 2, Font::Small);
         rotationButtons({left, y + 181, content, 36}, std::to_string(state.settings.ui_rotation), editable);
-        wrap(left, y + 247, "To rotate one camera image, use its rotation control in Cameras.", muted, content, 2, Font::Small);
-        if (!notice_.empty()) wrap(left, y + h - 89, notice_, 0xffb7ae, content, 2, Font::Small);
+        wrap(left, y + 247, "To rotate one camera image, use its rotation control in Cameras.", secondary_on_dark, content, 2, Font::Small);
+        if (!notice_.empty()) wrap(left, y + h - 89, notice_, error_on_dark, content, 2, Font::Small);
         button({x + w - 128, bottom, 110, 35}, settings_pending_ ? "Saving..." : "Close", "uvc-settings-cancel", 0, editable);
         return;
     }
@@ -47,11 +47,11 @@ void DemoUi::uvcSettingsDialog(const ViewState& state) {
     };
     if (uvc_settings_tab_ == UvcSettingsTab::camera) {
         wrap(left, y + 111, "Choose separate RGB and IR devices. Use v4l2-ctl --list-devices to find capture paths.",
-             muted, content, 2, Font::Small);
+             secondary_on_dark, content, 2, Font::Small);
         drawField("rgb_device", left, y + 143, content);
         drawField("ir_device", left, y + 201, content);
         const auto rotations = [&](int field_x, const std::string& key) {
-            text(field_x, y + 274, labels.at(key), muted, half, Font::Small);
+            text(field_x, y + 274, labels.at(key), secondary_on_dark, half, Font::Small);
             const int step = half / 4;
             for (int angle : {0, 90, 180, 270}) {
                 const auto value = std::to_string(angle);
@@ -63,16 +63,16 @@ void DemoUi::uvcSettingsDialog(const ViewState& state) {
         rotations(left + half + 12, "ir_rotation");
         drawField("ir_threshold", left, y + 331, half);
         wrap(left + half + 12, y + 358, "Development value. Calibrate on the target module.",
-             muted, content - half - 12, 2, Font::Small);
+             secondary_on_dark, content - half - 12, 2, Font::Small);
     } else {
         wrap(left, y + 111, "Single-person 1:N. Identity and IR liveness must pass in the same sample.",
-             muted, content, 2, Font::Small);
+             secondary_on_dark, content, 2, Font::Small);
         drawField("group", left, y + 143, content);
         drawField("similarity", left, y + 210, half);
         drawField("interval_ms", left + half + 12, y + 210, content - half - 12);
         drawField("timeout_ms", left, y + 277, half);
     }
-    if (!notice_.empty()) wrap(left, y + h - 89, notice_, 0xffb7ae, content, 2, Font::Small);
+    if (!notice_.empty()) wrap(left, y + h - 89, notice_, error_on_dark, content, 2, Font::Small);
     button({left, bottom, 90, 35}, "Cancel", "uvc-settings-cancel", 0, editable);
     button({left + 101, bottom, 90, 35}, "Reset", "uvc-settings-reset", 0, editable);
     button({x + w - 128, bottom, 110, 35}, editable ? "Apply" : "Saving...", "uvc-settings-apply", 1, editable);

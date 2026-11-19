@@ -13,6 +13,7 @@ enum ComparisonSide: String, Identifiable {
 
 struct ComparisonPhotoState {
     var preview: CGImage?
+    // Only a successful extraction makes a slot eligible for feature-to-feature comparison.
     var feature: String?
     var status = DemoL10n.text("选择照片")
     var isProcessing = false
@@ -36,6 +37,7 @@ final class StaticFaceComparisonModel: ObservableObject {
     private var versions: [ComparisonSide: Int] = [.left: 0, .right: 0]
     private var photoTasks: [ComparisonSide: Task<Void, Never>] = [:]
     private var comparisonTask: Task<Void, Never>?
+    // A comparison has its own lifetime because replacing either slot invalidates its result.
     private var comparisonVersion = 0
 
     init() {
@@ -46,6 +48,7 @@ final class StaticFaceComparisonModel: ObservableObject {
         left.feature != nil && right.feature != nil && !isComparing
     }
 
+    // Replace one slot and invalidate the old pair score while extraction runs asynchronously.
     func load(_ image: HiFaceRGBAImage, into side: ComparisonSide) {
         photoTasks[side]?.cancel()
         cancelComparison()

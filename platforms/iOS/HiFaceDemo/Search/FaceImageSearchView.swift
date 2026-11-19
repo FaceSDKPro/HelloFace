@@ -116,7 +116,7 @@ struct FaceImageSearchView: View {
     var body: some View {
         VStack(spacing: 12) {
             Text(DemoL10n.text("最多检测 10 张脸 · 匹配阈值 0.80 · 不检测活体"))
-                .font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
+                .font(.caption).foregroundStyle(DemoTheme.contentSecondaryText).frame(maxWidth: .infinity, alignment: .leading)
             photo
             if !model.faces.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -138,7 +138,7 @@ struct FaceImageSearchView: View {
                     }
                 }.frame(height: 128)
             }
-            Text(model.status).font(.system(size: 13)).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            Text(model.status).font(.system(size: 13)).foregroundStyle(DemoTheme.contentSecondaryText).multilineTextAlignment(.center)
                 .accessibilityIdentifier("imageSearch.status")
             Button { picking = true } label: {
                 Label(DemoL10n.text("相册添加"), systemImage: "photo.badge.plus")
@@ -150,7 +150,7 @@ struct FaceImageSearchView: View {
         .safeAreaInset(edge: .top, spacing: 0) { navigationHeader }
         .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
         .tint(DemoTheme.contentAccent)
-        .foregroundStyle(Color(uiColor: .label))
+        .foregroundStyle(DemoTheme.contentText)
         .environment(\.colorScheme, .light).preferredColorScheme(.light)
         .navigationBarHidden(true)
         .sheet(isPresented: $picking) {
@@ -217,7 +217,7 @@ struct FaceImageSearchView: View {
                     VStack(spacing: 12) {
                         Image(systemName: "photo.on.rectangle.angled").font(.largeTitle)
                         Text(DemoL10n.text("选择照片")).font(.subheadline)
-                    }.foregroundStyle(.secondary).frame(width: geometry.size.width, height: geometry.size.height)
+                    }.foregroundStyle(DemoTheme.contentSecondaryText).frame(width: geometry.size.width, height: geometry.size.height)
                 }
                 if model.processing {
                     ProgressView().padding(14).background(.regularMaterial, in: Capsule())

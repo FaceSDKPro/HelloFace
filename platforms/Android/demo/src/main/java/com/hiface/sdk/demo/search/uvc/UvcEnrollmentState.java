@@ -5,9 +5,11 @@ import com.hiface.sdk.capture.FaceCaptureResult;
 
 /** Retains the pending sample/draft in memory across rotation. 中文：图像和特征不写入 Bundle 或日志。 */
 public final class UvcEnrollmentState extends ViewModel {
+    // Feature and aligned pixels waiting for confirmation; rotation reuses the same sample.
     FaceCaptureResult pending;
     String faceId = "", group = "";
     String errorText;
+    // requested records camera intent across recreation; permissionPending tracks an outstanding USB prompt.
     boolean initialized, requested = true, permissionPending, retryError;
 
     /** Read the initial search group once; recreation must preserve the edited draft. */

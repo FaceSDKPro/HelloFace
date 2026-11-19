@@ -122,10 +122,10 @@ struct StaticFaceComparisonView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(DemoL10n.text("选择两张清晰正脸照片"))
                     .font(.headline)
-                    .foregroundStyle(Color(uiColor: .label))
+                    .foregroundStyle(DemoTheme.contentText)
                 Text(DemoL10n.text("多人照片会自动选取画面中最大的人脸。"))
                     .font(.subheadline)
-                    .foregroundStyle(Color(uiColor: .label).opacity(0.72))
+                    .foregroundStyle(DemoTheme.contentSecondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -145,7 +145,7 @@ struct StaticFaceComparisonView: View {
                 HStack(spacing: 8) {
                     Text(side.title)
                         .font(.headline)
-                        .foregroundStyle(Color(uiColor: .label))
+                        .foregroundStyle(DemoTheme.contentText)
                     Spacer(minLength: 0)
                     stateBadge(state)
                 }
@@ -186,7 +186,7 @@ struct StaticFaceComparisonView: View {
                             ProgressView().tint(DemoTheme.contentAccent)
                             Text(DemoL10n.text("正在处理"))
                                 .font(.caption.weight(.medium))
-                                .foregroundStyle(Color(uiColor: .label))
+                                .foregroundStyle(DemoTheme.contentText)
                         }
                     }
                 }
@@ -203,7 +203,7 @@ struct StaticFaceComparisonView: View {
                         .padding(.top, 1)
                     Text(statusText(state))
                         .font(.footnote)
-                        .foregroundStyle(state.hasError ? Color.red : Color(uiColor: .label).opacity(0.7))
+                        .foregroundStyle(state.hasError ? Color.red : DemoTheme.contentSecondaryText)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -238,10 +238,10 @@ struct StaticFaceComparisonView: View {
                 .foregroundStyle(DemoTheme.contentAccent)
             Text(String(format: "%.2f%%", similarity * 100))
                 .font(.system(.largeTitle, design: .rounded).monospacedDigit().bold())
-                .foregroundStyle(Color(uiColor: .label))
+                .foregroundStyle(DemoTheme.contentText)
             Text(DemoL10n.text("人脸相似度"))
                 .font(.caption)
-                .foregroundStyle(Color(uiColor: .secondaryLabel))
+                .foregroundStyle(DemoTheme.contentSecondaryText)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 20)
@@ -261,7 +261,7 @@ struct StaticFaceComparisonView: View {
                 .accessibilityHidden(true)
             Text(message)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(Color(uiColor: .label))
+                .foregroundStyle(DemoTheme.contentText)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(16)
@@ -295,7 +295,7 @@ struct StaticFaceComparisonView: View {
     }
 
     private func statusColor(_ state: ComparisonPhotoState) -> Color {
-        state.hasError ? .red : (state.feature != nil ? DemoTheme.contentAccent : Color(uiColor: .secondaryLabel))
+        state.hasError ? .red : (state.feature != nil ? DemoTheme.contentAccent : DemoTheme.contentSecondaryText)
     }
 
     private func photoBorderColor(_ state: ComparisonPhotoState) -> Color {

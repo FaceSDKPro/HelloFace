@@ -46,6 +46,7 @@ import java.util.concurrent.Executors;
  */
 public final class FaceImageSearchActivity extends AppCompatActivity {
     private final Handler main = new Handler(Looper.getMainLooper());
+    // Serialize database lookups after SDK extraction; results are posted back through main.
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private HiFaceSdk sdk;
     private FacePhotoPicker picker;
@@ -56,15 +57,19 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
     private View placeholder;
     private View strip;
     private LinearLayout crops;
+    // The screen owns these thumbnail Bitmaps and recycles them when results are replaced.
     private final List<Bitmap> thumbnails = new ArrayList<>();
+    // The main thread advances this token; database work checks it before publishing a photo's results.
     private volatile int generation;
-    private volatile boolean closed;
 
     static final class ResultFace {
-        final FaceImageCapture face;
+        // The overlay needs only source coordinates; the SDK capture also holds the full aligned RGBA.
+        final RectF bounds;
         String label;
         boolean matched;
-        ResultFace(FaceImageCapture face) { this.face = face; }
+        ResultFace(FaceImageCapture face) {
+            bounds = new RectF(face.getX(), face.getY(), face.getX() + face.getWidth(), face.getY() + face.getHeight());
+        }
     }
 
     @Override protected void onCreate(@Nullable Bundle state) {
@@ -94,8 +99,23 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
     private void pickPhoto() {
         picker.pick(new FacePhotoPicker.Callback() {
             @Override public void onPicked(Bitmap bitmap) { load(bitmap); }
-            @Override public void onError(Throwable error) { status.setText(R.string.face_compare_photo_failed); }
+            @Override public void onError(Throwable error) { onPhotoReadFailed(); }
         });
+    }
+
+    /** Keep the displayed photo and its matches when a replacement cannot be decoded. */
+    void onPhotoReadFailed() {
+        cancelSearch();
+        loading.setVisibility(View.GONE);
+        status.setText(R.string.face_compare_photo_failed);
+    }
+
+    private void cancelSearch() {
+        generation++;
+        if (request != null) {
+            request.cancel();
+            request = null;
+        }
     }
 
     /**
@@ -104,19 +124,19 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
      *
      * 换图即让上一轮失效；SDK 持有独立快照，旧 Bitmap 可安全释放。
      */
-    private void load(Bitmap bitmap) {
-        int token = ++generation;
-        if (request != null) request.cancel();
+    void load(Bitmap bitmap) {
+        cancelSearch();
+        int token = generation;
         clearThumbnails();
         photo.setPhoto(bitmap);
         placeholder.setVisibility(View.GONE);
         loading.setVisibility(View.VISIBLE);
         status.setText(R.string.image_search_processing);
         request = sdk.capture().facesFromBitmap(bitmap, extracted -> {
-            if (closed || generation != token) return;
+            if (generation != token) return;
+            request = null;
             if (extracted.isFailure()) {
-                loading.setVisibility(View.GONE);
-                status.setText(DemoErrorUi.messageFor(this, extracted.requireError()));
+                showError(token, extracted.requireError());
                 return;
             }
             List<FaceImageCapture> faces = extracted.requireValue();
@@ -125,10 +145,10 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
     }
 
     private void search(List<FaceImageCapture> faces, int token) {
-        if (closed || generation != token) return;
+        if (generation != token) return;
         List<ResultFace> results = new ArrayList<>();
         if (faces.isEmpty()) {
-            main.post(() -> render(token, results, false));
+            main.post(() -> render(token, faces, results, false));
             return;
         }
         HiFaceResult<FaceSearchDatabase> opened = HiFaceSdk.openSearchDatabase(getApplicationContext());
@@ -143,7 +163,7 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
                 return;
             }
             for (FaceImageCapture face : faces) {
-                if (closed || generation != token) return;
+                if (generation != token) return;
                 ResultFace result = new ResultFace(face);
                 if (face.getCapture().isFailure()) {
                     result.label = face.getCapture().requireError().getCode() == HiFaceErrorCode.IMAGE_FACE_TOO_SMALL
@@ -164,12 +184,13 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
                 // 标签只组装一次，照片和缩略图共用；错误结果不伪造 ID 或分数。
                 results.add(result);
             }
-            main.post(() -> render(token, results, count.requireValue() == 0));
+            main.post(() -> render(token, faces, results, count.requireValue() == 0));
         }
     }
 
-    private void render(int token, List<ResultFace> results, boolean emptyLibrary) {
-        if (closed || generation != token) return;
+    /** Labels and captures share SDK detection order. Only bounds, labels and thumbnail Bitmaps outlive this call. */
+    private void render(int token, List<FaceImageCapture> captures, List<ResultFace> results, boolean emptyLibrary) {
+        if (generation != token) return;
         loading.setVisibility(View.GONE);
         clearThumbnails();
         strip.setVisibility(results.isEmpty() ? View.GONE : View.VISIBLE);
@@ -179,7 +200,7 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
         for (int i = 0; i < results.size(); i++) {
             ResultFace result = results.get(i);
             if (result.matched) matched++;
-            addThumbnail(result, i);
+            addThumbnail(captures.get(i), result, i);
         }
         String summary = getString(R.string.image_search_summary, results.size(), matched);
         if (results.isEmpty()) summary = getString(R.string.image_search_no_faces);
@@ -189,12 +210,12 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
     }
 
     private void showError(int token, HiFaceError error) {
-        if (closed || generation != token) return;
+        if (generation != token) return;
         loading.setVisibility(View.GONE);
         status.setText(DemoErrorUi.messageFor(this, error));
     }
 
-    private void addThumbnail(ResultFace result, int index) {
+    private void addThumbnail(FaceImageCapture capture, ResultFace result, int index) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setGravity(Gravity.CENTER);
@@ -203,8 +224,8 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(112), -2);
         params.setMarginEnd(dp(10));
         ImageView image = new ImageView(this);
-        if (result.face.getCapture().isSuccess()) {
-            Bitmap crop = result.face.getCapture().requireValue().getAlignedFace();
+        if (capture.getCapture().isSuccess()) {
+            Bitmap crop = capture.getCapture().requireValue().getAlignedFace();
             thumbnails.add(crop);
             image.setImageBitmap(crop);
         } else {
@@ -238,9 +259,11 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
         thumbnails.clear();
     }
     @Override protected void onDestroy() {
-        closed = true; generation++;
-        if (request != null) request.cancel();
-        picker.close(); worker.shutdown(); clearThumbnails(); photo.setPhoto(null);
+        cancelSearch();
+        picker.close();
+        worker.shutdown();
+        clearThumbnails();
+        photo.setPhoto(null);
         super.onDestroy();
     }
 
@@ -252,6 +275,7 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
         PhotoView() { super(FaceImageSearchActivity.this); }
         void setPhoto(Bitmap value) {
             Bitmap previous = bitmap; bitmap = value; faces = new ArrayList<>(); selected = -1;
+            setContentDescription(null);
             invalidate();
             if (previous != null) previous.recycle();
         }
@@ -267,9 +291,10 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
             paint.setStyle(Paint.Style.FILL); paint.setColor(Color.WHITE);
             canvas.drawBitmap(bitmap, null, new RectF(x, y, x + bitmap.getWidth()*scale, y + bitmap.getHeight()*scale), paint);
             for (int i = 0; i < faces.size(); i++) {
-                ResultFace result = faces.get(i); FaceImageCapture f = result.face;
-                RectF box = new RectF(x+f.getX()*scale, y+f.getY()*scale,
-                        x+(f.getX()+f.getWidth())*scale, y+(f.getY()+f.getHeight())*scale);
+                ResultFace result = faces.get(i);
+                RectF source = result.bounds;
+                RectF box = new RectF(x + source.left * scale, y + source.top * scale,
+                        x + source.right * scale, y + source.bottom * scale);
                 paint.setColor(result.matched ? Color.rgb(32, 185, 70) : Color.rgb(207, 126, 20));
                 paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(dp(i == selected ? 4 : 2));
                 canvas.drawRect(box, paint);

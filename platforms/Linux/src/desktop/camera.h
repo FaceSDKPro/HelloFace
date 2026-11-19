@@ -14,6 +14,7 @@ struct CameraFrame {
     // visual and can be uploaded without a per-pixel CPU channel swap.
     // Rockchip BGRX 字节序与小端 X11 的 0x00RRGGBB 视觉格式一致，可直接上传而无需 CPU 逐像素交换通道。
     bool x11_bgrx = false;
+    // Borrow vector storage for a synchronous SDK call; keep this CameraFrame alive until it returns.
     HiFaceYuv420FrameV1 view() const;
     void expandInfraredRgba();
 };
@@ -55,6 +56,7 @@ public:
     void close() noexcept;
     bool read(CameraFrame& frame);
     bool readAnalysis(CameraFrame& frame);
+    // Copy out of MMAP storage before requeueing the driver buffer for the next capture.
     bool readRaw(RawCameraFrame& frame);
     static void decodeAnalysis(const RawCameraFrame& frame, CameraFrame& output);
     static void decodePreview(const RawCameraFrame& frame, CameraFrame& output);

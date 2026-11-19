@@ -5,7 +5,8 @@ import { image } from '@kit.ImageKit';
 import {
   FaceCaptureResult,
   HiFaceResult,
-  HiFaceSdk
+  HiFaceSdk,
+  RgbaImage
 } from 'hiface';
 import { PixelMapResource } from '../ui/PixelMapResource';
 import { DemoErrorUi } from '../ui/DemoErrorUi';
@@ -34,8 +35,10 @@ export struct StaticFaceComparisonDemo {
   @State private comparisonFailed: boolean = false;
   private leftFeature: string | undefined = undefined;
   private rightFeature: string | undefined = undefined;
+  // Slot-specific epochs let replacing one photo discard only that slot's late extraction result.
   private leftGeneration: number = 0;
   private rightGeneration: number = 0;
+  // Page visits invalidate picker/preview work even if neither slot was explicitly replaced.
   private lifecycleGeneration: number = 0;
   private visible: boolean = false;
 
@@ -61,8 +64,8 @@ export struct StaticFaceComparisonDemo {
     this.lifecycleGeneration += 1;
     this.leftGeneration += 1;
     this.rightGeneration += 1;
-    this.releasePreview(0);
-    this.releasePreview(1);
+    this.replacePreview(0, undefined);
+    this.replacePreview(1, undefined);
     this.leftFeature = undefined;
     this.rightFeature = undefined;
     this.leftReady = false;
@@ -112,7 +115,7 @@ export struct StaticFaceComparisonDemo {
         .constraintSize({ maxWidth: 592 })
         .height(56)
         .borderRadius(12)
-        .fontColor('#FFFFFF')
+        .fontColor(DemoTheme.textOnDark)
         .fontSize(17)
         .backgroundColor(DemoTheme.contentAccent)
         .margin({ left: 24, right: 24, top: 12, bottom: 25 })
@@ -156,7 +159,7 @@ export struct StaticFaceComparisonDemo {
         if (slot === 0 ? this.leftProcessing : this.rightProcessing) {
           Text(DemoL10n.text("正在处理…"))
             .fontSize(13)
-            .fontColor('#FFFFFF')
+            .fontColor(DemoTheme.textOnDark)
             .padding(10)
             .backgroundColor('#BB242029')
             .borderRadius(10)
@@ -185,7 +188,7 @@ export struct StaticFaceComparisonDemo {
     }
     this.pickerOpen = true;
     const lifecycle: number = this.lifecycleGeneration;
-    let input: FacePhotoPicker | undefined = undefined;
+    let input: RgbaImage | undefined = undefined;
     try {
       input = await FacePhotoPicker.select();
     } catch (error) {
@@ -204,18 +207,14 @@ export struct StaticFaceComparisonDemo {
     try {
       // 与 Android 一致先显示新选原图；成功后再替换为 333×333 对齐脸，失败时保留所选图片。
       const selectedPreview: image.PixelMap | undefined = await PixelMapResource.createRgba(
-        input.rgba.data, input.rgba.width, input.rgba.height);
+        input.data, input.width, input.height);
       if (!this.isCurrent(slot, generation, lifecycle)) {
         await PixelMapResource.release(selectedPreview);
         return;
       }
-      if (selectedPreview !== undefined) {
-        await this.replacePreview(slot, selectedPreview);
-      } else {
-        await this.releasePreview(slot);
-      }
+      await this.replacePreview(slot, selectedPreview);
       if (!this.isCurrent(slot, generation, lifecycle)) return;
-      const result: HiFaceResult<FaceCaptureResult> = await this.sdk.capture().fromRgba(input.rgba);
+      const result: HiFaceResult<FaceCaptureResult> = await this.sdk.capture().fromRgba(input);
       if (!this.isCurrent(slot, generation, lifecycle)) {
         return;
       }
@@ -349,7 +348,8 @@ export struct StaticFaceComparisonDemo {
       generation === (slot === 0 ? this.leftGeneration : this.rightGeneration);
   }
 
-  private async replacePreview(slot: number, preview: image.PixelMap): Promise<void> {
+  /** Transfer preview ownership to the slot before releasing the old native image. */
+  private async replacePreview(slot: number, preview: image.PixelMap | undefined): Promise<void> {
     const previous: image.PixelMap | undefined = slot === 0 ? this.leftPreview : this.rightPreview;
     if (slot === 0) {
       this.leftPreview = preview;
@@ -357,15 +357,5 @@ export struct StaticFaceComparisonDemo {
       this.rightPreview = preview;
     }
     await PixelMapResource.release(previous);
-  }
-
-  private async releasePreview(slot: number): Promise<void> {
-    const preview: image.PixelMap | undefined = slot === 0 ? this.leftPreview : this.rightPreview;
-    if (slot === 0) {
-      this.leftPreview = undefined;
-    } else {
-      this.rightPreview = undefined;
-    }
-    await PixelMapResource.release(preview);
   }
 }

@@ -70,6 +70,8 @@ inline ErrorPresentation presentError(const std::string& raw, HiFaceStatus statu
         result.summary = "Models unavailable."; result.advice = "Restore the complete SDK package.";
     } else if (system_error == EEXIST || has("export file already exists")) {
         result.summary = "File already exists."; result.advice = "Choose a different output filename.";
+    } else if (raw == "Choose a photo with exactly one face") {
+        result.summary = "One face required."; result.advice = "Choose a clear photo of one person.";
     } else if (status == HIFACE_STATUS_IMAGE_NO_FACE) {
         result.summary = "No face found."; result.advice = "Use a clear face photo.";
     } else if (status == HIFACE_STATUS_IMAGE_FACE_TOO_SMALL) {

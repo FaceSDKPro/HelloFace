@@ -24,6 +24,7 @@ public final class FaceFeatureStore {
     private static final String KEY_PREFIX = "face:" + FaceFeatureFormat.FEATURE_SPACE_ID + ":";
     private final MMKV mmkv = HiFaceDemoApplication.getMMKV();
 
+    // Saving an existing normalized ID replaces its 1:1 reference feature.
     public boolean save(@NonNull String faceId, @NonNull String feature) {
         String normalizedId = normalize(faceId);
         if (normalizedId.isEmpty() || feature.trim().isEmpty()) {
@@ -49,6 +50,7 @@ public final class FaceFeatureStore {
         return true;
     }
 
+    // Return display IDs for the current feature space without loading feature payloads into the list.
     @NonNull
     public List<String> getFaceIds() {
         String[] keys = mmkv.allKeys();

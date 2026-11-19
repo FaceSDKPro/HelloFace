@@ -6,6 +6,7 @@ import SwiftUI
 /// Confirmed Demo crops only. App sandbox, excluded from backup; no shared URLs or image history.
 enum FacePhotoStore {
     enum Library: String, Sendable { case search, reference }
+    // Serialize crop reads/writes/deletes off MainActor so a thumbnail sees a complete replacement.
     private static let queue = DispatchQueue(label: "HiFaceDemo.Photos", qos: .utility)
 
     private static func background<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {
@@ -14,6 +15,7 @@ enum FacePhotoStore {
         }
     }
 
+    // Encode arbitrary UTF-8 IDs into safe path components and split keys exceeding the component limit.
     private static func file(_ faceID: String, library: Library, create: Bool) throws -> URL {
         guard !faceID.isEmpty, !faceID.contains("\0") else { throw CocoaError(.fileWriteInvalidFileName) }
         var root = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
@@ -100,6 +102,7 @@ enum FacePhotoStore {
 struct FacePhotoThumbnail: View {
     let faceID: String
     let library: FacePhotoStore.Library
+    // Include the revision in the async load key so overwriting an existing ID reloads its portrait.
     let revision: Int
     let diameter: CGFloat
     let circular: Bool

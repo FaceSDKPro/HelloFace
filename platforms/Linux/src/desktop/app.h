@@ -13,7 +13,9 @@ struct Command {
     std::string type;
     std::vector<std::string> values;
     std::vector<FormField> fields;
+    // Request ID for photo search or a comparison slot, in that operation’s own sequence.
     uint64_t request_id = 0;
+    // Navigation generation captured when the worker command was queued.
     uint64_t page_generation = 0;
 };
 inline bool writesData(const Command& command) {
@@ -28,6 +30,7 @@ struct ViewState {
     std::shared_ptr<const SearchFrameImage> search_frame_image;
     bool ready = false, importing = false, connected = false, busy = false, failed = false;
     bool can_cancel = false;
+    // Includes queued and executing writes so navigation/read completion cannot release close protection.
     bool writes_pending = false;
     bool camera_stalled = false, search_idle = false;
     std::string fixed_camera_device;
@@ -35,9 +38,11 @@ struct ViewState {
     int system_error = 0;
     RuntimeInfo runtime;
     std::string device_time_utc;
+    // Settings and search counters acknowledge UI requests. Preview and visual counters trigger redraws.
     uint64_t settings_attempt = 0, photo_search_generation = 0, preview_sequence = 0, visual_revision = 0;
     bool photo_search_busy = false, pending_enrollment = false;
     uint64_t enrollment_generation = 0;
+    // C identifies a 1:1 reference, E identifies a search enrollment, and 0 means no capture.
     char pending_capture_kind = 0, saved_capture_kind = 0;
     uint64_t saved_capture_generation = 0, flow_result_generation = 0;
     uint64_t enrollment_attempt = 0;
@@ -75,10 +80,12 @@ struct ViewState {
     // Live overlays are immutable and shared across preview-only snapshots.
     // 实时叠加层不可变；仅更新预览时共享它，不反复复制轮廓和标签。
     std::shared_ptr<const std::vector<Box>> camera_boxes;
+    // Overlays carry the source time, camera generation, and preview size to reject incompatible frames.
     int64_t overlay_frame_ms = 0;
     uint64_t overlay_capture_generation = 0;
     int overlay_preview_width = 0, overlay_preview_height = 0;
     const std::vector<Box>& liveBoxes() const { return camera_boxes ? *camera_boxes : boxes; }
+    // Accept overlays only while their analysis, preview, camera binding, and dimensions still agree.
     bool overlayFresh(int64_t now, int64_t preview_frame_ms, uint64_t generation, const CameraFrame* preview = nullptr) const {
         return overlay_frame_ms > 0 && now >= overlay_frame_ms && now-overlay_frame_ms <= 1200 &&
             now >= preview_frame_ms && now-preview_frame_ms <= 500 && overlay_capture_generation == generation &&
@@ -102,8 +109,10 @@ private:
     struct CaptureRequest {
         uint64_t generation = 0;
         bool open = false, search_idle = false;
+        // Monotonic deadline in milliseconds for white-light feedback; zero leaves it off.
         int64_t white_light_until = 0;
         std::string device, preview_device;
+        // Analysis-stream request, separate preview-stream request, then final display dimensions.
         int width = 640, height = 480, fps = 25, rotation = 0;
         int preview_width = 1280, preview_height = 720;
         int preview_output_width = 576, preview_output_height = 1024;
@@ -111,6 +120,7 @@ private:
     };
     struct CaptureState {
         bool active = false, ready = false, dual_preview = false;
+        // Preview and analysis advance independently within a camera configuration generation.
         uint64_t sequence = 0, analysis_sequence = 0, generation = 0;
         int64_t last_frame_ms = 0, last_analysis_ms = 0;
         double fps = 0;
@@ -123,11 +133,14 @@ private:
     CaptureState captureSnapshot();
     void run(const std::string& models, const std::string& database, std::string device, bool smoke, const std::string& assets);
     std::atomic<bool> stopping_{false};
+    // Latest offline photo-search request; a new photo makes older search results obsolete.
     std::atomic<uint64_t> photo_generation_{0};
+    // Navigation lifetime checked before the workflow publishes page-specific results.
     std::atomic<uint64_t> page_generation_{0};
     // Count queued and executing writes independently of the latest navigation/read request.
     // 待执行和执行中的写入独立计数，切页或读取请求不能提前解除关闭保护。
     std::atomic<unsigned> pending_writes_{0};
+    // Each image slot has its own request counter so selecting A does not invalidate B.
     std::atomic<uint64_t> comparison_generations_[2]{};
     bool smoke_ = false;
     std::mutex mutex_;
@@ -138,7 +151,9 @@ private:
     std::shared_ptr<const RgbIrView> rgbir_view_;
     CaptureRequest capture_request_;
     CaptureState capture_state_;
+    // Last camera configuration handled, including failed opens; configureCapture waits for this acknowledgment.
     uint64_t capture_completed_ = 0;
+    // Changes to non-preview state trigger a redraw even when no new camera frame arrives.
     uint64_t visual_revision_ = 0;
     std::thread capture_worker_, worker_;
 };
