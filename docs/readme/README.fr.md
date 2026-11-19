@@ -56,11 +56,11 @@
 
 | Plateforme | Prérequis | Intégration (en anglais) |
 |---|---|---|
-| Android | Android 6.0+ · ARM64/ARMv7 · JDK 11 | [Demo](../../platforms/Android/README.md) · [SDK](../../platforms/Android/docs/SDK.md) |
-| iOS | iOS 15+ · Swift 6 · Xcode | [Demo](../../platforms/iOS/README.md) · [SDK](../../platforms/iOS/SDK/API.md) |
-| Harmony | HarmonyOS API 20+ · ARM64 · DevEco Studio 26 | [Demo](../../platforms/Harmony/README.md) · [SDK](../../platforms/Harmony/SDK.md) |
-| Linux | Ubuntu 22.04+ · x86_64/ARM64 · X11/XWayland | [Demo](../../platforms/Linux/README.md) · [SDK](../../platforms/Linux/runtimes/x86_64/sdk/README.md) |
-| Windows | Windows 10/11 x64 · CPU | [Demo](../../platforms/Windows/README.md) · [SDK](../../platforms/Windows/sdk/README.md) |
+| Android | Android 6.0+ · ARM64/ARMv7 · JDK 11 | [Demo](../../platforms/Android/README.md) · [SDK API](../../platforms/Android/docs/SDK.md) |
+| iOS | iOS 15+ · Swift 6 · Xcode | [Demo](../../platforms/iOS/README.md) · [SDK API](../../platforms/iOS/SDK/API.md) |
+| Harmony | HarmonyOS API 20+ · ARM64 · DevEco Studio 26 | [Demo](../../platforms/Harmony/README.md) · [SDK API](../../platforms/Harmony/SDK.md) |
+| Linux | Ubuntu 22.04+ · x86_64/ARM64 · X11/XWayland | [Demo](../../platforms/Linux/README.md) · [SDK API](../../platforms/Linux/runtimes/x86_64/sdk/README.md) |
+| Windows | Windows 10/11 x64 · CPU | [Demo](../../platforms/Windows/README.md) · [SDK API](../../platforms/Windows/sdk/README.md) |
 | Enregistrement facial sur le Web | Navigateur | [Essayer en ligne](https://hiface-mdp.pages.dev/face/) |
 
 **Autres plateformes (prévues):** Mini-programmes WeChat, ChromeOS, uni-app, extensions Flutter, extensions React Native (RN), etc.
@@ -79,7 +79,6 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 - Utilisez toujours une version à jour du SDK.
 - Le modèle actuel ne prend pas en charge la reconnaissance faciale des enfants de moins de 12 ans et ne doit pas être utilisé dans des applications financières.
 - La recherche faciale exige des images nettes ; les déploiements en extérieur nécessitent une caméra dotée d’une plage dynamique étendue supérieure à 100 dB.
-- Les parcours sur ordinateur et avec caméra sous Windows/Linux restent à valider avec des caméras réelles ; les applications mobiles nécessitent votre propre configuration de signature.
 
 ## Contact
 

@@ -25,6 +25,6 @@ Simulators and My Mac support UI/build checks. Validate camera behavior and perf
 
 Use `HiFaceSDK()` with its default model bundle. Add `NSCameraUsageDescription` to your App Info.plist.
 
-Guides: [SDK](SDK/README.md) · [Demo](DEMO.md).
+Guides: [SDK API](SDK/API.md) · [Demo](DEMO.md).
 
 Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).

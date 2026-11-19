@@ -1,141 +1,156 @@
-# HiFace HarmonyOS SDK Integration Guide
+# HiFace HarmonyOS SDK API Guide
 
-## Installation
+## Quick start
 
-**Model scope: The current model does not support face recognition for people under 12 and must not be used in financial scenarios.**
-
-Face search requires clear camera images; outdoor deployments require a camera with a wide dynamic range greater than 100 dB.
-
-Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).
-
-| Requirement | Supported |
-|---|---|
-| HarmonyOS | API 20 and later |
-| ABI | `arm64-v8a` |
-| Entry point | ArkTS `HiFaceSdk` |
-
-For direct delivery, copy the versioned HAR into the application and configure the module's `oh-package.json5`:
+Requires HarmonyOS API 20 or later and an ARM64 device. In a DevEco Studio ArkTS Empty Ability project, put the HAR in the project-root `libs/` folder and add this dependency in the entry module's `oh-package.json5`:
 
 ```json5
-{ "dependencies": { "hiface": "file:./libs/hiface-0.8.13.har" } }
-```
-
-After the same version is approved in the OpenHarmony package registry, use `ohpm install hiface@0.8.13`. Direct and registry delivery must use the same version and HAR SHA-256. Never replace an artifact already delivered under a version number. Sign the host HAP/APP with your own credentials; SDK HARs do not include Demo signing files or private keys.
-
-## Initialization and ownership
-
-```typescript
-import { common } from '@kit.AbilityKit';
-import { HiFaceSdk, HiFaceResult } from 'hiface';
-
-async function createSdk(context: common.UIAbilityContext): Promise<HiFaceSdk> {
-  const sdk: HiFaceSdk = HiFaceSdk.create(context);
-  const ready: HiFaceResult<boolean> = await sdk.whenReady();
-  if (ready.isFailure()) {
-    const error = ready.requireError();
-    sdk.close();
-    throw new Error(`HiFace initialization failed: ${error.message}`);
+{
+  "dependencies": {
+    "hiface": "file:../libs/hiface-0.8.13.har"
   }
-  return sdk;
 }
 ```
 
-Check `isSuccess()` / `isFailure()` before `requireValue()` / `requireError()`. Invalid constructor arguments throw `Error`. Handle errors by code.
-
-Reuse an instance per Ability or business container. Pass the SDK to ArkUI children through a normal field, optionally `@Require`, **not `@Prop`**. Deep copying SDK objects corrupts their Promise state. Do not copy SDK/request/database handles into observed UI state.
-
-## Public capabilities
-
-| Capability | Entry point |
-|---|---|
-| Detection | `processFrame`, `processRgba` |
-| Frame backpressure | `createRealtimeProcessor` |
-| Capture and extraction | `capture()` |
-| Action/passive liveness | `liveness()` |
-| HF1, static, and camera 1:1 verification | `verification()` |
-| Continuous 1:N/M:N search | `search()` |
-| Independent face library | `HiFaceSdk.openSearchDatabase(context)` |
-
-Import only public exports from `hiface` / `Index.ets`. Internal ArkTS/N-API/native fields are outside the public compatibility contract. Use `whenReady()` for readiness; `getApiVersion()` is ABI diagnostics only.
+Run `ohpm install` from the project root; if this version is available in your registry, use `ohpm install hiface@0.8.13` instead of the file dependency, or set `"hiface": "0.8.13"` in the dependency list. Replace the entry page `pages/Index.ets` with the following and run the signed app on a device. Tap **Run HiFace**. The blank image should show `1201` (`IMAGE_NO_FACE`).
 
 ```typescript
-const feature: HiFaceResult<string> = await sdk.capture().extractFeature(image);
-const capture = await sdk.capture().fromRgba(image);
-const similarity: HiFaceResult<number> = sdk.verification().compare(leftHF1, rightHF1);
+import { common } from '@kit.AbilityKit';
+import { HiFaceSdk, RgbaImage } from 'hiface';
+
+@Entry
+@Component
+struct Index {
+  @State status: string = 'Ready';
+  private sdk?: HiFaceSdk;
+
+  private async extractFeature(): Promise<void> {
+    if (this.sdk !== undefined) {
+      return;
+    }
+    const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    const sdk = HiFaceSdk.create(context);
+    this.sdk = sdk;
+    try {
+      const ready = await sdk.whenReady();
+      if (this.sdk !== sdk) {
+        return;
+      }
+      if (ready.isFailure()) {
+        this.status = String(ready.requireError().code);
+        return;
+      }
+      const image = new RgbaImage(new ArrayBuffer(256 * 256 * 4), 256, 256);
+      const result = await sdk.capture().extractFeature(image);
+      if (this.sdk === sdk) {
+        this.status = result.isSuccess() ? 'Feature extracted' : String(result.requireError().code);
+      }
+    } finally {
+      if (this.sdk === sdk) {
+        this.closeSdk();
+      }
+    }
+  }
+
+  private closeSdk(): void {
+    this.sdk?.close();
+    this.sdk = undefined;
+  }
+
+  aboutToDisappear(): void {
+    this.closeSdk();
+  }
+
+  build() {
+    Column() {
+      Button('Run HiFace').onClick(() => { this.extractFeature(); })
+      Text(this.status)
+    }
+  }
+}
 ```
 
-Normalize orientation before constructing `RgbaImage`. Static inputs select the largest face; `fromRgba` also returns a 333×333 aligned preview. Async calls snapshot pixels immediately. Each instance queues one running static request and four waiting requests; process batch images serially.
+## API reference
 
-HF1 is a 604-character Q7/Base64URL representation, **not encryption**. Detection exposes boxes, confidence, five landmarks, and optional pose/468-point contours. Internal EAR/MAR and action measurements are not public identity decisions.
+### Face detection
 
-## Frames and camera flows
+Call `sdk.processFrame(frame, config)` / `sdk.processRgba(image, config)`. A successful result contains face boxes, confidence, and landmarks. No faces returns an empty list. Coordinates refer to the rotated, unmirrored image.
 
-Y/U/V frame buffers are borrowed until the processing Promise completes; do not release or overwrite them earlier. Supply actual strides, color range/matrix, rotation, and mirroring. Analysis dimensions must be positive and even, with long side at most 1920 and short side at most 1080; rotation is 0/90/180/270 degrees.
+| `FaceDetectionConfig` parameter | Range and default | Purpose |
+|---|---|---|
+| `maxFaces` | 1–10, default 1 | Limits the number of returned faces. |
+| `detailedLandmarks` | Boolean, off by default | Includes detailed contours and head angles when enabled. |
 
-Use one `FaceRealtimeProcessor` per camera pipeline. `tryProcessFrame()` returns `undefined` when busy; release the new frame instead of building an unbounded queue. `NOT_READY` also covers initialization and idle skipped frames. After 10 seconds without faces, analysis targets a 200 ms interval, then resumes normal processing when faces return.
+Use even camera frame dimensions, at most 1920 on the long side and 1080 on the short side. Rotation is 0°, 90°, 180°, or 270°.
+For camera input, give the actual Y/U/V strides, color range/matrix and rotation. Keep input buffers valid until the Promise completes. Use one `createRealtimeProcessor()` per stream and drop a frame when `tryProcessFrame()` returns `undefined`.
 
-Coordinates are in the rotated, unmirrored result image. Apply preview scaling, crop, and front-camera mirroring yourself. `frameId` links detection/scoring/completion from one sample; it is not a tracking identifier across frames.
+### Face enrollment and photo capture
 
-Capture, liveness, verification, and search share a camera flow slot:
-
-1. Create the listener and start the desired `startCamera...` flow.
-2. Keep its returned `FaceRequest` / `FaceSearchSession`.
-3. Keep sending latest frames through the same realtime processor.
-4. Cancel/close the flow before switching cameras/features or tearing down the page; then close the SDK.
-
-`onResult` contains a business outcome; `onError` reports technical failure. Search must check final `endReason`, and `SPOOF_DETECTED` rejects a result even if similarity passes. Empty liveness actions still run seven-frame passive liveness with both models. Use public configuration defaults and limits.
-
-Search automatically opens and warms its database. Pause retains the slot, models, and connection while releasing scope cache; resume warms the scope before processing new frames. Closing releases the slot and connection. New starts wait for earlier native start/stop work. If native stop fails, close and recreate the SDK. `close()` suppresses stale callbacks immediately; keep borrowed frame buffers alive until their Promise ends.
-
-## Face library
-
-`openSearchDatabase(context)` does not load models. Explicit database handles are independent and must be closed by their owner. The SDK manages its private database path.
-
-| API | Behavior |
+| API | Result |
 |---|---|
-| `saveFeature`, `saveFeatures` | Upsert by Face ID; atomic batches of 1–1000 |
-| `contains`, `get` | ID existence; full original HF1 |
-| `list`, `listRecent` | Metadata-only pagination |
-| `listFeatures` | Full feature pagination for export |
-| `updateMetadata` | Update group/tag/time without changing features; undefined preserves, empty clears |
-| `search` | Exact Top-K with scope filters |
-| `releaseMemory`, `close` | Release gallery cache; close the handle |
+| `await sdk.capture().extractFeature(image)` | Extracts a feature for the largest face. Returns `IMAGE_NO_FACE` if no face is found, or `IMAGE_FACE_TOO_SMALL` if either face dimension is under 100 pixels. |
+| `await sdk.capture().fromRgba(image)` | Returns `feature` and an optional aligned preview, `alignedRgba`. Save the feature after the user confirms enrollment. |
+| `await sdk.capture().facesFromRgba(image)` | Returns positions and individual capture results for up to 10 faces. No faces returns an empty list; a small face only affects its own entry. |
+| `capture().startCameraCapture(listener)` | Guides camera enrollment. Await successful startup to obtain the `FaceRequest`. The callback delivers the result. |
 
-SQLite stores the original 450-byte Q7 payload and returns complete HF1 without re-quantization. Validate server features using `FaceFeatureFormat.FEATURE_SPACE_ID` (`jdx-feature-v1`) and `FaceSearchFeatureEntry`. Pagination offsets support `0..2147483647`, limits `1..1000`. Thresholds normalize to Core float32 precision.
+Apply photo orientation first. Each SDK has one active static-image job and room for four waiting jobs. Submit batch photos one at a time. Photo APIs require no camera permission and perform no liveness check.
 
-`close()` rejects new operations immediately and releases SQLite/cache after started work; queued work returns `CLOSED`. Await successful saving before closing. Search sessions own their own connections.
+### Liveness and 1:1 verification
 
-The SDK does not encrypt SQLite. The host owns biometric consent, access control, encryption, retention, deletion, and backup policies. Retain `LICENSE`, `CHANGELOG.md`, version identifiers, and `SHA256SUMS` with release artifacts.
-## Multi-face image search
+Start `liveness().startCameraLiveness(config, listener)` or `verification().startCameraVerification(config, listener)`, then keep sending camera frames. If you already have both face features, `verification().compare(left, right)` returns a similarity score from 0 to 1. It measures how close the features are.
 
-Use `await sdk.capture().facesFromRgba(image)`. The result contains up to ten `FaceImageCapture` values with input pixel bounds and independent captures/errors.
-No faces is a successful empty list; faces smaller than 100px do not prevent other captures.
-Pass each successful HF1 to `FaceSearchDatabase.search` for static M:N search. Core owns detection, alignment and inference.
+| Parameter | Range and default | Purpose |
+|---|---|---|
+| `referenceFeature` | Required for 1:1 verification | The enrolled face feature. |
+| `threshold` | 0–1, default 0.80 | Minimum 1:1 similarity. A completed comparison below this threshold returns a mismatch. |
+| `actions` | 0–4 actions, empty by default | An empty action list still runs passive liveness in the liveness flow. |
+| `silentLivenessEnabled` | Boolean, off by default for 1:1 verification | Also requires passive liveness when enabled. |
+| `allowMultipleFaces` | Boolean, off by default | Controls whether the flow accepts more than one face in view. |
+| `actionTimeoutMillis` | 2,000–30,000 ms, default 3,000 ms | Time budget per action. |
+| `faceAcquisitionTimeoutMillis` | 1,000–60,000 ms, default 10,000 ms | Time to find the first usable face. |
 
-The Demo home screen includes Image Face Search: album selection, original-image boxes, identity/score labels,
-aligned thumbnails and detected/matched counts. It uses all records, Top-1 and threshold 0.80, without liveness.
-Image search preserves original resolution up to the SDK limit of 4096px per side. Only oversized photos are reduced proportionally; odd last rows/columns are cropped by 1px. The size gate uses the resulting pixels. Comparison and bulk import keep their existing decoding limits.
+RGB passive liveness uses an SDK threshold of 0.90. The liveness and verification `onResult` callback carries both acceptance and rejection. Check `outcome` first. Read similarity or liveness scores only when present. For standalone infrared liveness, call `await sdk.liveness().evaluateInfrared(frame, threshold)` with a real GRAY8 infrared frame, its face box, and a required 0–1 threshold calibrated on the target camera.
 
-## IR-only liveness
+Wait for a successful `HiFaceResult<FaceRequest>` from the start call before feeding frames.
 
-FLIR accepts upright, unmirrored GRAY8 IR measurements, 1..4096 pixels per side,
-including odd dimensions and row padding. Supply a detected face box in this IR image
-(x/y + width/height, at least 10x10). Camera access, IR face detection, illumination,
-and multiple-face handling belong to the host. RGB converted to gray is not IR.
+### Face library and search
 
-```typescript
-const frame = new InfraredFrame(grayBuffer, width, height, rowStride,
-  faceX, faceY, faceWidth, faceHeight);
-const result = await sdk.liveness().evaluateInfrared(frame, calibratedThreshold);
-```
+Open an independent library with `await HiFaceSdk.openSearchDatabase(context)`. Use `saveFeature` or `saveFeatures` to add or update by Face ID. Save 1–1,000 records per batch. Use `search` to query by a face feature. `list` / `listRecent` returns metadata, and `listFeatures` pages through records with features. Close an explicitly opened library when finished. Await writes before closing the database.
 
-Calibrate the explicit Float32 real threshold on the target IR camera. `realScore` is
-higher for live faces, `spoofScore = 1-realScore`; pass means `realScore >= threshold`.
-Check technical errors before reading the result. Android calls are synchronous on a
-worker thread; iOS/Harmony calls use the bounded background queue. Input is owned/copied.
-This entry does not change the RGB camera liveness/search flows. iOS requires accessible
-IR image data; the SDK does not obtain the internal Face ID IR stream.
+| Database query parameter | Range and default | Purpose |
+|---|---|---|
+| Face ID, `group`, `tag` | 1–1024 UTF-8 bytes for Face ID, at most 1024 bytes per filter, no NUL | Group and tag match exactly. If both are set, both must match. Leave both unset to search the whole library. |
+| `topK` | 1–100, default 1 | Maximum number of matches returned. |
+| `threshold` | 0–1, default 0.80 | Minimum similarity for a database match. A query without a qualifying match returns an empty list. |
 
-### Search result scene image (0.8.12)
+Use `search().startCameraSearch(config, listener)` for continuous search. It manages its own library connection.
 
-`FaceSearchResult.frameJpeg`, `frameWidth`, and `frameHeight` describe the same terminal RGB sample as `frame`. The full scene is rotated, unmirrored, scaled without upscaling to at most 480 pixels per side, and JPEG-encoded at quality 95. Success and business rejection include a best-effort image. Unavailable images have zero dimensions. Bounds remain in the original sample coordinates. Encoding runs outside the Native lock; cancellation discards stale images. No disk cache or image history is kept.
+| Continuous search parameter | Range and default | Purpose |
+|---|---|---|
+| `mode`, `needsLiveness` | Single-face with liveness by default; multi-face search has no liveness | Selects the largest face or analyzes multiple faces. |
+| `threshold` | 0.75–0.85, default 0.80 | Minimum identity score in continuous search. |
+| `searchIntervalMillis` | 0–3,000 ms, default 0 | Delay before the next attempt after a match. |
+| `searchTimeoutMillis` | 1,000–3,000 ms, default 3,000 ms | Time budget from the first selected face. |
+| `maxFacesPerFrame` | 1–5, default 3 | Face limit in multi-face mode. Single-face mode selects the largest face. |
+
+Check `endReason` first. A `SPOOF_DETECTED` outcome rejects a match even if similarity passes. `frameId` identifies one camera sample. `frameJpeg` is an optional full scene from the terminal sample. Use the original frame size to map its face boxes.
+
+Store returned features as-is. When changing to an incompatible model, re-extract features from the original photos and reimport them. The host app handles consent, protection, and deletion of photos and features.
+
+Await a successful `HiFaceResult<FaceSearchSession>` and use the session to pause, resume or close the search.
+
+## Errors and cleanup
+
+Wait for `whenReady()` after creation. Check `HiFaceResult.isSuccess()` before reading `requireValue()` or `requireError().code`. Invalid constructor arguments throw `Error`. Keep the SDK in a regular field outside ArkUI observed state, and close it on teardown.
+
+| Condition | What to do |
+|---|---|
+| `NOT_READY` | While models initialize, the runtime is busy, or a camera frame is skipped, drop the old frame and keep submitting the latest one. |
+| `BUSY` | Wait for static jobs to finish or end the current camera flow. |
+| `INVALID_ARGUMENT` | Check the parameters, frame format, and buffers. |
+| `LICENSE_EXPIRED` | Check the validity dates and contact SDK support if needed. |
+| `CLOSED` | Stop sending work to this instance. |
+
+Capture, liveness, verification, and continuous search share one camera flow slot. When switching or leaving, stop feeding frames, cancel the request or close the search, then close the SDK. `onError` reports technical failures. Inspect the outcome for business results.
+
+The current model does not support face recognition for people under 12. Financial use is prohibited. Outdoor face search requires a camera with a wide dynamic range greater than 100 dB.

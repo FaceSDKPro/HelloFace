@@ -3,8 +3,8 @@
   "files": {
     "AI_USAGE_NOTICE.md": "f8521609a2938ce071be93b3b054d2e5e94591f6a8c104f84b16416c6695b4aa",
     "LICENSE": "d29e016e7677af48d5fa94efc45191ec6888f6cdbdc34e98b123b79666ad2133",
-    "README.md": "7eb0bcc7c68fa31948a7f61911d66dd548bd4c4be0af2bfaa71a92960196fb90",
-    "README.zh-CN.md": "eb52fbbd50ed7b02d255c593376a2e270d3d48aa2aca6a453746d4ef80f1739f",
+    "README.md": "4d8a286fddd4e9d5d95b9f6dc16c83c3285da2c18b799fe7b8203d2a36c9cd87",
+    "README.zh-CN.md": "c3926fe5174b593208524a315e8d68bbbf21ebec92c367bac88798bf846a0b05",
     "bin/hiface.dll": "7156d8cf834634cd3e7c791990dcb5dd2fa52adba5c28bac3cffc33f9f6f5f7a",
     "bin/libc++.dll": "b97586e466fbcbd3f801448802038a4f7550fc7e0381cd873b486cd59fdd2305",
     "bin/libomp.dll": "caa72f2795fd6bf82a137969ce417f8d43e8e88483b13c2e474069616e546bab",

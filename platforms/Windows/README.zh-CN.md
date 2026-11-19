@@ -4,7 +4,7 @@
 
 支持 Windows 10/11 x64、Intel/AMD CPU。请及时升级 SDK 版本。
 
-- [SDK 接入](sdk/README.zh-CN.md)：公共 C API、DLL、CMake 和 C/C++ 示例。
+- [SDK API](sdk/README.zh-CN.md)：公共 C API、DLL、CMake 和 C/C++ 示例。
 - [Demo 使用](demo/README.md)：可执行程序、应用源码和 AI 合成人脸演示数据。
 
 ## 运行 Demo

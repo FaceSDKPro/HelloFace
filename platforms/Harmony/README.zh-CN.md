@@ -24,6 +24,6 @@ SDK：**0.8.13**
 
 模型已内置于 HAR，使用前等待 `whenReady()`。
 
-接入说明：[SDK](SDK.zh-CN.md) · [Demo](demo/README.zh-CN.md)。
+接入说明：[SDK API](SDK.zh-CN.md) · [Demo](demo/README.zh-CN.md)。
 
 请及时升级 SDK 版本。[更新说明](https://github.com/FaceSDKPro/)。

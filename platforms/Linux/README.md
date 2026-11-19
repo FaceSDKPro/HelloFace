@@ -49,8 +49,8 @@ Use `./run-demo.sh` for the GUI so an SDK loading failure still opens an operabl
 Home and error pages show Demo/actual SDK versions and support contacts. If the SDK version cannot be read,
 the expected version is labeled explicitly. Copy diagnostics includes versions, error code and time, without application data.
 `src/` is the integration Demo; `runtimes/{arch}/sdk/` holds only the closed-source SDK, public declarations,
-protected model resources. Demo integration examples are outside the SDK. Read its [English SDK guide](runtimes/x86_64/sdk/README.md) or
-[Chinese SDK guide](runtimes/x86_64/sdk/README.zh-CN.md) (same APIs for ARM64).
+protected model resources. Demo integration examples are outside the SDK. Read its [English SDK API](runtimes/x86_64/sdk/README.md) or
+[Chinese SDK API](runtimes/x86_64/sdk/README.zh-CN.md) (same APIs for ARM64).
 
 A package may use `runtimes/{arch}/` or direct `bin/` and `sdk/` directories. Extract the complete archive, enter its root directory, then choose the runtime:
 

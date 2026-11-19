@@ -56,11 +56,11 @@
 
 | Platform | Keperluan | Integrasi (dalam bahasa Inggeris) |
 |---|---|---|
-| Android | Android 6.0+ · ARM64/ARMv7 · JDK 11 | [Demo](../../platforms/Android/README.md) · [SDK](../../platforms/Android/docs/SDK.md) |
-| iOS | iOS 15+ · Swift 6 · Xcode | [Demo](../../platforms/iOS/README.md) · [SDK](../../platforms/iOS/SDK/API.md) |
-| Harmony | HarmonyOS API 20+ · ARM64 · DevEco Studio 26 | [Demo](../../platforms/Harmony/README.md) · [SDK](../../platforms/Harmony/SDK.md) |
-| Linux | Ubuntu 22.04+ · x86_64/ARM64 · X11/XWayland | [Demo](../../platforms/Linux/README.md) · [SDK](../../platforms/Linux/runtimes/x86_64/sdk/README.md) |
-| Windows | Windows 10/11 x64 · CPU | [Demo](../../platforms/Windows/README.md) · [SDK](../../platforms/Windows/sdk/README.md) |
+| Android | Android 6.0+ · ARM64/ARMv7 · JDK 11 | [Demo](../../platforms/Android/README.md) · [SDK API](../../platforms/Android/docs/SDK.md) |
+| iOS | iOS 15+ · Swift 6 · Xcode | [Demo](../../platforms/iOS/README.md) · [SDK API](../../platforms/iOS/SDK/API.md) |
+| Harmony | HarmonyOS API 20+ · ARM64 · DevEco Studio 26 | [Demo](../../platforms/Harmony/README.md) · [SDK API](../../platforms/Harmony/SDK.md) |
+| Linux | Ubuntu 22.04+ · x86_64/ARM64 · X11/XWayland | [Demo](../../platforms/Linux/README.md) · [SDK API](../../platforms/Linux/runtimes/x86_64/sdk/README.md) |
+| Windows | Windows 10/11 x64 · CPU | [Demo](../../platforms/Windows/README.md) · [SDK API](../../platforms/Windows/sdk/README.md) |
 | Pendaftaran wajah melalui web | Pelayar | [Cuba dalam talian](https://hiface-mdp.pages.dev/face/) |
 
 **Lebih banyak platform (dirancang):** Program Mini WeChat, ChromeOS, uni-app, pemalam Flutter, pemalam React Native (RN) dan lain-lain.
@@ -79,7 +79,6 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 - Sila pastikan versi SDK anda terkini.
 - Model semasa tidak menyokong pengecaman wajah bagi kanak-kanak di bawah umur 12 tahun dan tidak boleh digunakan dalam senario kewangan.
 - Carian wajah memerlukan imej kamera yang jelas; penggunaan di luar bangunan memerlukan kamera dengan julat dinamik luas melebihi 100 dB.
-- Aliran kerja desktop dan kamera Windows/Linux masih menunggu ujian dengan kamera sebenar; aplikasi mudah alih memerlukan tandatangan aplikasi anda sendiri.
 
 ## Hubungi kami
 

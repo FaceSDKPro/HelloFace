@@ -4,7 +4,7 @@ English | [简体中文](README.zh-CN.md)
 
 Windows 10/11 x64, Intel/AMD CPU. Please keep the SDK version up to date.
 
-- [SDK integration](sdk/README.md): public C API, DLLs, CMake and C/C++ examples.
+- [SDK API](sdk/README.md): public C API, DLLs, CMake and C/C++ examples.
 - [Demo](demo/README.md): executable, application source and AI-generated sample data.
 
 ## Run the Demo

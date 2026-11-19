@@ -2,7 +2,7 @@
 
 English | [简体中文](DEMO.zh-CN.md)
 
-See the [SDK guide](SDK.md) for APIs and integration requirements.
+See the [SDK API](SDK.md) for APIs and integration requirements.
 
 ## Sample code
 

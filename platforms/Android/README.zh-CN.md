@@ -8,7 +8,7 @@ SDK / Demo：**0.8.13**
 
 **模型适用范围：当前模型不支持12周岁以下儿童人脸识别，不能用于金融相关场景。**
 
-指南：[SDK](docs/SDK.zh-CN.md) · [Demo](docs/DEMO.zh-CN.md)。
+指南：[SDK API](docs/SDK.zh-CN.md) · [Demo](docs/DEMO.zh-CN.md)。
 
 ## 运行
 

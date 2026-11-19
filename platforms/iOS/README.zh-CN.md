@@ -25,6 +25,6 @@ SDK：**0.8.13**
 
 使用 `HiFaceSDK()` 默认模型配置，在 App Info.plist 添加 `NSCameraUsageDescription`。
 
-接入说明：[SDK](SDK/README.zh-CN.md) · [Demo](DEMO.zh-CN.md)。
+接入说明：[SDK API](SDK/API.zh-CN.md) · [Demo](DEMO.zh-CN.md)。
 
 请及时升级 SDK 版本。[更新说明](https://github.com/FaceSDKPro/)。

@@ -24,6 +24,6 @@ On-device detection, capture, liveness, 1:1 comparison, 1:N/M:N search and face-
 
 Models are embedded in the HAR. Await `whenReady()` before using the SDK.
 
-Guides: [SDK](SDK.md) · [Demo](demo/README.md).
+Guides: [SDK API](SDK.md) · [Demo](demo/README.md).
 
 Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).

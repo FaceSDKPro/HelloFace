@@ -56,11 +56,11 @@
 
 | Plataforma | Requisitos | Integração (em inglês) |
 |---|---|---|
-| Android | Android 6.0+ · ARM64/ARMv7 · JDK 11 | [Demo](../../platforms/Android/README.md) · [SDK](../../platforms/Android/docs/SDK.md) |
-| iOS | iOS 15+ · Swift 6 · Xcode | [Demo](../../platforms/iOS/README.md) · [SDK](../../platforms/iOS/SDK/API.md) |
-| Harmony | HarmonyOS API 20+ · ARM64 · DevEco Studio 26 | [Demo](../../platforms/Harmony/README.md) · [SDK](../../platforms/Harmony/SDK.md) |
-| Linux | Ubuntu 22.04+ · x86_64/ARM64 · X11/XWayland | [Demo](../../platforms/Linux/README.md) · [SDK](../../platforms/Linux/runtimes/x86_64/sdk/README.md) |
-| Windows | Windows 10/11 x64 · CPU | [Demo](../../platforms/Windows/README.md) · [SDK](../../platforms/Windows/sdk/README.md) |
+| Android | Android 6.0+ · ARM64/ARMv7 · JDK 11 | [Demo](../../platforms/Android/README.md) · [SDK API](../../platforms/Android/docs/SDK.md) |
+| iOS | iOS 15+ · Swift 6 · Xcode | [Demo](../../platforms/iOS/README.md) · [SDK API](../../platforms/iOS/SDK/API.md) |
+| Harmony | HarmonyOS API 20+ · ARM64 · DevEco Studio 26 | [Demo](../../platforms/Harmony/README.md) · [SDK API](../../platforms/Harmony/SDK.md) |
+| Linux | Ubuntu 22.04+ · x86_64/ARM64 · X11/XWayland | [Demo](../../platforms/Linux/README.md) · [SDK API](../../platforms/Linux/runtimes/x86_64/sdk/README.md) |
+| Windows | Windows 10/11 x64 · CPU | [Demo](../../platforms/Windows/README.md) · [SDK API](../../platforms/Windows/sdk/README.md) |
 | Cadastro facial pela web | Navegador | [Experimentar online](https://hiface-mdp.pages.dev/face/) |
 
 **Mais plataformas (planejadas):** Miniprogramas do WeChat, ChromeOS, uni-app, plugins para Flutter, plugins para React Native (RN) e muito mais.
@@ -79,7 +79,6 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 - Mantenha a versão do SDK atualizada.
 - O modelo atual não oferece suporte ao reconhecimento facial de crianças menores de 12 anos e não deve ser usado em aplicações financeiras.
 - A busca facial exige imagens nítidas da câmera; implantações em ambientes externos exigem uma câmera com faixa dinâmica ampla superior a 100 dB.
-- Os fluxos de desktop e câmera no Windows/Linux ainda aguardam validação com câmeras reais; os aplicativos móveis exigem sua própria configuração de assinatura.
 
 ## Contato
 

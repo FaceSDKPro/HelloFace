@@ -8,7 +8,7 @@ On-device detection, capture, liveness, 1:1 comparison, 1:N/M:N search and face-
 
 **Model scope: The current model does not support face recognition for people under 12 and must not be used in financial scenarios.**
 
-Guides: [SDK](docs/SDK.md) · [Demo](docs/DEMO.md).
+Guides: [SDK API](docs/SDK.md) · [Demo](docs/DEMO.md).
 
 ## Build and run
 

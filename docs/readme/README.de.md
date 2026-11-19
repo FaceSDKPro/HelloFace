@@ -56,11 +56,11 @@
 
 | Plattform | Voraussetzungen | Integration (auf Englisch) |
 |---|---|---|
-| Android | Android 6.0+ · ARM64/ARMv7 · JDK 11 | [Demo](../../platforms/Android/README.md) · [SDK](../../platforms/Android/docs/SDK.md) |
-| iOS | iOS 15+ · Swift 6 · Xcode | [Demo](../../platforms/iOS/README.md) · [SDK](../../platforms/iOS/SDK/API.md) |
-| Harmony | HarmonyOS API 20+ · ARM64 · DevEco Studio 26 | [Demo](../../platforms/Harmony/README.md) · [SDK](../../platforms/Harmony/SDK.md) |
-| Linux | Ubuntu 22.04+ · x86_64/ARM64 · X11/XWayland | [Demo](../../platforms/Linux/README.md) · [SDK](../../platforms/Linux/runtimes/x86_64/sdk/README.md) |
-| Windows | Windows 10/11 x64 · CPU | [Demo](../../platforms/Windows/README.md) · [SDK](../../platforms/Windows/sdk/README.md) |
+| Android | Android 6.0+ · ARM64/ARMv7 · JDK 11 | [Demo](../../platforms/Android/README.md) · [SDK API](../../platforms/Android/docs/SDK.md) |
+| iOS | iOS 15+ · Swift 6 · Xcode | [Demo](../../platforms/iOS/README.md) · [SDK API](../../platforms/iOS/SDK/API.md) |
+| Harmony | HarmonyOS API 20+ · ARM64 · DevEco Studio 26 | [Demo](../../platforms/Harmony/README.md) · [SDK API](../../platforms/Harmony/SDK.md) |
+| Linux | Ubuntu 22.04+ · x86_64/ARM64 · X11/XWayland | [Demo](../../platforms/Linux/README.md) · [SDK API](../../platforms/Linux/runtimes/x86_64/sdk/README.md) |
+| Windows | Windows 10/11 x64 · CPU | [Demo](../../platforms/Windows/README.md) · [SDK API](../../platforms/Windows/sdk/README.md) |
 | Gesichtsregistrierung im Web | Browser | [Online ausprobieren](https://hiface-mdp.pages.dev/face/) |
 
 **Weitere Plattformen (geplant):** WeChat-Miniprogramme, ChromeOS, uni-app, Flutter-Plug-ins, React-Native-Plug-ins (RN) und mehr.
@@ -79,7 +79,6 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 - Halten Sie die SDK-Version aktuell.
 - Das aktuelle Modell unterstützt keine Gesichtserkennung von Kindern unter 12 Jahren und darf nicht in Finanzanwendungen eingesetzt werden.
 - Die Gesichtssuche erfordert klare Kamerabilder. Für den Außeneinsatz ist eine Kamera mit einem weiten Dynamikbereich von über 100 dB erforderlich.
-- Die Desktop- und Kameraabläufe unter Windows/Linux müssen noch mit realen Kameras validiert werden. Mobile Apps erfordern Ihre eigene Konfiguration zur Anwendungssignierung.
 
 ## Kontakt
 

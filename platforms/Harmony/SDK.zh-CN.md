@@ -1,184 +1,156 @@
-# HiFace HarmonyOS SDK 接入指南
+# HiFace HarmonyOS SDK API 指南
 
-## 支持与安装
+## 快速开始
 
-**模型适用范围：当前模型不支持12周岁以下儿童人脸识别，不能用于金融相关场景。**
-
-人脸搜索识别要求摄像头成像清晰；室外环境下，摄像头宽动态范围须大于 100 dB。
-
-请及时升级 SDK 版本。
-
-| 项目 | 当前范围 |
-|---|---|
-| 最低系统 | HarmonyOS API 20 |
-| ABI | `arm64-v8a` |
-| 入口 | ArkTS `HiFaceSdk` |
-
-直接交付时，把版本化 HAR 复制到应用（例如 `libs/hiface-0.8.13.har`），在模块
-`oh-package.json5` 中声明：
+使用 HarmonyOS API 20 或更高版本的 ARM64 设备。在 DevEco Studio 新建 ArkTS Empty Ability 项目，将 HAR 放入项目根目录的 `libs/`，在入口模块的 `oh-package.json5` 添加依赖：
 
 ```json5
 {
   "dependencies": {
-    "hiface": "file:./libs/hiface-0.8.13.har"
+    "hiface": "file:../libs/hiface-0.8.13.har"
   }
 }
 ```
 
-同一版本通过 OpenHarmony 三方库中心仓审核后，可执行：
-
-```shell
-ohpm install hiface@0.8.13
-```
-
-也可以在 `oh-package.json5` 中声明 `"hiface": "0.8.13"`。直接交付和中心仓应使用同一版本、
-同一 SHA-256 的 HAR，不能覆盖已经交付的版本。
-
-## 初始化与错误处理
+在项目根目录运行 `ohpm install`。同版本在仓库上架后，可改用 `ohpm install hiface@0.8.13`，或把依赖改为 `"hiface": "0.8.13"`。用下面的代码替换入口页 `pages/Index.ets`，签名并在设备上运行应用。点击 **Run HiFace**，空白图应显示 `1201`（`IMAGE_NO_FACE`）。
 
 ```typescript
 import { common } from '@kit.AbilityKit';
-import { FaceCaptureResult, HiFaceResult, HiFaceSdk } from 'hiface';
+import { HiFaceSdk, RgbaImage } from 'hiface';
 
-async function createHiFaceSdk(context: common.UIAbilityContext): Promise<HiFaceSdk> {
-  const sdk: HiFaceSdk = HiFaceSdk.create(context);
-  const ready: HiFaceResult<boolean> = await sdk.whenReady();
-  if (ready.isFailure()) {
-    const message: string = ready.requireError().message;
-    sdk.close();
-    throw new Error(`HiFace 初始化失败: ${message}`);
+@Entry
+@Component
+struct Index {
+  @State status: string = 'Ready';
+  private sdk?: HiFaceSdk;
+
+  private async extractFeature(): Promise<void> {
+    if (this.sdk !== undefined) {
+      return;
+    }
+    const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    const sdk = HiFaceSdk.create(context);
+    this.sdk = sdk;
+    try {
+      const ready = await sdk.whenReady();
+      if (this.sdk !== sdk) {
+        return;
+      }
+      if (ready.isFailure()) {
+        this.status = String(ready.requireError().code);
+        return;
+      }
+      const image = new RgbaImage(new ArrayBuffer(256 * 256 * 4), 256, 256);
+      const result = await sdk.capture().extractFeature(image);
+      if (this.sdk === sdk) {
+        this.status = result.isSuccess() ? 'Feature extracted' : String(result.requireError().code);
+      }
+    } finally {
+      if (this.sdk === sdk) {
+        this.closeSdk();
+      }
+    }
   }
-  return sdk;
+
+  private closeSdk(): void {
+    this.sdk?.close();
+    this.sdk = undefined;
+  }
+
+  aboutToDisappear(): void {
+    this.closeSdk();
+  }
+
+  build() {
+    Column() {
+      Button('Run HiFace').onClick(() => { this.extractFeature(); })
+      Text(this.status)
+    }
+  }
 }
 ```
 
-公开业务调用用 `HiFaceResult<T>` 表示可预期失败：先检查 `isSuccess()` 或 `isFailure()`，再调用
-`requireValue()` 或 `requireError()`。无效构造参数会直接抛出 `Error`；相机、文件和页面异常由宿主处理。
-按 Ability 或业务容器复用实例；退出前停止送帧、取消流程，再关闭 SDK。
-`close()` 幂等并立即屏蔽新请求/旧回调，Native 在后台释放；在途帧像素仍须保留到 Promise 完成。
+## API 参考
 
-ArkUI 子组件通过普通字段（可加 `@Require`）接收 SDK 引用。不要用 `@Prop` 传递 `HiFaceSdk`：
-其深拷贝会复制内部 Promise 外壳但丢失运行时状态，导致 `Then: thisValue is not promise!`。
-SDK、请求句柄和数据库连接不作为可复制的页面状态；页面只观察展示结果。
+### 人脸检测
 
-## 公开能力
+调用 `sdk.processFrame(frame, config)` / `sdk.processRgba(image, config)`。成功返回人脸框、置信度和关键点，无人脸时返回空列表。坐标以旋转后、未镜像的画面为准。
 
-| 分组 | 入口 | 用途 |
+| `FaceDetectionConfig` 参数 | 范围与默认值 | 用途 |
 |---|---|---|
-| 检测 | `processFrame()`、`processRgba()` | YUV/RGBA 单帧人脸框、五点及可选轮廓/头姿 |
-| 实时检测 | `createRealtimeProcessor()` | 单帧在途门禁；忙时返回 `undefined`，由宿主丢弃该帧 |
-| 采集 | `capture()` | 静态图提取 HF1/对齐预览，或启动相机引导采集 |
-| 活体 | `liveness()` | 启动动作与静默活体相机流程 |
-| 验证 | `verification()` | HF1 或静态图 1:1 比较，以及相机动态验证 |
-| 搜索 | `search()` | 启动连续 1:N/M:N 相机搜索 |
-| 人脸库 | `HiFaceSdk.openSearchDatabase()` | 独立 SQLite 人脸库的增删查改、预热和 Top-K 查询 |
+| `maxFaces` | 1–10，默认 1 | 限制返回的人脸数。 |
+| `detailedLandmarks` | 布尔值，默认关闭 | 开启后附带详细轮廓和头部角度。 |
 
-只从 `hiface` 导入 `Index.ets` 的公开符号；internal、N-API 字段与 Native 符号不属于兼容承诺。
-`getApiVersion()` 仅用于 ABI 诊断，基础能力是否就绪以 `whenReady()` 为准。
+相机分析帧要求偶数宽高，长边不超过 1920、短边不超过 1080，旋转为 0°、90°、180° 或 270°。
+相机帧填写实际 Y/U/V 步长、色彩范围和矩阵及旋转角度。Promise 完成前保持缓冲区有效。每路相机使用一个 `createRealtimeProcessor()`，`tryProcessFrame()` 返回 `undefined` 时丢弃本帧。
 
-采集、活体、验证、搜索和实时处理器是公开接口，由 `HiFaceSdk` 返回实例；接入方不构造或实现这些能力对象。
-首发检测结果承诺人脸框、置信度、五点及可选头姿/468 点。EAR/MAR、闭眼/张嘴指标仅用于 Core 内部流程，
-不作为公开返回值或兼容承诺；业务放行依据最终流程结果。
+### 人脸录入与照片采集
 
-静态图片使用已归一化方向的 `RgbaImage`：
+| 接口 | 返回结果 |
+|---|---|
+| `await sdk.capture().extractFeature(image)` | 提取最大人脸的特征，无人脸返回 `IMAGE_NO_FACE`，人脸宽或高不足 100 像素返回 `IMAGE_FACE_TOO_SMALL`。 |
+| `await sdk.capture().fromRgba(image)` | 返回 `feature` 和可选对齐预览 `alignedRgba`。应用确认录入后再保存特征。 |
+| `await sdk.capture().facesFromRgba(image)` | 返回最多 10 张脸的位置及各自的采集结果。没有人脸时成功返回空列表，小脸只影响对应条目。 |
+| `capture().startCameraCapture(listener)` | 引导用户采集人脸，通过回调交付结果。启动时先等待 Promise，成功后保留 `FaceRequest`。 |
 
-```typescript
-const feature: HiFaceResult<string> = await sdk.capture().extractFeature(image);
-const capture: HiFaceResult<FaceCaptureResult> = await sdk.capture().fromRgba(image);
-const similarity: HiFaceResult<number> = sdk.verification().compare(leftHF1, rightHF1);
-```
+照片调用前先处理图像方向。每个 SDK 的静态队列可同时处理一个任务，另有四个等待名额。批量处理时逐张提交。照片接口无需相机权限，无活体判定。
 
-静态入口选最大脸，`fromRgba` 额外返回 333×333 对齐预览。异步调用立即建立像素快照，队列最多
-一个运行请求和四个等待请求；批量逐张等待完成。HF1 是 Q7/Base64URL 表示，不是加密。
+### 活体与 1:1 验证
 
-## 实时帧与坐标
+分别使用 `liveness().startCameraLiveness(config, listener)` 和 `verification().startCameraVerification(config, listener)` 启动流程，再持续送入相机帧。已有两份特征时，`verification().compare(left, right)` 返回 0–1 的相似度。相似度仅反映特征接近程度。
 
-- `Yuv420Frame` 的 Y/U/V 数据借用到处理 Promise 完成；在此之前不能释放、覆盖或复用底层缓冲。
-- 分析尺寸必须是正偶数，长边不超过 1920、短边不超过 1080，并显式提供行跨度、像素跨度、
-  色彩范围、色彩矩阵和 0/90/180/270 度旋转。
-- 每条相机链创建一个 `FaceRealtimeProcessor`。`tryProcessFrame()` 返回 `undefined` 表示当前忙，宿主应
-  立即释放新帧；不要把帧排成无界 Promise 队列。
-- 检测和搜索坐标属于“旋转后、未镜像”的结果图像像素空间。宿主依据结果的 `imageWidth`、
-  `imageHeight`，统一应用预览缩放、居中裁剪和前摄镜像。
-- `frameId` 只关联同一采样的检测、评分与终态，不表示跨帧人脸跟踪。
-- 模型准备、忙或待机跳帧返回 `NOT_READY`；继续送入最新帧。连续 10 秒无人脸后按 200 ms 目标节奏分析，
-  检出人脸后恢复；相机实际帧率由宿主和设备决定。
+| 参数 | 范围与默认值 | 用途 |
+|---|---|---|
+| `referenceFeature` | 1:1 验证必填 | 传入已录入的人脸特征。 |
+| `threshold` | 0–1，默认 0.80 | 1:1 相似度门槛。低于门槛时，完成比对的流程返回身份不匹配。 |
+| `actions` | 0–4 步，默认空 | 活体接口空动作时执行静默活体。 |
+| `silentLivenessEnabled` | 布尔值，1:1 验证默认关闭 | 开启后还要求静默活体通过。 |
+| `allowMultipleFaces` | 布尔值，默认关闭 | 控制流程是否允许画面中出现多人。 |
+| `actionTimeoutMillis` | 2,000–30,000 ms，默认 3,000 ms | 每步动作时限。 |
+| `faceAcquisitionTimeoutMillis` | 1,000–60,000 ms，默认 10,000 ms | 首次取脸时限。 |
 
-## 相机流程生命周期
+RGB 静默活体使用 SDK 固定门槛 0.90。活体和验证的 `onResult` 会交付通过或拒绝的结果，先读 `outcome`。只有本轮执行了对应步骤才会返回相似度或活体分数。独立近红外活体使用 `await sdk.liveness().evaluateInfrared(frame, threshold)`，传入真实 GRAY8 红外帧、图中人脸框和按设备标定的 0–1 阈值。阈值必填。
 
-采集、活体、验证和搜索共享同一 SDK 相机处理槽，同一时刻只能运行一种流程：
+等待启动接口返回成功的 `HiFaceResult<FaceRequest>` 后继续送帧。
 
-1. 创建监听器并调用对应的 `startCamera...()`。
-2. 启动成功后保存返回的 `FaceRequest` 或 `FaceSearchSession`。
-3. 相机每帧仍通过同一 `FaceRealtimeProcessor.tryProcessFrame()` 送入 SDK。
-4. 页面退出、切摄或切换能力时，先 `cancel()` / `close()`，再停止相机并释放页面资源。
+### 人脸库与搜索
 
-`FaceFlowListener.onResult()` 是采集、活体和验证的业务终态；`onError()` 表示流程错误。
-搜索业务必须先检查 `FaceSearchResult.endReason`，`SPOOF_DETECTED` 即使携带达标身份也不能放行。
-`search().startCameraSearch(config, listener)` 会自动打开并预热应用人脸库；准备期间的相机帧返回
-`NOT_READY`。`FaceSearchSession.pause()` 保留搜索槽位、模型和数据库连接，但释放图库范围缓存；
-`resume()` 在重新接收帧前预热当前范围。技术错误暂停采用同一释放规则，只有 `close()` 才释放连接和槽位。
-后续启动等待先前 Native 启停任务结束，启停期间丢帧，旧帧/过期启动不影响新流程。
-Native 停止失败时应关闭并重新创建 SDK。
+用 `await HiFaceSdk.openSearchDatabase(context)` 打开独立人脸库。通过 `saveFeature` 或 `saveFeatures` 按 Face ID 新增或更新，单批可保存 1–1,000 条。用 `search` 按特征查库。`list` / `listRecent` 返回元数据，`listFeatures` 分页读取含特征的记录。由调用方关闭显式打开的人脸库。等待写入完成再关闭人脸库。
 
-`FaceLivenessConfig` 的空 `actions` 表示不执行动作挑战，仍会执行七帧双模型静默活体；
-可用 `hasActions()` 区分两种模式。最终回正阶段的默认保持时间和绝对截止时间分别由
-`DEFAULT_FRONTAL_HOLD_MILLIS` 和 `DEFAULT_FINAL_CAPTURE_TIMEOUT_MILLIS` 公开，与 Android SDK 参数一致。
+| 查库参数 | 范围与默认值 | 用途 |
+|---|---|---|
+| Face ID、`group`、`tag` | Face ID 为 1–1024 个 UTF-8 字节，分组和标签各最多 1024 字节，均不允许 NUL | 精确按分组和标签筛选，两项均指定时同时匹配，均未指定时搜索全库。 |
+| `topK` | 1–100，默认 1 | 最多返回的匹配数。 |
+| `threshold` | 0–1，默认 0.80 | 精确查库的相似度下限，低于门槛的记录不会返回。没有匹配时返回空列表。 |
 
-## 人脸库生命周期
+连续搜索使用 `search().startCameraSearch(config, listener)`，它自行管理人脸库连接。
 
-`openSearchDatabase(context)` 不依赖推理模型，SDK 自动使用应用私有目录中的固定文件名。
-该管理句柄独立于 `HiFaceSdk`：关闭 SDK 不会自动关闭已经显式打开的 `FaceSearchDatabase`，调用方必须
-自行 `close()`；连续相机搜索的连接则由 Session 自动管理。批量写入每批支持 1 到 1000 条并保证
-原子性；`saveFeature`/`saveFeatures` 使用按 Face ID 覆盖语义，批量参数使用轻量的
-`FaceSearchFeatureEntry`，人工新增若要提示重复应先调用 `contains`。
-数据库直接保存 HF1 中的原始 450 字节 Q7 内容；`get` 与搜索结果的 `feature` 原样返回完整 HF1。
-`list` / `listRecent` 返回不含特征的 `FaceSearchMetadata`，`listFeatures` 用于完整特征分页导出。
-`contains` 仅查主键。`updateMetadata(faceId, group, tag, time)` 只改元数据，undefined 保留、空串清空。
-`FaceFeatureFormat.FEATURE_SPACE_ID` 提供模型/预处理兼容标识，可传给 `FaceSearchFeatureEntry` 校验服务器数据。
-开发期测试库不迁移，测试设备需清理旧库并重新导入。
-三种分页接口的 `offset` 范围为 `0..2147483647`，`limit` 为 `1..1000`。
-直接搜索和连续搜索的阈值统一到 Core 的 `float32` 精度。
-`close()` 立即拒绝新请求，在后台等待已开始的操作结束并清理 SQLite 与特征缓存；
-尚未开始的排队操作返回 `CLOSED`。需要确认写入结果时，先等待保存成功，再调用 `close()`。
+| 连续搜索参数 | 范围与默认值 | 用途 |
+|---|---|---|
+| `mode`、`needsLiveness` | 默认单人且开启活体，多人模式不支持活体 | 决定每帧处理最大人脸还是多人。 |
+| `threshold` | 0.75–0.85，默认 0.80 | 连续搜索的身份门槛。 |
+| `searchIntervalMillis` | 0–3,000 ms，默认 0 | 匹配成功后到下一轮的间隔。 |
+| `searchTimeoutMillis` | 1,000–3,000 ms，默认 3,000 ms | 从首次选中人脸开始计算的单轮时限。 |
+| `maxFacesPerFrame` | 1–5，默认 3 | 多人模式处理上限。单人模式仅处理最大脸。 |
 
-SDK 创建的 SQLite 数据库当前不提供包内加密。人脸特征和搜索库属于生物识别数据，接入方负责取得用户同意、
-访问控制、加密存储、保留期限、删除和备份策略。
+先看 `endReason`。即使达到相似度门槛，`SPOOF_DETECTED` 也表示拒绝。`frameId` 标识同一次采样。`frameJpeg` 是可选的结束帧整图，绘制人脸框时按原始帧尺寸换算。
 
-## 发布文件
+人脸特征应原样保存。更换为不兼容的模型时，从原照片重新提取并导入。应用负责取得用户同意，以及保护和删除照片和特征。
 
-- `LICENSE`：SDK 与模型许可说明。
-- `CHANGELOG.md`：当前版本的公开变化。
+等待启动接口返回成功的 `HiFaceResult<FaceSearchSession>`，用该会话暂停、恢复或关闭搜索。
 
-客户交付时应同时提供版本号和 `SHA256SUMS`。宿主 HAP/APP 使用接入方自己的签名；HAR 不应携带 Demo、
-客户签名文件或私钥。
-## 图片多人搜索
+## 错误处理与资源释放
 
-调用 `await sdk.capture().facesFromRgba(image)`。 返回最多 10 个 `FaceImageCapture`，每张脸保留原图坐标与独立的采集结果或错误。
-无脸返回成功空列表；小于 100px 的脸不影响其他脸。把成功结果的 HF1 逐张交给
-`FaceSearchDatabase.search`，即可完成静态 M:N 查询，对齐和特征计算均由公共 Core 完成。
+创建后等待 `whenReady()`。通过 `HiFaceResult.isSuccess()` 判断后再读取 `requireValue()` 或 `requireError().code`。构造参数无效会抛出 `Error`。使用普通字段持有 SDK，页面退出时调用 `close()`。
 
-Demo 首页提供“图片人脸搜索识别”：相册选图、原图标框、身份与分数、矫正缩略图和人数汇总。
-默认全库 Top-1 / 0.80，不执行活体；图片搜索在 SDK 的 4096px 上限内保留原图尺寸，仅超限时等比缩小，奇数末边裁去 1px。人脸尺寸门槛按实际输入计算，图片比对和批量导入保留原有解码上限。
+| 情况 | 处理方式 |
+|---|---|
+| `NOT_READY` | 模型初始化、运行时正忙或相机跳帧时，丢弃当前帧，继续送入最新帧。 |
+| `BUSY` | 等静态任务完成，或先结束当前相机流程。 |
+| `INVALID_ARGUMENT` | 检查参数、帧格式与缓冲区。 |
+| `LICENSE_EXPIRED` | 核对授权有效期，必要时联系 SDK 支持。 |
+| `CLOSED` | 停止向此实例继续提交任务。 |
 
-## 红外单模态活体
+采集、活体、验证和连续搜索共用一个相机流程槽。切换功能或退出页面时，先停止送帧，再取消请求或关闭搜索，然后关闭 SDK。`onError` 用于技术失败，业务结果读取对应结论。
 
-FLIR 接收已归正、未镜像的真实近红外 GRAY8 数据，宽高 1..4096，支持奇数尺寸和行填充。
-宿主提供该 IR 图像中的人脸框（左上角加宽高，至少 10×10）；IR 相机访问、人脸检测、补光和多人门禁
-由宿主负责。RGB 转灰度不能代替 IR 摄像头输入。
-
-```typescript
-const frame = new InfraredFrame(grayBuffer, width, height, rowStride,
-  faceX, faceY, faceWidth, faceHeight);
-const result = await sdk.liveness().evaluateInfrared(frame, calibratedThreshold);
-```
-
-`calibratedThreshold` 必须用目标 IR 摄像头标定，使用 Float32 真人阈值。
-`realScore` 越高越可能是真人，`spoofScore=1-realScore`，`realScore >= threshold` 才通过。
-先检查技术错误再读结果。Android 在工作线程同步调用，iOS/鸿蒙使用有界后台队列，输入由 SDK
-持有或复制。此入口不改变既有 RGB 相机活体或搜索流程；iOS 接入前需确认可取得 IR 图像，SDK
-不负责读取 Face ID 内部红外流。
-
-### 搜索结果场景图（0.8.12）
-
-`FaceSearchResult.frameJpeg`、`frameWidth`、`frameHeight` 返回与 `frame` 同一结束采样的完整 RGB 场景。画面已旋转、未镜像，等比缩小、不放大，最长边 480、JPEG 质量 95。成功及业务失败均尽力带图，无图时宽高为 0；框仍按原采样尺寸解释。Native 锁外编码，取消/关闭后丢弃旧结果，不落盘、不缓存多帧或沿用上一轮图片。
+当前模型不支持 12 周岁以下儿童人脸识别，不能用于金融场景。室外人脸搜索使用宽动态范围大于 100 dB 的相机。

@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-接口与接入要求见 [SDK 指南](../SDK.zh-CN.md)。
+接口与接入要求见 [SDK API](../SDK.zh-CN.md)。
 
 ## 示例代码
 

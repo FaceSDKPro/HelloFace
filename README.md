@@ -56,11 +56,11 @@
 
 | Platform | Requirements | Integration |
 |---|---|---|
-| Android | Android 6.0+ · ARM64/ARMv7 · JDK 11 | [Demo](platforms/Android/README.md) · [SDK](platforms/Android/docs/SDK.md) |
-| iOS | iOS 15+ · Swift 6 · Xcode | [Demo](platforms/iOS/README.md) · [SDK](platforms/iOS/SDK/API.md) |
-| Harmony | HarmonyOS API 20+ · ARM64 · DevEco Studio 26 | [Demo](platforms/Harmony/README.md) · [SDK](platforms/Harmony/SDK.md) |
-| Linux | Ubuntu 22.04+ · x86_64/ARM64 · X11/XWayland | [Demo](platforms/Linux/README.md) · [SDK](platforms/Linux/runtimes/x86_64/sdk/README.md) |
-| Windows | Windows 10/11 x64 · CPU | [Demo](platforms/Windows/README.md) · [SDK](platforms/Windows/sdk/README.md) |
+| Android | Android 6.0+ · ARM64/ARMv7 · JDK 11 | [Demo](platforms/Android/README.md) · [SDK API](platforms/Android/docs/SDK.md) |
+| iOS | iOS 15+ · Swift 6 · Xcode | [Demo](platforms/iOS/README.md) · [SDK API](platforms/iOS/SDK/API.md) |
+| Harmony | HarmonyOS API 20+ · ARM64 · DevEco Studio 26 | [Demo](platforms/Harmony/README.md) · [SDK API](platforms/Harmony/SDK.md) |
+| Linux | Ubuntu 22.04+ · x86_64/ARM64 · X11/XWayland | [Demo](platforms/Linux/README.md) · [SDK API](platforms/Linux/runtimes/x86_64/sdk/README.md) |
+| Windows | Windows 10/11 x64 · CPU | [Demo](platforms/Windows/README.md) · [SDK API](platforms/Windows/sdk/README.md) |
 | Web Face Enrollment | Browser | [Try online](https://hiface-mdp.pages.dev/face/) |
 
 **More platforms (planned):** WeChat Mini Programs, ChromeOS, uni-app, Flutter plugins, React Native (RN) plugins, and more.
@@ -79,7 +79,6 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 - Please keep the SDK version up to date.
 - The current model does not support face recognition for people under 12 and must not be used in financial scenarios.
 - Face search requires clear camera images; outdoor deployments require a camera with a wide dynamic range greater than 100 dB.
-- Windows/Linux desktop and camera workflows await testing with real cameras; mobile apps require your own application signing.
 
 ## Connect
 

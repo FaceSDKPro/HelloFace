@@ -56,11 +56,11 @@
 
 | 플랫폼 | 실행 및 개발 환경 | 연동 자료(영문) |
 |---|---|---|
-| Android | Android 6.0+ · ARM64/ARMv7 · JDK 11 | [Demo](../../platforms/Android/README.md) · [SDK](../../platforms/Android/docs/SDK.md) |
-| iOS | iOS 15+ · Swift 6 · Xcode | [Demo](../../platforms/iOS/README.md) · [SDK](../../platforms/iOS/SDK/API.md) |
-| Harmony | HarmonyOS API 20+ · ARM64 · DevEco Studio 26 | [Demo](../../platforms/Harmony/README.md) · [SDK](../../platforms/Harmony/SDK.md) |
-| Linux | Ubuntu 22.04+ · x86_64/ARM64 · X11/XWayland | [Demo](../../platforms/Linux/README.md) · [SDK](../../platforms/Linux/runtimes/x86_64/sdk/README.md) |
-| Windows | Windows 10/11 x64 · CPU | [Demo](../../platforms/Windows/README.md) · [SDK](../../platforms/Windows/sdk/README.md) |
+| Android | Android 6.0+ · ARM64/ARMv7 · JDK 11 | [Demo](../../platforms/Android/README.md) · [SDK API](../../platforms/Android/docs/SDK.md) |
+| iOS | iOS 15+ · Swift 6 · Xcode | [Demo](../../platforms/iOS/README.md) · [SDK API](../../platforms/iOS/SDK/API.md) |
+| Harmony | HarmonyOS API 20+ · ARM64 · DevEco Studio 26 | [Demo](../../platforms/Harmony/README.md) · [SDK API](../../platforms/Harmony/SDK.md) |
+| Linux | Ubuntu 22.04+ · x86_64/ARM64 · X11/XWayland | [Demo](../../platforms/Linux/README.md) · [SDK API](../../platforms/Linux/runtimes/x86_64/sdk/README.md) |
+| Windows | Windows 10/11 x64 · CPU | [Demo](../../platforms/Windows/README.md) · [SDK API](../../platforms/Windows/sdk/README.md) |
 | 웹 얼굴 등록 | 브라우저 | [온라인 체험](https://hiface-mdp.pages.dev/face/) |
 
 **추가 지원 예정 플랫폼:** WeChat 미니 프로그램, ChromeOS, uni-app, Flutter 플러그인, React Native(RN) 플러그인 등.
@@ -79,7 +79,6 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 - SDK를 최신 버전으로 유지하세요.
 - 현재 모델은 12세 미만 아동의 얼굴 인식을 지원하지 않으며 금융 관련 용도로 사용할 수 없습니다.
 - 얼굴 검색에는 선명한 카메라 영상이 필요합니다. 실외 배포에는 와이드 다이내믹 레인지가 100 dB를 초과하는 카메라가 필요합니다.
-- Windows/Linux의 데스크톱 및 카메라 처리 흐름은 실제 카메라 검증을 기다리고 있습니다. 모바일 앱 실행에는 자체 앱 서명 설정이 필요합니다.
 
 ## 문의
 

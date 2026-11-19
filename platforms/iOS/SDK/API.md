@@ -1,167 +1,123 @@
-# HiFace 0.8.13 API Guide
+# HiFace iOS 0.8.13 SDK API Guide
 
 English | [简体中文](API.zh-CN.md)
 
-## Installation
+## Quick start
 
-**Model scope: The current model does not support face recognition for people under 12 and must not be used in financial scenarios.**
+Requires Xcode with Swift 6 and an iOS 15+ device. In Xcode, add the delivered `SDK` folder as a local Swift package, or add the published binary Swift package and select its version. Link the `HiFace` product, which includes both `HiFace` and `HiFaceNative`.
 
-Face search requires clear camera images; outdoor deployments require a camera with a wide dynamic range greater than 100 dB.
-
-Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).
-
-| Requirement | Supported |
-|---|---|
-| iOS | 15 and later |
-| Device | `arm64` |
-| Simulator | `arm64` on Apple Silicon; Intel Mac is unsupported |
-| Entry point | Swift `HiFaceSDK` |
-
-Add the released binary Swift package to Xcode with a fixed version and select the `HiFace` product. Keep both `HiFace` and `HiFaceNative` binary targets. Configure `NSCameraUsageDescription` in the host Info.plist.
+In a SwiftUI iOS app, replace `ContentView.swift` with the following and run on an iPhone. Expect `imageNoFace` for the blank image. The Apple Silicon simulator can build and launch the app, but inference needs a device. Add `NSCameraUsageDescription` when integrating a camera flow.
 
 ```swift
+import Foundation
 import HiFace
-let sdk = HiFaceSDK()
+import SwiftUI
+
+struct ContentView: View {
+    @State private var status = "Running…"
+
+    var body: some View {
+        Text(status).task { await extractFeature() }
+    }
+
+    private func extractFeature() async {
+        let sdk = HiFaceSDK()
+        defer { sdk.close() }
+        do {
+            let image = try HiFaceRGBAImage(
+                rgba: Data(repeating: 0, count: 256 * 256 * 4),
+                width: 256, height: 256
+            )
+            switch await sdk.extractFeature(from: image) {
+            case .success:
+                status = "Feature extracted"
+            case .failure(let error):
+                status = String(describing: error.code)
+            }
+        } catch {
+            status = String(describing: error)
+        }
+    }
+}
 ```
 
-The SDK owns its model bundle. Do not override it with the host App bundle.
+## API reference
 
-## Live detection and frame ownership
+### Face detection
 
-Use two-plane NV12 `420v` / `420f` buffers with a BT.601 or BT.709 matrix attachment.
+Call `sdk.processFrame(frame, configuration: config)`. A successful result contains face boxes, confidence, and landmarks. No faces returns an empty list. Coordinates refer to the rotated, unmirrored image.
 
-```swift
-let frame = try HiFaceCameraFrame(
-    pixelBuffer: pixelBuffer,
-    rotation: .degrees90,
-    isMirrored: usingFrontCamera
-)
-let result = sdk.processFrame(frame, configuration: try FaceDetectionConfiguration(
-    maxFaces: 5, includesDetailedLandmarks: true
-))
-```
+| `FaceDetectionConfiguration` parameter | Range and default | Purpose |
+|---|---|---|
+| `maxFaces` | 1–10, default 1 | Limits the number of returned faces. |
+| `includesDetailedLandmarks` | Boolean, off by default | Includes detailed contours and head angles when enabled. |
 
-`processFrame` is synchronous and borrows/locks the pixel buffer only during the call. Reuse it afterward. Initialization, model switching, and native backpressure may return `.notReady`; discard that frame and continue sending the latest frames.
+Use even camera frame dimensions, at most 1920 on the long side and 1080 on the short side. Rotation is 0°, 90°, 180°, or 270°.
+Build a `HiFaceCameraFrame` from two-plane NV12 (`420v` or `420f`) with a BT.601/709 matrix attachment and the correct rotation. The synchronous call borrows the pixel buffer until return.
 
-Dimensions must be even, with long side at most `HiFaceCameraFrame.maximumLongSidePixels` (1920) and short side at most `maximumShortSidePixels` (1080). The host selects compatible camera formats. Coordinates belong to the rotated, unmirrored image; the host maps aspect-fit/fill, crop, scaling, and front-camera mirroring.
+### Face enrollment and photo capture
 
-## Static images and HF1
+| API | Result |
+|---|---|
+| `await sdk.extractFeature(from: image)` | Extracts a feature for the largest face. Returns `.imageNoFace` if no face is found, or `.imageFaceTooSmall` if either face dimension is under 100 pixels. |
+| `await sdk.capture(image)` | Returns `feature` and an optional aligned preview, `alignedFace`. Save the feature after the user confirms enrollment. |
+| `await sdk.captureFaces(image)` | Returns positions and individual capture results for up to 10 faces. No faces returns an empty list; a small face only affects its own entry. |
+| `sdk.startCameraCapture(callbacks:)` | Guides the user through camera enrollment and delivers the result to the callback. |
 
-```swift
-let capture = await sdk.capture(cgImage)
-let feature = await sdk.extractFeature(from: cgImage)
-let similarity = await sdk.compare(feature: leftHF1, with: rightHF1)
-let imageSimilarity = await sdk.compare(leftCGImage, with: rightCGImage)
-```
+Apply photo orientation first. Each SDK has one active static-image job and room for four waiting jobs. Submit batch photos one at a time. Photo APIs require no camera permission and perform no liveness check.
 
-Static entry points select the largest face. `capture` returns HF1 and an optional 333×333 aligned preview; extraction alone avoids generating a preview. Compare existing HF1 features to avoid repeated detection and extraction.
+### Liveness and 1:1 verification
 
-Normalize EXIF orientation before creating a `CGImage`; its entry point does not read `UIImage.imageOrientation`. Odd dimensions crop the last row/column only. Final RGBA8888 dimensions must be even and within 2–4096. `HiFaceRGBAImage` copies input pixels. Each instance queues one running and four waiting static requests; further requests return `.busy`. A two-image comparison is one indivisible request.
+Start `sdk.startCameraLiveness(configuration:callbacks:)` or `sdk.startCameraVerification(configuration:callbacks:)`, then keep sending camera frames. If you already have both face features, `await sdk.compare(feature:with:)` returns a similarity score from 0 to 1. It measures how close the features are.
 
-HF1 is a 604-character Q7/Base64URL representation, **not encryption**. Protect stored images/features according to your application requirements.
+| Parameter | Range and default | Purpose |
+|---|---|---|
+| `referenceFeature` | Required for 1:1 verification | The enrolled face feature. |
+| `threshold` | 0–1, default 0.80 | Minimum 1:1 similarity. A completed comparison below this threshold returns a mismatch. |
+| `actions` | 0–4 actions, empty by default | An empty action list still runs passive liveness in the liveness flow. |
+| `requiresSilentLiveness` | Boolean, off by default for 1:1 verification | Also requires passive liveness when enabled. |
+| `allowsMultipleFaces` | Boolean, off by default | Controls whether the flow accepts more than one face in view. |
+| `actionTimeoutMilliseconds` | 2,000–30,000 ms, default 3,000 ms | Time budget per action. |
+| `faceAcquisitionTimeoutMilliseconds` | 1,000–60,000 ms, default 10,000 ms | Time to find the first usable face. |
 
-## Capture, liveness, and 1:1 verification
+RGB passive liveness uses an SDK threshold of 0.90. The liveness and verification `onResult` callback carries both acceptance and rejection. Check `outcome` first. Read similarity or liveness scores only when present. For standalone infrared liveness, call `await sdk.evaluateInfraredLiveness(_:realThreshold:)` with a real GRAY8 infrared frame, its face box, and a required 0–1 threshold calibrated on the target camera.
 
-Keep sending frames during a camera flow. Only one capture, liveness, verification, or search flow may use the SDK camera slot at a time. Callbacks arrive asynchronously on `MainActor`.
+### Face library and search
 
-```swift
-let request = sdk.startCameraCapture(callbacks: FaceCaptureCallbacks(
-    onProgress: { progress in /* Update guidance. */ },
-    onResult: { capture in /* Save capture.feature after confirmation. */ },
-    onError: { error in /* Handle a technical failure. */ }
-))
-let callbacks = FaceFlowCallbacks(
-    onProgress: { progress in /* Update action/liveness guidance. */ },
-    onResult: { result in /* Check result.outcome first. */ },
-    onError: { error in /* Handle a technical failure. */ }
-)
-// Start these separately, after ending any existing camera flow.
-let liveness = sdk.startCameraLiveness(
-    configuration: try FaceLivenessConfiguration(actions: [.blink, .shakeHead]),
-    callbacks: callbacks
-)
-let verification = sdk.startCameraVerification(
-    configuration: try FaceVerificationConfiguration(
-        referenceFeature: referenceHF1, requiresSilentLiveness: true,
-        actions: [.blink, .shakeHead]),
-    callbacks: callbacks
-)
-```
+Open an independent library with `HiFaceSDK.openSearchDatabase()`. Use `saveFeature` or `saveFeatures` to add or update by Face ID. Save 1–1,000 records per batch. Use `search` to query by a face feature. `entries` / `recentEntries` returns metadata, and `featureEntries` pages through records with features. Close an explicitly opened library when finished. Call methods on the database actor with `try await` where required.
 
-`onResult` includes both acceptance and rejection. Check `FaceFlowResult.outcome`; technical errors use `onError`. A nil similarity or liveness score means the stage did not produce a result, not zero. Empty actions still run seven-frame passive liveness with both models. Core applies the 0.90 passive liveness threshold; do not repeat the decision in the UI. Use the public configuration defaults and `maximumActionCount` for supported limits.
+| Database query parameter | Range and default | Purpose |
+|---|---|---|
+| Face ID, `group`, `tag` | 1–1024 UTF-8 bytes for Face ID, at most 1024 bytes per filter, no NUL | Group and tag match exactly. If both are set, both must match. Leave both unset to search the whole library. |
+| `topK` | 1–100, default 1 | Maximum number of matches returned. |
+| `threshold` | 0–1, default 0.80 | Minimum similarity for a database match. A query without a qualifying match returns an empty list. |
 
-Stop frame delivery and cancel the active request when leaving, backgrounding, or switching cameras. Then close the SDK. `cancel()` / `close()` suppress stale callbacks immediately and release native resources after in-flight calls finish.
+Use `sdk.startCameraSearch(configuration:callbacks:)` for continuous search. It manages its own library connection.
 
-## Face library and continuous search
+| Continuous search parameter | Range and default | Purpose |
+|---|---|---|
+| `mode`, `needsLiveness` | Single-face with liveness by default; multi-face search has no liveness | Selects the largest face or analyzes multiple faces. |
+| `threshold` | 0.75–0.85, default 0.80 | Minimum identity score in continuous search. |
+| `searchIntervalMilliseconds` | 0–3,000 ms, default 0 | Delay before the next attempt after a match. |
+| `searchTimeoutMilliseconds` | 1,000–3,000 ms, default 3,000 ms | Time budget from the first selected face. |
+| `maxFacesPerFrame` | 1–5, default 3 | Face limit in multi-face mode. Single-face mode selects the largest face. |
 
-The database is independent of inference and serializes operations on an actor.
+Check `endReason` first. A `.spoofDetected` outcome rejects a match even if similarity passes. `frameID` identifies one camera sample. `frameJPEG` is an optional full scene from the terminal sample. Use the original frame size to map its face boxes.
 
-```swift
-let database = try HiFaceSDK.openSearchDatabase()
-let exists = try await database.contains(faceID: "user-1")
-try await database.saveFeature(faceID: "user-1", feature: hf1, group: "staff")
-try await database.saveFeatures(featureBatch)
-let matches = try await database.search(feature: hf1)
-let record = try await database.entry(faceID: "user-1")
-let metadata = try await database.recentEntries()
-let exportPage = try await database.featureEntries(offset: 0, limit: 100)
-try await database.updateMetadata(faceID: "user-1", group: "building-A")
-await database.close()
-```
+Store returned features as-is. When changing to an incompatible model, re-extract features from the original photos and reimport them. The host app handles consent, protection, and deletion of photos and features.
 
-The SDK manages a private Application Support database excluded from cloud backup. Face IDs contain 1–1024 UTF-8 bytes; group/tag allow at most 1024 bytes; NUL is not allowed. Save operations upsert by ID; atomic batches accept 1–1000 entries. Check `contains` before prompting for overwrite.
+## Errors and cleanup
 
-SQLite stores the original 450-byte Q7 payload. Full record/search/feature-page results return complete HF1 without re-quantization; `entries` and `recentEntries` return metadata only. `updateMetadata` preserves nil fields and clears empty fields. Validate server features using `FaceFeatureFormat.featureSpaceID` (`jdx-feature-v1`) and `FaceSearchFeatureEntry`. Compression and iOS file protection are not database encryption.
+Static and frame APIs return Swift `Result`; configuration initializers and database APIs may throw. Branch on `HiFaceError.code`. Camera callbacks are delivered on `MainActor`. Keep one SDK per feature screen and close it when finished.
 
-```swift
-let search = sdk.startCameraSearch(configuration: .default, callbacks: FaceSearchCallbacks(
-    onFrame: { frame in /* Draw current faces and available scores. */ },
-    onProgress: { progress in /* Update guidance. */ },
-    onResult: { result in /* Check endReason first. */ },
-    onError: { error in /* Recover if appropriate, then resume. */ }
-))
-search.pause()
-search.update(configuration: newConfiguration)
-search.resume()
-search.close()
-```
+| Condition | What to do |
+|---|---|
+| `.notReady` | While models initialize, the runtime is busy, or a camera frame is skipped, drop the old frame and keep submitting the latest one. |
+| `.busy` | Wait for static jobs to finish or end the current camera flow. |
+| `.invalidArgument` | Check the parameters, frame format, and buffers. |
+| `.licenseExpired` | Check the validity dates and contact SDK support if needed. |
+| `.closed` | Stop sending work to this instance. |
 
-Search manages its own database connection. Pause retains the models, connection, and flow slot but releases the selected gallery cache after in-flight processing. Resume warms the scope again before accepting new frames. `releaseMemory()` applies to an explicit database handle.
+Capture, liveness, verification, and continuous search share one camera flow slot. When switching or leaving, stop feeding frames, cancel the request or close the search, then close the SDK. `onError` reports technical failures. Inspect the outcome for business results.
 
-Correlate callbacks by `frameID`. An unscored detection (`similarity == nil`) is not an unmatched result. Use final `endReason`; `.spoofDetected` rejects the result even when similarity passes. After 10 seconds without faces, analysis targets 200 ms intervals; skipped frames return `.notReady`. Search interval controls the wait after successful matching, not camera FPS.
-
-Use `HiFaceError.code` for errors and the result outcome for business decisions.
-## Multi-face image search
-
-Use `await sdk.captureFaces(image)` with `HiFaceRGBAImage`. The result contains up to ten `FaceImageCapture` values with input pixel bounds and independent captures/errors.
-No faces is a successful empty list; faces smaller than 100px do not prevent other captures.
-Pass each successful HF1 to `FaceSearchDatabase.search` for static M:N search. Core owns detection, alignment and inference.
-
-The Demo home screen includes Image Face Search: album selection, original-image boxes, identity/score labels,
-aligned thumbnails and detected/matched counts. It uses all records, Top-1 and threshold 0.80, without liveness.
-Image search preserves original resolution up to the SDK limit of 4096px per side. Only oversized photos are reduced proportionally; odd last rows/columns are cropped by 1px. The size gate uses the resulting pixels. Comparison and bulk import keep their existing decoding limits.
-
-## IR-only liveness
-
-FLIR accepts upright, unmirrored GRAY8 IR measurements, 1..4096 pixels per side,
-including odd dimensions and row padding. Supply a detected face box in this IR image
-(x/y + width/height, at least 10x10). Camera access, IR face detection, illumination,
-and multiple-face handling belong to the host. RGB converted to gray is not IR.
-
-```swift
-let frame = InfraredFrame(gray: grayData, width: width, height: height,
-    rowStride: rowStride, faceBounds: boundsInIRImage)
-let result = await sdk.evaluateInfraredLiveness(frame,
-    realThreshold: calibratedThreshold)
-```
-
-Calibrate the explicit Float32 real threshold on the target IR camera. `realScore` is
-higher for live faces, `spoofScore = 1-realScore`; pass means `realScore >= threshold`.
-Check technical errors before reading the result. Android calls are synchronous on a
-worker thread; iOS/Harmony calls use the bounded background queue. Input is owned/copied.
-This entry does not change the RGB camera liveness/search flows. iOS requires accessible
-IR image data; the SDK does not obtain the internal Face ID IR stream.
-
-### Search result scene image (0.8.12)
-
-`FaceSearchResult.frameJPEG`, `frameWidth`, and `frameHeight` describe the same terminal RGB sample as `frame`. The full scene is rotated, unmirrored, scaled without upscaling to at most 480 pixels per side, and JPEG-encoded at quality 95. Success and business rejection include a best-effort image. Unavailable images have zero dimensions. Bounds remain in the original sample coordinates. Encoding runs outside the Native lock; cancellation discards stale images. No disk cache or image history is kept.
+The current model does not support face recognition for people under 12. Financial use is prohibited. Outdoor face search requires a camera with a wide dynamic range greater than 100 dB.
