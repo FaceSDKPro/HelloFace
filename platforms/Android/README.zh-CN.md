@@ -69,3 +69,5 @@ android {
 Debug 签名仅供测试；Release APK 使用自己的证书。保留 [LICENSE](LICENSE) 和交付信息。
 
 请及时升级 SDK 版本。[更新与说明](https://github.com/FaceSDKPro/) · [问题反馈](https://github.com/FaceSDKPro/HelloFace/issues)。
+
+下载或克隆仓库后，可在浏览器中打开离线 [HTML SDK API](../../docs/SDK-API/Android/guide.html).

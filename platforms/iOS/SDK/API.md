@@ -1,6 +1,4 @@
-# HiFace iOS 0.8.14 SDK API Guide
-
-English | [简体中文](API.zh-CN.md)
+# HiFace iOS SDK API Guide
 
 ## Quick start
 
@@ -41,6 +39,13 @@ struct ContentView: View {
 }
 ```
 
+`HiFaceSDK()` initializes in the background. Static calls wait for readiness; discard a camera frame returning `.notReady`. The SDK does not manage cameras or permissions. The example is for one image; retain one instance for a realtime page rather than creating one per frame.
+
+| `HiFaceConfiguration` parameter | Range and default | Purpose |
+|---|---|---|
+| `cpuThreads` | `.automatic` / `.two` / `.four`; default `.automatic` | Use the same policy for all instances in a process; it cannot change after the first session is created. |
+| `modelDirectoryURL` | Local directory URL; default `nil` | Uses packaged SDK resources by default. A custom directory must contain the complete model resources; manual integration must preserve both frameworks and their resources. |
+
 ## API reference
 
 ### Face detection
@@ -55,6 +60,8 @@ Call `sdk.processFrame(frame, configuration: config)`. A successful result conta
 Use even camera frame dimensions, at most 1920 on the long side and 1080 on the short side. Rotation is 0°, 90°, 180°, or 270°.
 Build a `HiFaceCameraFrame` from two-plane NV12 (`420v` or `420f`) with a BT.601/709 matrix attachment and the correct rotation. The synchronous call borrows the pixel buffer until return.
 
+`isMirrored` describes the preview; it does not mirror recognition input or results. The app transforms overlays. Even with `includesDetailedLandmarks` enabled, check `mesh` and `headPose` separately for nil; angles are in degrees.
+
 ### Face enrollment and photo capture
 
 | API | Result |
@@ -65,6 +72,8 @@ Build a `HiFaceCameraFrame` from two-plane NV12 (`420v` or `420f`) with a BT.601
 | `sdk.startCameraCapture(callbacks:)` | Guides the user through camera enrollment and delivers the result to the callback. |
 
 Apply photo orientation first. Each SDK has one active static-image job and room for four waiting jobs. Submit batch photos one at a time. Photo APIs require no camera permission and perform no liveness check.
+
+`HiFaceRGBAImage(rgba:width:height:)` accepts tightly packed RGBA8888 with exactly `width * height * 4` bytes and snapshots pixels on construction; the convenience APIs also accept `CGImage`. Display an aligned preview with `alignedFace?.makeCGImage()`. Strict single-face enrollment requires exactly one `captureFaces` entry with successful `capture`; largest-face APIs do not reject multi-person photos.
 
 ### Liveness and 1:1 verification
 
@@ -80,27 +89,47 @@ Start `sdk.startCameraLiveness(configuration:callbacks:)` or `sdk.startCameraVer
 | `actionTimeoutMilliseconds` | 2,000–30,000 ms, default 3,000 ms | Time budget per action. |
 | `faceAcquisitionTimeoutMilliseconds` | 1,000–60,000 ms, default 10,000 ms | Time to find the first usable face. |
 
+`actions` run in order and may repeat: `.shakeHead`, `.nodHead`, `.blink`, `.openMouth`. With no actions and `requiresSilentLiveness=false`, 1:1 checks identity without liveness. Only `FaceFlowResult.passed` indicates acceptance. Nil `similarity` or `livenessScore` means unavailable, not zero; an image does not indicate acceptance. `frameWidth` and `frameHeight` are JPEG pixel dimensions, or zero without an image.
+
 RGB passive liveness uses an SDK threshold of 0.90. The liveness and verification `onResult` callback carries both acceptance and rejection. Check `outcome` first. Read similarity or liveness scores only when present. For standalone infrared liveness, call `await sdk.evaluateInfraredLiveness(_:realThreshold:)` with a real GRAY8 infrared frame, its face box, and a required 0–1 threshold calibrated on the target camera.
 
 ### Face library and search
 
 Open an independent library with `HiFaceSDK.openSearchDatabase()`. Use `saveFeature` or `saveFeatures` to add or update by Face ID. Save 1–1,000 records per batch. Use `search` to query by a face feature. `entries` / `recentEntries` returns metadata, and `featureEntries` pages through records with features. Close an explicitly opened library when finished. Call methods on the database actor with `try await` where required.
 
-| Database query parameter | Range and default | Purpose |
+A library holds at most 50,000 records. A batch succeeds or rolls back as a whole; the last duplicate ID in the batch wins. `contains(faceID:)` reports existence, `entry(faceID:)` throws `.notFound` if absent, and `delete(faceID:)` reports whether a record was removed.
+
+Pagination uses `offset` from 0 through `Int32.max` (default 0) and `limit` from 1–1,000 (default 100). `entries` and `featureEntries` sort by Face ID; `recentEntries` sorts newest first. `updateTimeMilliseconds` uses Unix milliseconds; the default 0 selects the current time and negative values are invalid. For `updateMetadata`, nil preserves and empty clears a group or tag; supply at least one. Use `await database.close()` to close the connection; closing the SDK does not close independently opened connections.
+
+**Face records and filters**
+
+| Parameter | Range and default | Purpose |
 |---|---|---|
-| Face ID, `group`, `tag` | 1–1024 UTF-8 bytes for Face ID, at most 1024 bytes per filter, no NUL | Group and tag match exactly. If both are set, both must match. Leave both unset to search the whole library. |
+| Face ID | Required; 1–1024 UTF-8 bytes; no NUL; no default | Application-assigned record ID. Saving the same ID updates that record. It is not a group or tag filter. |
+| `group` | Optional; at most 1024 bytes (UTF-8); no NUL; unrestricted by default | The record's group. Queries match it exactly; `nil` or empty means any group. |
+| `tag` | Optional; at most 1024 bytes (UTF-8); no NUL; unrestricted by default | An application-defined label. Queries match it exactly; `nil` or empty means any tag. |
+
+When both filters are supplied, both must match. With neither filter, search the whole library.
+
+**Query by an existing feature (`FaceSearchConfiguration`)**
+
+| Parameter | Range and default | Purpose |
+|---|---|---|
 | `topK` | 1–100, default 1 | Maximum number of matches returned. |
-| `threshold` | 0–1, default 0.80 | Minimum similarity for a database match. A query without a qualifying match returns an empty list. |
+| `threshold` | 0–1 inclusive, default 0.80 | Applies to feature queries. Returns records at or above the threshold, or an empty list. Camera search uses the separate range below. |
 
 Use `sdk.startCameraSearch(configuration:callbacks:)` for continuous search. It manages its own library connection.
 
 | Continuous search parameter | Range and default | Purpose |
 |---|---|---|
-| `mode`, `needsLiveness` | Single-face with liveness by default; multi-face search has no liveness | Selects the largest face or analyzes multiple faces. |
-| `threshold` | 0.75–0.85, default 0.80 | Minimum identity score in continuous search. |
+| `mode` | `.singleFace` / `.multiFace`; default `.singleFace` | Single-face mode selects the largest face. Multi-face mode processes up to `maxFacesPerFrame` faces. |
+| `needsLiveness` | `true` / `false`; default `true` in single-face mode and `false` in multi-face mode | Enables RGB passive liveness. Multi-face mode rejects `true`. |
+| `threshold` | 0.75–0.85 inclusive, default 0.80 | Camera-search identity threshold. Similarity must be at least this value; required liveness must also pass. |
 | `searchIntervalMilliseconds` | 0–3,000 ms, default 0 | Delay before the next attempt after a match. |
 | `searchTimeoutMilliseconds` | 1,000–3,000 ms, default 3,000 ms | Time budget from the first selected face. |
 | `maxFacesPerFrame` | 1–5, default 3 | Face limit in multi-face mode. Single-face mode selects the largest face. |
+
+`startCameraSearch` immediately returns a session; keep feeding fresh frames during preparation. `pause()` retains the camera-flow slot, so close it before capture or verification. `resume()` resumes it; `update(configuration:)` replaces settings and invalidates old results. Use `onFrame` for display and `onResult` for business decisions. Technical errors pause the session; fix the cause before `resume()`. Closed sessions cannot be reused.
 
 Check `endReason` first. A `.spoofDetected` outcome rejects a match even if similarity passes. `frameID` identifies one camera sample. `frameJPEG` is an optional full scene from the terminal sample. Use the original frame size to map its face boxes.
 
@@ -117,7 +146,16 @@ Static and frame APIs return Swift `Result`; configuration initializers and data
 | `.invalidArgument` | Check the parameters, frame format, and buffers. |
 | `.licenseExpired` | Check the validity dates and contact SDK support if needed. |
 | `.closed` | Stop sending work to this instance. |
+| `.resourceExhausted` | Reduce concurrency and check memory, disk space and capacity before retrying. |
+| `.databaseError` | Check the database path, permissions and storage; preserve the data rather than deleting it automatically. |
+| `.internalError` | Stop this request and contact support with the SDK version and error code. |
 
 Capture, liveness, verification, and continuous search share one camera flow slot. When switching or leaving, stop feeding frames, cancel the request or close the search, then close the SDK. `onError` reports technical failures. Inspect the outcome for business results.
 
+Keep camera input valid until the synchronous frame call returns, and retain static-image input until its awaited operation finishes. Result images are optional and do not indicate acceptance. Cancellation and close do not synthesize a terminal callback.
+
+Cancel a camera method's `FaceRequest` with `cancel()`; cancellation does not synthesize a terminal callback. Static-image async calls have no such handle: canceling a Swift `Task` does not abort the SDK job. After awaiting, check task cancellation or page validity. `close()` does not wait for in-flight operations; stop submitting work to the old instance.
+
 The current model does not support face recognition for people under 12. Financial use is prohibited. Outdoor face search requires a camera with a wide dynamic range greater than 100 dB.
+
+[English](API.md) | [简体中文](API.zh-CN.md)

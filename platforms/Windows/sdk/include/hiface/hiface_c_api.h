@@ -11,7 +11,7 @@
  *      同时 EAR/MAR 因几何退化而无效。不要用其中一个推断另一个。
  *
  * 本文件只描述**形状与调用**（结构体、函数、所有权）。共用的具名常量与枚举值在
- * hiface_contract_v1.h，由 core/abi/contract.json 生成 —— 改数值改那份契约。
+ * hiface_contract_v1.h。
  * ABI 枚举类型固定为 int32_t，不使用实现决定宽度的 C enum。
  *
  * 带 struct_size 的结构体以 HIFACE_*_V1_MIN_SIZE 冻结 V1 前缀。调用方应把它设置为
@@ -25,7 +25,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* ABI 的共用具名常量与枚举由 core/abi/contract.json 生成。搜索字段的取值见下方结构说明。 */
+/* 共用常量与枚举见 hiface_contract_v1.h；字段取值见对应结构说明。 */
 #include "hiface/hiface_contract_v1.h"
 
 #ifdef __cplusplus
@@ -65,19 +65,13 @@ typedef struct HiFaceLicenseIdentityV1 {
     char installation_id_sha256[65];
 } HiFaceLicenseIdentityV1;
 typedef HiFaceStatus (HIFACE_CALL *HiFaceLicenseIdentityCallbackV1)(void*, HiFaceLicenseIdentityV1*);
-/* 当前平台从 SQLite 读取经软件 MAC 和字段一致性校验的 192 字节状态。
- * 未启用的新库可报告 NOT_FOUND；已启用库的状态缺失、损坏或读取失败必须报错，
- * 不得按首次启用重置。软件 MAC 不提供硬件防篡改或完整快照防回放保证。
- */
+/* SDK 平台适配器专用：读取授权状态；宿主不得实现或替换此回调。 */
 typedef HiFaceStatus (HIFACE_CALL *HiFaceLicenseReadStateCallbackV1)(void*, uint8_t*, size_t, size_t*);
-/* 当前平台以同一 SQLite 事务提交状态、启用标记与可选证书原文；完整持久化后才返回 OK。
- * expected_sequence 为 CAS 前置序号，冲突返回 BUSY；不使用独立业务 journal。
- * 日常检查点 envelope_size=0，保留已有证书；换证原文与状态必须原子提交。
- */
+/* SDK 平台适配器专用：保存授权状态；宿主不得实现或替换此回调。 */
 typedef HiFaceStatus (HIFACE_CALL *HiFaceLicenseCommitStateCallbackV1)(
         void*, uint64_t expected_sequence, const uint8_t* state, size_t state_size,
         const char* envelope, size_t envelope_size);
-/* 从同一 SQLite 库读取经校验的正式证书原文；无正式证书时返回 NOT_FOUND。 */
+/* SDK 平台适配器专用：读取授权；宿主不得实现或替换此回调。 */
 typedef HiFaceStatus (HIFACE_CALL *HiFaceLicenseReadEnvelopeCallbackV1)(void*, char*, size_t, size_t*);
 typedef struct HiFaceLicenseDeviceProfileV1 {
     uint32_t struct_size;
@@ -137,13 +131,13 @@ typedef struct HiFaceSearchEntryV1 {
     uint32_t embedding_count;
     /** Unix epoch 毫秒；写入为 0 时由 core 填当前时间，负数非法。 */
     int64_t update_time_ms;
-    /** 完整读取/搜索为原始 HF1；轻量 list/list_recent 为 NULL/0。 */
+    /** 完整读取/搜索返回已保存的特征文本；轻量 list/list_recent 为 NULL/0。 */
     const char* feature_text;
     uint32_t feature_text_length;
     const char* feature_space_id;
 } HiFaceSearchEntryV1;
 
-/** 写入使用原始 HF1 文本，保留其中的 Q7 payload，不再解码后重新量化。 */
+/** 特征文本须按 SDK 返回值原样保存。 */
 typedef struct HiFaceSearchFeatureEntryV1 {
     uint32_t struct_size;
     /** 非空 UTF-8，最多 HIFACE_SEARCH_MAX_TEXT_BYTES 字节。 */
@@ -156,7 +150,7 @@ typedef struct HiFaceSearchFeatureEntryV1 {
     uint32_t feature_text_length;
     /** Unix epoch 毫秒；0 由 Core 填当前时间，负数拒绝。 */
     int64_t update_time_ms;
-    /** 必须是 HIFACE_FEATURE_SPACE_ID；HF1 本身不能证明模型兼容。 */
+    /** 必须是 HIFACE_FEATURE_SPACE_ID；不可混用不兼容模型的特征。 */
     const char* feature_space_id;
 } HiFaceSearchFeatureEntryV1;
 
@@ -169,11 +163,9 @@ typedef struct HiFaceSearchFeatureEntryV1 {
 #endif
 
 /**
- * 打开/新建 SDK 专用 SQLite 库，只接受 SDK 自身 schema；path 是非空 UTF-8 文件路径。
- * 表字段为 faceID/tag/group/embedding/updateTime；embedding 是 HF1 原始 450 字节 Q7 BLOB。
- * 读取/预热时恢复为 512 维 Float32；保存 HF1 不引入再次量化，搜索算法与分数定义保持一致。
+ * 打开/新建 SDK 人脸库；path 是非空 UTF-8 文件路径。
  * 单库最多 HIFACE_SEARCH_MAX_ENTRIES 条，使用当前 HiFace 特征空间；其他模型的同维度特征不能混用。
- * 文件使用普通 SQLite，不提供数据库加密。父目录由宿主创建，建议应用私有目录。
+ * 父目录由宿主创建，建议应用私有目录；照片、特征的保护与删除由应用负责。
  * 同一 handle 的操作内部串行化；与推理 session 无共享锁。所有操作同步，应在工作线程调用。
  * 失败时 *out_database 为 NULL；已有非本 SDK 库或较新版本拒绝打开，不覆盖或自动迁移。
  */
@@ -221,7 +213,7 @@ HIFACE_API HiFaceStatus HIFACE_CALL hiface_search_list_v1(
 HIFACE_API HiFaceStatus HIFACE_CALL hiface_search_list_recent_v1(
         HiFaceSearchDatabaseHandle database, const char* group, const char* tag,
         uint32_t offset, uint32_t limit, HiFaceSearchResultsHandle* out_results);
-/** 按 ID 分页读取完整原始 HF1，供批量导出/同步；过滤、limit 规则同 list。 */
+/** 按 ID 分页读取已保存的特征文本，供批量导出/同步；过滤、limit 规则同 list。 */
 HIFACE_API HiFaceStatus HIFACE_CALL hiface_search_list_features_v1(
         HiFaceSearchDatabaseHandle database, const char* group, const char* tag,
         uint32_t offset, uint32_t limit, HiFaceSearchResultsHandle* out_results);
@@ -328,9 +320,6 @@ HIFACE_API HiFaceStatus HIFACE_CALL hiface_runtime_configure_v1(
  * Native worker 的队尾。返回后 handle 立即失效。
  *
  * session mutex 只串行化存活句柄上的调用，销毁与在途调用的互斥由平台绑定保证。
- * Android 的 EngineHost 通过 nativeGate 串行化 Native 调用，并在关闭时禁止新任务、
- * 等待在途调用退出后释放；EngineHostNativeSessionTest 验证该生命周期契约。
- * iOS/鸿蒙绑定须提供等价保证。
  */
 HIFACE_API void HIFACE_CALL hiface_session_destroy_v1(HiFaceSessionHandle session);
 
@@ -686,11 +675,6 @@ typedef struct HiFaceFlowConfigV1 {
     int64_t multiple_faces_timeout_ms;
     int64_t final_capture_timeout_ms;
     int64_t frontal_hold_ms;
-    /*
-     * 这里曾有一个 require_behavior_metrics 开关。现在由 core 按待执行动作自行判定：
-     * 只有眨眼和张嘴需要 EAR/MAR，其余阶段不再因指标缺失而整帧跳过。平台不需要、
-     * 也不应该再表达这个选择。
-     */
     /* 必须 > 0；动态验证最终阶段低于该值仍可采样。 */
     float min_face_size_pixels;
     /* 必须是 [0,1] 内有限值，包括不使用该值的其他 mode。 */
@@ -833,18 +817,17 @@ HIFACE_API HiFaceStatus HIFACE_CALL hiface_feature_compare_v1(
         float* out_score);
 
 /* ---------------------------- 特征文本形式 ------------------------------- *
- * HF1 文本格式、长度与前缀都是 ABI 的一部分，定义在 hiface_contract_v1.h。
+ * 特征文本的缓冲区常量定义在 hiface_contract_v1.h。
  * ------------------------------------------------------------------------- */
 
 /**
- * 把 512 维非零有限特征按方向归一化、量化并编码为 HF1 文本。
+ * 把 HIFACE_FACE_FEATURE_DIMENSION 个非零有限特征值编码为特征文本。
  * out_text 由调用方预分配，容量必须 >= HIFACE_FEATURE_TEXT_BUFFER_SIZE；
- * 成功时写入 604 个字符加结尾 '\0'，失败时写入空字符串并返回 INVALID_ARGUMENT。
+ * 成功时写入 HIFACE_FEATURE_TEXT_LENGTH 个字符加结尾 '\0'，失败时写入空字符串并返回 INVALID_ARGUMENT。
  * 本函数不依赖 session，也不需要任何模型。
  *
- * 注意：HF1 文本**不是规范形式**。解码再编码会重新量化和舍入，字符串可能不同。
- * 数据库完整读取直接返回原始 Q7 的 HF1，不使用本函数重编码。
- * 因此宿主不能用字符串相等来判断「是不是同一条特征」，必须解码后用 hiface_feature_compare_v1。
+ * 请按 SDK 返回值原样保存；不要通过反复转换文本来比较人脸。
+ * 判断相似度须使用 hiface_feature_compare_v1，而不是字符串相等。
  */
 HIFACE_API HiFaceStatus HIFACE_CALL hiface_feature_encode_text_v1(
         const float* feature,
@@ -853,10 +836,9 @@ HIFACE_API HiFaceStatus HIFACE_CALL hiface_feature_encode_text_v1(
         size_t out_text_capacity);
 
 /**
- * 解析 HF1 文本并输出 L2 归一化的 512 维特征。text_length 必须是精确长度，
+ * 解析 SDK 特征文本并输出归一化特征。text_length 必须是精确长度，
  * 实现不依赖结尾 '\0'。out_feature_count 必须等于 HIFACE_FACE_FEATURE_DIMENSION。
- * 任何格式、长度、字母表或 payload 错误都返回 INVALID_ARGUMENT，并把输出清零 ——
- * 不区分具体原因是有意的：区分会把「这条文本哪里不合法」变成可探测的信息。
+ * 格式或长度错误返回 INVALID_ARGUMENT，并把输出清零。
  */
 HIFACE_API HiFaceStatus HIFACE_CALL hiface_feature_decode_text_v1(
         const char* text,

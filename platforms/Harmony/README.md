@@ -27,3 +27,5 @@ Models are embedded in the HAR. Await `whenReady()` before using the SDK.
 Guides: [SDK API](SDK.md) · [Demo](demo/README.md).
 
 Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).
+
+After cloning or downloading the repository, open the offline [HTML SDK API](../../docs/SDK-API/Harmony/index.html).

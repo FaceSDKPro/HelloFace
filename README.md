@@ -65,6 +65,8 @@
 
 **More platforms (planned):** WeChat Mini Programs, ChromeOS, uni-app, Flutter plugins, React Native (RN) plugins, and more.
 
+After cloning or downloading the repository, open the offline [HTML SDK API](docs/SDK-API/index.html) in your browser.
+
 ## Get the code
 
 This repository uses Git LFS to manage large files such as SDK binaries. If you only need the latest commit from the default branch, use a shallow clone to skip the commit history:

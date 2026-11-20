@@ -65,6 +65,8 @@
 
 **Autres plateformes (prévues):** Mini-programmes WeChat, ChromeOS, uni-app, extensions Flutter, extensions React Native (RN), etc.
 
+Après avoir cloné ou téléchargé le dépôt, ouvrez la [documentation API HTML du SDK](../../docs/SDK-API/index.html) hors ligne dans votre navigateur.
+
 ## Obtenir le code
 
 Ce dépôt utilise Git LFS pour gérer les fichiers volumineux, tels que les binaires du SDK. Si vous avez uniquement besoin du dernier commit de la branche par défaut, effectuez un clonage superficiel pour ne pas télécharger l’historique :

@@ -65,6 +65,8 @@
 
 **Weitere Plattformen (geplant):** WeChat-Miniprogramme, ChromeOS, uni-app, Flutter-Plug-ins, React-Native-Plug-ins (RN) und mehr.
 
+Öffnen Sie nach dem Klonen oder Herunterladen des Repositorys die [Offline-HTML-API-Dokumentation des SDK](../../docs/SDK-API/index.html) im Browser.
+
 ## Code beziehen
 
 Dieses Repository verwendet Git LFS für große Dateien wie die SDK-Binärdateien. Wenn Sie nur den neuesten Commit des Standardbranches benötigen, können Sie mit einem flachen Klon den Download der Versionshistorie überspringen:

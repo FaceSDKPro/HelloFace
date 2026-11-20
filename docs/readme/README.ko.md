@@ -65,6 +65,8 @@
 
 **추가 지원 예정 플랫폼:** WeChat 미니 프로그램, ChromeOS, uni-app, Flutter 플러그인, React Native(RN) 플러그인 등.
 
+저장소를 복제하거나 다운로드한 후 브라우저에서 오프라인 [HTML SDK API](../../docs/SDK-API/index.html)를 여세요.
+
 ## 코드 받기
 
 이 저장소는 SDK 바이너리와 같은 대용량 파일을 Git LFS로 관리합니다. 기본 브랜치의 최신 커밋만 필요한 경우, 기록을 내려받지 않는 얕은 복제를 사용하세요.

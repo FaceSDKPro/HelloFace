@@ -28,3 +28,5 @@ Use `HiFaceSDK()` with its default model bundle. Add `NSCameraUsageDescription` 
 Guides: [SDK API](SDK/API.md) · [Demo](DEMO.md).
 
 Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).
+
+After cloning or downloading the repository, open the offline [HTML SDK API](../../docs/SDK-API/iOS/index.html).

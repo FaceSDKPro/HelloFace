@@ -71,3 +71,5 @@ Camera example: [CameraPreviewFragment](demo/src/main/java/com/hiface/sdk/demo/c
 Sign Release APKs with your certificate. Retain [LICENSE](LICENSE).
 
 Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/) · [Issues](https://github.com/FaceSDKPro/HelloFace/issues).
+
+After cloning or downloading the repository, open the offline [HTML SDK API](../../docs/SDK-API/Android/guide.html).

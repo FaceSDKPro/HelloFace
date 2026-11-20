@@ -260,3 +260,5 @@ Photo comparison 点击任一照片区域选图后即提取并缓存特征，两
 `HIFACE_DISPLAY_MODE=embedded`，在该页 Settings 中选择不同的 RGB、IR 设备及各自旋转角度后启动。
 普通桌面继续横屏、RGB 单摄。每次匹配都要求新鲜帧对和当前 IR 活体通过；
 缺帧、多人和双摄几何错位不会退回 RGB 搜索。仍须按实际双摄标定并完成设备验收。
+
+下载或克隆仓库后，可在浏览器中打开离线 [HTML SDK API](../../docs/SDK-API/Linux/index.html).

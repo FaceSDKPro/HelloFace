@@ -1,0 +1,39 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'"><title>Windows example</title><link rel="stylesheet" href="../style.css"></head><body><h1>Minimal example</h1><pre><code>#include &lt;hiface/hiface_windows.h&gt;
+#include &lt;iostream&gt;
+#include &lt;vector&gt;
+int main() {
+    HiFaceSessionHandle session = nullptr;
+    try {
+        HiFaceRuntimeConfigV1 runtime{sizeof(runtime), HIFACE_C_API_VERSION_V1, 0, 0};
+        if (hiface_runtime_configure_v1(&amp;runtime) != HIFACE_STATUS_OK) throw &quot;Runtime configuration failed&quot;;
+        HiFaceConfigV1 config{};
+        config.struct_size = sizeof(config); config.api_version = HIFACE_C_API_VERSION_V1;
+        config.eye_closed_ear_threshold = HIFACE_DEFAULT_EYE_CLOSED_EAR_THRESHOLD;
+        config.mouth_open_mar_threshold = HIFACE_DEFAULT_MOUTH_OPEN_MAR_THRESHOLD;
+        config.compute_mode = HIFACE_COMPUTE_CPU; config.enable_feature = config.enable_landmark = 1;
+        if (hiface_session_create_v1(&amp;config, &amp;session) != HIFACE_STATUS_OK) throw &quot;Session creation failed&quot;;
+        HiFaceModelLoadReportV1 report{}; report.struct_size = sizeof(report);
+        if (hiface_windows_session_load_model_v1(nullptr, HIFACE_MODEL_DETECTOR, &amp;report) != HIFACE_STATUS_INVALID_ARGUMENT)
+            throw &quot;Null session must be rejected&quot;;
+        if (hiface_windows_session_load_model_v1(session, static_cast&lt;HiFaceModelIdV1&gt;(99), &amp;report) != HIFACE_STATUS_INVALID_ARGUMENT)
+            throw &quot;Invalid model ID must be rejected&quot;;
+        for (int id = HIFACE_MODEL_DETECTOR; id &lt;= HIFACE_MODEL_SILENT_LIVENESS_M; ++id)
+            if (hiface_windows_session_load_model_v1(session, static_cast&lt;HiFaceModelIdV1&gt;(id), &amp;report) != HIFACE_STATUS_OK)
+                throw &quot;Built-in model loading failed&quot;;
+        if (hiface_session_prepare_loaded_models_v1(session, &amp;report) != HIFACE_STATUS_OK) throw &quot;Preparation failed&quot;;
+        if (report.detector != HIFACE_MODEL_LOADED || report.feature != HIFACE_MODEL_LOADED
+            || report.landmarks != HIFACE_MODEL_LOADED || report.silent_liveness_s != HIFACE_MODEL_LOADED
+            || report.silent_liveness_m != HIFACE_MODEL_LOADED) throw &quot;Incomplete model report&quot;;
+        std::vector&lt;uint8_t&gt; rgba(640 * 480 * 4, 128);
+        for (size_t i = 3; i &lt; rgba.size(); i += 4) rgba[i] = 255;
+        HiFaceFaceV1 faces[10]{};
+        HiFaceFrameResultV1 result{}; result.struct_size = sizeof(result); result.faces = faces; result.capacity = 10;
+        HiFaceDetectionRequestV1 request{sizeof(request), HIFACE_C_API_VERSION_V1, 10, 0};
+        if (hiface_session_process_rgba_v1(session, rgba.data(), rgba.size(), 640, 480, &amp;request, &amp;result) != HIFACE_STATUS_OK || result.count)
+            throw &quot;Blank image detection failed&quot;;
+        hiface_session_destroy_v1(session);
+        std::cout &lt;&lt; &quot;Built-in CPU models and blank RGBA detection passed without external model files\n&quot;;
+        return 0;
+    } catch (const char* error) { hiface_session_destroy_v1(session); std::cerr &lt;&lt; error &lt;&lt; &#x27;\n&#x27;; return 1; }
+}
+</code></pre></body></html>

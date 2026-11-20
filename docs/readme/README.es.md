@@ -65,6 +65,8 @@
 
 **Más plataformas (previstas):** Miniprogramas de WeChat, ChromeOS, uni-app, complementos de Flutter, complementos de React Native (RN) y más.
 
+Después de clonar o descargar el repositorio, abre la [API del SDK en HTML](../../docs/SDK-API/index.html) sin conexión en tu navegador.
+
 ## Obtener el código
 
 Este repositorio utiliza Git LFS para gestionar archivos grandes, como los binarios del SDK. Si solo necesitas el último commit de la rama predeterminada, utiliza una clonación superficial para omitir el historial:

@@ -65,6 +65,8 @@
 
 **Lebih banyak platform (dirancang):** Program Mini WeChat, ChromeOS, uni-app, pemalam Flutter, pemalam React Native (RN) dan lain-lain.
 
+Selepas mengklon atau memuat turun repositori, buka [HTML SDK API](../../docs/SDK-API/index.html) luar talian dalam pelayar anda.
+
 ## Dapatkan kod
 
 Repositori ini menggunakan Git LFS untuk mengurus fail besar seperti binari SDK. Jika anda hanya memerlukan komit terkini daripada cabang lalai, gunakan pengklonan cetek untuk melangkau sejarah komit:

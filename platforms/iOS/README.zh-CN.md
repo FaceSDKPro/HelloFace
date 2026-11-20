@@ -28,3 +28,5 @@ SDK：**0.8.14**
 接入说明：[SDK API](SDK/API.zh-CN.md) · [Demo](DEMO.zh-CN.md)。
 
 请及时升级 SDK 版本。[更新说明](https://github.com/FaceSDKPro/)。
+
+下载或克隆仓库后，可在浏览器中打开离线 [HTML SDK API](../../docs/SDK-API/iOS/index.html).
