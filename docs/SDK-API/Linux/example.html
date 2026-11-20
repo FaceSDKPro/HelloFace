@@ -1,8 +1,5 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'"><title>Linux example</title><link rel="stylesheet" href="../style.css"></head><body><h1>Minimal example</h1><pre><code>/*
- * Public C ABI only. Input is tightly packed, orientation-normalized RGBA8888.
- *
- * 仅使用公开 C ABI；输入为方向已归正、紧密排列的 RGBA8888。
- */
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'"><title>Linux · Minimal example</title><link rel="stylesheet" href="../style.css"></head><body><header class="topbar"><div class="topbar-inner"><a class="brand" href="../index.html">HiFace<span>SDK API</span></a><span class="version">0.8.14</span><nav class="language-switch" aria-label="Language"><span aria-current="page" lang="en">English</span><a lang="zh-CN" hreflang="zh-CN" href="example.zh-CN.html">简体中文</a></nav></div></header><main class="container"><section class="hero"><h1>Linux · Minimal example</h1></section><article class="api-entry"><pre><code>/* Public C ABI only. Input is tightly packed, orientation-normalized RGBA8888. */
 #include &lt;hiface/hiface_linux.h&gt;
 #include &lt;errno.h&gt;
 #include &lt;stdio.h&gt;
@@ -86,7 +83,7 @@ int main(int argc, char **argv) {
     printf(&quot;faces=%u (static images have no liveness gate)\n&quot;, count);
     for (i = 0; i &lt; count; ++i) {
         printf(&quot;face=%u status=%d\n&quot;, i + 1, (int)statuses[i]);
-        if (statuses[i] != HIFACE_STATUS_OK) continue; /* Small faces are independent failures. / 过小人脸分别作为独立失败处理。 */
+        if (statuses[i] != HIFACE_STATUS_OK) continue; /* Small faces are independent failures. */
         if (!check(hiface_search_query_v1(database, features + i * HIFACE_FACE_FEATURE_DIMENSION,
                 HIFACE_FACE_FEATURE_DIMENSION, NULL, NULL, 1, HIFACE_DEFAULT_VERIFICATION_THRESHOLD,
                 &amp;results), &quot;query database&quot;)) goto done;
@@ -96,11 +93,7 @@ int main(int argc, char **argv) {
             entry.struct_size = sizeof(entry);
             if (!check(hiface_search_results_get_v1(results, 0, &amp;entry, &amp;score), &quot;read result&quot;)) goto done;
             printf(&quot;  id=%s similarity=%.6f\n&quot;, entry.face_id, (double)score);
-            /*
-             * Copy entry strings/feature before destroying results if the application retains them.
-             *
-             * 若应用需要保留条目字符串或特征，应在销毁结果前复制。
-             */
+            /* Copy entry strings/feature before destroying results if the application retains them. */
         } else { puts(&quot;  unmatched (or empty library)&quot;); }
         hiface_search_results_destroy_v1(results); results = NULL;
     }
@@ -112,4 +105,4 @@ done:
     free(rgba);
     return exit_code;
 }
-</code></pre></body></html>
+</code></pre></article><footer><div class="footer-inner"><span>HiFace SDK 0.8.14</span><span>Reference documentation · Available offline</span></div></footer></main></body></html>

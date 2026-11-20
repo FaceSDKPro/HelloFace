@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'"><title>Linux · 最小示例</title><link rel="stylesheet" href="../style.css"></head><body><header class="topbar"><div class="topbar-inner"><a class="brand" href="../index.zh-CN.html">HiFace<span>SDK API</span></a><span class="version">0.8.14</span><nav class="language-switch" aria-label="Language"><a lang="en" hreflang="en" href="example.html">English</a><span aria-current="page" lang="zh-CN">简体中文</span></nav></div></header><main class="container"><section class="hero"><h1>Linux · 最小示例</h1></section><article class="api-entry"><pre><code>/* Public C ABI only. Input is tightly packed, orientation-normalized RGBA8888.
+
+仅使用公开 C ABI；输入为方向已归正、紧密排列的 RGBA8888。 */
+#include &lt;hiface/hiface_linux.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+
+static int check(HiFaceStatus status, const char *operation) {
+    if (status == HIFACE_STATUS_OK) return 1;
+    fprintf(stderr, &quot;%s failed: HiFaceStatus=%d\n&quot;, operation, (int)status);
+    return 0;
+}
+
+static unsigned char *read_file(const char *path, size_t maximum, size_t *size) {
+    FILE *input = fopen(path, &quot;rb&quot;);
+    long length;
+    unsigned char *bytes = NULL;
+    *size = 0;
+    if (!input) { perror(path); return NULL; }
+    if (fseek(input, 0, SEEK_END) || (length = ftell(input)) &lt;= 0 ||
+            (unsigned long)length &gt; maximum || fseek(input, 0, SEEK_SET)) goto done;
+    bytes = (unsigned char *)malloc((size_t)length);
+    if (!bytes) goto done;
+    if (fread(bytes, 1, (size_t)length, input) != (size_t)length) {
+        free(bytes); bytes = NULL;
+    } else { *size = (size_t)length; }
+done:
+    fclose(input);
+    if (!bytes) fprintf(stderr, &quot;Cannot read file or size limit exceeded: %s\n&quot;, path);
+    return bytes;
+}
+
+static int dimension(const char *text) {
+    char *end;
+    long value;
+    errno = 0;
+    value = strtol(text, &amp;end, 10);
+    return !errno &amp;&amp; *text &amp;&amp; !*end &amp;&amp; value &gt;= 2 &amp;&amp; value &lt;= HIFACE_MAX_IMAGE_DIMENSION &amp;&amp;
+            value % 2 == 0 ? (int)value : 0;
+}
+
+int main(int argc, char **argv) {
+    HiFaceSessionHandle session = NULL;
+    HiFaceSearchDatabaseHandle database = NULL;
+    HiFaceSearchResultsHandle results = NULL;
+    unsigned char *rgba = NULL;
+    HiFaceConfigV1 config = {0};
+    HiFaceRuntimeConfigV1 runtime = {0};
+    HiFaceModelLoadReportV1 report = {0};
+    HiFaceFaceV1 faces[HIFACE_MAX_FACES];
+    HiFaceStatus statuses[HIFACE_MAX_FACES];
+    float features[HIFACE_MAX_FACES * HIFACE_FACE_FEATURE_DIMENSION];
+    uint32_t count = 0, i;
+    int width, height, exit_code = 1;
+    size_t size = 0, expected;
+    if (argc != 6 || strcmp(argv[1], &quot;--builtin&quot;) != 0 || !(width = dimension(argv[4])) || !(height = dimension(argv[5]))) {
+        fprintf(stderr, &quot;Usage: %s --builtin DATABASE INPUT.rgba WIDTH HEIGHT\n&quot;
+                &quot;Use --blank for INPUT.rgba to run a no-face inference check. Dimensions: even, 2..4096.\n&quot;, argv[0]);
+        return 2;
+    }
+    expected = (size_t)width * (size_t)height * 4;
+    if (strcmp(argv[3], &quot;--blank&quot;) == 0) {
+        rgba = (unsigned char *)calloc(expected, 1); size = expected;
+    } else { rgba = read_file(argv[3], expected, &amp;size); }
+    if (!rgba || size != expected) { fprintf(stderr, &quot;Expected exactly %zu RGBA bytes\n&quot;, expected); goto done; }
+    runtime.struct_size = sizeof(runtime);
+    runtime.api_version = HIFACE_C_API_VERSION_V1;
+    if (!check(hiface_runtime_configure_v1(&amp;runtime), &quot;configure runtime&quot;)) goto done;
+    config.struct_size = sizeof(config);
+    config.api_version = HIFACE_C_API_VERSION_V1;
+    config.compute_mode = HIFACE_COMPUTE_CPU;
+    config.enable_feature = 1;
+    config.enable_landmark = 1;
+    config.eye_closed_ear_threshold = HIFACE_DEFAULT_EYE_CLOSED_EAR_THRESHOLD;
+    config.mouth_open_mar_threshold = HIFACE_DEFAULT_MOUTH_OPEN_MAR_THRESHOLD;
+    if (!check(hiface_session_create_v1(&amp;config, &amp;session), &quot;create session&quot;)) goto done;
+    report.struct_size = sizeof(report);
+    if (!check(hiface_linux_load_builtin_models_v1(session, &amp;report), &quot;initialize SDK models&quot;) ||
+            !check(hiface_search_open_v1(argv[2], &amp;database), &quot;open database&quot;) ||
+            !check(hiface_session_capture_faces_rgba_v1(session, rgba, expected, width, height,
+                faces, statuses, features, HIFACE_MAX_FACES, &amp;count, NULL, 0), &quot;capture faces&quot;)) goto done;
+    printf(&quot;faces=%u (static images have no liveness gate)\n&quot;, count);
+    for (i = 0; i &lt; count; ++i) {
+        printf(&quot;face=%u status=%d\n&quot;, i + 1, (int)statuses[i]);
+        if (statuses[i] != HIFACE_STATUS_OK) continue; /* Small faces are independent failures. / 过小人脸分别作为独立失败处理。 */
+        if (!check(hiface_search_query_v1(database, features + i * HIFACE_FACE_FEATURE_DIMENSION,
+                HIFACE_FACE_FEATURE_DIMENSION, NULL, NULL, 1, HIFACE_DEFAULT_VERIFICATION_THRESHOLD,
+                &amp;results), &quot;query database&quot;)) goto done;
+        if (hiface_search_results_count_v1(results)) {
+            HiFaceSearchEntryV1 entry = {0};
+            float score = 0;
+            entry.struct_size = sizeof(entry);
+            if (!check(hiface_search_results_get_v1(results, 0, &amp;entry, &amp;score), &quot;read result&quot;)) goto done;
+            printf(&quot;  id=%s similarity=%.6f\n&quot;, entry.face_id, (double)score);
+            /* Copy entry strings/feature before destroying results if the application retains them.
+
+若应用需要保留条目字符串或特征，应在销毁结果前复制。 */
+        } else { puts(&quot;  unmatched (or empty library)&quot;); }
+        hiface_search_results_destroy_v1(results); results = NULL;
+    }
+    exit_code = 0;
+done:
+    hiface_search_results_destroy_v1(results);
+    hiface_search_close_v1(database);
+    hiface_session_destroy_v1(session);
+    free(rgba);
+    return exit_code;
+}
+</code></pre></article><footer><div class="footer-inner"><span>HiFace SDK 0.8.14</span><span>API 参考文档 · 可离线查看</span></div></footer></main></body></html>

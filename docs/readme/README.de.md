@@ -65,7 +65,7 @@
 
 **Weitere Plattformen (geplant):** WeChat-Miniprogramme, ChromeOS, uni-app, Flutter-Plug-ins, React-Native-Plug-ins (RN) und mehr.
 
-Öffnen Sie nach dem Klonen oder Herunterladen des Repositorys die [Offline-HTML-API-Dokumentation des SDK](../../docs/SDK-API/index.html) im Browser.
+Öffnen Sie nach dem Klonen oder Herunterladen des Repositorys die [Offline-HTML-API-Dokumentation des SDK](../../docs/SDK-API/index.html) im Browser. Englisch ist die Standardsprache; für alle fünf Plattformen gibt es außerdem eine vollständige chinesische Fassung.
 
 ## Code beziehen
 

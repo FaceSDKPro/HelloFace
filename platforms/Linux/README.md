@@ -199,6 +199,8 @@ runtime=runtimes/x86_64  # ARM64: runtimes/arm64
 ./build/hiface_demo self-test --builtin
 ```
 
+Photo enrollment, including CLI `enroll` and folder imports, requires exactly one detected face; a second face is rejected even if it is too small to extract.
+
 CLI enrollment/import are upserts; desktop single enrollment rejects duplicate IDs. Import commits in batches.
 `generate-demo-features OUTPUT.json` creates 10k synthetic vectors without models or personal data.
 `-DBUILD_TESTING=ON` enables integration tests; run `ctest --test-dir build --output-on-failure`.

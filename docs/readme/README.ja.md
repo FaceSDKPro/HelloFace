@@ -65,7 +65,7 @@
 
 **今後対応予定のプラットフォーム:** WeChat ミニプログラム、ChromeOS、uni-app、Flutter プラグイン、React Native（RN）プラグインなど。
 
-リポジトリをクローンまたはダウンロードし、オフラインの [HTML SDK API](../../docs/SDK-API/index.html) をブラウザーで開いてください。
+リポジトリをクローンまたはダウンロードし、オフラインの [HTML SDK API](../../docs/SDK-API/index.html) をブラウザーで開いてください。 既定の言語は英語です。5つのプラットフォームすべてに完全な中国語版も用意しています。
 
 ## コードの取得
 

@@ -1,0 +1,10 @@
+com.hiface.sdk
+com.hiface.sdk.access
+com.hiface.sdk.capture
+com.hiface.sdk.common
+com.hiface.sdk.detection
+com.hiface.sdk.flow
+com.hiface.sdk.frame
+com.hiface.sdk.liveness
+com.hiface.sdk.search
+com.hiface.sdk.verification

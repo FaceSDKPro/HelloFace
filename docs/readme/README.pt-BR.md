@@ -65,7 +65,7 @@
 
 **Mais plataformas (planejadas):** Miniprogramas do WeChat, ChromeOS, uni-app, plugins para Flutter, plugins para React Native (RN) e muito mais.
 
-Após clonar ou baixar o repositório, abra a [API do SDK em HTML](../../docs/SDK-API/index.html) offline no navegador.
+Após clonar ou baixar o repositório, abra a [API do SDK em HTML](../../docs/SDK-API/index.html) offline no navegador. O inglês é o idioma padrão; as cinco plataformas também oferecem uma versão completa em chinês.
 
 ## Obter o código
 

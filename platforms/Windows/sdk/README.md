@@ -59,7 +59,7 @@ Choose a mode with `hiface_session_face_flow_start_v1` and keep feeding frames. 
 | `HiFaceFlowConfigV1` parameter | Range and suggested value | Purpose |
 |---|---|---|
 | `action_count` | 0–4; enrollment requires 0 | Action count. Standalone liveness with 0 actions still runs passive liveness. |
-| `verification_threshold` | 0–1; suggested 0.80 | A completed comparison below this score returns a mismatch. Also supply `verification_reference` and the reference feature length for verification. |
+| `verification_threshold` | Recommended 0.75–0.85; use 0.80 explicitly | A completed comparison below this score returns a mismatch. Also supply `verification_reference` and the reference feature length for verification. |
 | `action_timeout_ms` | Suggested 3,000 ms | Per-action timer; zero or less disables it. |
 | `face_acquisition_timeout_ms` | Suggested 10,000 ms | Initial face acquisition timer; zero or less disables it. |
 | `face_lost_timeout_ms` | Suggested 300 ms; zero or less disables it | Wait after the selected face leaves the frame. |
@@ -92,7 +92,9 @@ Check `out_event.kind` as well as the frame return status: read `flow_status` on
 
 Pass a null output buffer and zero capacity to `hiface_session_face_flow_copy_frame_v1` to query dimensions. With an image it returns `RESOURCE_EXHAUSTED`; allocate `width * height * 4` bytes and copy the same result again. Without an image it returns `OK` with zero dimensions. This capacity query is not an allocation failure. Call `hiface_session_face_flow_stop_v1` after consuming the result or to cancel; cancellation does not produce an accepted result.
 
-RGB passive liveness uses an SDK threshold of 0.90. Read `outcome` with `hiface_session_face_flow_copy_result_v1`, and check `flags` before using optional scores or data. For standalone infrared liveness, load the IR model with `hiface_windows_session_load_model_v1`, then call `hiface_session_evaluate_infrared_liveness_v1` with a real GRAY8 IR frame, its face box, and a required 0–1 threshold calibrated on the target camera.
+The recommended similarity range is 0.75–0.85, with 0.80 as the default configuration value. The 1:1 and feature-query APIs accept 0–1; camera search accepts only 0.75–0.85. C APIs have no implicit defaults: supply the configuration values explicitly.
+
+The recommended RGB/IR liveness threshold is 0.80–0.99, starting at 0.90. RGB passive liveness currently uses a fixed 0.90 with no public threshold setting. IR requires an explicit threshold and has no implicit default. Read `outcome` with `hiface_session_face_flow_copy_result_v1`, and check `flags` before using optional scores or data. For standalone infrared liveness, load the IR model with `hiface_windows_session_load_model_v1`, then call `hiface_session_evaluate_infrared_liveness_v1` with a real GRAY8 IR frame, its face box, and a required threshold calibrated on the target camera (recommended 0.80–0.99, starting at 0.90; the API accepts values greater than 0 and at most 1).
 
 ### Face library and search
 
@@ -117,7 +119,7 @@ When both filters are supplied, both must match. With neither filter, search the
 | Parameter | Range and suggested value | Purpose |
 |---|---|---|
 | `top_k` | Required; 1–100; start with 1 | Maximum number of matches returned. |
-| `threshold` | Required; 0–1 inclusive; suggested 0.80 | Feature-query similarity threshold. Returns records at or above it, or a successful empty result. Camera search uses the separate range below. |
+| `threshold` | Required; recommended 0.75–0.85; start at 0.80 | Feature-query similarity threshold. Returns records at or above it, or a successful empty result. Camera search uses the separate range below. |
 
 Start continuous search with `hiface_session_search_start_v1`. Use one monotonic clock and run prepare → resolve → complete → read → destroy for each frame.
 

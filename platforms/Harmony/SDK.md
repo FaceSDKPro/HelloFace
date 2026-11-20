@@ -110,7 +110,7 @@ Start `liveness().startCameraLiveness(config, listener)` or `verification().star
 | Parameter | Range and default | Purpose |
 |---|---|---|
 | `referenceFeature` | Required for 1:1 verification | The enrolled face feature. |
-| `threshold` | 0–1, default 0.80 | Minimum 1:1 similarity. A completed comparison below this threshold returns a mismatch. |
+| `threshold` | Recommended 0.75–0.85; default 0.80 | Minimum 1:1 similarity. A completed comparison below this threshold returns a mismatch. |
 | `actions` | 0–4 actions, empty by default | An empty action list still runs passive liveness in the liveness flow. |
 | `silentLivenessEnabled` | Boolean, off by default for 1:1 verification | Also requires passive liveness when enabled. |
 | `allowMultipleFaces` | Boolean, off by default | Controls whether the flow accepts more than one face in view. |
@@ -119,7 +119,9 @@ Start `liveness().startCameraLiveness(config, listener)` or `verification().star
 
 `actions` run in order and may repeat: `SHAKE_HEAD`, `NOD_HEAD`, `BLINK`, `MOUTH_OPEN`. With no actions and `silentLivenessEnabled=false`, 1:1 checks identity without liveness. `FaceFlowResult.isPassed()` indicates acceptance; undefined `similarity` or `livenessScore` means unavailable, not zero. Aligned pixels and `frameJpeg` are optional; `frameWidth` and `frameHeight` are JPEG pixel dimensions, or zero without an image.
 
-RGB passive liveness uses an SDK threshold of 0.90. The liveness and verification `onResult` callback carries both acceptance and rejection. Check `outcome` first. Read similarity or liveness scores only when present. For standalone infrared liveness, call `await sdk.liveness().evaluateInfrared(frame, threshold)` with a real GRAY8 infrared frame, its face box, and a required 0–1 threshold calibrated on the target camera.
+The recommended similarity range is 0.75–0.85, with 0.80 as the default configuration value. The 1:1 and feature-query APIs accept 0–1; camera search accepts only 0.75–0.85.
+
+The recommended RGB/IR liveness threshold is 0.80–0.99, starting at 0.90. RGB passive liveness currently uses a fixed 0.90 with no public threshold setting. IR requires an explicit threshold and has no implicit default. The liveness and verification `onResult` callback carries both acceptance and rejection. Check `outcome` first. Read similarity or liveness scores only when present. For standalone infrared liveness, call `await sdk.liveness().evaluateInfrared(frame, threshold)` with a real GRAY8 infrared frame, its face box, and a required threshold calibrated on the target camera (recommended 0.80–0.99, starting at 0.90; the API accepts values greater than 0 and at most 1).
 
 Wait for a successful `HiFaceResult<FaceRequest>` from the start call before feeding frames.
 
@@ -146,7 +148,7 @@ When both filters are supplied, both must match. With neither filter, search the
 | Parameter | Range and default | Purpose |
 |---|---|---|
 | `topK` | 1–100, default 1 | Maximum number of matches returned. |
-| `threshold` | 0–1 inclusive, default 0.80 | Applies to feature queries. Returns records at or above the threshold, or an empty list. Camera search uses the separate range below. |
+| `threshold` | Recommended 0.75–0.85; default 0.80 | Applies to feature queries. Returns records at or above the threshold, or an empty list. Camera search uses the separate range below. |
 
 Use `search().startCameraSearch(config, listener)` for continuous search. It manages its own library connection.
 
@@ -188,4 +190,4 @@ Retain YUV input until its frame Promise completes; static RGBA snapshot timing 
 
 The current model does not support face recognition for people under 12. Financial use is prohibited. Outdoor face search requires a camera with a wide dynamic range greater than 100 dB.
 
-[English](SDK.md) | [简体中文](SDK.zh-CN.md)
+[English](README.md) | [简体中文](README.zh-CN.md)

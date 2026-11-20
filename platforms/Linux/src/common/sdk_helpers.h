@@ -1,5 +1,6 @@
 #pragma once
 #include "hiface/hiface_linux.h"
+#include <algorithm>
 #include <array>
 #include <cstdlib>
 #include <fstream>
@@ -169,6 +170,25 @@ inline Feature captureFeature(Session& session, const Image& image, std::vector<
     check(hiface_session_capture_rgba_v1(session.handle, image.rgba.data(), image.rgba.size(),
         image.width, image.height, feature.data(), feature.size(),
         preview ? preview->data() : nullptr, preview ? preview->size() : 0), "capture largest face");
+    return feature;
+}
+
+// Request two slots so a second detection, including one with a failed crop, rejects the photo.
+inline Feature captureEnrollmentPhoto(Session& session, const Image& image, std::vector<uint8_t>* preview = nullptr) {
+    constexpr uint32_t capacity = 2;
+    std::array<HiFaceFaceV1, capacity> faces{};
+    std::array<HiFaceStatus, capacity> statuses{};
+    std::array<float, capacity * HIFACE_FACE_FEATURE_DIMENSION> features{};
+    uint32_t count = 0;
+    if (preview) preview->resize(capacity * HIFACE_ALIGNED_PREVIEW_RGBA_BYTES);
+    check(hiface_session_capture_faces_rgba_v1(session.handle, image.rgba.data(), image.rgba.size(),
+        image.width, image.height, faces.data(), statuses.data(), features.data(), capacity, &count,
+        preview ? preview->data() : nullptr, preview ? preview->size() : 0), "capture enrollment photo");
+    require(count == 1, "Choose a photo with exactly one face");
+    check(statuses[0], "capture the face in the enrollment photo");
+    if (preview) preview->resize(HIFACE_ALIGNED_PREVIEW_RGBA_BYTES);
+    Feature feature{};
+    std::copy_n(features.begin(), feature.size(), feature.begin());
     return feature;
 }
 

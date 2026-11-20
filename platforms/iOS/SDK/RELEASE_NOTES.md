@@ -1,4 +1,4 @@
 # HiFace 0.8.14
 
-- 发布五平台 SDK 0.8.14，保留现行公开 API 和原试用证书有效期。
-- 本轮完成制品、敏感资料及加固检查；未重新执行功能与主流程验收。
+- HiFace SDK 0.8.14 is available for five platforms, retaining the current public APIs and the existing trial certificate validity period.
+- This release completed artifact, sensitive-data, and hardening checks. Functional and main-flow acceptance tests were not rerun.

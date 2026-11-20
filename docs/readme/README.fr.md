@@ -65,7 +65,7 @@
 
 **Autres plateformes (prévues):** Mini-programmes WeChat, ChromeOS, uni-app, extensions Flutter, extensions React Native (RN), etc.
 
-Après avoir cloné ou téléchargé le dépôt, ouvrez la [documentation API HTML du SDK](../../docs/SDK-API/index.html) hors ligne dans votre navigateur.
+Après avoir cloné ou téléchargé le dépôt, ouvrez la [documentation API HTML du SDK](../../docs/SDK-API/index.html) hors ligne dans votre navigateur. L’anglais est la langue par défaut ; les cinq plateformes proposent aussi une version complète en chinois.
 
 ## Obtenir le code
 

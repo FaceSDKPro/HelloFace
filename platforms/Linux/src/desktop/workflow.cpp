@@ -437,24 +437,6 @@ bool FaceWorkflow::process(const CameraFrame& input) {
     inference_ms = monotonicMilliseconds() - begin;
     return true;
 }
-// Request two slots so a second detection, including one with a failed crop, rejects the photo.
-static Feature captureEnrollmentPhoto(Session& session, const Image& image, std::vector<uint8_t>& preview) {
-    constexpr uint32_t capacity = 2;
-    std::array<HiFaceFaceV1, capacity> faces{};
-    std::array<HiFaceStatus, capacity> statuses{};
-    std::array<float, capacity * HIFACE_FACE_FEATURE_DIMENSION> features{};
-    uint32_t count = 0;
-    preview.resize(capacity * HIFACE_ALIGNED_PREVIEW_RGBA_BYTES);
-    check(hiface_session_capture_faces_rgba_v1(session.handle, image.rgba.data(), image.rgba.size(),
-        image.width, image.height, faces.data(), statuses.data(), features.data(), capacity, &count,
-        preview.data(), preview.size()), "capture enrollment photo");
-    require(count == 1, "Choose a photo with exactly one face");
-    check(statuses[0], "capture the face in the enrollment photo");
-    preview.resize(HIFACE_ALIGNED_PREVIEW_RGBA_BYTES);
-    Feature feature{};
-    std::copy_n(features.begin(), feature.size(), feature.begin());
-    return feature;
-}
 
 void FaceWorkflow::imageOperation(const std::string& operation, const std::string& first, const std::string& second,
         const std::string& id, const std::string& group, const std::string& tag) {
@@ -486,7 +468,7 @@ void FaceWorkflow::imageOperation(const std::string& operation, const std::strin
     loadModels(session_, "", false);
     std::vector<uint8_t> preview;
     const auto feature = operation == "search" ? captureFeature(session_, *selected_image, &preview)
-                                               : captureEnrollmentPhoto(session_, *selected_image, preview);
+                                               : captureEnrollmentPhoto(session_, *selected_image, &preview);
     image_first=std::move(selected_image);image_second.reset();image_matches.clear();
     aligned_preview = std::make_shared<Image>(Image{HIFACE_ALIGNED_PREVIEW_SIDE, HIFACE_ALIGNED_PREVIEW_SIDE, std::move(preview)});
     if (operation == "search") {
@@ -580,7 +562,7 @@ void FaceWorkflow::stepImport() {
             GalleryEntry row; bool captured = false;
             try {
                 const auto& file = import_images_[import_processed];
-                const auto text = encodeFeature(captureFeature(session_, readImage(file.c_str())));
+                const auto text = encodeFeature(captureEnrollmentPhoto(session_, readImage(file.c_str())));
                 row = {file.stem().string(), text.data(), import_group_, ""}; captured = true;
             } catch (const DemoError&) { ++import_failed; }
             if (captured) { saveEntry(database_, row, true); FacePhotoStore(data_directory_).remove(row.id); ++import_saved; }

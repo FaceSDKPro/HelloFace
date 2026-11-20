@@ -65,7 +65,7 @@
 
 **More platforms (planned):** WeChat Mini Programs, ChromeOS, uni-app, Flutter plugins, React Native (RN) plugins, and more.
 
-After cloning or downloading the repository, open the offline [HTML SDK API](docs/SDK-API/index.html) in your browser.
+After cloning or downloading the repository, open the offline [HTML SDK API](docs/SDK-API/index.html) in your browser. English is the default; every platform also provides a Chinese version.
 
 ## Get the code
 

@@ -242,7 +242,8 @@ int main(int argc, char** argv) {
             check(hiface_feature_compare_v1(first.data(), second.data(), first.size(), &score), "compare faces");
             std::cout << "similarity=" << score << '\n';
         } else {
-            const auto feature = capture(session, readImage(argv[command == "enroll" ? 5 : 4]));
+            const auto image = readImage(argv[command == "enroll" ? 5 : 4]);
+            const auto feature = command == "enroll" ? captureEnrollmentPhoto(session, image) : capture(session, image);
             Database database(argv[3]);
             if (command == "enroll") { enroll(database, argv[4], feature); std::cout << "enrolled id=" << argv[4] << '\n'; }
             else search(database, feature);

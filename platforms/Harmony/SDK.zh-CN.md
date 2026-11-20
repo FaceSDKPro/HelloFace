@@ -110,7 +110,7 @@ struct Index {
 | 参数 | 范围与默认值 | 用途 |
 |---|---|---|
 | `referenceFeature` | 1:1 验证必填 | 传入已录入的人脸特征。 |
-| `threshold` | 0–1，默认 0.80 | 1:1 相似度门槛。低于门槛时，完成比对的流程返回身份不匹配。 |
+| `threshold` | 建议 0.75–0.85，默认 0.80 | 1:1 相似度门槛。低于门槛时，完成比对的流程返回身份不匹配。 |
 | `actions` | 0–4 步，默认空 | 活体接口空动作时执行静默活体。 |
 | `silentLivenessEnabled` | 布尔值，1:1 验证默认关闭 | 开启后还要求静默活体通过。 |
 | `allowMultipleFaces` | 布尔值，默认关闭 | 控制流程是否允许画面中出现多人。 |
@@ -119,7 +119,9 @@ struct Index {
 
 `actions` 按顺序执行，允许重复，支持 `SHAKE_HEAD`、`NOD_HEAD`、`BLINK`、`MOUTH_OPEN`。1:1 动作为空且 `silentLivenessEnabled=false` 时只验证身份，不包含活体。`FaceFlowResult.isPassed()` 表示通过；未产生的 `similarity`、`livenessScore` 为 `undefined`，不能当作 0。对齐图与 `frameJpeg` 均可缺失，`frameWidth` / `frameHeight` 是 JPEG 像素尺寸，无图为 0。
 
-RGB 静默活体使用 SDK 固定门槛 0.90。活体和验证的 `onResult` 会交付通过或拒绝的结果，先读 `outcome`。只有本轮执行了对应步骤才会返回相似度或活体分数。独立近红外活体使用 `await sdk.liveness().evaluateInfrared(frame, threshold)`，传入真实 GRAY8 红外帧、图中人脸框和按设备标定的 0–1 阈值。阈值必填。
+相似度建议范围为 0.75–0.85，默认配置值为 0.80；1:1 验证和按特征查库的 API 实际允许 0–1，相机连续搜索仅允许 0.75–0.85。
+
+RGB/IR 活体建议门槛为 0.80–0.99，建议值为 0.90。当前 RGB 静默活体固定使用 0.90，未开放门槛设置；IR 门槛须显式传入，没有隐式默认值。活体和验证的 `onResult` 会交付通过或拒绝的结果，先读 `outcome`。只有本轮执行了对应步骤才会返回相似度或活体分数。独立近红外活体使用 `await sdk.liveness().evaluateInfrared(frame, threshold)`，传入真实 GRAY8 红外帧、图中人脸框和按设备标定的阈值（建议 0.80–0.99，初始值 0.90，API 实际允许大于 0 且不超过 1）。阈值必填。
 
 等待启动接口返回成功的 `HiFaceResult<FaceRequest>` 后继续送帧。
 
@@ -146,7 +148,7 @@ RGB 静默活体使用 SDK 固定门槛 0.90。活体和验证的 `onResult` 会
 | 参数 | 范围与默认值 | 用途 |
 |---|---|---|
 | `topK` | 1–100，默认 1 | 最多返回的匹配数。 |
-| `threshold` | 0–1（含端点），默认 0.80 | 仅用于按已有特征查库。返回相似度达到门槛的记录，无匹配时返回空列表；相机连续搜索使用下表的范围。 |
+| `threshold` | 建议 0.75–0.85，默认 0.80 | 仅用于按已有特征查库。返回相似度达到门槛的记录，无匹配时返回空列表；相机连续搜索使用下表的范围。 |
 
 连续搜索使用 `search().startCameraSearch(config, listener)`，它自行管理人脸库连接。
 
@@ -188,4 +190,4 @@ YUV 输入保留到送帧 Promise 完成；静态 RGBA 的快照时机见上文�
 
 当前模型不支持 12 周岁以下儿童人脸识别，不能用于金融场景。室外人脸搜索使用宽动态范围大于 100 dB 的相机。
 
-[English](SDK.md) | [简体中文](SDK.zh-CN.md)
+[English](README.md) | [简体中文](README.zh-CN.md)

@@ -12,7 +12,7 @@ cmake --build build --config Release --target hiface_model_consumer
 ./build/bin/Release/hiface_model_consumer.exe
 ```
 
-[model_consumer.cpp](example.html) 加载内置 CPU 模型并检测空白图。成功时输出 `Built-in CPU models and blank RGBA detection passed without external model files`。示例构建会把 DLL 复制到可执行文件所在目录。
+[model_consumer.cpp](example.zh-CN.html) 加载内置 CPU 模型并检测空白图。成功时输出 `Built-in CPU models and blank RGBA detection passed without external model files`。示例构建会把 DLL 复制到可执行文件所在目录。
 
 在自己的项目中，将 `CMAKE_PREFIX_PATH` 指向 SDK 目录，调用 `find_package(HiFace 0.8.14 CONFIG REQUIRED COMPONENTS C)` 并链接 `HiFace::HiFace`。先用 `hiface_runtime_configure_v1` 配置运行时，再用 `hiface_session_create_v1` 创建会话，通过 `hiface_windows_session_load_model_v1` 加载需要的模型，最后调用 `hiface_session_prepare_loaded_models_v1`。部署时把 `bin/` 的 x64 DLL 放到程序旁，并部署应用所需的 CRT。
 
@@ -59,7 +59,7 @@ cmake --build build --config Release --target hiface_model_consumer
 | `HiFaceFlowConfigV1` 参数 | 范围与建议值 | 用途 |
 |---|---|---|
 | `action_count` | 0–4，录入必须为 0 | 动作数量，独立活体设 0 时仅执行静默活体。 |
-| `verification_threshold` | 0–1，推荐 0.80 | 完成比对且低于门槛时返回身份不匹配。验证还须传入 `verification_reference` 与特征长度。 |
+| `verification_threshold` | 建议 0.75–0.85，推荐 0.80（须显式填写） | 完成比对且低于门槛时返回身份不匹配。验证还须传入 `verification_reference` 与特征长度。 |
 | `action_timeout_ms` | 推荐 3,000 ms | 单个动作时限；小于等于 0 时停用该计时。 |
 | `face_acquisition_timeout_ms` | 推荐 10,000 ms | 首次取脸时限；小于等于 0 时停用该计时。 |
 | `face_lost_timeout_ms` | 推荐 300 ms，小于等于 0 时停用 | 已锁定的人脸离开画面的最长等待时间。 |
@@ -92,7 +92,9 @@ HiFaceStatus status = hiface_session_face_flow_start_v1(session, &config, now_ms
 
 用 `hiface_session_face_flow_copy_frame_v1(session, NULL, 0, &width, &height)` 探测尺寸：有图时返回 `RESOURCE_EXHAUSTED`，按返回的 `width * height * 4` 字节分配后，对同一结果再复制；无图时为 `OK` 且宽高为 0。这种容量探测不是内存分配失败。完成后调用 `hiface_session_face_flow_stop_v1`；取消也使用 stop，不会产生一个“通过”结果。
 
-RGB 静默活体使用 SDK 固定门槛 0.90。流程结束时用 `hiface_session_face_flow_copy_result_v1` 读取 `outcome`，按 `flags` 检查分数或附带结果是否有效。独立红外活体先通过 `hiface_windows_session_load_model_v1` 加载红外模型，再调用 `hiface_session_evaluate_infrared_liveness_v1`。传入真实 GRAY8 红外帧、图中人脸框及按设备标定的 0–1 阈值。阈值必填。
+相似度建议范围为 0.75–0.85，默认配置值为 0.80；1:1 验证和按特征查库的 API 实际允许 0–1，相机连续搜索仅允许 0.75–0.85。C API 没有隐式默认值，配置项须显式填写。
+
+RGB/IR 活体建议门槛为 0.80–0.99，建议值为 0.90。当前 RGB 静默活体固定使用 0.90，未开放门槛设置；IR 门槛须显式传入，没有隐式默认值。流程结束时用 `hiface_session_face_flow_copy_result_v1` 读取 `outcome`，按 `flags` 检查分数或附带结果是否有效。独立红外活体先通过 `hiface_windows_session_load_model_v1` 加载红外模型，再调用 `hiface_session_evaluate_infrared_liveness_v1`。传入真实 GRAY8 红外帧、图中人脸框及按设备标定的阈值（建议 0.80–0.99，初始值 0.90，API 实际允许大于 0 且不超过 1）。阈值必填。
 
 ### 人脸库与搜索
 
@@ -117,7 +119,7 @@ C 采集输出浮点特征，存库前用 `hiface_feature_encode_text_v1` 转成
 | 参数 | 范围与建议值 | 用途 |
 |---|---|---|
 | `top_k` | 必填，1–100，建议从 1 开始 | 最多返回的匹配数。 |
-| `threshold` | 必填，0–1（含端点），推荐 0.80 | 按已有特征查库的相似度下限。返回达到门槛的记录，无匹配为成功空结果；相机连续搜索使用下表的范围。 |
+| `threshold` | 必填；建议 0.75–0.85，推荐 0.80 | 按已有特征查库的相似度下限。返回达到门槛的记录，无匹配为成功空结果；相机连续搜索使用下表的范围。 |
 
 以 `hiface_session_search_start_v1` 启动连续搜索。使用同一单调时钟，逐帧执行 prepare → resolve → complete → read → destroy。
 

@@ -1,0 +1,6 @@
+.sdk-docbar{display:flex;align-items:center;gap:16px;padding:14px 24px;
+font:14px/1.5 system-ui,sans-serif;background:#f1f7f5;color:#173d3c;border-bottom:1px solid #d9e6e1}
+.sdk-docbar a{color:#023f42;font-weight:650}.sdk-docbar .sdk-language{margin-left:auto}
+.sdk-docbar span{color:#627773}.top-nav{background:#023f42}.sub-nav{background:#eef4f2}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+pre,code{line-height:1.6}@media(max-width:600px){.sdk-docbar{padding:12px;gap:10px}}

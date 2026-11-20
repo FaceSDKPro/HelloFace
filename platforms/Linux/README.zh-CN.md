@@ -233,6 +233,8 @@ runtime=runtimes/x86_64  # ARM64 改为 runtimes/arm64
 "$runtime/bin/hiface_demo" gallery-export hiface-search.db export.json
 ```
 
+照片录入（包括命令行 `enroll` 和文件夹导入）必须恰好检测到一张脸；第二张脸即使过小、无法提取，也会拒绝录入。
+
 CLI enroll 为 upsert；桌面单条录入重复 ID 拒绝。CLI gallery-import 是覆盖导入，逐批提交；
 失败打印此前已保存数。导出文件已存在时拒绝覆盖。
 

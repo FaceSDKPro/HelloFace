@@ -65,7 +65,7 @@
 
 **Lebih banyak platform (dirancang):** Program Mini WeChat, ChromeOS, uni-app, pemalam Flutter, pemalam React Native (RN) dan lain-lain.
 
-Selepas mengklon atau memuat turun repositori, buka [HTML SDK API](../../docs/SDK-API/index.html) luar talian dalam pelayar anda.
+Selepas mengklon atau memuat turun repositori, buka [HTML SDK API](../../docs/SDK-API/index.html) luar talian dalam pelayar anda. Bahasa lalai ialah bahasa Inggeris; kelima-lima platform turut menyediakan versi bahasa Cina yang lengkap.
 
 ## Dapatkan kod
 

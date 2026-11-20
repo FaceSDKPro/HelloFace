@@ -65,7 +65,7 @@
 
 **更多平台（计划）：** 将支持微信小程序、ChromeOS、uni-app、Flutter 插件、React Native（RN）插件等。
 
-下载或克隆仓库后，用浏览器打开离线 [HTML SDK API](docs/SDK-API/index.html)。
+下载或克隆仓库后，用浏览器打开离线 [HTML SDK API](docs/SDK-API/index.html)，默认英文，也可直接查看[中文版](docs/SDK-API/index.zh-CN.html)。
 
 ## 获取代码
 
