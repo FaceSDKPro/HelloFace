@@ -1,5 +1,7 @@
 # HiFace iOS Integration Demo
 
+On Face Recognition, action challenges start enabled for both 1:1 verification and standalone liveness, with Blink and Nod Head selected. You can turn them off or choose other actions.
+
 English | [简体中文](README.zh-CN.md)
 
 SDK: **0.8.14**

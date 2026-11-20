@@ -1,6 +1,7 @@
+**English** | [简体中文](DEMO.zh-CN.md)
+
 # HiFace iOS Demo Guide
 
-English | [简体中文](DEMO.zh-CN.md)
 
 See the [SDK API](SDK/API.md) for integration requirements and API details.
 

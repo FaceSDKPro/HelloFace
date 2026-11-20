@@ -65,7 +65,7 @@
 
 **更多平台（计划）：** 将支持微信小程序、ChromeOS、uni-app、Flutter 插件、React Native（RN）插件等。
 
-下载或克隆仓库后，用浏览器打开离线 [HTML SDK API](docs/SDK-API/index.html)，默认英文，也可直接查看[中文版](docs/SDK-API/index.zh-CN.html)。
+直接阅读[在线 HTML SDK API](https://www.helloface.dev/sdk-api/index.zh-CN.html)，或通过上表查看 GitHub 上的 Markdown 指南。离线使用时，克隆或下载仓库后，用浏览器打开 `docs/SDK-API/index.html`。HTML 默认英文，五个平台均提供完整中文版本。
 
 ## 获取代码
 

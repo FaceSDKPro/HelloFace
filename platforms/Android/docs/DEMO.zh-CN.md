@@ -1,6 +1,7 @@
+[English](DEMO.md) | **简体中文**
+
 # HiFace Android Demo 使用指南
 
-[English](DEMO.md) | 简体中文
 
 接口与接入要求见 [SDK API](SDK.zh-CN.md)。
 

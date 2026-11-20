@@ -1,3 +1,5 @@
+**English** | [简体中文](API.zh-CN.md)
+
 # HiFace iOS SDK API Guide
 
 ## Quick start
@@ -159,5 +161,3 @@ Keep camera input valid until the synchronous frame call returns, and retain sta
 Cancel a camera method's `FaceRequest` with `cancel()`; cancellation does not synthesize a terminal callback. Static-image async calls have no such handle: canceling a Swift `Task` does not abort the SDK job. After awaiting, check task cancellation or page validity. `close()` does not wait for in-flight operations; stop submitting work to the old instance.
 
 The current model does not support face recognition for people under 12. Financial use is prohibited. Outdoor face search requires a camera with a wide dynamic range greater than 100 dB.
-
-[English](API.md) | [简体中文](API.zh-CN.md)

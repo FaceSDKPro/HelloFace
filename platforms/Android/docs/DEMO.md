@@ -1,6 +1,7 @@
+**English** | [简体中文](DEMO.zh-CN.md)
+
 # HiFace Android Demo Guide
 
-English | [简体中文](DEMO.zh-CN.md)
 
 See the [SDK API](SDK.md) for integration requirements and API details.
 

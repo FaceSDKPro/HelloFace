@@ -1,6 +1,7 @@
+[English](README.md) | **简体中文**
+
 # HiFace Windows SDK · 0.8.14
 
-[English](README.md) | 简体中文
 
 ## 快速开始
 

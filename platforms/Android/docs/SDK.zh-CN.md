@@ -1,3 +1,5 @@
+[English](SDK.md) | **简体中文**
+
 # HiFace Android SDK API 指南
 
 ## 快速开始
@@ -15,7 +17,7 @@ android {
 }
 ```
 
-保留 [SDK 许可](LICENSE) 和 AAR 自带的 R8 规则。在 Java 应用中用下面的类替换启动 Activity，包名与 Manifest 一致。在支持的设备运行，空白图应显示 `IMAGE_NO_FACE`，无需相机权限。
+保留 [SDK 许可](../LICENSE) 和 AAR 自带的 R8 规则。在 Java 应用中用下面的类替换启动 Activity，包名与 Manifest 一致。在支持的设备运行，空白图应显示 `IMAGE_NO_FACE`，无需相机权限。
 
 ```java
 package com.example.hiface;
@@ -248,5 +250,3 @@ FaceSearchSessionConfig config = FaceSearchSessionConfig.builder()
 相机帧缓冲区借用到 `processFrame` 返回，返回后才可交还相机；静态图异步采集在方法返回前完成快照。取消会抑制尚未开始的回调，不补发终态；已开始的回调可能完成，应用仍应核对当前页面或请求标识。绑定 `lifecycleOwner` 后在主线程构建，`close()` 也在主线程调用；Fragment 仅服务当前视图时绑定其 View Lifecycle。
 
 当前模型不支持 12 周岁以下儿童人脸识别，不能用于金融场景。室外人脸搜索使用宽动态范围大于 100 dB 的相机。
-
-[English](README.md) | [简体中文](README.zh-CN.md)

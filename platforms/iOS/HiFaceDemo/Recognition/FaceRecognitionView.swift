@@ -257,7 +257,7 @@ private struct RecognitionRequest {
 
 private struct RecognitionOptions {
     var silent = true
-    var enabled = false
+    var enabled = true
     var selected = [true, false, false, true]
     static let order: [FaceAction] = [.blink, .openMouth, .shakeHead, .nodHead]
     var actions: [FaceAction] { enabled ? Self.order.enumerated().compactMap { selected[$0.offset] ? $0.element : nil } : [] }

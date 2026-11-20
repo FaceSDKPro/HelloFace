@@ -1,6 +1,7 @@
+[English](README.md) | **简体中文**
+
 # HiFace Linux SDK API 指南
 
-[English](README.md) | 简体中文
 
 ## 快速开始
 

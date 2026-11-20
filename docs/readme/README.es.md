@@ -65,7 +65,7 @@
 
 **Más plataformas (previstas):** Miniprogramas de WeChat, ChromeOS, uni-app, complementos de Flutter, complementos de React Native (RN) y más.
 
-Después de clonar o descargar el repositorio, abre la [API del SDK en HTML](../../docs/SDK-API/index.html) sin conexión en tu navegador. El inglés es el idioma predeterminado; las cinco plataformas también incluyen una versión completa en chino.
+Consulta la [API del SDK en HTML en línea](https://www.helloface.dev/sdk-api/) o las guías Markdown de cada plataforma en GitHub desde la tabla anterior. Para usarlas sin conexión, clona o descarga el repositorio y abre `docs/SDK-API/index.html` en un navegador. El inglés es el idioma predeterminado; las cinco plataformas también incluyen una versión completa en chino.
 
 ## Obtener el código
 

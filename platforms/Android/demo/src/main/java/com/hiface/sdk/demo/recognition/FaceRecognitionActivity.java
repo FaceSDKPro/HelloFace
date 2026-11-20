@@ -244,7 +244,7 @@ public final class FaceRecognitionActivity extends AppCompatActivity {
             root.findViewById(R.id.silentRow).setVisibility(standalone ? View.GONE : View.VISIBLE);
             if (state != null) {
                 silent.setChecked(state.getBoolean(prefix + "silent", true));
-                enabled.setChecked(state.getBoolean(prefix + "enabled", false));
+                enabled.setChecked(state.getBoolean(prefix + "enabled", enabled.isChecked()));
                 for (int i = 0; i < choices.length; i++) choices[i].setChecked(state.getBoolean(prefix + i, i == 0 || i == 3));
             }
             silent.setOnCheckedChangeListener((button, checked) -> render());

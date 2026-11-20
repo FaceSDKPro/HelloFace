@@ -65,7 +65,7 @@ std::string friendly(const std::string& text) {
 DemoUi::DemoUi(Measure measure) : measure_(std::move(measure)) {
     for (const char* mode : {"verify", "live"}) {
         const std::string prefix=std::string("recognition:")+mode+":";
-        values_[prefix+"enabled"]="0"; values_[prefix+"silent"]="1";
+        values_[prefix+"enabled"]="1"; values_[prefix+"silent"]="1";
         for(int i=0;i<4;++i)values_[prefix+std::to_string(i)]=(i==0||i==3)?"1":"0";
     }
     if (!measure_) measure_ = [](const std::string& value, Font font) {

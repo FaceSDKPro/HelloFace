@@ -1248,15 +1248,16 @@ void create(Ui& ui) {
     if (!ui.pane) throw std::runtime_error("Cannot create parameter panel");
     for (int i = 0; i < kFeatureCount; ++i) button(ui, HomeBase + i, page_info[static_cast<int>(feature_pages[i])].title);
     for(const auto entry:{std::pair<int,const wchar_t*>{RecognitionSilent,L"启用静默活体"},
-        {RecognitionVerifyActions,L"要求动作挑战"},{RecognitionLiveActions,L"要求动作挑战"}})
+        {RecognitionVerifyActions,L"要求动作挑战"},{RecognitionLiveActions,L"要求动作挑战"}}) {
         control(ui,L"BUTTON",entry.second,entry.first,BS_AUTOCHECKBOX|WS_TABSTOP);
+        checkBox(window,entry.first,true);
+    }
     const wchar_t* action_labels[]={L"眨眼",L"张嘴",L"摇头",L"点头"};
     for(int mode=0;mode<2;++mode)for(int i=0;i<4;++i){
         const int id=firstRecognitionAction(mode==0)+i;
         control(ui,L"BUTTON",action_labels[i],id,BS_AUTOCHECKBOX|BS_PUSHLIKE|WS_TABSTOP);
         checkBox(window,id,i==0||i==3);
     }
-    checkBox(window,RecognitionSilent,true);
     button(ui,RecognitionStart,L"开始活体检测");
     button(ui,RecognitionAlbum,L"相册添加");button(ui,RecognitionAdd,L"相机录入");
     control(ui,L"SCROLLBAR",L"",RecognitionScroll,SBS_HORZ|WS_TABSTOP);

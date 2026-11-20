@@ -50,11 +50,11 @@ struct Index {
   // Changes on navigation. Recreates the camera page and identifies album work from earlier visits.
   @State private cameraPageKey: number = 0;
   @State private verificationSilent: boolean = true;
-  @State private verificationActionsEnabled: boolean = false;
+  @State private verificationActionsEnabled: boolean = true;
   // Bits select blink, mouth open, head shake, and head nod in that order. 9 preselects blink and nod.
   @State private verificationActionMask: number = 9;
   @State private livenessSilent: boolean = true;
-  @State private livenessActionsEnabled: boolean = false;
+  @State private livenessActionsEnabled: boolean = true;
   // Keep a separate action mask for standalone liveness, with the same bit order as verification.
   @State private livenessActionMask: number = 9;
   @State private recognitionTitle: string = '';

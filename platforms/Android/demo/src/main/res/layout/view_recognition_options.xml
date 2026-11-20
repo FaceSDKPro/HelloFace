@@ -12,7 +12,7 @@
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/recognition_actions" android:textSize="15sp" android:textStyle="bold" android:textColor="@color/content_text"/>
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/recognition_actions_hint" android:textSize="12sp" android:textColor="@color/content_text_secondary" android:layout_marginTop="3.3dp"/>
         </LinearLayout>
-        <androidx.appcompat.widget.SwitchCompat android:id="@+id/actionsSwitch" android:layout_width="wrap_content" android:layout_height="48dp" android:saveEnabled="false" android:contentDescription="@string/recognition_actions"/>
+        <androidx.appcompat.widget.SwitchCompat android:id="@+id/actionsSwitch" android:checked="true" android:layout_width="wrap_content" android:layout_height="48dp" android:saveEnabled="false" android:contentDescription="@string/recognition_actions"/>
     </LinearLayout>
     <LinearLayout android:id="@+id/actionChoices" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
         <TextView android:id="@+id/actionValidation" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6.6dp" android:text="@string/recognition_action_order" android:textSize="11sp" android:textColor="@color/content_text_secondary" android:accessibilityLiveRegion="polite"/>
