@@ -65,7 +65,7 @@
 
 **More platforms (planned):** WeChat Mini Programs, ChromeOS, uni-app, Flutter plugins, React Native (RN) plugins, and more.
 
-Read the [online HTML SDK API](https://www.helloface.dev/sdk-api/), or use the platform Markdown guides above on GitHub. For offline use, clone or download the repository and open `docs/SDK-API/index.html` in a browser. English is the default; every platform also provides a complete Chinese version.
+Read the [online HTML SDK API](https://www.helloface.dev/sdk-api/), or use the platform Markdown guides above on GitHub. For offline use, clone or download the repository and open `docs/SDK-API/index.html` in a browser.
 
 ## Get the code
 

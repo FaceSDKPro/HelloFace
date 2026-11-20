@@ -65,7 +65,7 @@
 
 **Lebih banyak platform (dirancang):** Program Mini WeChat, ChromeOS, uni-app, pemalam Flutter, pemalam React Native (RN) dan lain-lain.
 
-Baca [API SDK HTML dalam talian](https://www.helloface.dev/sdk-api/) atau panduan Markdown setiap platform di GitHub melalui jadual di atas. Untuk kegunaan luar talian, klon atau muat turun repositori dan buka `docs/SDK-API/index.html` dalam pelayar. Bahasa lalai ialah bahasa Inggeris; kelima-lima platform turut menyediakan versi bahasa Cina yang lengkap.
+Baca [API SDK HTML dalam talian](https://www.helloface.dev/sdk-api/) atau panduan Markdown setiap platform di GitHub melalui jadual di atas. Untuk kegunaan luar talian, klon atau muat turun repositori dan buka `docs/SDK-API/index.html` dalam pelayar.
 
 ## Dapatkan kod
 

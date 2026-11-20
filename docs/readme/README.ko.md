@@ -65,7 +65,7 @@
 
 **추가 지원 예정 플랫폼:** WeChat 미니 프로그램, ChromeOS, uni-app, Flutter 플러그인, React Native(RN) 플러그인 등.
 
-[온라인 HTML SDK API](https://www.helloface.dev/sdk-api/)를 읽거나 위 표에서 GitHub의 플랫폼별 Markdown 가이드를 확인하세요. 오프라인에서는 저장소를 복제하거나 다운로드한 후 브라우저에서 `docs/SDK-API/index.html`을 여세요. 기본 언어는 영어이며, 다섯 플랫폼 모두 전체 중국어 문서를 제공합니다.
+[온라인 HTML SDK API](https://www.helloface.dev/sdk-api/)를 읽거나 위 표에서 GitHub의 플랫폼별 Markdown 가이드를 확인하세요. 오프라인에서는 저장소를 복제하거나 다운로드한 후 브라우저에서 `docs/SDK-API/index.html`을 여세요.
 
 ## 코드 받기
 

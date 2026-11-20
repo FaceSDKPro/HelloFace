@@ -65,7 +65,7 @@
 
 **Weitere Plattformen (geplant):** WeChat-Miniprogramme, ChromeOS, uni-app, Flutter-Plug-ins, React-Native-Plug-ins (RN) und mehr.
 
-Lesen Sie die [Online-HTML-Dokumentation der SDK-API](https://www.helloface.dev/sdk-api/) oder die Markdown-Anleitungen der Plattformen über die Tabelle oben auf GitHub. Für die Offline-Nutzung klonen oder laden Sie das Repository herunter und öffnen `docs/SDK-API/index.html` im Browser. Englisch ist die Standardsprache; für alle fünf Plattformen gibt es auch eine vollständige chinesische Fassung.
+Lesen Sie die [Online-HTML-Dokumentation der SDK-API](https://www.helloface.dev/sdk-api/) oder die Markdown-Anleitungen der Plattformen über die Tabelle oben auf GitHub. Für die Offline-Nutzung klonen oder laden Sie das Repository herunter und öffnen `docs/SDK-API/index.html` im Browser.
 
 ## Code beziehen
 

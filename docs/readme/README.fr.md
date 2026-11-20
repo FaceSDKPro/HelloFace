@@ -65,7 +65,7 @@
 
 **Autres plateformes (prévues):** Mini-programmes WeChat, ChromeOS, uni-app, extensions Flutter, extensions React Native (RN), etc.
 
-Consultez la [documentation HTML de l’API du SDK en ligne](https://www.helloface.dev/sdk-api/) ou les guides Markdown par plateforme sur GitHub via le tableau ci-dessus. Pour une utilisation hors ligne, clonez ou téléchargez le dépôt et ouvrez `docs/SDK-API/index.html` dans un navigateur. L’anglais est la langue par défaut ; les cinq plateformes proposent aussi une version complète en chinois.
+Consultez la [documentation HTML de l’API du SDK en ligne](https://www.helloface.dev/sdk-api/) ou les guides Markdown par plateforme sur GitHub via le tableau ci-dessus. Pour une utilisation hors ligne, clonez ou téléchargez le dépôt et ouvrez `docs/SDK-API/index.html` dans un navigateur.
 
 ## Obtenir le code
 
