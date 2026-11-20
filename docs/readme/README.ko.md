@@ -96,11 +96,11 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
   </tr>
   <tr>
     <td align="center" valign="top" width="33%">
-      <a href="https://www.pgyer.com/HelloFace"><img src="../../images/AndroidAPK.png" alt="Android APK 다운로드 QR 코드" width="180" height="180"></a><br>
+      <a href="https://www.pgyer.com/HelloFace"><img src="../../images/AndroidAPK.svg" alt="Android APK 다운로드 QR 코드" width="180" height="180"></a><br>
       <a href="https://www.pgyer.com/HelloFace">다운로드</a>
     </td>
     <td align="center" valign="top" width="33%">
-      <img src="../../images/WeChat.jpg" alt="WeChat QR 코드" width="180" height="180"><br>
+      <img src="../../images/WeChat.svg" alt="WeChat QR 코드" width="180" height="180"><br>
       스캔하여 문의
     </td>
     <td align="center" valign="top" width="33%">

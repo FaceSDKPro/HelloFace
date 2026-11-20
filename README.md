@@ -96,11 +96,11 @@ Email: [FaceAISDK.Service@gmail.com](mailto:FaceAISDK.Service@gmail.com)
   </tr>
   <tr>
     <td align="center" valign="top" width="33%">
-      <a href="https://www.pgyer.com/HelloFace"><img src="images/AndroidAPK.png" alt="Android APK download QR code" width="180" height="180"></a><br>
+      <a href="https://www.pgyer.com/HelloFace"><img src="images/AndroidAPK.svg" alt="Android APK download QR code" width="180" height="180"></a><br>
       <a href="https://www.pgyer.com/HelloFace">Download</a>
     </td>
     <td align="center" valign="top" width="33%">
-      <img src="images/WeChat.jpg" alt="WeChat QR code" width="180" height="180"><br>
+      <img src="images/WeChat.svg" alt="WeChat QR code" width="180" height="180"><br>
       Scan to chat
     </td>
     <td align="center" valign="top" width="33%">
