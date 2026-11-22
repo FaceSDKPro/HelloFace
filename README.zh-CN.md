@@ -91,19 +91,24 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 <table>
   <tr>
     <th align="center">Android APK</th>
+    <th align="center">华为应用市场</th>
     <th align="center">微信</th>
     <th align="center">Google Play</th>
   </tr>
   <tr>
-    <td align="center" valign="top" width="33%">
+    <td align="center" valign="top" width="25%">
       <a href="https://www.pgyer.com/HelloFace"><img src="images/AndroidAPK.svg" alt="Android APK 下载二维码" width="180" height="180"></a><br>
       <a href="https://www.pgyer.com/HelloFace">下载</a>
     </td>
-    <td align="center" valign="top" width="33%">
+    <td align="center" valign="top" width="25%">
+      <a href="https://appgallery.huawei.com/app/detail?id=com.hiface.sdk.debug"><img src="images/AppGallery.svg" alt="鸿蒙 Demo 下载二维码" width="180" height="180"></a><br>
+      <a href="https://appgallery.huawei.com/app/detail?id=com.hiface.sdk.debug">下载</a>
+    </td>
+    <td align="center" valign="top" width="25%">
       <img src="images/WeChat.svg" alt="微信二维码" width="180" height="180"><br>
       扫码联系
     </td>
-    <td align="center" valign="top" width="33%">
+    <td align="center" valign="top" width="25%">
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="images/GooglePlay.svg" alt="Google Play 下载二维码" width="180" height="180"></a><br>
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug&amp;referrer=utm_source%3Dgithub%26utm_medium%3Dreferral%26utm_campaign%3Dandroid_demo">下载</a>
     </td>

@@ -91,19 +91,24 @@ E-mel: [FaceAISDK.Service@gmail.com](mailto:FaceAISDK.Service@gmail.com)
 <table>
   <tr>
     <th align="center">Android APK</th>
+    <th align="center">Huawei AppGallery</th>
     <th align="center">WeChat</th>
     <th align="center">Google Play</th>
   </tr>
   <tr>
-    <td align="center" valign="top" width="33%">
+    <td align="center" valign="top" width="25%">
       <a href="https://www.pgyer.com/HelloFace"><img src="../../images/AndroidAPK.svg" alt="Kod QR untuk memuat turun APK Android" width="180" height="180"></a><br>
       <a href="https://www.pgyer.com/HelloFace">Muat turun</a>
     </td>
-    <td align="center" valign="top" width="33%">
+    <td align="center" valign="top" width="25%">
+      <a href="https://appgallery.huawei.com/app/detail?id=com.hiface.sdk.debug"><img src="../../images/AppGallery.svg" alt="Kod QR untuk memuat turun demo HarmonyOS" width="180" height="180"></a><br>
+      <a href="https://appgallery.huawei.com/app/detail?id=com.hiface.sdk.debug">Muat turun</a>
+    </td>
+    <td align="center" valign="top" width="25%">
       <img src="../../images/WeChat.svg" alt="Kod QR WeChat" width="180" height="180"><br>
       Imbas kod
     </td>
-    <td align="center" valign="top" width="33%">
+    <td align="center" valign="top" width="25%">
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="../../images/GooglePlay.svg" alt="Kod QR muat turun Google Play" width="180" height="180"></a><br>
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug&amp;referrer=utm_source%3Dgithub%26utm_medium%3Dreferral%26utm_campaign%3Dandroid_demo">Muat turun</a>
     </td>

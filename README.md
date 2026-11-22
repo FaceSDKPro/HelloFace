@@ -91,19 +91,24 @@ Email: [FaceAISDK.Service@gmail.com](mailto:FaceAISDK.Service@gmail.com)
 <table>
   <tr>
     <th align="center">Android APK</th>
+    <th align="center">Huawei AppGallery</th>
     <th align="center">WeChat</th>
     <th align="center">Google Play</th>
   </tr>
   <tr>
-    <td align="center" valign="top" width="33%">
+    <td align="center" valign="top" width="25%">
       <a href="https://www.pgyer.com/HelloFace"><img src="images/AndroidAPK.svg" alt="Android APK download QR code" width="180" height="180"></a><br>
       <a href="https://www.pgyer.com/HelloFace">Download</a>
     </td>
-    <td align="center" valign="top" width="33%">
+    <td align="center" valign="top" width="25%">
+      <a href="https://appgallery.huawei.com/app/detail?id=com.hiface.sdk.debug"><img src="images/AppGallery.svg" alt="HarmonyOS Demo download QR code" width="180" height="180"></a><br>
+      <a href="https://appgallery.huawei.com/app/detail?id=com.hiface.sdk.debug">Download</a>
+    </td>
+    <td align="center" valign="top" width="25%">
       <img src="images/WeChat.svg" alt="WeChat QR code" width="180" height="180"><br>
       Scan to chat
     </td>
-    <td align="center" valign="top" width="33%">
+    <td align="center" valign="top" width="25%">
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="images/GooglePlay.svg" alt="Google Play download QR code" width="180" height="180"></a><br>
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug&amp;referrer=utm_source%3Dgithub%26utm_medium%3Dreferral%26utm_campaign%3Dandroid_demo">Download</a>
     </td>

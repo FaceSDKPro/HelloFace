@@ -91,19 +91,24 @@ Correo electrónico: [FaceAISDK.Service@gmail.com](mailto:FaceAISDK.Service@gmai
 <table>
   <tr>
     <th align="center">Android APK</th>
+    <th align="center">Huawei AppGallery</th>
     <th align="center">WeChat</th>
     <th align="center">Google Play</th>
   </tr>
   <tr>
-    <td align="center" valign="top" width="33%">
+    <td align="center" valign="top" width="25%">
       <a href="https://www.pgyer.com/HelloFace"><img src="../../images/AndroidAPK.svg" alt="Código QR para descargar el APK de Android" width="180" height="180"></a><br>
       <a href="https://www.pgyer.com/HelloFace">Descargar</a>
     </td>
-    <td align="center" valign="top" width="33%">
+    <td align="center" valign="top" width="25%">
+      <a href="https://appgallery.huawei.com/app/detail?id=com.hiface.sdk.debug"><img src="../../images/AppGallery.svg" alt="Código QR para descargar la demo de HarmonyOS" width="180" height="180"></a><br>
+      <a href="https://appgallery.huawei.com/app/detail?id=com.hiface.sdk.debug">Descargar</a>
+    </td>
+    <td align="center" valign="top" width="25%">
       <img src="../../images/WeChat.svg" alt="Código QR de WeChat" width="180" height="180"><br>
       Escanea para contactar
     </td>
-    <td align="center" valign="top" width="33%">
+    <td align="center" valign="top" width="25%">
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug"><img src="../../images/GooglePlay.svg" alt="Código QR de descarga en Google Play" width="180" height="180"></a><br>
       <a href="https://play.google.com/store/apps/details?id=com.hiface.sdk.debug&amp;referrer=utm_source%3Dgithub%26utm_medium%3Dreferral%26utm_campaign%3Dandroid_demo">Descargar</a>
     </td>
