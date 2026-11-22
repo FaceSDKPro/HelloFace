@@ -18,10 +18,17 @@ bool valid(const CameraPreferences& p) {
 }
 CameraPreferences loadCameraPreferences(const std::filesystem::path& file) {
     std::ifstream input(file, std::ios::binary | std::ios::ate);
-    if (!input || input.tellg() < 0 || input.tellg() > 128) return {};
+    if (!input) return {};
+    const auto size = input.tellg();
+    if (size < 0 || size > 128) return {};
     input.seekg(0);
-    std::string header; CameraPreferences p; int mirror = 0;
-    if (!std::getline(input, header) || header != "HiFace-camera-v1" || !(input >> p.width >> p.height >> p.rotation >> mirror)
+    std::string header;
+    if (!std::getline(input, header)) return {};
+    // Accept settings saved by editors that use Windows line endings.
+    if (!header.empty() && header.back() == '\r') header.pop_back();
+    CameraPreferences p;
+    int mirror = 0;
+    if (header != "HiFace-camera-v1" || !(input >> p.width >> p.height >> p.rotation >> mirror)
         || (mirror != 0 && mirror != 1) || !valid(p)) return {};
     input >> std::ws;
     if (!input.eof()) return {};

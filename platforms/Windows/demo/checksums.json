@@ -34,7 +34,7 @@
     "source/app_icon.rc": "065f61075743d81a2bab22acae44e88905c870a255a7423d5a2ddbfdf7940bf4",
     "source/camera.cpp": "3669fc846a0cbfbe65e4deaf959cdc63ade34969afb99037d53afb429ab9c073",
     "source/camera.h": "fe2695694634d7d5e4acce45e8a11a838bbdb0cd6a7cf46482e5740cf54694cb",
-    "source/camera_preferences.cpp": "a0fab6bd9a35d1ec3236de1a0a769a8a22b0095f6143185889bc952d2f6ccc70",
+    "source/camera_preferences.cpp": "c7bbae22a80246e45e9d971aedd8f9b1d7e3bb8d1f30ca974006fb9f16f04112",
     "source/camera_preferences.h": "08187e57976b9d6eff1838ba0cb5b4f44f7dbc744f48a743cf3302c918029768",
     "source/cli.cpp": "120abaab78c9c30f7d252cc0811643d67780afcc22af3f0fa4fbf34ac917c48e",
     "source/data_exchange.cpp": "a5db5ee48d462933203af7dc56c0fefa341f5ac4e4d08ef9736a7f1552dc52c3",
