@@ -7,7 +7,7 @@ struct FaceCaptureCameraView: View {
     @ObservedObject var model: CameraDemoModel
     let onClose: () -> Void
     var showsCameraSwitch = false
-    @ScaledMetric(relativeTo: .headline) private var statusFontSize = 19
+    @ScaledMetric(relativeTo: .headline) private var statusFontSize = FaceCaptureLayout.statusFontSize
 
     var body: some View {
         GeometryReader { geometry in

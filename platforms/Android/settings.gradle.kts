@@ -20,10 +20,6 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
-
 val sdkRepository = providers.gradleProperty("hiface.sdkRepository")
     .orNull
     ?.let {

@@ -5,6 +5,7 @@ import SwiftUI
 /// 采集、验证和活体共用的引导布局。预览短边只比圆圈直径多一圈安全余量。
 enum FaceCaptureLayout {
     static let previewMargin: CGFloat = 24
+    static let statusFontSize: CGFloat = 23
 
     static func circleBounds(
         in size: CGSize,
@@ -38,7 +39,7 @@ struct FaceCaptureOverlayView: View {
     var countdownProgress: Double = 1
     var topInset: CGFloat = 0
     var bottomInset: CGFloat = 0
-    @ScaledMetric(relativeTo: .headline) private var statusFontSize = 19
+    @ScaledMetric(relativeTo: .headline) private var statusFontSize = FaceCaptureLayout.statusFontSize
 
     var body: some View {
         GeometryReader { geometry in
