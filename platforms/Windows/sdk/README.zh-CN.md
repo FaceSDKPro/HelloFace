@@ -1,6 +1,6 @@
 [English](README.md) | **简体中文**
 
-# HiFace Windows SDK · 0.8.14
+# HiFace Windows SDK · 0.8.15
 
 
 ## 快速开始
@@ -15,7 +15,7 @@ cmake --build build --config Release --target hiface_model_consumer
 
 [model_consumer.cpp](../examples/model_consumer.cpp) 加载内置 CPU 模型并检测空白图。成功时输出 `Built-in CPU models and blank RGBA detection passed without external model files`。示例构建会把 DLL 复制到可执行文件所在目录。
 
-在自己的项目中，将 `CMAKE_PREFIX_PATH` 指向 SDK 目录，调用 `find_package(HiFace 0.8.14 CONFIG REQUIRED COMPONENTS C)` 并链接 `HiFace::HiFace`。先用 `hiface_runtime_configure_v1` 配置运行时，再用 `hiface_session_create_v1` 创建会话，通过 `hiface_windows_session_load_model_v1` 加载需要的模型，最后调用 `hiface_session_prepare_loaded_models_v1`。部署时把 `bin/` 的 x64 DLL 放到程序旁，并部署应用所需的 CRT。
+在自己的项目中，将 `CMAKE_PREFIX_PATH` 指向 SDK 目录，调用 `find_package(HiFace 0.8.15 CONFIG REQUIRED COMPONENTS C)` 并链接 `HiFace::HiFace`。先用 `hiface_runtime_configure_v1` 配置运行时，再用 `hiface_session_create_v1` 创建会话，通过 `hiface_windows_session_load_model_v1` 加载需要的模型，最后调用 `hiface_session_prepare_loaded_models_v1`。部署时把 `bin/` 的 x64 DLL 放到程序旁，并部署应用所需的 CRT。
 
 ## API 参考
 
@@ -68,7 +68,7 @@ cmake --build build --config Release --target hiface_model_consumer
 | `multiple_faces_timeout_ms` | 推荐 500 ms，小于等于 0 时停用 | 不允许多人时，持续多人画面的最长等待时间。 |
 | `final_capture_timeout_ms` | 除引导录入外须大于 0，推荐 3,000 ms | 最终取样的时限。 |
 | `min_face_size_pixels` | 必须为有限值且大于 0，建议 100 px | 采集所需的最小人脸宽、高；最终动态验证仍可采样较小的人脸。必须显式填写。 |
-| `frontal_hold_ms` | 大于等于 0，建议 1,000 ms | 回正后持续保持的时间，0 表示不等待。 |
+| `frontal_hold_ms` | 大于等于 0，建议 1,000 ms | 静默活体从合格正脸后 400 ms 开始，在本时长内均匀取 7 帧。设为 0 仍需等待 400 ms 并取得 7 帧。 |
 
 下面使用已就绪的 `session`；`now_ms` 是与后续送帧相同单调时钟的当前毫秒值。所有数值为调用方配置，不是零初始化后的默认值。
 

@@ -1,8 +1,13 @@
 # Changelog
 
+## [0.8.15]
+
+- Embed a trial certificate valid from 2026-11-22 00:00 to 2027-11-22 00:00 (UTC+08:00).
+
 ## [0.8.14]
 
-- 本地候选准备中；构建、验收及发布批准待完成。
+- Release SDK 0.8.14 with the current public API and unchanged trial-certificate validity.
+- Artifact, sensitive-content and hardening checks completed; functional and main-flow acceptance was not repeated.
 
 ## [0.8.13]
 

@@ -1,6 +1,6 @@
 **English** | [简体中文](API.zh-CN.md)
 
-# HiFace iOS SDK API Guide
+# HiFace iOS 0.8.15 SDK API Guide
 
 ## Quick start
 

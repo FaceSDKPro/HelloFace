@@ -71,7 +71,7 @@ cmake --build build --target hiface_sdk_image_search
 | `multiple_faces_timeout_ms` | 推荐 500 ms，小于等于 0 时停用 | 不允许多人时，持续多人画面的最长等待时间。 |
 | `final_capture_timeout_ms` | 除引导录入外须大于 0，推荐 3,000 ms | 最终取样的时限。 |
 | `min_face_size_pixels` | 必须为有限值且大于 0，建议 100 px | 采集所需的最小人脸宽、高；最终动态验证仍可采样较小的人脸。必须显式填写。 |
-| `frontal_hold_ms` | 大于等于 0，建议 1,000 ms | 回正后持续保持的时间，0 表示不等待。 |
+| `frontal_hold_ms` | 大于等于 0，建议 1,000 ms | 静默活体从合格正脸后 400 ms 开始，在本时长内均匀取 7 帧。设为 0 仍需等待 400 ms 并取得 7 帧。 |
 
 下面使用已就绪的 `session`；`now_ms` 是与后续送帧相同单调时钟的当前毫秒值。所有数值为调用方配置，不是零初始化后的默认值。
 

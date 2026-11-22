@@ -1,6 +1,6 @@
 **English** | [简体中文](README.zh-CN.md)
 
-# HiFace Windows SDK · 0.8.14
+# HiFace Windows SDK · 0.8.15
 
 
 ## Quick start
@@ -15,7 +15,7 @@ cmake --build build --config Release --target hiface_model_consumer
 
 [model_consumer.cpp](../examples/model_consumer.cpp) loads the built-in CPU models and runs detection on a blank image. It prints `Built-in CPU models and blank RGBA detection passed without external model files` on success. The example build copies the DLLs next to the executable.
 
-For your own project, set `CMAKE_PREFIX_PATH` to the SDK folder, call `find_package(HiFace 0.8.14 CONFIG REQUIRED COMPONENTS C)`, and link `HiFace::HiFace`. Configure the runtime once with `hiface_runtime_configure_v1`, create a session with `hiface_session_create_v1`, load the requested models with `hiface_windows_session_load_model_v1`, then call `hiface_session_prepare_loaded_models_v1`. Deploy the x64 DLLs in `bin/` alongside your executable and include your application's CRT.
+For your own project, set `CMAKE_PREFIX_PATH` to the SDK folder, call `find_package(HiFace 0.8.15 CONFIG REQUIRED COMPONENTS C)`, and link `HiFace::HiFace`. Configure the runtime once with `hiface_runtime_configure_v1`, create a session with `hiface_session_create_v1`, load the requested models with `hiface_windows_session_load_model_v1`, then call `hiface_session_prepare_loaded_models_v1`. Deploy the x64 DLLs in `bin/` alongside your executable and include your application's CRT.
 
 ## API reference
 
@@ -68,7 +68,7 @@ Choose a mode with `hiface_session_face_flow_start_v1` and keep feeding frames. 
 | `multiple_faces_timeout_ms` | Suggested 500 ms; zero or less disables it | Wait while multiple faces remain when they are disallowed. |
 | `final_capture_timeout_ms` | Greater than 0 except for guided enrollment; suggested 3,000 ms | Time budget for final capture. |
 | `min_face_size_pixels` | Finite and greater than 0; suggested 100 px | Minimum capture face width and height; final verification may still sample smaller faces. Explicitly required. |
-| `frontal_hold_ms` | At least 0; suggested 1,000 ms | Frontal hold duration; 0 disables the wait. |
+| `frontal_hold_ms` | At least 0; suggested 1,000 ms | For passive liveness, the seven samples span this duration after a fixed 400 ms frontal wait. A zero duration still requires seven frames. |
 
 Use a prepared `session`; `now_ms` is the current millisecond value from the same monotonic clock used for subsequent frames. These are caller-supplied settings, not defaults from zero initialization.
 

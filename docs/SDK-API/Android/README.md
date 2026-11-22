@@ -6,11 +6,11 @@
 
 Requires Android 6.0 / API 23 or later and an ARM64 or ARMv7 device.
 
-Version `0.8.14` is used below. Add the SDK's bundled `maven-repository` to your project's Gradle repositories and keep `google()` and `mavenCentral()` for dependencies. If you use Maven Central for HiFace, confirm that the same version is published there. In the app module:
+Version `0.8.15` is used below. Add the SDK's bundled `maven-repository` to your project's Gradle repositories and keep `google()` and `mavenCentral()` for dependencies. If you use Maven Central for HiFace, confirm that the same version is published there. In the app module:
 
 ```kotlin
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.14")
+    implementation("io.github.facesdkpro:hiface-android:0.8.15")
 }
 android {
     androidResources { noCompress += "bphfm" }

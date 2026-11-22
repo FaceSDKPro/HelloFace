@@ -71,7 +71,7 @@ Choose a mode with `hiface_session_face_flow_start_v1` and keep feeding frames. 
 | `multiple_faces_timeout_ms` | Suggested 500 ms; zero or less disables it | Wait while multiple faces remain when they are disallowed. |
 | `final_capture_timeout_ms` | Greater than 0 except for guided enrollment; suggested 3,000 ms | Time budget for final capture. |
 | `min_face_size_pixels` | Finite and greater than 0; suggested 100 px | Minimum capture face width and height; final verification may still sample smaller faces. Explicitly required. |
-| `frontal_hold_ms` | At least 0; suggested 1,000 ms | Frontal hold duration; 0 disables the wait. |
+| `frontal_hold_ms` | At least 0; suggested 1,000 ms | For passive liveness, the seven samples span this duration after a fixed 400 ms frontal wait. A zero duration still requires seven frames. |
 
 Use a prepared `session`; `now_ms` is the current millisecond value from the same monotonic clock used for subsequent frames. These are caller-supplied settings, not defaults from zero initialization.
 

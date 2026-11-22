@@ -623,7 +623,7 @@
 				INFOPLIST_FILE = HiFaceDemo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 0.8.14;
+				MARKETING_VERSION = 0.8.15;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hiface.sdk.public;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -647,7 +647,7 @@
 				INFOPLIST_FILE = HiFaceDemo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 0.8.14;
+				MARKETING_VERSION = 0.8.15;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hiface.sdk.public;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

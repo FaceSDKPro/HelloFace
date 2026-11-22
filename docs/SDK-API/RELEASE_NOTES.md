@@ -1,4 +1,3 @@
-# HiFace 0.8.14
+# HiFace 0.8.15
 
-- HiFace SDK 0.8.14 is available for five platforms, retaining the current public APIs and the existing trial certificate validity period.
-- This release completed artifact, sensitive-data, and hardening checks. Functional and main-flow acceptance tests were not rerun.
+- The embedded trial certificate is valid from 2026-11-22 00:00 to 2027-11-22 00:00 (UTC+08:00).

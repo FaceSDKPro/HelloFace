@@ -216,6 +216,7 @@ public struct FaceFlowResult : Swift.Sendable, Swift.Equatable {
   public let feature: Swift.String?
   public let livenessScore: Swift.Float?
   public let similarity: Swift.Float?
+  public let resultEnvelope: Swift.String?
   public let frameJPEG: Foundation.Data?
   public let frameWidth: Swift.Int
   public let frameHeight: Swift.Int
@@ -238,6 +239,12 @@ public enum FaceFlowStage : Swift.Sendable, Swift.Equatable {
   public var hashValue: Swift.Int {
     get
   }
+}
+public struct FaceResultEncryption : Swift.Sendable, Swift.Equatable {
+  public let sessionId: Swift.String
+  public let publicKey: Swift.String
+  public init(sessionId: Swift.String, publicKey: Swift.String)
+  public static func == (a: HiFace.FaceResultEncryption, b: HiFace.FaceResultEncryption) -> Swift.Bool
 }
 public struct HiFaceCameraFrame : @unchecked Swift.Sendable {
   public static var maximumLongSidePixels: Swift.Int {
@@ -365,10 +372,12 @@ public struct FaceLivenessConfiguration : Swift.Sendable, Swift.Equatable {
   public let actionTimeoutMilliseconds: Swift.Int64
   public let faceAcquisitionTimeoutMilliseconds: Swift.Int64
   public let allowsMultipleFaces: Swift.Bool
+  public let resultEncryption: HiFace.FaceResultEncryption?
   public var hasActions: Swift.Bool {
     get
   }
   public init(actions: [HiFace.FaceAction] = [], actionTimeoutMilliseconds: Swift.Int64? = nil, faceAcquisitionTimeoutMilliseconds: Swift.Int64? = nil, allowsMultipleFaces: Swift.Bool = false) throws
+  public init(actions: [HiFace.FaceAction] = [], actionTimeoutMilliseconds: Swift.Int64? = nil, faceAcquisitionTimeoutMilliseconds: Swift.Int64? = nil, allowsMultipleFaces: Swift.Bool = false, resultEncryption: HiFace.FaceResultEncryption?) throws
   public static let `default`: HiFace.FaceLivenessConfiguration
   public static func == (a: HiFace.FaceLivenessConfiguration, b: HiFace.FaceLivenessConfiguration) -> Swift.Bool
 }
@@ -563,7 +572,9 @@ public struct FaceVerificationConfiguration : Swift.Sendable, Swift.Equatable {
   public let actionTimeoutMilliseconds: Swift.Int64
   public let faceAcquisitionTimeoutMilliseconds: Swift.Int64
   public let allowsMultipleFaces: Swift.Bool
+  public let resultEncryption: HiFace.FaceResultEncryption?
   public init(referenceFeature: Swift.String, threshold: Swift.Float? = nil, requiresSilentLiveness: Swift.Bool = false, actions: [HiFace.FaceAction] = [], actionTimeoutMilliseconds: Swift.Int64? = nil, faceAcquisitionTimeoutMilliseconds: Swift.Int64? = nil, allowsMultipleFaces: Swift.Bool = false) throws
+  public init(referenceFeature: Swift.String, threshold: Swift.Float? = nil, requiresSilentLiveness: Swift.Bool = false, actions: [HiFace.FaceAction] = [], actionTimeoutMilliseconds: Swift.Int64? = nil, faceAcquisitionTimeoutMilliseconds: Swift.Int64? = nil, allowsMultipleFaces: Swift.Bool = false, resultEncryption: HiFace.FaceResultEncryption?) throws
   public static func == (a: HiFace.FaceVerificationConfiguration, b: HiFace.FaceVerificationConfiguration) -> Swift.Bool
 }
 extension HiFace.HiFaceAccessMode : Swift.Equatable {}

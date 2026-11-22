@@ -1,4 +1,3 @@
-# HiFace 0.8.14
+# HiFace iOS 0.8.15
 
-- HiFace SDK 0.8.14 is available for five platforms, retaining the current public APIs and the existing trial certificate validity period.
-- This release completed artifact, sensitive-data, and hardening checks. Functional and main-flow acceptance tests were not rerun.
+- 内置试用证书有效期为北京时间 2026-11-22 00:00 至 2027-11-22 00:00。

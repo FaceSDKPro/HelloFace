@@ -1,4 +1,4 @@
-# HiFace Windows · 0.8.14
+# HiFace Windows · 0.8.15
 
 [English](README.md) | 简体中文
 

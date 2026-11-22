@@ -4,7 +4,7 @@ On Face Recognition, action challenges start enabled for both 1:1 verification a
 
 English | [简体中文](README.zh-CN.md)
 
-SDK: **0.8.14**
+SDK: **0.8.15**
 
 On-device detection, capture, liveness, 1:1 comparison, 1:N/M:N search and face-library management.
 
