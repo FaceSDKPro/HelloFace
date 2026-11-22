@@ -32,6 +32,7 @@ export const DEMO_TEXT_RESOURCES: Record<string, DemoTextResource> = {
   "Face ID：{0}；请重新录入或选择其他身份": { name: "demo_b8252130d65e", english: "Face ID: {0}. Enroll it again or select another identity." },
   "HelloFace SDK": { name: "demo_1bb2e33b2fbb", english: "HelloFace SDK" },
   "HiFace调试": { name: "demo_21eea5e67ded", english: "HiFace Demo" },
+  "zh-CN": { name: "demo_315f7b86bc87", english: "en-US" },
   "Keychain 返回了无法识别的数据": { name: "demo_cf98a5cf529c", english: "Unrecognized Keychain data" },
   "Keychain 错误（{0}）": { name: "demo_e9b2b93ab4be", english: "Keychain error ({0})" },
   "M:N · 不检测姿态与活体": { name: "demo_f3649c99ac3b", english: "M:N · No pose or liveness checks" },

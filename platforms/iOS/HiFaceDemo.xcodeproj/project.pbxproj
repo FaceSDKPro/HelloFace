@@ -46,6 +46,7 @@
 		B20000000000000000000015 /* DemoCameraControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000015 /* DemoCameraControls.swift */; };
 		B20000000000000000000016 /* DemoTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* DemoTheme.swift */; };
 		B20000000000000000000017 /* FaceActionCountdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* FaceActionCountdown.swift */; };
+		B2000000000000000000001C /* DemoPromptSpeech.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001C /* DemoPromptSpeech.swift */; };
 		B20000000000000000000018 /* FaceCaptureCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018 /* FaceCaptureCameraView.swift */; };
 		B20000000000000000000019 /* FaceCaptureOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* FaceCaptureOverlayView.swift */; };
 		10000000000000000000000A /* DemoFaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000B /* DemoFaceStore.swift */; };
@@ -112,6 +113,7 @@
 		B10000000000000000000015 /* DemoCameraControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoCameraControls.swift; sourceTree = "<group>"; };
 		B10000000000000000000016 /* DemoTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoTheme.swift; sourceTree = "<group>"; };
 		B10000000000000000000017 /* FaceActionCountdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceActionCountdown.swift; sourceTree = "<group>"; };
+		B1000000000000000000001C /* DemoPromptSpeech.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoPromptSpeech.swift; sourceTree = "<group>"; };
 		B10000000000000000000018 /* FaceCaptureCameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceCaptureCameraView.swift; sourceTree = "<group>"; };
 		B10000000000000000000019 /* FaceCaptureOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceCaptureOverlayView.swift; sourceTree = "<group>"; };
 		20000000000000000000000B /* DemoFaceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoFaceStore.swift; sourceTree = "<group>"; };
@@ -312,6 +314,7 @@
 				B10000000000000000000015 /* DemoCameraControls.swift */,
 				B10000000000000000000016 /* DemoTheme.swift */,
 				B10000000000000000000017 /* FaceActionCountdown.swift */,
+				B1000000000000000000001C /* DemoPromptSpeech.swift */,
 				E10000000000000000000002 /* FaceFlowPresentation.swift */,
 				E10000000000000000000005 /* FaceOverlayLayout.swift */,
 				B10000000000000000000018 /* FaceCaptureCameraView.swift */,
@@ -519,6 +522,7 @@
 				B20000000000000000000015 /* DemoCameraControls.swift in Sources */,
 				B20000000000000000000016 /* DemoTheme.swift in Sources */,
 				B20000000000000000000017 /* FaceActionCountdown.swift in Sources */,
+				B2000000000000000000001C /* DemoPromptSpeech.swift in Sources */,
 				B20000000000000000000018 /* FaceCaptureCameraView.swift in Sources */,
 				B20000000000000000000019 /* FaceCaptureOverlayView.swift in Sources */,
 				C20000000000000000000032 /* DemoL10n.swift in Sources */,

@@ -10,8 +10,6 @@ import com.hiface.sdk.demo.R;
 import com.hiface.sdk.flow.FaceAction;
 import com.hiface.sdk.flow.FaceFlowOutcome;
 import com.hiface.sdk.flow.FaceFlowProgress;
-import com.hiface.sdk.flow.FaceFlowStage;
-
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,76 +40,40 @@ public final class FaceFlowUi {
         return new ArrayList<>(actions.subList(0, count));
     }
 
-    /**
-     * Map action progress for liveness and dynamic 1:1; guided capture uses CaptureStatusUi separately.
-     *
-     * 活体与动态 1:1 的动作进度映射；引导采集单独使用 CaptureStatusUi。
-     */
-    private static void renderFlowProgress(
+    /** Render live verification guidance and return the short prompt to speak, if any. */
+    @Nullable
+    public static String renderVerifyProgress(
             @NonNull FaceCaptureOverlayView overlay,
             @NonNull FaceFlowProgress progress,
             long actionTimeoutMillis
     ) {
+        Context context = overlay.getContext();
+        FaceAction action = progress.getAction();
         switch (progress.getStage()) {
             case WAITING_FOR_FACE:
-                showWaitingStatus(
-                        overlay,
-                        R.string.capture_status_no_face,
-                        progress.getAction() != null);
-                return;
+                return showWaitingStatus(overlay, R.string.capture_status_no_face, action != null);
             case MULTIPLE_FACES:
-                showWaitingStatus(
-                        overlay,
-                        R.string.capture_status_multiple_faces,
-                        progress.getAction() != null);
-                return;
+                return showWaitingStatus(overlay, R.string.capture_status_multiple_faces, action != null);
             case FACE_TOO_SMALL:
-                showWaitingStatus(
-                        overlay,
-                        R.string.capture_status_move_closer,
-                        progress.getAction() != null);
-                return;
+                return showWaitingStatus(overlay, R.string.capture_status_move_closer, action != null);
             case PERFORM_ACTION:
-                showActionInstruction(overlay, progress);
-                overlay.startCountdownIfIdle(
-                        actionTimeoutMillis * progress.getStepCount());
-                return;
+                String actionText = actionName(context, action);
+                overlay.setStatusText(context.getString(R.string.liveness_perform_action,
+                        actionText, progress.getStepNumber(), progress.getStepCount()));
+                overlay.startCountdownIfIdle(actionTimeoutMillis * progress.getStepCount());
+                return action == null ? null : actionText;
             case FACE_NOT_FRONTAL:
             case FACE_FORWARD:
-                // Both stages mean a valid frontal face is not yet available; one prompt avoids flashing synonymous
-                // messages.
-                // 两个阶段都表示尚未取得合格正脸，统一文案避免连续闪过两种同义提示。
-                overlay.setStatusText(R.string.liveness_face_forward);
-                overlay.resetCountdown();
-                return;
             case HOLD_STILL:
+                String frontalPrompt = context.getString(R.string.liveness_face_forward);
+                overlay.setStatusText(frontalPrompt);
+                overlay.resetCountdown();
+                return frontalPrompt;
             case FACE_UNSTABLE:
                 CaptureStatusUi.apply(overlay, progress.getStage());
-                return;
+                break;
         }
-    }
-
-    /**
-     * Shared by liveness and combined dynamic 1:1 authentication: stability is timed in the background
-     * while the UI retains the frontal prompt without a ring animation. The SDK delivers all Core stages;
-     * only this presentation layer merges synonymous FACE_FORWARD, FACE_NOT_FRONTAL, and HOLD_STILL
-     * prompts.
-     *
-     * 活体页与动态 1:1 复合认证页共用：稳定阶段在后台计时，界面保持正对提示且不播放
-     * 圆环倒计时动画。SDK 完整交付 Core 阶段，FACE_FORWARD、FACE_NOT_FRONTAL 与 HOLD_STILL
-     * 的同义提示只在本展示层合并，不屏蔽 SDK 进度事件。
-     */
-    public static void renderVerifyProgress(
-            @NonNull FaceCaptureOverlayView overlay,
-            @NonNull FaceFlowProgress progress,
-            long actionTimeoutMillis
-    ) {
-        if (progress.getStage() == FaceFlowStage.HOLD_STILL) {
-            overlay.setStatusText(R.string.liveness_face_forward);
-            overlay.resetCountdown();
-            return;
-        }
-        renderFlowProgress(overlay, progress, actionTimeoutMillis);
+        return null;
     }
 
     /**
@@ -127,12 +89,13 @@ public final class FaceFlowUi {
         return context.getString(rejectionMessageResource(outcome));
     }
 
-    private static void showWaitingStatus(
+    private static String showWaitingStatus(
             @NonNull FaceCaptureOverlayView overlay,
             @StringRes int message,
             boolean actionPending
     ) {
-        overlay.setStatusText(message);
+        String prompt = overlay.getContext().getString(message);
+        overlay.setStatusText(prompt);
         if (actionPending) {
             // The total action deadline does not pause for brief face loss, multiple faces, or distance changes;
             // retain the same ring countdown.
@@ -143,17 +106,7 @@ public final class FaceFlowUi {
             // 最终正脸保持被打断后，下一次 HOLD_STILL 必须重新从完整圆环开始。
             overlay.resetCountdown();
         }
-    }
-
-    private static void showActionInstruction(
-            @NonNull FaceCaptureOverlayView overlay,
-            @NonNull FaceFlowProgress progress
-    ) {
-        overlay.setStatusText(overlay.getContext().getString(
-                R.string.liveness_perform_action,
-                actionName(overlay.getContext(), progress.getAction()),
-                progress.getStepNumber(),
-                progress.getStepCount()));
+        return prompt;
     }
 
     @StringRes

@@ -93,6 +93,7 @@
     <string name="liveness_action_mouth_open">张嘴</string>
     <string name="liveness_perform_action">请%1$s（%2$d/%3$d）</string>
     <string name="liveness_face_forward">请正对屏幕</string>
+    <string name="liveness_speech_locale">zh-CN</string>
     <string name="liveness_result_title">活体检测</string>
     <string name="liveness_error_title">活体检测执行失败</string>
     <string name="liveness_result_passed">活体检测通过</string>

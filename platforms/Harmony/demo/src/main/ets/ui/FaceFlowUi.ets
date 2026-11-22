@@ -4,45 +4,73 @@ import { FaceAction, FaceFlowProgress, FaceFlowStage, FaceFlowOutcome } from 'hi
 const ACTION_TIMEOUT_MILLIS: number = 3000;
 const FACE_ACQUISITION_TIMEOUT_MILLIS: number = 10000;
 
+export interface FaceFlowGuidance {
+  title: string;
+  speech?: string;
+}
+
 /**
  * Flow guidance corresponding to Android FaceFlowUi / CaptureStatusUi.
  *
  * 与 Android FaceFlowUi / CaptureStatusUi 对应的流程提示。
  */
 export class FaceFlowUi {
-  static progressTitle(progress: FaceFlowProgress, capture: boolean): string {
-    if (progress.stage === FaceFlowStage.WAITING_FOR_FACE) {
-      return DemoL10n.text("请将人脸移入圆框");
+  static guidance(progress: FaceFlowProgress, capture: boolean): FaceFlowGuidance {
+    let title: string;
+    switch (progress.stage) {
+      case FaceFlowStage.WAITING_FOR_FACE:
+        title = DemoL10n.text("请将人脸移入圆框");
+        break;
+      case FaceFlowStage.MULTIPLE_FACES:
+        title = DemoL10n.text("请确保仅一人入镜");
+        break;
+      case FaceFlowStage.FACE_TOO_SMALL:
+        title = DemoL10n.text("请靠近一点");
+        break;
+      case FaceFlowStage.FACE_NOT_FRONTAL:
+      case FaceFlowStage.FACE_FORWARD:
+        title = DemoL10n.text(capture ? "请摆正人脸" : "请正对屏幕");
+        break;
+      case FaceFlowStage.HOLD_STILL:
+        title = DemoL10n.text(capture ? "请保持不动" : "请正对屏幕");
+        break;
+      case FaceFlowStage.FACE_UNSTABLE:
+        return { title: DemoL10n.text("请保持人脸稳定") };
+      case FaceFlowStage.PERFORM_ACTION:
+        return FaceFlowUi.actionGuidance(progress, capture);
+      default:
+        return { title: DemoL10n.text("请按提示完成动作") };
     }
-    if (progress.stage === FaceFlowStage.MULTIPLE_FACES) {
-      return DemoL10n.text("请确保仅一人入镜");
+    return { title, speech: capture ? undefined : title };
+  }
+
+  private static actionGuidance(progress: FaceFlowProgress, capture: boolean): FaceFlowGuidance {
+    let titleKey: string;
+    let nameKey: string;
+    switch (progress.action) {
+      case FaceAction.SHAKE_HEAD:
+        titleKey = "请摇头（{0}/{1}）";
+        nameKey = "摇头";
+        break;
+      case FaceAction.NOD_HEAD:
+        titleKey = "请点头（{0}/{1}）";
+        nameKey = "点头";
+        break;
+      case FaceAction.BLINK:
+        titleKey = "请眨眼（{0}/{1}）";
+        nameKey = "眨眼";
+        break;
+      case FaceAction.MOUTH_OPEN:
+        titleKey = "请张嘴（{0}/{1}）";
+        nameKey = "张嘴";
+        break;
+      default:
+        return { title: DemoL10n.text("请按提示完成动作") };
     }
-    if (progress.stage === FaceFlowStage.FACE_TOO_SMALL) {
-      return DemoL10n.text("请靠近一点");
-    }
-    if (progress.stage === FaceFlowStage.FACE_NOT_FRONTAL ||
-      progress.stage === FaceFlowStage.FACE_FORWARD) {
-      return capture ? DemoL10n.text("请摆正人脸") : DemoL10n.text("请正对屏幕");
-    }
-    if (progress.stage === FaceFlowStage.HOLD_STILL) {
-      return capture ? DemoL10n.text("请保持不动") : DemoL10n.text("请正对屏幕");
-    }
-    if (progress.stage === FaceFlowStage.FACE_UNSTABLE) {
-      return DemoL10n.text("请保持人脸稳定");
-    }
-    if (progress.action === FaceAction.SHAKE_HEAD) {
-      return DemoL10n.text("请摇头（{0}/{1}）", [String(progress.stepNumber), String(progress.stepCount)]);
-    }
-    if (progress.action === FaceAction.NOD_HEAD) {
-      return DemoL10n.text("请点头（{0}/{1}）", [String(progress.stepNumber), String(progress.stepCount)]);
-    }
-    if (progress.action === FaceAction.BLINK) {
-      return DemoL10n.text("请眨眼（{0}/{1}）", [String(progress.stepNumber), String(progress.stepCount)]);
-    }
-    if (progress.action === FaceAction.MOUTH_OPEN) {
-      return DemoL10n.text("请张嘴（{0}/{1}）", [String(progress.stepNumber), String(progress.stepCount)]);
-    }
-    return DemoL10n.text("请按提示完成动作");
+    return {
+      title: DemoL10n.text(titleKey, [String(progress.stepNumber), String(progress.stepCount)]),
+      speech: capture ? undefined : DemoL10n.text(nameKey)
+    };
   }
 
   static progressDetail(capture: boolean, progress: FaceFlowProgress): string {

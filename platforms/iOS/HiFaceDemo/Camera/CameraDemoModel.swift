@@ -80,6 +80,7 @@ final class CameraDemoModel: ObservableObject {
     private let recognitionActions: [FaceAction]?
     private let recognitionSilent: Bool
     private let recognitionReferenceID: String?
+    private let promptSpeech: DemoPromptSpeech?
     @Published private(set) var completedPassed = false
     private let mode: CameraDemoMode
     let enrollsInSearchLibrary: Bool
@@ -110,6 +111,9 @@ final class CameraDemoModel: ObservableObject {
         self.recognitionReferenceID = recognitionReferenceID
         self.mode = mode
         self.enrollsInSearchLibrary = enrollsInSearchLibrary
+        promptSpeech = mode == .liveness || mode == .verification
+            ? DemoPromptSpeech(language: DemoL10n.text("zh-CN"))
+            : nil
         sdk = HiFaceSDK()
         let detectionConfiguration = mode == .detection
             ? (try? FaceDetectionConfiguration(maxFaces: 10, includesDetailedLandmarks: true)) ?? .default
@@ -253,11 +257,16 @@ final class CameraDemoModel: ObservableObject {
         enrollmentTask = nil
         isSavingCapture = false
         confirmsSearchOverwrite = false
-        request?.cancel()
-        request = nil
+        cancelGuidedRequest()
         resetActionProgress()
         clearSearchDisplay()
         detection = nil
+    }
+
+    private func cancelGuidedRequest() {
+        promptSpeech?.stop()
+        request?.cancel()
+        request = nil
     }
 
     /// Request 10 FPS preview and 5 FPS SDK analysis after ten continuous no-face seconds; hardware falls back within supported ranges
@@ -278,8 +287,7 @@ final class CameraDemoModel: ObservableObject {
 
     func restartFlow() {
         guard started, !isSwitchingCamera else { return }
-        request?.cancel()
-        request = nil
+        cancelGuidedRequest()
         searchSession?.close()
         searchSession = nil
         clearPendingCapture()
@@ -517,8 +525,7 @@ final class CameraDemoModel: ObservableObject {
         isSwitchingCamera = true
         cameraNotice = nil
         if !preservesLivenessRequest {
-            request?.cancel()
-            request = nil
+            cancelGuidedRequest()
             resetActionProgress()
         }
         searchSession?.pause()
@@ -602,7 +609,11 @@ final class CameraDemoModel: ObservableObject {
 
     private func handle(_ progress: FaceFlowProgress) {
         guard started else { return }
-        status = FaceFlowPresentation.text(for: progress)
+        let guidance = FaceFlowPresentation.guidance(for: progress, capture: mode == .capture)
+        if status != guidance.title { status = guidance.title }
+        if !suspended, cameraReady, phase == .running {
+            promptSpeech?.speak(guidance.speech)
+        }
         if mode == .capture {
             if progress.stage == .holdStill {
                 actionStepCount = 1
@@ -613,9 +624,6 @@ final class CameraDemoModel: ObservableObject {
                 resetActionProgress()
             }
             return
-        }
-        if mode != .capture, progress.stage == .holdStill || progress.stage == .faceForward {
-            status = DemoL10n.text("请正对镜头")
         }
         if progress.stage == .performAction, progress.stepCount > 0 {
             let nextStep = min(max(progress.stepNumber, 1), progress.stepCount)
@@ -683,6 +691,7 @@ final class CameraDemoModel: ObservableObject {
 
     private func handle(_ result: FaceFlowResult) {
         guard started else { return }
+        promptSpeech?.stop()
         completedPassed = result.passed
         request = nil
         pipeline.pauseAnalysis()
@@ -779,6 +788,7 @@ final class CameraDemoModel: ObservableObject {
 
     private func handleFlowError(_ error: HiFaceError) {
         guard started else { return }
+        promptSpeech?.stop()
         request = nil
         if mode == .capture, !enrollsInSearchLibrary, cameraReady, !suspended,
            DemoErrorPresentation.shouldRestartCapture(error) {
@@ -814,8 +824,7 @@ final class CameraDemoModel: ObservableObject {
         guard started else { return }
         cameraReady = false
         needsCameraSettings = AVCaptureDevice.authorizationStatus(for: .video) == .denied
-        request?.cancel()
-        request = nil
+        cancelGuidedRequest()
         searchSession?.pause()
         pipeline.pauseAnalysis()
         clearSearchDisplay()
@@ -828,6 +837,7 @@ final class CameraDemoModel: ObservableObject {
 
     private func handleCameraAvailability(available: Bool, message: String) {
         guard started else { return }
+        if !available { promptSpeech?.stop() }
         cameraReady = available
         cameraNotice = message
         guard phase.needsCameraFlow else { return }
@@ -835,8 +845,7 @@ final class CameraDemoModel: ObservableObject {
             // On recovery notification, invalidate the interrupted flow; CameraPipeline then calls cameraDidStart
             // to rebuild it.
             // 恢复通知到达时作废中断前的流程；CameraPipeline 随后调用 cameraDidStart 重建流程。
-            request?.cancel()
-            request = nil
+            cancelGuidedRequest()
             searchSession?.pause()
             detection = nil
             clearSearchDisplay()

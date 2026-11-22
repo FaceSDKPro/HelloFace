@@ -2,6 +2,7 @@ import { DemoL10n } from '../ui/DemoL10n';
 import { FacePhotoLibrary, FacePhotoStore, FacePhoto } from '../verification/FacePhotoStore';
 import { FaceVerificationFlow } from '../verification/FaceVerificationFlow';
 import { FaceLivenessFlow } from '../liveness/FaceLivenessFlow';
+import { DemoPromptSpeech } from '../ui/DemoPromptSpeech';
 import { SearchSettingsDialog } from '../search/SearchSettingsDialog';
 import { SearchScreenPresentation } from '../search/SearchScreenPresentation';
 import { createDemoFaceSearchConfig } from '../search/DemoFaceSearchConfig';
@@ -13,7 +14,7 @@ import { FaceCaptureOverlay } from '../ui/FaceCaptureOverlay';
 import { FaceSearchOverlay } from '../search/FaceSearchOverlay';
 import { FaceSearchOverlayState } from '../search/FaceSearchOverlayState';
 import { FaceSearchOverlayExpirySchedule } from '../search/FaceSearchOverlayExpirySchedule';
-import { FaceFlowUi } from '../ui/FaceFlowUi';
+import { FaceFlowGuidance, FaceFlowUi } from '../ui/FaceFlowUi';
 import { FaceSearchStatusUi } from '../search/FaceSearchStatusUi';
 import { DemoErrorUi } from '../ui/DemoErrorUi';
 import { common } from '@kit.AbilityKit';
@@ -147,6 +148,7 @@ export struct RealtimeCameraDemo {
   private realtimeProcessor: FaceRealtimeProcessor | undefined = undefined;
   // 页面拥有请求/搜索句柄；切页或退后台先取消业务，再停止相机送帧。
   private activeRequest: FaceRequest | undefined = undefined;
+  private promptSpeech: DemoPromptSpeech | undefined = undefined;
   private activeSearchSession: FaceSearchSession | undefined = undefined;
   // Explicit enrollment writes own this connection; camera search manages a separate one.
   private enrollmentDatabaseConnection: FaceSearchDatabase | undefined = undefined;
@@ -261,6 +263,8 @@ export struct RealtimeCameraDemo {
   private leaveCameraPage(): void {
     this.visible = false;
     this.suspendCamera();
+    this.promptSpeech?.close();
+    this.promptSpeech = undefined;
     this.deactivateCameraPresentation();
   }
 
@@ -798,6 +802,10 @@ export struct RealtimeCameraDemo {
     this.resultVisible = false;
     this.resultRetryVisible = false;
     this.cancelFlow();
+    if (this.promptSpeech === undefined &&
+      (this.currentMode === RealtimeMode.VERIFICATION || this.currentMode === RealtimeMode.LIVENESS)) {
+      this.promptSpeech = new DemoPromptSpeech(DemoL10n.text("zh-CN"));
+    }
     this.cameraController?.resumeAnalysis();
     this.flowBusy = true;
     return this.flowGeneration;
@@ -1067,10 +1075,12 @@ export struct RealtimeCameraDemo {
     if (!this.visible || generation !== this.flowGeneration) {
       return;
     }
-    this.guideState = FaceFlowUi.progressTitle(progress, this.currentMode === RealtimeMode.CAPTURE || this.isSearchEnrollment());
-    this.resultState = FaceFlowUi.progressDetail(mode === RealtimeMode.CAPTURE || mode === RealtimeMode.SEARCH_ENROLLMENT, progress);
-    if ((mode === RealtimeMode.CAPTURE || mode === RealtimeMode.SEARCH_ENROLLMENT) &&
-      progress.stage === FaceFlowStage.HOLD_STILL) {
+    const capture: boolean = mode === RealtimeMode.CAPTURE || mode === RealtimeMode.SEARCH_ENROLLMENT;
+    const guidance: FaceFlowGuidance = FaceFlowUi.guidance(progress, capture);
+    this.guideState = guidance.title;
+    this.promptSpeech?.speak(guidance.speech);
+    this.resultState = FaceFlowUi.progressDetail(capture, progress);
+    if (capture && progress.stage === FaceFlowStage.HOLD_STILL) {
       this.startCountdown(CAPTURE_STABLE_COUNTDOWN_MILLIS);
     } else if (progress.stage === FaceFlowStage.FACE_FORWARD ||
       progress.stage === FaceFlowStage.FACE_NOT_FRONTAL || progress.stage === FaceFlowStage.HOLD_STILL ||
@@ -1088,6 +1098,7 @@ export struct RealtimeCameraDemo {
     if (!this.visible || generation !== this.flowGeneration) {
       return;
     }
+    this.promptSpeech?.stop();
     const captured = (mode === RealtimeMode.CAPTURE || mode === RealtimeMode.SEARCH_ENROLLMENT) && result.isPassed();
     if (captured && (result.feature === undefined || result.alignedRgba === undefined)) {
       this.onFlowError(new HiFaceError(HiFaceErrorCode.PROCESSING_FAILED,
@@ -1315,6 +1326,7 @@ export struct RealtimeCameraDemo {
     if (!this.visible || generation !== this.flowGeneration) {
       return;
     }
+    this.promptSpeech?.stop();
     this.activeRequest = undefined;
     this.flowBusy = false;
     this.flowActive = false;
@@ -1348,6 +1360,7 @@ export struct RealtimeCameraDemo {
 
   /** 幂等结束流程，并作废在途回调。 */
   private cancelFlow(): void {
+    this.promptSpeech?.stop();
     this.resetCountdown();
     this.clearSearchOverlayExpiry();
     this.flowGeneration += 1;

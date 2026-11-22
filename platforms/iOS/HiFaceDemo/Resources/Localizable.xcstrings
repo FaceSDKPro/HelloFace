@@ -511,6 +511,23 @@
         }
       }
     },
+    "zh-CN": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "en-US"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "zh-CN"
+          }
+        }
+      }
+    },
     "Keychain 返回了无法识别的数据": {
       "extractionState": "manual",
       "localizations": {

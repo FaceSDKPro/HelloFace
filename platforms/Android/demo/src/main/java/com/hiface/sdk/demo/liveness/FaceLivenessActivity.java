@@ -31,6 +31,7 @@ public final class FaceLivenessActivity extends CameraFlowActivity {
             complete(getString(R.string.recognition_invalid_options), RecognitionFlowContract.ERROR);
             return;
         }
+        preparePromptSpeech();
         initializeCameraSdk();
         startCameraFlow();
     }
@@ -38,8 +39,9 @@ public final class FaceLivenessActivity extends CameraFlowActivity {
     @Override protected void startCameraFlow() {
         if (config == null) return;
         startCameraFlowRequest(() -> hiFaceSdk.liveness().startCameraLiveness(config, new FaceFlowListener() {
-            @Override public void onProgress(@NonNull FaceFlowProgress progress) {
-                if (isCameraFlowRunning()) FaceFlowUi.renderVerifyProgress(captureOverlay, progress, config.getActionTimeoutMillis());
+            @Override
+            public void onProgress(@NonNull FaceFlowProgress progress) {
+                renderVerificationProgress(progress, config.getActionTimeoutMillis());
             }
             @Override public void onResult(@NonNull FaceFlowResult result) {
                 if (!finishCameraFlow()) return;

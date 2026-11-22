@@ -34,11 +34,13 @@ public final class FaceVerificationActivity extends CameraFlowActivity {
                     .threshold(FaceVerificationConfig.DEFAULT_THRESHOLD)
                     .actions(RecognitionFlowContract.actions(getIntent()))
                     .enableSilentLiveness(getIntent().getBooleanExtra(RecognitionFlowContract.SILENT, true))
-                    .allowMultipleFaces(true).build();
+                    .allowMultipleFaces(true)
+                    .build();
         } catch (IllegalArgumentException error) {
             complete(getString(R.string.recognition_invalid_options), RecognitionFlowContract.ERROR);
             return;
         }
+        preparePromptSpeech();
         initializeCameraSdk();
         startCameraFlow();
     }
@@ -46,8 +48,9 @@ public final class FaceVerificationActivity extends CameraFlowActivity {
     @Override protected void startCameraFlow() {
         if (config == null) return;
         startCameraFlowRequest(() -> hiFaceSdk.verification().startCameraVerification(config, new FaceFlowListener() {
-            @Override public void onProgress(@NonNull FaceFlowProgress progress) {
-                if (isCameraFlowRunning()) FaceFlowUi.renderVerifyProgress(captureOverlay, progress, config.getActionTimeoutMillis());
+            @Override
+            public void onProgress(@NonNull FaceFlowProgress progress) {
+                renderVerificationProgress(progress, config.getActionTimeoutMillis());
             }
             @Override public void onResult(@NonNull FaceFlowResult result) {
                 if (!finishCameraFlow()) return;

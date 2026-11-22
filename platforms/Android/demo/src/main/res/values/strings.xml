@@ -93,6 +93,7 @@
     <string name="liveness_action_mouth_open">Open your mouth</string>
     <string name="liveness_perform_action">Please %1$s (%2$d/%3$d)</string>
     <string name="liveness_face_forward">Face the screen</string>
+    <string name="liveness_speech_locale">en-US</string>
     <string name="liveness_result_title">Liveness</string>
     <string name="liveness_error_title">Unable to run liveness detection</string>
     <string name="liveness_result_passed">Liveness detection passed</string>

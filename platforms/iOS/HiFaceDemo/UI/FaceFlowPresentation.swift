@@ -5,28 +5,23 @@ import HiFace
 /// dynamic 1:1.
 /// 对应 Android `FaceFlowUi`：统一采集、活体和动态 1:1 的阶段、动作及终态文案。
 enum FaceFlowPresentation {
-    static func text(for progress: FaceFlowProgress) -> String {
+    static func guidance(for progress: FaceFlowProgress, capture: Bool) -> (title: String, speech: String?) {
+        let title: String
         switch progress.stage {
-        case .waitingForFace: return DemoL10n.text("请将人脸移入圆框")
-        case .multipleFaces: return DemoL10n.text("请确保画面中只有一人")
-        case .faceTooSmall: return DemoL10n.text("请靠近一点")
-        case .faceNotFrontal, .faceForward: return DemoL10n.text("请正对镜头")
-        case .holdStill: return DemoL10n.text("保持不动")
-        case .faceUnstable: return DemoL10n.text("请保持人脸稳定")
+        case .waitingForFace: title = DemoL10n.text("请将人脸移入圆框")
+        case .multipleFaces: title = DemoL10n.text("请确保画面中只有一人")
+        case .faceTooSmall: title = DemoL10n.text("请靠近一点")
+        case .faceNotFrontal, .faceForward: title = DemoL10n.text("请正对镜头")
+        case .holdStill: title = capture ? DemoL10n.text("保持不动") : DemoL10n.text("请正对镜头")
+        case .faceUnstable: return (DemoL10n.text("请保持人脸稳定"), nil)
         case .performAction:
-            let suffix = progress.stepCount > 0
-                ? "（\(progress.stepNumber)/\(progress.stepCount)）"
-                : ""
-            switch progress.action {
-            case .shakeHead: return DemoL10n.text("请摇头{0}", [String(describing: suffix)])
-            case .nodHead: return DemoL10n.text("请点头{0}", [String(describing: suffix)])
-            case .blink: return DemoL10n.text("请眨眼{0}", [String(describing: suffix)])
-            case .openMouth: return DemoL10n.text("请张嘴{0}", [String(describing: suffix)])
-            case nil: return DemoL10n.text("请完成动作{0}", [String(describing: suffix)])
-            @unknown default: return DemoL10n.text("请完成动作{0}", [String(describing: suffix)])
-            }
-        @unknown default: return DemoL10n.text("正在处理，请稍候")
+            let labels = progress.action.map(actionLabels)
+            let suffix = progress.stepCount > 0 ? "（\(progress.stepNumber)/\(progress.stepCount)）" : ""
+            let actionTitle = DemoL10n.text(labels?.title ?? "请完成动作{0}", [suffix])
+            return (actionTitle, capture ? nil : labels.map { DemoL10n.text($0.name) })
+        @unknown default: return (DemoL10n.text("正在处理，请稍候"), nil)
         }
+        return (title, capture ? nil : title)
     }
 
     static func outcomeText(_ outcome: FaceFlowOutcome) -> String {
@@ -51,14 +46,16 @@ enum FaceFlowPresentation {
     }
 
     static func actionList(_ actions: [FaceAction]) -> String {
-        actions.map {
-            switch $0 {
-            case .shakeHead: DemoL10n.text("摇头")
-            case .nodHead: DemoL10n.text("点头")
-            case .blink: DemoL10n.text("眨眼")
-            case .openMouth: DemoL10n.text("张嘴")
-            @unknown default: DemoL10n.text("其他动作")
-            }
-        }.joined(separator: "、")
+        actions.map { DemoL10n.text(actionLabels($0).name) }.joined(separator: "、")
+    }
+
+    private static func actionLabels(_ action: FaceAction) -> (name: String, title: String) {
+        switch action {
+        case .shakeHead: ("摇头", "请摇头{0}")
+        case .nodHead: ("点头", "请点头{0}")
+        case .blink: ("眨眼", "请眨眼{0}")
+        case .openMouth: ("张嘴", "请张嘴{0}")
+        @unknown default: ("其他动作", "请完成动作{0}")
+        }
     }
 }
