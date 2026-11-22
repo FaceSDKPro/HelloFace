@@ -80,7 +80,7 @@ final class CameraDemoModel: ObservableObject {
     private let recognitionActions: [FaceAction]?
     private let recognitionSilent: Bool
     private let recognitionReferenceID: String?
-    private let promptSpeech: DemoPromptSpeech?
+    private var promptSpeech: DemoPromptSpeech?
     @Published private(set) var completedPassed = false
     private let mode: CameraDemoMode
     let enrollsInSearchLibrary: Bool
@@ -691,7 +691,8 @@ final class CameraDemoModel: ObservableObject {
 
     private func handle(_ result: FaceFlowResult) {
         guard started else { return }
-        promptSpeech?.stop()
+        promptSpeech?.finish()
+        promptSpeech = nil
         completedPassed = result.passed
         request = nil
         pipeline.pauseAnalysis()

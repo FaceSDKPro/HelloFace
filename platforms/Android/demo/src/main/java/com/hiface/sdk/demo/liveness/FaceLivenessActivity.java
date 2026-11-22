@@ -44,7 +44,7 @@ public final class FaceLivenessActivity extends CameraFlowActivity {
                 renderVerificationProgress(progress, config.getActionTimeoutMillis());
             }
             @Override public void onResult(@NonNull FaceFlowResult result) {
-                if (!finishCameraFlow()) return;
+                if (!finishCameraFlow(true)) return;
                 String message = result.isPassed() ? getString(R.string.liveness_result_passed)
                         : FaceFlowUi.rejectionMessage(FaceLivenessActivity.this, result.getOutcome());
                 if (result.getLivenessScore() != null) message = getString(R.string.liveness_score_format, message, result.getLivenessScore());

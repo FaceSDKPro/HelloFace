@@ -6,11 +6,15 @@ const PREEMPTIVE_PLAYBACK: Record<string, Object> = { 'queueMode': 1 };
 
 /** Plays the latest prompt using the matching offline voice. */
 export class DemoPromptSpeech {
+  private static finishingPrompt: DemoPromptSpeech | undefined = undefined;
   private engine: textToSpeech.TextToSpeechEngine | undefined = undefined;
   private lastPrompt: string | undefined = undefined;
+  private requestId: string | undefined = undefined;
+  private startedId: string | undefined = undefined;
   private closed: boolean;
 
   constructor(language: string) {
+    DemoPromptSpeech.stopFinishingPrompt();
     this.closed = !canIUse('SystemCapability.AI.TextToSpeech');
     if (!this.closed) {
       this.initialize(language);
@@ -30,10 +34,31 @@ export class DemoPromptSpeech {
   }
 
   close(): void {
+    if (DemoPromptSpeech.finishingPrompt === this) DemoPromptSpeech.finishingPrompt = undefined;
     this.closed = true;
     this.stop();
     try { this.engine?.shutdown(); } catch (_) {}
     this.engine = undefined;
+  }
+
+  /** Keep the already-started prompt during normal navigation for at most two seconds. */
+  finish(): void {
+    if (DemoPromptSpeech.finishingPrompt === this) return;
+    try {
+      if (this.lastPrompt !== undefined && this.requestId === this.startedId && this.engine?.isBusy()) {
+        DemoPromptSpeech.stopFinishingPrompt();
+        DemoPromptSpeech.finishingPrompt = this;
+        setTimeout((): void => {
+          if (DemoPromptSpeech.finishingPrompt === this) this.close();
+        }, 2000);
+        return;
+      }
+    } catch (_) {}
+    this.close();
+  }
+
+  private static stopFinishingPrompt(): void {
+    DemoPromptSpeech.finishingPrompt?.close();
   }
 
   private async initialize(language: string): Promise<void> {
@@ -46,7 +71,7 @@ export class DemoPromptSpeech {
       });
       if (!this.closed) {
         engine.setListener({
-          onStart: () => {},
+          onStart: (id: string): void => { if (id === this.requestId) this.startedId = id; },
           onComplete: () => {},
           onStop: () => {},
           onError: (_requestId: string, errorCode: number) => {
@@ -72,8 +97,10 @@ export class DemoPromptSpeech {
   private speakLatest(): void {
     if (this.engine === undefined || this.lastPrompt === undefined) return;
     try {
+      const requestId: string = util.generateRandomUUID(false).replace(/-/g, '');
+      this.requestId = requestId;
       this.engine.speak(this.lastPrompt, {
-        requestId: util.generateRandomUUID(false).replace(/-/g, ''),
+        requestId,
         extraParams: PREEMPTIVE_PLAYBACK
       });
     } catch (_) {

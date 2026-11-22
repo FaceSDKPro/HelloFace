@@ -7,6 +7,8 @@ See the [SDK API](SDK.md) for integration requirements and API details.
 
 Camera verification and standalone liveness use system text-to-speech for face-position and action prompts. The Demo supplies English (`en-US`) and Chinese (`zh-CN`) prompts, and playback depends on a matching voice on the device. Repeated prompt text leaves playback uninterrupted. A new prompt replaces it. The camera guidance stays visible throughout.
 
+The Demo returns as soon as a camera flow completes and lets an already-playing prompt continue for up to two seconds. Canceling the camera flow stops speech immediately. Speech is limited to camera guidance. Results are shown on screen.
+
 ## 1:1 reference enrollment
 
 On Face Recognition, choose ordered action challenges and the 1:1 passive-liveness switch before opening the camera. Swipe the enrolled reference portraits and tap a Face ID to verify. Independent liveness always performs passive checks with optional actions. Verification and liveness return their result to this page without a result dialog. Confirmed captures save a private portrait; older feature-only references use a placeholder. Choose **Add from Album** to open the system picker directly or **Use Camera** to start guided capture. A photo must contain exactly one detected face. Both paths show the same confirmation before saving the reference under the entered Face ID.

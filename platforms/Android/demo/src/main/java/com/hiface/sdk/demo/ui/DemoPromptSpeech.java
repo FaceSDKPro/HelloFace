@@ -5,6 +5,7 @@ import android.media.AudioAttributes;
 import android.os.Handler;
 import android.os.Looper;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
 import android.speech.tts.Voice;
 import androidx.annotation.MainThread;
 import androidx.annotation.Nullable;
@@ -14,15 +15,19 @@ import java.util.Set;
 /** Speaks the latest prompt for one screen using an installed voice for its text locale. */
 @MainThread
 public final class DemoPromptSpeech {
+    private static DemoPromptSpeech finishingPrompt;
+    private final Handler main = new Handler(Looper.getMainLooper());
+    private final Runnable releasePrompt = this::close;
     private final Locale locale;
     private TextToSpeech engine;
     private boolean ready;
     private String lastPrompt;
     private long utteranceId;
+    private volatile String startedId;
 
     public DemoPromptSpeech(Context context, Locale locale) {
+        stopFinishingPrompt();
         this.locale = locale;
-        Handler main = new Handler(Looper.getMainLooper());
         // Initialization can report an error before the constructor returns.
         engine = new TextToSpeech(context.getApplicationContext(), status -> main.post(() -> onInitialized(status)));
     }
@@ -43,12 +48,32 @@ public final class DemoPromptSpeech {
     }
 
     public void close() {
+        if (finishingPrompt == this) {
+            finishingPrompt = null;
+            main.removeCallbacks(releasePrompt);
+        }
         stop();
         if (engine != null) {
             engine.shutdown();
             engine = null;
         }
         ready = false;
+    }
+
+    /** Keep the current audio through normal navigation for at most two seconds. */
+    public void finish() {
+        if (finishingPrompt == this) return;
+        if (!ready || lastPrompt == null || !Long.toString(utteranceId).equals(startedId) || !engine.isSpeaking()) {
+            close();
+            return;
+        }
+        stopFinishingPrompt();
+        finishingPrompt = this;
+        main.postDelayed(releasePrompt, 2_000);
+    }
+
+    private static void stopFinishingPrompt() {
+        if (finishingPrompt != null) finishingPrompt.close();
     }
 
     private void onInitialized(int status) {
@@ -64,6 +89,11 @@ public final class DemoPromptSpeech {
                 .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                 .build());
+        engine.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+            @Override public void onStart(String id) { startedId = id; }
+            @Override public void onDone(String id) {}
+            @Override public void onError(String id) {}
+        });
         ready = true;
         // Only the newest prompt survives engine startup. stop() clears it when the flow ends.
         speakLatest();

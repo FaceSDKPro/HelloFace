@@ -1098,7 +1098,6 @@ export struct RealtimeCameraDemo {
     if (!this.visible || generation !== this.flowGeneration) {
       return;
     }
-    this.promptSpeech?.stop();
     const captured = (mode === RealtimeMode.CAPTURE || mode === RealtimeMode.SEARCH_ENROLLMENT) && result.isPassed();
     if (captured && (result.feature === undefined || result.alignedRgba === undefined)) {
       this.onFlowError(new HiFaceError(HiFaceErrorCode.PROCESSING_FAILED,
@@ -1146,7 +1145,8 @@ export struct RealtimeCameraDemo {
       this.resultState = DemoL10n.text("未采集到合格人脸，请重试");
       this.resultVisible = true;
     }
-    if (this.returnRecognitionResult(result.isPassed())) return;
+    if (this.returnRecognitionResult(result.isPassed(), true)) return;
+    this.promptSpeech?.stop();
     this.drawOverlay();
   }
 
@@ -1350,10 +1350,14 @@ export struct RealtimeCameraDemo {
     this.drawOverlay();
   }
 
-  private returnRecognitionResult(passed: boolean): boolean {
+  private returnRecognitionResult(passed: boolean, finishSpeech: boolean = false): boolean {
     if (!this.recognitionConfigured || (this.currentMode !== RealtimeMode.VERIFICATION &&
       this.currentMode !== RealtimeMode.LIVENESS)) return false;
     this.resultVisible = false;
+    if (finishSpeech && this.isPageActive()) {
+      this.promptSpeech?.finish();
+      this.promptSpeech = undefined;
+    }
     this.onRecognitionResult(this.guideState, this.resultState, passed);
     return true;
   }

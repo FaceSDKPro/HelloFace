@@ -53,7 +53,7 @@ public final class FaceVerificationActivity extends CameraFlowActivity {
                 renderVerificationProgress(progress, config.getActionTimeoutMillis());
             }
             @Override public void onResult(@NonNull FaceFlowResult result) {
-                if (!finishCameraFlow()) return;
+                if (!finishCameraFlow(true)) return;
                 String message;
                 switch (result.getOutcome()) {
                     case PASSED:

@@ -84,9 +84,17 @@ public abstract class CameraFlowActivity extends CameraBrightnessActivity {
 
     /** Ignore duplicate callbacks and pause frames before showing the result. */
     protected final boolean finishCameraFlow() {
+        return finishCameraFlow(false);
+    }
+
+    protected final boolean finishCameraFlow(boolean finishSpeech) {
         if (!flow.finish()) return false;
         cameraPreview.pauseAnalysis();
         captureOverlay.finishCountdown();
+        if (finishSpeech && resumed && !isFinishing() && promptSpeech != null) {
+            promptSpeech.finish();
+            promptSpeech = null;
+        }
         clearSpeechPrompt();
         return true;
     }
