@@ -28,8 +28,6 @@ final class DemoPromptSpeech {
     func stop() {
         guard lastPrompt != nil else { return }
         lastPrompt = nil
-        if synthesizer.isSpeaking {
-            synthesizer.stopSpeaking(at: .immediate)
-        }
+        synthesizer.stopSpeaking(at: .immediate)
     }
 }
