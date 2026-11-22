@@ -250,3 +250,7 @@ FaceSearchSessionConfig config = FaceSearchSessionConfig.builder()
 相机帧缓冲区借用到 `processFrame` 返回，返回后才可交还相机；静态图异步采集在方法返回前完成快照。取消会抑制尚未开始的回调，不补发终态；已开始的回调可能完成，应用仍应核对当前页面或请求标识。绑定 `lifecycleOwner` 后在主线程构建，`close()` 也在主线程调用；Fragment 仅服务当前视图时绑定其 View Lifecycle。
 
 当前模型不支持 12 周岁以下儿童人脸识别，不能用于金融场景。室外人脸搜索使用宽动态范围大于 100 dB 的相机。
+
+## 下载
+
+[在蒲公英下载 Android Demo APK](https://www.pgyer.com/HelloFace)

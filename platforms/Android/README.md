@@ -250,3 +250,7 @@ Capture, liveness, verification, and continuous search share one camera flow slo
 Camera frame buffers are borrowed until `processFrame` returns; release them to the camera afterward. Asynchronous static capture snapshots the image before returning. Cancellation suppresses callbacks that have not started and does not synthesize a terminal result; a callback already running may finish, so also guard the current page or request ID. Build on the main thread when binding a `lifecycleOwner`, and call `close()` on the main thread; a view-scoped Fragment should bind its View Lifecycle.
 
 The current model does not support face recognition for people under 12. Financial use is prohibited. Outdoor face search requires a camera with a wide dynamic range greater than 100 dB.
+
+## Download
+
+[Download the Android Demo from Google Play](https://play.google.com/store/apps/details?id=com.hiface.sdk.debug)

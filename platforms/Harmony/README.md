@@ -191,3 +191,7 @@ Capture, liveness, verification, and continuous search share one camera flow slo
 Retain YUV input until its frame Promise completes; static RGBA snapshot timing is described above. Camera `FaceRequest.cancel()` only cancels the SDK flow, not CameraKit, preview or frame buffers. Static tasks return Promises without a cancellation handle; discard stale results at the page boundary. On exit, stop submission, cancel/close flows and processors, wait for accepted frames, then release camera resources. Close the SDK and independently opened databases separately.
 
 The current model does not support face recognition for people under 12. Financial use is prohibited. Outdoor face search requires a camera with a wide dynamic range greater than 100 dB.
+
+## Download
+
+[Download the HarmonyOS Demo from Huawei AppGallery](https://appgallery.huawei.com/app/detail?id=com.hiface.sdk.debug)

@@ -191,3 +191,7 @@ RGB/IR 活体建议门槛为 0.80–0.99，建议值为 0.90。当前 RGB 静默
 YUV 输入保留到送帧 Promise 完成；静态 RGBA 的快照时机见上文。相机 `FaceRequest.cancel()` 只取消 SDK 流程，不释放 CameraKit、预览或帧缓冲；静态任务返回 Promise，不提供取消句柄，页面须丢弃过期结果。退出时先停止送帧、取消/关闭流程及处理器，等待已提交帧完成后释放相机资源；关闭 SDK，独立人脸库另行关闭。
 
 当前模型不支持 12 周岁以下儿童人脸识别，不能用于金融场景。室外人脸搜索使用宽动态范围大于 100 dB 的相机。
+
+## 下载
+
+[在华为应用市场下载鸿蒙 Demo](https://appgallery.huawei.com/app/detail?id=com.hiface.sdk.debug)
