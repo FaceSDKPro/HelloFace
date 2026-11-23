@@ -105,18 +105,24 @@ public final class DemoPromptSpeech {
         if (voices == null) {
             return null;
         }
+        // Demo locales are en-US/zh-CN; Samsung voices use ISO-3 codes (eng/USA, zho/CHN).
+        String language = locale.getISO3Language();
+        String country = locale.getISO3Country();
         Voice fallback = null;
         for (Voice voice : voices) {
             Locale voiceLocale = voice.getLocale();
             Set<String> features = voice.getFeatures();
-            if (!locale.getLanguage().equals(voiceLocale.getLanguage()) || voice.isNetworkConnectionRequired()
+            if ((!locale.getLanguage().equals(voiceLocale.getLanguage())
+                    && !language.equals(voiceLocale.getLanguage())) || voice.isNetworkConnectionRequired()
                     || (features != null && features.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED))) {
                 continue;
             }
-            if (locale.getCountry().equals(voiceLocale.getCountry())) {
+            if (locale.getCountry().equals(voiceLocale.getCountry()) || country.equals(voiceLocale.getCountry())) {
                 return voice;
             }
-            if (fallback == null) {
+            // Prefer a language-wide voice (for example Mandarin zh) over another region's voice.
+            if (fallback == null || (voiceLocale.getCountry().isEmpty()
+                    && !fallback.getLocale().getCountry().isEmpty())) {
                 fallback = voice;
             }
         }

@@ -5,9 +5,9 @@
 
 See the [SDK API](SDK.md) for integration requirements and API details.
 
-Camera verification and standalone liveness use system text-to-speech for face-position and action prompts. The Demo supplies English (`en-US`) and Chinese (`zh-CN`) prompts, and playback depends on a matching voice on the device. Repeated prompt text leaves playback uninterrupted. A new prompt replaces it. The camera guidance stays visible throughout.
+On Face Recognition, action challenges start enabled for both 1:1 verification and standalone liveness, with Blink and Nod Head selected. You can turn them off or choose other actions.
 
-The Demo returns as soon as a camera flow completes and lets an already-playing prompt continue for up to two seconds. Canceling the camera flow stops speech immediately. Speech is limited to camera guidance. Results are shown on screen.
+Camera verification and standalone liveness use system text-to-speech for face-position and action prompts. The Demo supplies English (`en-US`) and Chinese (`zh-CN`) prompts, and playback depends on a matching voice on the device. Repeated prompt text leaves playback uninterrupted. A new prompt replaces it. The camera guidance stays visible throughout.
 
 ## 1:1 reference enrollment
 
