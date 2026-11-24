@@ -19,7 +19,6 @@ import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
-
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.MainThread;
@@ -46,13 +45,11 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.Observer;
-
 import com.google.common.util.concurrent.ListenableFuture;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.frame.Yuv420Frame;
 import com.hiface.sdk.frame.YuvColorMatrix;
 import com.hiface.sdk.frame.YuvColorRange;
-
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
@@ -63,8 +60,11 @@ import java.util.concurrent.Executors;
 /**
  * CameraX adapter for permissions, preview, synchronous frame delivery, and coordinate mapping; the
  * SDK performs face analysis.
+ * The camera must produce clear images; for face search, a camera with a wide dynamic range above
+ * 105 dB is recommended.
  *
  * CameraX 采集适配器：权限、预览、同步送帧与坐标映射；人脸算法由 SDK 负责。
+ * 摄像头需成像清晰，人脸搜索建议相机宽动态大于105DB。
  */
 @SuppressLint("UnsafeOptInUsageError")
 public final class CameraPreviewFragment extends Fragment {
@@ -78,7 +78,8 @@ public final class CameraPreviewFragment extends Fragment {
     private CameraInfo selectedCamera;
     private List<Size> analysisSizes;
     private int resolutionIndex;
-    // started tracks the view lifecycle. cameraRequested tracks the caller’s intent, and analysisPaused gates SDK input.
+    // started tracks the view lifecycle. cameraRequested tracks the caller’s intent, and analysisPaused gates SDK
+    // input.
     private boolean started, cameraRequested, analysisPaused, permissionPending, providerLoading;
     private boolean overlayEnabled;
     // Zero preserves the device default; search uses 15 FPS active and 10 FPS idle preview.
@@ -101,8 +102,11 @@ public final class CameraPreviewFragment extends Fragment {
     private final ActivityResultLauncher<String> cameraPermission = registerForActivityResult(
             new ActivityResultContracts.RequestPermission(), granted -> {
                 permissionPending = false;
-                if (granted) bindIfReady();
-                else fail(R.string.camera_permission_required);
+                if (granted) {
+                    bindIfReady();
+                } else {
+                    fail(R.string.camera_permission_required);
+                }
             });
 
     /**
@@ -163,10 +167,14 @@ public final class CameraPreviewFragment extends Fragment {
             throw new IllegalArgumentException("Frame rates must be positive; analysis cannot exceed preview");
         }
         targetAnalysisFrameRate = analysisFramesPerSecond;
-        if (targetSessionFrameRate == previewFramesPerSecond) return;
+        if (targetSessionFrameRate == previewFramesPerSecond) {
+            return;
+        }
         targetSessionFrameRate = previewFramesPerSecond;
         Binding current = binding;
-        if (current != null) current.updateFrameRate(previewFramesPerSecond);
+        if (current != null) {
+            current.updateFrameRate(previewFramesPerSecond);
+        }
     }
 
     @MainThread
@@ -175,7 +183,9 @@ public final class CameraPreviewFragment extends Fragment {
         Binding current = binding;
         FrameMapping source = current == null ? null : current.mapping;
         OutputTransform target = previewView == null ? null : previewView.getOutputTransform();
-        if (source == null || target == null || source.width != width || source.height != height) return null;
+        if (source == null || target == null || source.width != width || source.height != height) {
+            return null;
+        }
         Matrix matrix = new Matrix();
         new CoordinateTransform(source.transform, target).transform(matrix);
         if (settings.mirrorCoordinates) {
@@ -191,12 +201,18 @@ public final class CameraPreviewFragment extends Fragment {
 
     @MainThread
     public boolean switchCamera() {
-        if (binding == null || selectedCamera == null) return false;
+        if (binding == null || selectedCamera == null) {
+            return false;
+        }
         int facing = lensFacing(selectedCamera);
-        if (facing != CameraSelector.LENS_FACING_FRONT && facing != CameraSelector.LENS_FACING_BACK) return false;
+        if (facing != CameraSelector.LENS_FACING_FRONT && facing != CameraSelector.LENS_FACING_BACK) {
+            return false;
+        }
         CameraInfo next = findCamera(facing == CameraSelector.LENS_FACING_FRONT
                 ? CameraSelector.LENS_FACING_BACK : CameraSelector.LENS_FACING_FRONT);
-        if (next == null) return false;
+        if (next == null) {
+            return false;
+        }
         unbind();
         selectedCamera = next;
         resetResolutions();
@@ -273,7 +289,7 @@ public final class CameraPreviewFragment extends Fragment {
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle state) {
+            @Nullable Bundle state) {
         View view = inflater.inflate(R.layout.fragment_camera_preview, container, false);
         previewView = view.findViewById(R.id.previewView);
         previewView.setImplementationMode(overlayEnabled
@@ -287,7 +303,9 @@ public final class CameraPreviewFragment extends Fragment {
     }
 
     private void loadProvider() {
-        if (providerLoading) return;
+        if (providerLoading) {
+            return;
+        }
         providerLoading = true;
         Context context = requireContext().getApplicationContext();
         ListenableFuture<ProcessCameraProvider> future = ProcessCameraProvider.getInstance(context);
@@ -297,7 +315,9 @@ public final class CameraPreviewFragment extends Fragment {
         WeakReference<CameraPreviewFragment> owner = new WeakReference<>(this);
         future.addListener(() -> {
             CameraPreviewFragment fragment = owner.get();
-            if (fragment != null) fragment.onProviderReady(future);
+            if (fragment != null) {
+                fragment.onProviderReady(future);
+            }
         }, ContextCompat.getMainExecutor(context));
     }
 
@@ -308,7 +328,9 @@ public final class CameraPreviewFragment extends Fragment {
             bindIfReady();
         } catch (Exception error) {
             Log.e(TAG, "CameraProvider init failed", error);
-            if (previewView != null) fail(R.string.camera_start_failed);
+            if (previewView != null) {
+                fail(R.string.camera_start_failed);
+            }
         }
     }
 
@@ -323,8 +345,9 @@ public final class CameraPreviewFragment extends Fragment {
         }
         settings = next;
         updateFrameDelivery();
-        if (binding == null) bindIfReady();
-        else {
+        if (binding == null) {
+            bindIfReady();
+        } else {
             binding.hasFrame = false;
             binding.opened = false;
             watchStartup(binding);
@@ -335,7 +358,9 @@ public final class CameraPreviewFragment extends Fragment {
     public void onStop() {
         started = false;
         updateFrameDelivery();
-        if (binding != null) main.removeCallbacks(binding.startupCheck);
+        if (binding != null) {
+            main.removeCallbacks(binding.startupCheck);
+        }
         super.onStop();
     }
 
@@ -345,9 +370,13 @@ public final class CameraPreviewFragment extends Fragment {
         frameListener = null;
         cameraReadyListener = null;
         main.removeCallbacksAndMessages(null);
-        if (previewView != null) previewView.removeOnLayoutChangeListener(previewLayoutListener);
+        if (previewView != null) {
+            previewView.removeOnLayoutChangeListener(previewLayoutListener);
+        }
         previewView = null;
-        if (analysisExecutor != null) analysisExecutor.shutdown();
+        if (analysisExecutor != null) {
+            analysisExecutor.shutdown();
+        }
         analysisExecutor = null;
         super.onDestroyView();
     }
@@ -360,7 +389,9 @@ public final class CameraPreviewFragment extends Fragment {
      */
     @SuppressLint("MissingPermission")
     private void bindIfReady() {
-        if (!started || !cameraRequested || binding != null || previewView == null) return;
+        if (!started || !cameraRequested || binding != null || previewView == null) {
+            return;
+        }
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             if (!permissionPending) {
@@ -374,10 +405,14 @@ public final class CameraPreviewFragment extends Fragment {
             return;
         }
         if (previewView.getWidth() == 0 || previewView.getHeight() == 0
-                || (overlayEnabled && previewView.getViewPort() == null)) return;
+                || (overlayEnabled && previewView.getViewPort() == null)) {
+            return;
+        }
         Binding next = null;
         try {
-            if (selectedCamera == null) selectedCamera = chooseCamera();
+            if (selectedCamera == null) {
+                selectedCamera = chooseCamera();
+            }
             if (analysisSizes == null) {
                 analysisSizes = CameraResolutions.analysisCandidates(selectedCamera, settings.highResolution);
                 Log.i(TAG, "Analysis resolution candidates: " + analysisSizes);
@@ -388,12 +423,17 @@ public final class CameraPreviewFragment extends Fragment {
             binding = next;
             next.preview.setSurfaceProvider(previewView.getSurfaceProvider());
             UseCaseGroup.Builder group = new UseCaseGroup.Builder().addUseCase(next.preview).addUseCase(next.analysis);
-            if (overlayEnabled) group.setViewPort(previewView.getViewPort());
-            next.camera = provider.bindToLifecycle(getViewLifecycleOwner(), selectedCamera.getCameraSelector(), group.build());
+            if (overlayEnabled) {
+                group.setViewPort(previewView.getViewPort());
+            }
+            next.camera = provider.bindToLifecycle(getViewLifecycleOwner(), selectedCamera.getCameraSelector(),
+                    group.build());
             // Apply an advertised rate on initial binding and lens switches too, not only during 15/5 FPS
             // transitions.
             // 初次绑定/切镜头也下发实际支持的档位，不能只在 15/5 FPS 切换时更新。
-            if (targetSessionFrameRate > 0) next.updateFrameRate(targetSessionFrameRate);
+            if (targetSessionFrameRate > 0) {
+                next.updateFrameRate(targetSessionFrameRate);
+            }
             next.camera.getCameraInfo().getCameraState().observe(getViewLifecycleOwner(), next.observer);
             ResolutionInfo previewInfo = next.preview.getResolutionInfo();
             ResolutionInfo analysisInfo = next.analysis.getResolutionInfo();
@@ -403,8 +443,11 @@ public final class CameraPreviewFragment extends Fragment {
             watchStartup(next);
         } catch (RuntimeException error) {
             Log.e(TAG, "Camera bind failed", error);
-            if (next == null) fail(R.string.camera_start_failed);
-            else handleFailure(next, true);
+            if (next == null) {
+                fail(R.string.camera_start_failed);
+            } else {
+                handleFailure(next, true);
+            }
         }
     }
 
@@ -414,16 +457,24 @@ public final class CameraPreviewFragment extends Fragment {
     }
 
     private void onCameraState(Binding current, CameraState state) {
-        if (binding != current || !started) return;
+        if (binding != current || !started) {
+            return;
+        }
         CameraState.StateError error = state.getError();
-        if (state.getType() == CameraState.Type.OPEN && error == null) current.opened = true;
+        if (state.getType() == CameraState.Type.OPEN && error == null) {
+            current.opened = true;
+        }
         if (error == null || error.getCode() == CameraState.ERROR_CAMERA_IN_USE
-                || error.getCode() == CameraState.ERROR_MAX_CAMERAS_IN_USE) return;
+                || error.getCode() == CameraState.ERROR_MAX_CAMERAS_IN_USE) {
+            return;
+        }
         boolean retry = isResolutionError(error);
         // CameraInfo can replay an earlier error; use the startup timeout until the newly bound camera
         // actually opens.
         // CameraInfo 会重放上一轮错误；新绑定实际打开前，交给启动超时处理。
-        if (retry && !current.opened) return;
+        if (retry && !current.opened) {
+            return;
+        }
         Log.w(TAG, "CameraState error=" + error.getCode());
         current.post(() -> handleFailure(current, retry));
     }
@@ -434,25 +485,34 @@ public final class CameraPreviewFragment extends Fragment {
     }
 
     private void checkStartup(Binding current) {
-        if (binding != current || !started) return;
+        if (binding != current || !started) {
+            return;
+        }
         if (current.hasFrame && previewView.getPreviewStreamState().getValue() == PreviewView.StreamState.STREAMING) {
             Log.i(TAG, "Camera streaming; resolutionAttempt=" + (resolutionIndex + 1));
             return;
         }
         CameraState state = current.camera.getCameraInfo().getCameraState().getValue();
-        boolean retry = state != null && (state.getType() == CameraState.Type.OPEN || isResolutionError(state.getError()));
+        boolean retry = state != null && (state.getType() == CameraState.Type.OPEN || isResolutionError(
+                state.getError()));
         Log.w(TAG, "Camera startup timeout");
         handleFailure(current, retry);
     }
 
     private void handleFailure(Binding current, boolean retry) {
-        if (binding != current || !started) return;
+        if (binding != current || !started) {
+            return;
+        }
         unbind();
         if (retry && resolutionIndex + 1 < analysisSizes.size()) {
             resolutionIndex++;
-            if (resolutionIndex == 1) showToast(R.string.camera_resolution_downgrade);
+            if (resolutionIndex == 1) {
+                showToast(R.string.camera_resolution_downgrade);
+            }
             main.post(this::bindIfReady);
-        } else fail(R.string.camera_start_failed);
+        } else {
+            fail(R.string.camera_start_failed);
+        }
     }
 
     private void resetResolutions() {
@@ -462,23 +522,32 @@ public final class CameraPreviewFragment extends Fragment {
 
     private CameraInfo chooseCamera() {
         CameraInfo camera = findCamera(CameraSelector.LENS_FACING_FRONT);
-        if (camera == null) camera = findCamera(CameraSelector.LENS_FACING_BACK);
-        if (camera == null) camera = provider.getAvailableCameraInfos().get(0);
+        if (camera == null) {
+            camera = findCamera(CameraSelector.LENS_FACING_BACK);
+        }
+        if (camera == null) {
+            camera = provider.getAvailableCameraInfos().get(0);
+        }
         return camera;
     }
 
     private CameraInfo findCamera(int facing) {
         if (provider != null) {
             for (CameraInfo camera : provider.getAvailableCameraInfos()) {
-                if (lensFacing(camera) == facing) return camera;
+                if (lensFacing(camera) == facing) {
+                    return camera;
+                }
             }
         }
         return null;
     }
 
     private static int lensFacing(CameraInfo camera) {
-        try { return camera.getLensFacing(); }
-        catch (IllegalArgumentException ignored) { return CameraSelector.LENS_FACING_UNKNOWN; }
+        try {
+            return camera.getLensFacing();
+        } catch (IllegalArgumentException ignored) {
+            return CameraSelector.LENS_FACING_UNKNOWN;
+        }
     }
 
     private void fail(@StringRes int message) {
@@ -487,16 +556,22 @@ public final class CameraPreviewFragment extends Fragment {
     }
 
     private void showToast(@StringRes int message) {
-        if (isAdded()) Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+        if (isAdded()) {
+            Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+        }
     }
 
     // Invalidate the binding first, then detach its callbacks and CameraX use cases.
     private void unbind() {
         Binding old = binding;
         binding = null;
-        if (old == null) return;
+        if (old == null) {
+            return;
+        }
         old.releaseCallbacks();
-        if (old.camera != null) old.camera.getCameraInfo().getCameraState().removeObserver(old.observer);
+        if (old.camera != null) {
+            old.camera.getCameraInfo().getCameraState().removeObserver(old.observer);
+        }
         old.analysis.clearAnalyzer();
         old.preview.setSurfaceProvider(null);
         provider.unbind(old.preview, old.analysis);
@@ -531,7 +606,9 @@ public final class CameraPreviewFragment extends Fragment {
          * 与解绑互斥，防止分析线程在清空主队列后才投递旧 View 的回调。
          */
         synchronized void post(Runnable action) {
-            if (!released) main.postAtTime(action, this, SystemClock.uptimeMillis());
+            if (!released) {
+                main.postAtTime(action, this, SystemClock.uptimeMillis());
+            }
         }
 
         synchronized void releaseCallbacks() {
@@ -564,7 +641,9 @@ public final class CameraPreviewFragment extends Fragment {
          */
         void updateFrameRate(int framesPerSecond) {
             lastDeliveredTimestampNanos = Long.MIN_VALUE;
-            if (camera == null) return;
+            if (camera == null) {
+                return;
+            }
             try {
                 requestFrameRate(framesPerSecond);
             } catch (RuntimeException error) {
@@ -591,11 +670,15 @@ public final class CameraPreviewFragment extends Fragment {
 
         void analyze(ImageProxy image) {
             try {
-                if (binding != this) return;
+                if (binding != this) {
+                    return;
+                }
                 ImageProxy.PlaneProxy[] planes = null;
                 if (!hasFrame) {
                     planes = image.getPlanes();
-                    if (planes.length < 3) return;
+                    if (planes.length < 3) {
+                        return;
+                    }
                     hasFrame = true;
                     Log.i(TAG, "First analysis frame: " + image.getWidth() + "x" + image.getHeight());
                     post(() -> {
@@ -605,7 +688,9 @@ public final class CameraPreviewFragment extends Fragment {
                     });
                 }
                 FrameListener listener = frameListener;
-                if (!deliverFrames || listener == null) return;
+                if (!deliverFrames || listener == null) {
+                    return;
+                }
                 int analysisFrameRate = targetAnalysisFrameRate;
                 if (analysisFrameRate > 0) {
                     long timestamp = image.getImageInfo().getTimestamp();
@@ -620,8 +705,12 @@ public final class CameraPreviewFragment extends Fragment {
                 }
                 // Frames discarded while idle or paused need no PlaneProxy/ByteBuffer wrappers or coordinate mapping.
                 // 待机/暂停丢弃的帧不必创建 PlaneProxy/ByteBuffer 包装或做坐标映射。
-                if (planes == null) planes = image.getPlanes();
-                if (planes.length < 3) return;
+                if (planes == null) {
+                    planes = image.getPlanes();
+                }
+                if (planes.length < 3) {
+                    return;
+                }
                 if (overlayEnabled && (mapping == null || !mapping.matches(image))) {
                     mapping = new FrameMapping(image, transforms);
                 }
@@ -629,7 +718,9 @@ public final class CameraPreviewFragment extends Fragment {
                         image.getWidth(), image.getHeight(), planes[0].getRowStride(), planes[1].getRowStride(),
                         planes[2].getRowStride(), planes[1].getPixelStride(), YuvColorRange.VIDEO, YuvColorMatrix.BT601,
                         image.getImageInfo().getRotationDegrees(), mirrored);
-                if (deliverFrames && binding == this && frameListener == listener) listener.onFrame(frame);
+                if (deliverFrames && binding == this && frameListener == listener) {
+                    listener.onFrame(frame);
+                }
             } catch (RuntimeException error) {
                 Log.e(TAG, "Frame analysis failed", error);
             } finally {

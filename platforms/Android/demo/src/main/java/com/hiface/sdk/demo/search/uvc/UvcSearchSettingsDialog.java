@@ -14,12 +14,20 @@ import com.hiface.sdk.search.InfraredSearchConfig;
 /** Edits supported search options with mandatory IR and single-person mode. 中文：不复用普通 RGB 页的模式开关。 */
 final class UvcSearchSettingsDialog {
     // Keep API 23 support without java.util.function, which requires API 24.
-    interface OnApply { void accept(FaceSearchSessionConfig config); }
-    private interface NumberParser<N extends Number> { N parse(String text); }
+    interface OnApply {
+        void accept(FaceSearchSessionConfig config);
+    }
 
-    private UvcSearchSettingsDialog() {}
+    private interface NumberParser<N extends Number> {
+        N parse(String text);
+    }
 
-    static FaceSearchSessionConfig defaults() { return FaceSearchSessionConfig.builder().build(); }
+    private UvcSearchSettingsDialog() {
+    }
+
+    static FaceSearchSessionConfig defaults() {
+        return FaceSearchSessionConfig.builder().build();
+    }
 
     /** Rebuild editable options while retaining single-person mode and required IR checks. */
     static FaceSearchSessionConfig withInfrared(FaceSearchSessionConfig options, InfraredSearchConfig ir) {
@@ -36,7 +44,9 @@ final class UvcSearchSettingsDialog {
     }
 
     static FaceSearchSessionConfig restore(Bundle saved) {
-        if (saved == null) return defaults();
+        if (saved == null) {
+            return defaults();
+        }
         return FaceSearchSessionConfig.builder().group(saved.getString("searchGroup"))
                 .threshold(saved.getFloat("searchThreshold", .8f))
                 .searchIntervalMillis(saved.getInt("searchInterval", 0))
@@ -55,19 +65,24 @@ final class UvcSearchSettingsDialog {
             threshold.setText(String.valueOf(config.getThreshold()));
             interval.setText(String.valueOf(config.getSearchIntervalMillis()));
             timeout.setText(String.valueOf(config.getSearchTimeoutMillis()));
-            for (EditText field : new EditText[]{group, threshold, interval, timeout}) field.setError(null);
+            for (EditText field : new EditText[]{group, threshold, interval, timeout}) {
+                field.setError(null);
+            }
         };
         fill.accept(current);
         AlertDialog dialog = new MaterialAlertDialogBuilder(context).setTitle(R.string.search_settings)
                 .setView(form).setNegativeButton(android.R.string.cancel, null)
-                .setNeutralButton(R.string.search_ui_reset, null).setPositiveButton(R.string.search_apply, null).create();
+                .setNeutralButton(R.string.search_ui_reset, null).setPositiveButton(R.string.search_apply, null)
+                .create();
         dialog.setOnShowListener(ignored -> {
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> fill.accept(defaults()));
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
                 Float score = number(threshold, Float::valueOf, .75f, .85f, R.string.search_ui_error_threshold);
                 Integer gap = number(interval, Integer::valueOf, 0, 3000, R.string.search_ui_error_interval);
                 Integer budget = number(timeout, Integer::valueOf, 1000, 3000, R.string.search_ui_error_timeout);
-                if (score == null || gap == null || budget == null) return;
+                if (score == null || gap == null || budget == null) {
+                    return;
+                }
                 apply.accept(FaceSearchSessionConfig.builder().group(group.getText().toString().trim())
                         .threshold(score).searchIntervalMillis(gap).searchTimeoutMillis(budget).build());
                 dialog.dismiss();

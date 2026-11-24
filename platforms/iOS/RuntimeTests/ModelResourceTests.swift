@@ -10,6 +10,24 @@ import XCTest
 /// Run inside the real Demo App against the binary SDK; exercise model resources and HF1 storage without a camera.
 /// 在真实 Demo App 内针对二进制 SDK 运行，无需相机即可验证模型资源与 HF1 存储。
 final class ModelResourceTests: XCTestCase {
+    func testAccessPromptsEndWithTheStableCodeExactlyOnce() {
+        let numbers: [HiFaceErrorCode: Int] = [
+            .licenseMissing: 1602, .licenseInvalid: 1603, .licenseNotYetValid: 1604,
+            .licenseExpired: 1605, .licenseFeatureDenied: 1606, .licenseClockInvalid: 1608
+        ]
+        for code in HiFaceErrorCode.allCases {
+            let prompt = DemoErrorPresentation.accessMessage(for: code)
+            if let number = numbers[code] {
+                let expected = DemoL10n.text("功能不可用（错误码 {0}）", [String(number)])
+                XCTAssertEqual(prompt, expected)
+                XCTAssertEqual(DemoErrorPresentation.message(for: HiFaceError(code: code, message: "")), expected)
+                XCTAssertEqual(expected.components(separatedBy: String(number)).count, 2)
+            } else {
+                XCTAssertNil(prompt)
+            }
+        }
+    }
+
     private func requireDeviceRuntime() throws {
         #if targetEnvironment(simulator)
         throw XCTSkip("The simulator SDK is compile/link-only; native runtime acceptance requires a physical iOS device")

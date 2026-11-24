@@ -11,7 +11,7 @@ export class DemoL10n {
   private static resources: resourceManager.ResourceManager | undefined = undefined;
   private static readonly cache: Map<string, string> = new Map();
 
-  private static followsChineseResources(): boolean {
+  static followsChineseResources(): boolean {
     try {
       const language: string = i18n.System.getSystemLanguage().toLowerCase().replace('_', '-');
       return language === 'zh' || language.startsWith('zh-');

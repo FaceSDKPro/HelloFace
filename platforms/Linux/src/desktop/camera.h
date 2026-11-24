@@ -43,6 +43,9 @@ void rotateFrame180(CameraFrame& frame);
 void infraredFrame(const uint8_t* bytes, size_t size, int width, int height, int stride,
                    bool yuyv, int rotation, CameraFrame& frame);
 enum class RgbIrCameraRole { rgb, infrared };
+// The camera must produce clear images; for face search, a camera with a wide dynamic range above
+// 105 dB is recommended.
+// 摄像头需成像清晰，人脸搜索建议相机宽动态大于105DB。
 class Camera {
 public:
     Camera() = default;

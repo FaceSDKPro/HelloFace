@@ -33,10 +33,20 @@ struct ImageFaceCapture {
     HiFaceStatus status = HIFACE_STATUS_INVALID_STATE;
     std::optional<CaptureResult> capture;
 };
+/** 单次流程可选的结果加密，由接入方后台提供公钥。 */
+struct FaceResultEncryption {
+    std::string sessionId;
+    std::string publicKey;
+};
+
 struct FlowResult {
     HiFaceFlowResultV1 metadata{};
     Image preview;
     std::string feature;
+    // Full, upright terminal frame for recognition flows. Empty when Core has no image.
+    // 识别流程的完整正向结束帧；Core 无图时为空。
+    Image frame;
+    std::optional<std::string> resultEnvelope;
 };
 HiFaceFlowConfigV1 flowConfig(const FlowOptions& options, const Feature* reference = nullptr);
 struct FrameUpdate {
@@ -77,6 +87,7 @@ public:
     // Starts one capture/action/verification flow; cancels search until completion.
     // 启动一次采集/动作/验证，期间停止搜索；参考特征在调用内复制。
     void beginFlow(const FlowOptions& options);
+    void beginFlow(const FlowOptions& options, const std::optional<FaceResultEncryption>& encryption);
     void cancelFlow();
     bool flowActive() const { return flow_active_; }
     // Feed one frame on the owning worker. current() suppresses a stale flow result

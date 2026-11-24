@@ -2,11 +2,9 @@ package com.hiface.sdk.demo.verification;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
 import com.hiface.sdk.demo.HiFaceDemoApplication;
 import com.hiface.sdk.search.FaceFeatureFormat;
 import com.tencent.mmkv.MMKV;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

@@ -12,8 +12,13 @@ final class UvcCameraCloseBarrier {
     private int ownPending;
     private Runnable ready;
 
-    boolean isClosing() { return pending != 0; }
-    boolean isOwnerClosing() { return ownPending != 0; }
+    boolean isClosing() {
+        return pending != 0;
+    }
+
+    boolean isOwnerClosing() {
+        return ownPending != 0;
+    }
 
     void closing() {
         ++ownPending;
@@ -23,17 +28,27 @@ final class UvcCameraCloseBarrier {
     // Subscribe only while visible; onStop removes the static reference to the background Activity.
     void listen(Runnable listener) {
         ready = listener;
-        if (listener == null) listeners.remove(this);
-        else listeners.add(this);
+        if (listener == null) {
+            listeners.remove(this);
+        } else {
+            listeners.add(this);
+        }
     }
 
     void closed() {
         // Duplicate or unmatched callbacks cannot release another owner's pending closure.
-        if (ownPending == 0) return;
+        if (ownPending == 0) {
+            return;
+        }
         --ownPending;
-        if (--pending != 0) return;
+        if (--pending != 0) {
+            return;
+        }
         // Notify a snapshot because callbacks can navigate and change subscriptions.
-        for (UvcCameraCloseBarrier owner : new ArrayList<>(listeners))
-            if (owner.ready != null) owner.ready.run();
+        for (UvcCameraCloseBarrier owner : new ArrayList<>(listeners)) {
+            if (owner.ready != null) {
+                owner.ready.run();
+            }
+        }
     }
 }

@@ -10,12 +10,31 @@ using hiface::Person; using Gallery = hiface::Database; using SdkError = hiface:
 using hiface::check; using hiface::flowConfig;
 using hiface::encodeFeature; using hiface::decodeFeature; using hiface::compareFeatureText;
 
+inline int accessErrorCode(HiFaceStatus status) {
+    switch (status) {
+        case HIFACE_STATUS_LICENSE_MISSING: return 1602;
+        case HIFACE_STATUS_LICENSE_INVALID: return 1603;
+        case HIFACE_STATUS_LICENSE_NOT_YET_VALID: return 1604;
+        case HIFACE_STATUS_LICENSE_EXPIRED: return 1605;
+        case HIFACE_STATUS_LICENSE_FEATURE_DENIED: return 1606;
+        case HIFACE_STATUS_LICENSE_CLOCK_INVALID: return 1608;
+        default: return 0;
+    }
+}
+
+inline bool isAccessError(HiFaceStatus status) {
+    return accessErrorCode(status) != 0;
+}
+
+inline std::string accessMessage(HiFaceStatus status) {
+    const int code = accessErrorCode(status);
+    if (!code) return {};
+    return u8"功能不可用（错误码 " + std::to_string(code) + u8"）";
+}
+
 // Keep the SDK error for diagnostics and use one prompt for unavailable features.
 inline std::string demoErrorMessage(const SdkError& error, const char* prefix = "") {
-    if ((error.status >= HIFACE_STATUS_LICENSE_MISSING && error.status <= HIFACE_STATUS_LICENSE_FEATURE_DENIED) ||
-        error.status == HIFACE_STATUS_LICENSE_CLOCK_INVALID) {
-        return u8"功能不可用,请升级或联系技术支持";
-    }
+    if (auto message = accessMessage(error.status); !message.empty()) return message;
     return std::string(prefix) + error.what();
 }
 

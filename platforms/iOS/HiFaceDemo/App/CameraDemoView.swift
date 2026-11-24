@@ -98,7 +98,7 @@ private final class CameraScreenBrightnessPresentation: ObservableObject {
 /// 统一管理相机页面生命周期；各能力的页面和 Overlay 位于对应功能分组。
 struct CameraDemoView: View {
     let mode: CameraDemoMode
-    private let onRecognitionResult: (@MainActor (String, String, Bool) -> Void)?
+    private let onRecognitionResult: (@MainActor (RecognitionInlineResult) -> Void)?
     @StateObject private var model: CameraDemoModel
     @StateObject private var searchScreenPresentation = SearchScreenPresentation()
     @StateObject private var cameraScreenBrightness = CameraScreenBrightnessPresentation()
@@ -112,7 +112,7 @@ struct CameraDemoView: View {
     init(mode: CameraDemoMode, enrollsInSearchLibrary: Bool = false,
          recognitionActions: [FaceAction]? = nil, recognitionSilent: Bool = true,
          recognitionReferenceID: String? = nil,
-         onRecognitionResult: (@MainActor (String, String, Bool) -> Void)? = nil) {
+         onRecognitionResult: (@MainActor (RecognitionInlineResult) -> Void)? = nil) {
         self.mode = mode
         self.onRecognitionResult = onRecognitionResult
         _model = StateObject(wrappedValue: CameraDemoModel(mode: mode, enrollsInSearchLibrary: enrollsInSearchLibrary,
@@ -197,7 +197,12 @@ struct CameraDemoView: View {
         .onChange(of: shouldPresentResult) { ready in
             guard ready else { presentsResultAlert = false; return }
             if let onRecognitionResult {
-                onRecognitionResult(model.status, model.detail ?? "", model.phase == .completed && model.completedPassed)
+                let completed = model.phase == .completed
+                // Transfer the terminal image before closing the camera clears its copy.
+                let message = [model.status, model.detail ?? ""].filter { !$0.isEmpty }.joined(separator: "\n")
+                onRecognitionResult(RecognitionInlineResult(message: message,
+                    outcome: completed ? (model.completedPassed ? .passed : .rejected) : .error,
+                    frameJPEG: completed ? model.completedFrameJPEG : nil))
                 closePage()
             } else { presentsResultAlert = true }
         }

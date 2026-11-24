@@ -2,6 +2,8 @@ import { FaceFlowListener, FaceFlowProgress, FaceFlowResult, FaceSearchFrame,
   FaceSearchListener, FaceSearchProgress, FaceSearchResult, HiFaceError, Yuv420Frame } from 'hiface';
 import { CameraPreviewCallbacks, CameraPreviewState } from './CameraPreviewCallbacks';
 
+export enum RecognitionOutcome { PASSED, REJECTED, ERROR, CANCELED }
+
 // ArkTS 不支持用对象字面量实现带方法的接口；具体类型只保存回调，不包装 SDK 或业务状态。
 export class DemoFlowListener implements FaceFlowListener {
   readonly onProgress: (progress: FaceFlowProgress) => void;

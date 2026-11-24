@@ -15,7 +15,8 @@ import java.util.List;
 /** RGB-only enrollment settings; restore address/VID/PID rather than indices. 中文：录入不选择 IR 相机。 */
 final class UvcEnrollmentCameraSettings {
     static final String STREAM_KEY = "enrollStream";
-    private static final String DEVICE = "enrollUvcDevice", VENDOR = "enrollUvcVendor", PRODUCT = "enrollUvcProduct", ROTATION = "enrollUvcRotation";
+    private static final String DEVICE = "enrollUvcDevice", VENDOR = "enrollUvcVendor", PRODUCT = "enrollUvcProduct",
+            ROTATION = "enrollUvcRotation";
     private final AppCompatActivity owner;
     private final View form;
     private final Spinner device, rotation;
@@ -67,25 +68,46 @@ final class UvcEnrollmentCameraSettings {
             UsbDevice candidate = devices.get(i);
             if (candidate.getDeviceName().equals(desired.getString(DEVICE))
                     && candidate.getVendorId() == desired.getInt(VENDOR)
-                    && candidate.getProductId() == desired.getInt(PRODUCT)) return i + 1;
+                    && candidate.getProductId() == desired.getInt(PRODUCT)) {
+                return i + 1;
+            }
         }
         return 0;
     }
 
-    UsbDevice selected() { return cameras.selected(device); }
-    int rotation() { return UvcCameraChoices.rotationDegrees(rotation); }
-    StreamConfig streamConfig() { return stream.read(DualCameraSession.Role.RGB); }
+    UsbDevice selected() {
+        return cameras.selected(device);
+    }
+
+    int rotation() {
+        return UvcCameraChoices.rotationDegrees(rotation);
+    }
+
+    StreamConfig streamConfig() {
+        return stream.read(DualCameraSession.Role.RGB);
+    }
 
     void show(Runnable dismissed) {
-        if (dialog != null && dialog.isShowing()) return;
-        if (dialog == null) dialog = new MaterialAlertDialogBuilder(owner).setTitle(R.string.uvc_enroll_camera_settings).setView(form)
-                .setPositiveButton(R.string.uvc_search_done, null).create();
+        if (dialog != null && dialog.isShowing()) {
+            return;
+        }
+        if (dialog == null) {
+            dialog = new MaterialAlertDialogBuilder(owner).setTitle(R.string.uvc_enroll_camera_settings).setView(form)
+                    .setPositiveButton(R.string.uvc_search_done, null).create();
+        }
         dialog.setOnDismissListener(d -> dismissed.run());
         dialog.show();
     }
 
-    void dismiss() { if (dialog != null) dialog.dismiss(); }
-    boolean isShowing() { return dialog != null && dialog.isShowing(); }
+    void dismiss() {
+        if (dialog != null) {
+            dialog.dismiss();
+        }
+    }
+
+    boolean isShowing() {
+        return dialog != null && dialog.isShowing();
+    }
 
     void save(Bundle out) {
         stream.save(out);

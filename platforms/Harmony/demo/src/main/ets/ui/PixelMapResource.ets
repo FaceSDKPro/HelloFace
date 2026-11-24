@@ -7,6 +7,19 @@ import { image } from '@kit.ImageKit';
  * Demo PixelMap 资源工具：集中创建 RGBA 预览，并吞掉清理阶段的系统资源异常。
  */
 export class PixelMapResource {
+  /** Decode an SDK terminal frame from memory. The caller owns the returned PixelMap. */
+  static async createJpeg(jpeg: ArrayBuffer): Promise<image.PixelMap | undefined> {
+    let source: image.ImageSource | undefined = undefined;
+    try {
+      source = image.createImageSource(jpeg);
+      return await source.createPixelMap();
+    } catch (_) {
+      return undefined;
+    } finally {
+      try { await source?.release(); } catch (_) {}
+    }
+  }
+
   // The caller owns a successful PixelMap and must release it when its preview is replaced.
   static async createRgba(rgba: ArrayBuffer, width: number,
     height: number): Promise<image.PixelMap | undefined> {

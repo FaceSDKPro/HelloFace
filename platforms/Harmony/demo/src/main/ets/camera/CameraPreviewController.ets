@@ -17,8 +17,11 @@ const CAMERA_PERMISSION: Permissions = 'ohos.permission.CAMERA';
 const RECEIVER_CAPACITY: number = 3;
 
 /**
+ * The camera must produce clear images; for face search, a camera with a wide dynamic range above
+ * 105 dB is recommended.
  * 宿主相机适配：拥有 CameraKit/Surface/ImageReceiver，只向 SDK 交付 YUV，不处理识别决策。
  * 同时最多读取一帧并向消费者提交一帧；停止时等待读取与消费结束，再释放相机资源。
+ * 摄像头需成像清晰，人脸搜索建议相机宽动态大于105DB。
  */
 export class CameraPreviewController {
   private readonly context: common.UIAbilityContext;
@@ -43,7 +46,10 @@ export class CameraPreviewController {
   private frontCamera: boolean = true;
   private previewAspect: number = 0.75;
   private rotationDegrees: number = 0;
+  // Invalidate old camera callbacks on restart and stop.
   private generation: number = 0;
+  // A pause invalidates the frame being read even if analysis resumes before the copy finishes.
+  private analysisGeneration: number = 0;
   // Reading/copying a camera image and consuming its copied frame have separate completion tasks.
   private frameTask: Promise<void> | undefined = undefined;
   private consumerTask: Promise<void> | undefined = undefined;
@@ -297,9 +303,10 @@ export class CameraPreviewController {
     this.lastAnalysisFrameAt = -1;
   }
 
-  /** 只暂停分析帧的像素拷贝和业务回调，保持可见预览和 CameraKit 会话。 */
+  /** Keep the preview running and discard frames that have yet to reach the SDK. */
   pauseAnalysis(): void {
     this.analysisPaused = true;
+    ++this.analysisGeneration;
     this.pendingFrame = undefined;
   }
 
@@ -439,6 +446,8 @@ export class CameraPreviewController {
   }
 
   private async consumeLatestFrame(token: number): Promise<void> {
+    const analysisToken: number = this.analysisGeneration;
+    const analysisAllowed: boolean = !this.analysisPaused;
     const readStartedAt: number = DEBUG ? systemDateTime.getUptime(systemDateTime.TimeType.STARTUP) : 0;
     try {
       const receiver: image.ImageReceiver | undefined = this.receiver;
@@ -452,8 +461,10 @@ export class CameraPreviewController {
       const readFinishedAt: number = DEBUG ? systemDateTime.getUptime(systemDateTime.TimeType.STARTUP) : 0;
       let frame: Yuv420Frame | undefined = undefined;
       let copiedAt: number = readFinishedAt;
+      let analysisAt: number = -1;
       try {
-        if (token !== this.generation || !this.active || this.analysisPaused) {
+        if (token !== this.generation || !this.active || !analysisAllowed ||
+          analysisToken !== this.analysisGeneration) {
           return;
         }
         // 与 CameraX KEEP_ONLY_LATEST 一致：推理忙时仅保留一份最新帧，覆盖中间帧。
@@ -463,7 +474,7 @@ export class CameraPreviewController {
           now - this.lastAnalysisFrameAt >= this.applicationFrameInterval) {
           frame = await CameraFrameAdapter.read(source, this.rotationDegrees, this.frontCamera);
           copiedAt = DEBUG ? systemDateTime.getUptime(systemDateTime.TimeType.STARTUP) : 0;
-          this.lastAnalysisFrameAt = now;
+          analysisAt = now;
         } else {
           this.recordDroppedFrame();
         }
@@ -472,7 +483,10 @@ export class CameraPreviewController {
         await source.release();
       }
       this.lastFrameAt = systemDateTime.getUptime(systemDateTime.TimeType.STARTUP);
-      if (frame === undefined || token !== this.generation || !this.active) return;
+      // Copy and release both yield to the UI; recheck before advancing the throttle or submitting.
+      if (frame === undefined || token !== this.generation || !this.active ||
+        analysisToken !== this.analysisGeneration) return;
+      this.lastAnalysisFrameAt = analysisAt;
       if (DEBUG && this.frameTimingSamples < 12) {
         hilog.info(0xFF00, 'HiFaceCamera',
           'Camera timing read=%{public}dms copy=%{public}dms release=%{public}dms',

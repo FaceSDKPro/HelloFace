@@ -12,15 +12,13 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
-
-import com.hiface.sdk.demo.comparison.FaceComparisonActivity;
 import com.hiface.sdk.demo.camera.CameraSettingsActivity;
+import com.hiface.sdk.demo.comparison.FaceComparisonActivity;
 import com.hiface.sdk.demo.detection.FaceDetectionActivity;
 import com.hiface.sdk.demo.recognition.FaceRecognitionActivity;
 import com.hiface.sdk.demo.search.FaceSearchActivity;

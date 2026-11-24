@@ -2,11 +2,9 @@ package com.hiface.sdk.demo.verification;
 
 import android.app.Dialog;
 import android.os.Bundle;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-
 import com.hiface.sdk.capture.FaceCaptureListener;
 import com.hiface.sdk.capture.FaceCaptureResult;
 import com.hiface.sdk.common.HiFaceError;
@@ -39,16 +37,22 @@ public final class FaceEnrollmentActivity extends CameraFlowActivity {
      */
     @Override
     protected void startCameraFlow() {
-        if (confirmationDialog != null) return;
+        if (confirmationDialog != null) {
+            return;
+        }
         startCameraFlowRequest(() -> hiFaceSdk.capture().startCameraCapture(new FaceCaptureListener() {
             @Override
             public void onProgress(@NonNull FaceFlowProgress progress) {
-                if (isCameraFlowRunning()) CaptureStatusUi.apply(captureOverlay, progress.getStage());
+                if (isCameraFlowRunning()) {
+                    CaptureStatusUi.apply(captureOverlay, progress.getStage());
+                }
             }
 
             @Override
             public void onResult(@NonNull FaceCaptureResult capture) {
-                if (!finishCameraFlow()) return;
+                if (!finishCameraFlow()) {
+                    return;
+                }
                 handleFaceCaptured(capture);
             }
 
@@ -59,7 +63,9 @@ public final class FaceEnrollmentActivity extends CameraFlowActivity {
              */
             @Override
             public void onError(@NonNull HiFaceError error) {
-                if (!finishCameraFlow()) return;
+                if (!finishCameraFlow()) {
+                    return;
+                }
                 handleCaptureFailure(error);
             }
         }));

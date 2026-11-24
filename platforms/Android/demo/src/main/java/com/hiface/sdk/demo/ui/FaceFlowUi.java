@@ -1,11 +1,9 @@
 package com.hiface.sdk.demo.ui;
 
 import android.content.Context;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
-
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.flow.FaceAction;
 import com.hiface.sdk.flow.FaceFlowOutcome;
@@ -23,7 +21,9 @@ import java.util.List;
  */
 public final class FaceFlowUi {
     private static final SecureRandom RANDOM = new SecureRandom();
-    private FaceFlowUi() {}
+
+    private FaceFlowUi() {
+    }
 
     /**
      * Generate distinct actions for each round; applications may supply their own challenge policy.

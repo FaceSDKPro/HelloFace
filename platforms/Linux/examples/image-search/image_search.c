@@ -39,8 +39,7 @@ static int dimension(const char *text) {
     long value;
     errno = 0;
     value = strtol(text, &end, 10);
-    return !errno && *text && !*end && value >= 2 && value <= HIFACE_MAX_IMAGE_DIMENSION &&
-            value % 2 == 0 ? (int)value : 0;
+    return !errno && *text && !*end && value >= 2 && value <= HIFACE_MAX_IMAGE_DIMENSION ? (int)value : 0;
 }
 
 int main(int argc, char **argv) {
@@ -59,7 +58,7 @@ int main(int argc, char **argv) {
     size_t size = 0, expected;
     if (argc != 6 || strcmp(argv[1], "--builtin") != 0 || !(width = dimension(argv[4])) || !(height = dimension(argv[5]))) {
         fprintf(stderr, "Usage: %s --builtin DATABASE INPUT.rgba WIDTH HEIGHT\n"
-                "Use --blank for INPUT.rgba to run a no-face inference check. Dimensions: even, 2..4096.\n", argv[0]);
+                "Use --blank for INPUT.rgba to run a no-face inference check. Dimensions: 2..4096.\n", argv[0]);
         return 2;
     }
     expected = (size_t)width * (size_t)height * 4;

@@ -9793,23 +9793,6 @@
         }
       }
     },
-    "功能不可用,请升级或联系技术支持": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feature unavailable. Update or contact support."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "功能不可用,请升级或联系技术支持"
-          }
-        }
-      }
-    },
     "设备时间异常，请校准后重试": {
       "extractionState": "manual",
       "localizations": {
@@ -10286,6 +10269,23 @@
         }
       }
     },
+    "检测结束时的相机画面": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Final camera frame"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检测结束时的相机画面"
+          }
+        }
+      }
+    },
     "检测通过": {
       "extractionState": "manual",
       "localizations": {
@@ -10333,6 +10333,227 @@
           "stringUnit": {
             "state": "translated",
             "value": "检测参数无效，请返回重新选择。"
+          }
+        }
+      }
+    },
+    "引擎未就绪，请稍后重试": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Engine not ready. Try again shortly."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引擎未就绪，请稍后重试"
+          }
+        }
+      }
+    },
+    "会话已关闭，请重新进入": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Session closed. Reopen this page."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会话已关闭，请重新进入"
+          }
+        }
+      }
+    },
+    "输入无效": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invalid input."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入无效"
+          }
+        }
+      }
+    },
+    "图片或视频帧格式不支持": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsupported image or frame format."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图片或视频帧格式不支持"
+          }
+        }
+      }
+    },
+    "人脸模型加载失败": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not load face models."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人脸模型加载失败"
+          }
+        }
+      }
+    },
+    "人脸过小": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Face too small."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人脸过小"
+          }
+        }
+      }
+    },
+    "引擎正忙，请稍后重试": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Engine busy. Try again shortly."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引擎正忙，请稍后重试"
+          }
+        }
+      }
+    },
+    "处理失败，请重试": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Processing failed. Try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "处理失败，请重试"
+          }
+        }
+      }
+    },
+    "未找到人脸记录": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Face record not found."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到人脸记录"
+          }
+        }
+      }
+    },
+    "无法访问人脸库": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cannot access the face database."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法访问人脸库"
+          }
+        }
+      }
+    },
+    "内存或存储空间不足": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insufficient memory or storage."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内存或存储空间不足"
+          }
+        }
+      }
+    },
+    "人脸记录已存在": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Face record already exists."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人脸记录已存在"
+          }
+        }
+      }
+    },
+    "功能不可用（错误码 {0}）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feature unavailable. (Error code {0})"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "功能不可用（错误码 {0}）"
           }
         }
       }

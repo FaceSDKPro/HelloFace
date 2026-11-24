@@ -1,6 +1,6 @@
 [English](README.md) | **简体中文**
 
-# HiFace Windows SDK · 0.8.15
+# HiFace Windows SDK · 0.8.16
 
 
 ## 快速开始
@@ -15,7 +15,7 @@ cmake --build build --config Release --target hiface_model_consumer
 
 [model_consumer.cpp](../examples/model_consumer.cpp) 加载内置 CPU 模型并检测空白图。成功时输出 `Built-in CPU models and blank RGBA detection passed without external model files`。示例构建会把 DLL 复制到可执行文件所在目录。
 
-在自己的项目中，将 `CMAKE_PREFIX_PATH` 指向 SDK 目录，调用 `find_package(HiFace 0.8.15 CONFIG REQUIRED COMPONENTS C)` 并链接 `HiFace::HiFace`。先用 `hiface_runtime_configure_v1` 配置运行时，再用 `hiface_session_create_v1` 创建会话，通过 `hiface_windows_session_load_model_v1` 加载需要的模型，最后调用 `hiface_session_prepare_loaded_models_v1`。部署时把 `bin/` 的 x64 DLL 放到程序旁，并部署应用所需的 CRT。
+在自己的项目中，将 `CMAKE_PREFIX_PATH` 指向 SDK 目录，调用 `find_package(HiFace 0.8.16 CONFIG REQUIRED COMPONENTS C)` 并链接 `HiFace::HiFace`。先用 `hiface_runtime_configure_v1` 配置运行时，再用 `hiface_session_create_v1` 创建会话，通过 `hiface_windows_session_load_model_v1` 加载需要的模型，最后调用 `hiface_session_prepare_loaded_models_v1`。部署时把 `bin/` 的 x64 DLL 放到程序旁，并部署应用所需的 CRT。
 
 ## API 参考
 

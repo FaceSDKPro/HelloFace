@@ -9,7 +9,8 @@ import java.util.Locale;
 
 /** Formats numeric snapshots without accessing cameras or retaining images. 中文：仅生成调试文案。 */
 final class RgbIrDiagnosticsFormatter {
-    private RgbIrDiagnosticsFormatter() {}
+    private RgbIrDiagnosticsFormatter() {
+    }
 
     static String format(Context context, RgbIrSearchStats.Snapshot stats, PairingDiagnostics pairing) {
         String pairingText = pairing == null ? "—" : context.getString(R.string.uvc_debug_pairing,

@@ -6,6 +6,7 @@
 #include <memory>
 #include <thread>
 #include "hiface/hiface_windows.h"
+#include "hiface/hiface_result_envelope.h"
 namespace hiface {
 namespace {
 int32_t HIFACE_CALL receiveSearchImage(const uint8_t* jpeg, size_t size, uint32_t width,
@@ -167,10 +168,19 @@ void Client::setLiveness(bool enabled) {
 }
 void Client::pauseSearch(bool paused) {
     if (search_paused_ == paused) return;
-    check(hiface_session_search_stop_v1(session_), "pause search");
-    search_paused_ = paused;
-    if (paused) check(hiface_search_release_memory_v1(database_), "release search cache");
-    else startSearch();
+    if (paused) {
+        check(hiface_session_search_stop_v1(session_), "pause search");
+        search_paused_ = true;
+        check(hiface_search_release_memory_v1(database_), "release search cache");
+        return;
+    }
+    search_paused_ = false;
+    try {
+        startSearch();
+    } catch (...) {
+        search_paused_ = true;
+        throw;
+    }
 }
 void Client::useSearch(bool enabled) {
     if (flow_active_) cancelFlow();
@@ -183,6 +193,10 @@ void Client::configureDetection(uint32_t max_faces, bool detailed) {
     detection_max_ = max_faces; detailed_ = detailed;
 }
 void Client::beginFlow(const FlowOptions& options) {
+    beginFlow(options, std::nullopt);
+}
+
+void Client::beginFlow(const FlowOptions& options, const std::optional<FaceResultEncryption>& encryption) {
     if (flow_active_) throw std::runtime_error("A camera flow is already running; cancel it first");
     Feature reference{};
     ClearFeature clear{reference};
@@ -194,7 +208,12 @@ void Client::beginFlow(const FlowOptions& options) {
         load(HIFACE_MODEL_SILENT_LIVENESS_S); load(HIFACE_MODEL_SILENT_LIVENESS_M);
     }
     check(hiface_session_search_stop_v1(session_), "stop search for flow");
-    const auto status = hiface_session_face_flow_start_v1(session_, &config, nowMilliseconds());
+    const auto now = nowMilliseconds();
+    const auto status = encryption
+        ? hiface_session_face_flow_start_with_envelope_v1(session_, &config, now,
+            encryption->sessionId.data(), encryption->sessionId.size(),
+            encryption->publicKey.data(), encryption->publicKey.size())
+        : hiface_session_face_flow_start_v1(session_, &config, now);
     if (status != HIFACE_STATUS_OK) { startSearch(); check(status, "start camera flow"); }
     flow_mode_ = config.mode; flow_active_ = true;
 }
@@ -216,6 +235,19 @@ void copyFace(FrameUpdate& update, const HiFaceFaceV1& face) {
     if (face.mesh_valid && face.mesh) detail.mesh.assign(face.mesh, face.mesh + face.mesh_count);
     update.details.push_back(std::move(detail));
 }
+
+// 在流程停止前复制整帧；可选预览失败时仍返回原业务结果。
+Image copyFlowFrame(HiFaceSessionHandle session) {
+    uint32_t width = 0, height = 0;
+    if (hiface_session_face_flow_copy_frame_v1(session, nullptr, 0, &width, &height) != HIFACE_STATUS_RESOURCE_EXHAUSTED ||
+        width == 0 || height == 0 || width > 720 || height > 720) return {};
+    try {
+        Image frame{static_cast<int>(width), static_cast<int>(height), std::vector<uint8_t>(size_t(width) * height * 4)};
+        if (hiface_session_face_flow_copy_frame_v1(session, frame.rgba.data(), frame.rgba.size(), &width, &height) == HIFACE_STATUS_OK)
+            return frame;
+    } catch (const std::bad_alloc&) {}
+    return {};
+}
 }
 // Copy the SDK-owned result before stopping the flow. A page change may still
 // cancel publication; required result flags are checked before exposing data.
@@ -225,9 +257,18 @@ void Client::completeFlow(FrameUpdate& update, const std::function<bool()>& curr
     Feature feature{};
     ClearFeature clear{feature};
     completed.preview = {HIFACE_ALIGNED_PREVIEW_SIDE, HIFACE_ALIGNED_PREVIEW_SIDE, std::vector<uint8_t>(HIFACE_ALIGNED_PREVIEW_RGBA_BYTES)};
-    check(hiface_session_face_flow_copy_result_v1(session_, &completed.metadata, feature.data(), feature.size(),
-        completed.preview.rgba.data(), completed.preview.rgba.size()), "copy flow result");
+    std::array<char, HIFACE_RESULT_ENVELOPE_BUFFER_BYTES> envelope{};
+    const auto status = hiface_session_face_flow_copy_result_with_envelope_v1(
+        session_, &completed.metadata, feature.data(), feature.size(),
+        completed.preview.rgba.data(), completed.preview.rgba.size(), envelope.data(), envelope.size());
+    if (status != HIFACE_STATUS_OK) {
+        stopFlow();
+        startSearch();
+        check(status, "copy flow result");
+    }
+    if (envelope[0] != '\0') completed.resultEnvelope.emplace(envelope.data());
     const auto mode = flow_mode_;
+    if (mode != HIFACE_FLOW_GUIDED_CAPTURE && (!current || current())) completed.frame = copyFlowFrame(session_);
     stopFlow();
     if (current && !current()) { startSearch(); update.flow_active = false; update.cancelled = true; return; }
     const auto flags = completed.metadata.flags;

@@ -11,17 +11,16 @@ import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.hiface.sdk.capture.FaceCaptureResult;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.storage.FacePhotoStore;
 
 /** Both enrollment sources save only the aligned crop and HF1 after explicit confirmation. */
 public final class ReferenceConfirmation {
-    private ReferenceConfirmation() {}
+    private ReferenceConfirmation() {
+    }
 
     /**
      * After confirmation, save the feature and one crop in App-private no-backup storage.
@@ -69,11 +68,17 @@ public final class ReferenceConfirmation {
             FacePhotoStore.execute(() -> {
                 boolean saved = new FaceFeatureStore().save(faceId, capture.getFeature());
                 // The feature is authoritative. A missing portrait still leaves a usable reference.
-                if (saved) FacePhotoStore.REFERENCE.save(host.getApplicationContext(), faceId, capture);
+                if (saved) {
+                    FacePhotoStore.REFERENCE.save(host.getApplicationContext(), faceId, capture);
+                }
                 host.runOnUiThread(() -> {
-                    if (host.isDestroyed()) return;
+                    if (host.isDestroyed()) {
+                        return;
+                    }
                     if (!saved) {
-                        if (!dialog.isShowing()) return;
+                        if (!dialog.isShowing()) {
+                            return;
+                        }
                         confirmButton.setEnabled(true);
                         retryButton.setEnabled(true);
                         Toast.makeText(host, R.string.enroll_save_failed, Toast.LENGTH_SHORT).show();

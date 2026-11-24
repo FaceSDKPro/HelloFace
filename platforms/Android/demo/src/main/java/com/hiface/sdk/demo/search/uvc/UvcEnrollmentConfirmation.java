@@ -15,7 +15,9 @@ import com.hiface.sdk.demo.R;
 final class UvcEnrollmentConfirmation {
     interface Listener {
         void save(String faceId, String group);
+
         void retake();
+
         void cancel();
     }
 
@@ -33,12 +35,19 @@ final class UvcEnrollmentConfirmation {
         group.setText(state.group);
         // Keep the edited draft in the ViewModel when the dialog is recreated.
         TextWatcher draft = new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
                 state.faceId = id.getText().toString();
                 state.group = group.getText().toString();
             }
-            @Override public void afterTextChanged(Editable s) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
         };
         id.addTextChangedListener(draft);
         group.addTextChangedListener(draft);
@@ -65,14 +74,24 @@ final class UvcEnrollmentConfirmation {
         }));
     }
 
-    void show() { dialog.show(); }
-    void dismiss() { dialog.dismiss(); }
-    boolean isShowing() { return dialog.isShowing(); }
+    void show() {
+        dialog.show();
+    }
+
+    void dismiss() {
+        dialog.dismiss();
+    }
+
+    boolean isShowing() {
+        return dialog.isShowing();
+    }
 
     void setSaving(boolean saving) {
         id.setEnabled(!saving);
         group.setEnabled(!saving);
-        for (int button : new int[]{AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE, AlertDialog.BUTTON_NEUTRAL})
+        for (int button : new int[]{AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE,
+                AlertDialog.BUTTON_NEUTRAL}) {
             dialog.getButton(button).setEnabled(!saving);
+        }
     }
 }

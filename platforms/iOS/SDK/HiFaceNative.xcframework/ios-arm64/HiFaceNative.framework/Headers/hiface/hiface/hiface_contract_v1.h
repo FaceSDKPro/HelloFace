@@ -129,7 +129,7 @@ enum {
     HIFACE_STATUS_LICENSE_FEATURE_DENIED = 17,
     /*
      * 检测到时间回拨、单调时钟异常、溢出或会话内墙钟异常前跳。
-     * 先校正系统时间；已锁存的异常还需厂商签名的更高 revision 或受控恢复，重启不能清除。
+     * 校时满足历史可信下界且未到期后可自动恢复，需重建高级会话；低于历史下界仍需厂商签名的受控恢复。
      */
     HIFACE_STATUS_LICENSE_CLOCK_INVALID = 19
 };

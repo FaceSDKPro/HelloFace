@@ -37,13 +37,13 @@ import com.hiface.sdk.common.FaceRequest;
 import com.hiface.sdk.common.HiFaceError;
 import com.hiface.sdk.common.HiFaceErrorCode;
 import com.hiface.sdk.common.HiFaceResult;
-import com.hiface.sdk.demo.ui.DemoWindowInsets;
-import com.hiface.sdk.detection.FaceDetectionResult;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.search.FaceSearchStore;
 import com.hiface.sdk.demo.ui.CaptureStatusUi;
 import com.hiface.sdk.demo.ui.DemoErrorUi;
+import com.hiface.sdk.demo.ui.DemoWindowInsets;
 import com.hiface.sdk.demo.ui.FaceCaptureOverlayView;
+import com.hiface.sdk.detection.FaceDetectionResult;
 import com.hiface.sdk.flow.FaceFlowProgress;
 import com.hiface.sdk.frame.Yuv420Frame;
 import com.hiface.sdk.frame.YuvColorMatrix;
@@ -84,22 +84,32 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
     private final ActivityResultLauncher<String> permission = registerForActivityResult(
             new ActivityResultContracts.RequestPermission(), granted -> {
                 state.permissionPending = false;
-                if (!started || !state.requested) return;
-                if (granted) startCapture();
-                else fail(getString(R.string.camera_permission_required), true);
+                if (!started || !state.requested) {
+                    return;
+                }
+                if (granted) {
+                    startCapture();
+                } else {
+                    fail(getString(R.string.camera_permission_required), true);
+                }
             });
 
     private final Runnable watchdog = new Runnable() {
-        @Override public void run() {
-            if (!running) return;
+        @Override
+        public void run() {
+            if (!running) {
+                return;
+            }
             if (SystemClock.elapsedRealtime() - lastFrameAt > 5000) {
-                failCamera(); return;
+                failCamera();
+                return;
             }
             main.postDelayed(this, 1000);
         }
     };
 
-    @Override protected void onCreate(Bundle saved) {
+    @Override
+    protected void onCreate(Bundle saved) {
         super.onCreate(saved);
         setContentView(R.layout.activity_uvc_face_enrollment);
         DemoWindowInsets.applyToContent(this);
@@ -113,35 +123,60 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
         bindPreview();
     }
 
-    @Override protected void onStart() {
-        super.onStart(); started = true;
+    @Override
+    protected void onStart() {
+        super.onStart();
+        started = true;
         store = new FaceSearchStore(this);
         settings.refresh();
         closeBarrier.listen(this::startCapture);
-        if (state.pending != null) showConfirmation();
-        else if (state.requested) startCapture();
-        else if (state.errorText != null) show(state.errorText, state.retryError);
+        if (state.pending != null) {
+            showConfirmation();
+        } else if (state.requested) {
+            startCapture();
+        } else if (state.errorText != null) {
+            show(state.errorText, state.retryError);
+        }
     }
 
-    @Override protected void onStop() {
-        started = false; closeBarrier.listen(null);
+    @Override
+    protected void onStop() {
+        started = false;
+        closeBarrier.listen(null);
         settings.dismiss();
         stopCapture();
-        if (saveRequest != null) { saveRequest.cancel(); saveRequest = null; }
+        if (saveRequest != null) {
+            saveRequest.cancel();
+            saveRequest = null;
+        }
         saving = false;
-        if (overwrite != null) { overwrite.dismiss(); overwrite = null; }
-        if (confirmation != null) { confirmation.dismiss(); confirmation = null; }
-        if (store != null) { store.close(); store = null; }
+        if (overwrite != null) {
+            overwrite.dismiss();
+            overwrite = null;
+        }
+        if (confirmation != null) {
+            confirmation.dismiss();
+            confirmation = null;
+        }
+        if (store != null) {
+            store.close();
+            store = null;
+        }
         super.onStop();
     }
 
-    @Override public void finish() {
+    @Override
+    public void finish() {
         // Register closure before navigation so the returning search page waits for USB cleanup.
-        if (state != null) { state.requested = false; stopCapture(); }
+        if (state != null) {
+            state.requested = false;
+            stopCapture();
+        }
         super.finish();
     }
 
-    @Override protected void onSaveInstanceState(Bundle out) {
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
         settings.save(out);
     }
@@ -156,43 +191,77 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
         findViewById(R.id.backButton).setOnClickListener(v -> finish());
         findViewById(R.id.uvcEnrollSettings).setOnClickListener(v -> showSettings());
         findViewById(R.id.uvcEnrollRetry).setOnClickListener(v -> {
-            settings.refresh(); state.requested = true;
-            if (settings.selected() == null) showSettings(); else startCapture();
+            settings.refresh();
+            state.requested = true;
+            if (settings.selected() == null) {
+                showSettings();
+            } else {
+                startCapture();
+            }
         });
     }
 
     private void bindPreview() {
         preview.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
-            @Override public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) { startCapture(); }
-            @Override public void onSurfaceTextureSizeChanged(SurfaceTexture texture, int width, int height) { transformPreview(); }
-            @Override public boolean onSurfaceTextureDestroyed(SurfaceTexture texture) {
-                if (manager == null) return true;
+            @Override
+            public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) {
+                startCapture();
+            }
+
+            @Override
+            public void onSurfaceTextureSizeChanged(SurfaceTexture texture, int width, int height) {
+                transformPreview();
+            }
+
+            @Override
+            public boolean onSurfaceTextureDestroyed(SurfaceTexture texture) {
+                if (manager == null) {
+                    return true;
+                }
                 surfaces.retain(texture);
                 stopCapture();
                 return false;
             }
-            @Override public void onSurfaceTextureUpdated(SurfaceTexture texture) {}
+
+            @Override
+            public void onSurfaceTextureUpdated(SurfaceTexture texture) {
+            }
         });
     }
 
     private void showSettings() {
-        if (state.pending != null) return;
+        if (state.pending != null) {
+            return;
+        }
         stopCapture();
         settings.show(() -> {
-            if (!started || isFinishing()) return;
-            state.requested = true; startCapture();
+            if (!started || isFinishing()) {
+                return;
+            }
+            state.requested = true;
+            startCapture();
         });
     }
 
     private void startCapture() {
         if (!started || !state.requested || running || manager != null || closeBarrier.isClosing()
-                || state.permissionPending || state.pending != null || settings.isShowing() || isFinishing() || isDestroyed()) return;
-        UsbDevice rgb = settings.selected();
-        if (rgb == null) { show(R.string.uvc_enroll_choose_rgb, true); return; }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            state.permissionPending = true; permission.launch(Manifest.permission.CAMERA); return;
+                || state.permissionPending || state.pending != null || settings.isShowing() || isFinishing() || isDestroyed()) {
+            return;
         }
-        if (!preview.isAvailable()) { show(R.string.uvc_enroll_opening, false); return; }
+        UsbDevice rgb = settings.selected();
+        if (rgb == null) {
+            show(R.string.uvc_enroll_choose_rgb, true);
+            return;
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            state.permissionPending = true;
+            permission.launch(Manifest.permission.CAMERA);
+            return;
+        }
+        if (!preview.isAvailable()) {
+            show(R.string.uvc_enroll_opening, false);
+            return;
+        }
         final long epoch = ++generation;
         rotation = settings.rotation();
         state.errorText = null;
@@ -206,22 +275,36 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
             actualConfig = settings.streamConfig();
             manager.open(rgb, actualConfig, surface, (camera, frame) -> processFrame(frame, epoch));
             transformPreview();
-        } catch (RuntimeException | LinkageError error) { failCamera(); }
+        } catch (RuntimeException | LinkageError error) {
+            failCamera();
+        }
     }
 
     private FaceCaptureListener captureListener(long epoch) {
         return new FaceCaptureListener() {
-            @Override public void onProgress(FaceFlowProgress progress) {
-                if (current(epoch)) CaptureStatusUi.apply(overlay, progress.getStage());
+            @Override
+            public void onProgress(FaceFlowProgress progress) {
+                if (current(epoch)) {
+                    CaptureStatusUi.apply(overlay, progress.getStage());
+                }
             }
-            @Override public void onResult(FaceCaptureResult result) {
-                if (!current(epoch)) return;
-                state.pending = result; state.requested = false;
+
+            @Override
+            public void onResult(FaceCaptureResult result) {
+                if (!current(epoch)) {
+                    return;
+                }
+                state.pending = result;
+                state.requested = false;
                 stopCapture();
                 showConfirmation();
             }
-            @Override public void onError(HiFaceError error) {
-                if (current(epoch)) failCapture(error);
+
+            @Override
+            public void onError(HiFaceError error) {
+                if (current(epoch)) {
+                    failCapture(error);
+                }
             }
         };
     }
@@ -229,20 +312,29 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
     /** State callbacks run on main; only onShutdown releases previews and the shared close barrier. */
     private UvcCameraManager.Listener cameraListener(long epoch) {
         return new UvcCameraManager.Listener() {
-            @Override public void onOpened(UvcCameraManager.Camera camera) {
-                if (!current(epoch)) return;
+            @Override
+            public void onOpened(UvcCameraManager.Camera camera) {
+                if (!current(epoch)) {
+                    return;
+                }
                 actualConfig = camera.actualConfig();
                 transformPreview();
                 lastFrameAt = SystemClock.elapsedRealtime();
                 show(getString(R.string.uvc_enroll_guidance) + "\n" + actualConfig, false);
                 main.postDelayed(watchdog, 1000);
             }
-            @Override public void onFailure(CameraFailure failure) {
-                if (!current(epoch)) return;
+
+            @Override
+            public void onFailure(CameraFailure failure) {
+                if (!current(epoch)) {
+                    return;
+                }
                 Log.w("HiFaceUvcEnroll", "UVC " + failure.code + ", native=" + failure.nativeStatus);
                 fail(getString(UvcCameraFailureUi.message(failure.code)), true);
             }
-            @Override public void onShutdown() {
+
+            @Override
+            public void onShutdown() {
                 manager = null;
                 surfaces.release();
                 closeBarrier.closed();
@@ -252,7 +344,9 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
 
     /** Borrow native pixels only during this callback; SDK and GPU preview use the same rotation. */
     private void processFrame(CameraFrame frame, long epoch) {
-        if (!current(epoch)) return;
+        if (!current(epoch)) {
+            return;
+        }
         lastFrameAt = frame.callbackTimeNanos / 1_000_000L;
         Nv21Planes planes = Nv21Planes.from(frame.pixels(), frame.width, frame.height);
         HiFaceResult<FaceDetectionResult> result = sdk.processFrame(new Yuv420Frame(
@@ -261,45 +355,75 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
                 YuvColorRange.VIDEO, YuvColorMatrix.BT601, rotation, false));
         if (result.isFailure()) {
             HiFaceError error = result.requireError();
-            if (error.getCode() != HiFaceErrorCode.NOT_READY && error.getCode() != HiFaceErrorCode.BUSY)
-                main.post(() -> { if (current(epoch)) failCapture(error); });
+            if (error.getCode() != HiFaceErrorCode.NOT_READY && error.getCode() != HiFaceErrorCode.BUSY) {
+                main.post(() -> {
+                    if (current(epoch)) {
+                        failCapture(error);
+                    }
+                });
+            }
         }
     }
 
-    private boolean current(long epoch) { return running && generation == epoch; }
+    private boolean current(long epoch) {
+        return running && generation == epoch;
+    }
 
     private void showConfirmation() {
-        if (!started || state.pending == null || confirmation != null) return;
+        if (!started || state.pending == null || confirmation != null) {
+            return;
+        }
         show(R.string.search_ui_confirm_title, false);
         confirmation = new UvcEnrollmentConfirmation(this, state, new UvcEnrollmentConfirmation.Listener() {
-            @Override public void save(String id, String group) { saveCapture(id, group, false); }
-            @Override public void retake() {
-                confirmation = null; state.pending = null; state.requested = true; startCapture();
+            @Override
+            public void save(String id, String group) {
+                saveCapture(id, group, false);
             }
-            @Override public void cancel() { finish(); }
+
+            @Override
+            public void retake() {
+                confirmation = null;
+                state.pending = null;
+                state.requested = true;
+                startCapture();
+            }
+
+            @Override
+            public void cancel() {
+                finish();
+            }
         });
         confirmation.show();
     }
 
     /** Allow one save at a time; check visibility and generation before updating its confirmation dialog. */
     private void saveCapture(String id, String group, boolean replace) {
-        if (saving || store == null || state.pending == null || confirmation == null) return;
-        saving = true; confirmation.setSaving(true);
+        if (saving || store == null || state.pending == null || confirmation == null) {
+            return;
+        }
+        saving = true;
+        confirmation.setSaving(true);
         long epoch = generation;
         saveRequest = store.save(id, state.pending, group, replace, saved -> {
-            saveRequest = null; saving = false;
-            if (!started || generation != epoch || confirmation == null || !confirmation.isShowing()) return;
+            saveRequest = null;
+            saving = false;
+            if (!started || generation != epoch || confirmation == null || !confirmation.isShowing()) {
+                return;
+            }
             confirmation.setSaving(false);
             if (saved.isSuccess()) {
                 state.pending = null;
                 Toast.makeText(this, R.string.search_saved, Toast.LENGTH_SHORT).show();
-                setResult(RESULT_OK); finish();
+                setResult(RESULT_OK);
+                finish();
             } else if (saved.requireError().getCode() == HiFaceErrorCode.ALREADY_EXISTS) {
                 overwrite = new MaterialAlertDialogBuilder(this).setTitle(R.string.search_exists)
                         .setMessage(getString(R.string.search_overwrite_message, id))
                         .setNegativeButton(android.R.string.cancel, null)
                         .setPositiveButton(R.string.search_overwrite, (d, w) -> saveCapture(id, group, true)).show();
-            } else Toast.makeText(this, DemoErrorUi.messageFor(this, saved.requireError()), Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, DemoErrorUi.messageFor(this, saved.requireError()), Toast.LENGTH_LONG).show();
+            }
         });
     }
 
@@ -307,11 +431,15 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
         fail(DemoErrorUi.messageFor(this, error), DemoErrorUi.isRetryable(error));
     }
 
-    private void failCamera() { fail(getString(R.string.uvc_enroll_camera_error), true); }
+    private void failCamera() {
+        fail(getString(R.string.uvc_enroll_camera_error), true);
+    }
 
     private void fail(String message, boolean canRetry) {
-        state.requested = false; stopCapture();
-        state.errorText = message; state.retryError = canRetry;
+        state.requested = false;
+        stopCapture();
+        state.errorText = message;
+        state.retryError = canRetry;
         show(message, canRetry);
     }
 
@@ -320,8 +448,13 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
         running = false;
         ++generation;
         main.removeCallbacks(watchdog);
-        if (captureRequest != null) { captureRequest.cancel(); captureRequest = null; }
-        if (overlay != null) overlay.resetCountdown();
+        if (captureRequest != null) {
+            captureRequest.cancel();
+            captureRequest = null;
+        }
+        if (overlay != null) {
+            overlay.resetCountdown();
+        }
         if (manager == null) {
             surfaces.release();
         } else if (!closeBarrier.isOwnerClosing()) {
@@ -331,12 +464,15 @@ public final class UVCCameraFaceEnrollmentActivity extends AppCompatActivity {
     }
 
     private void transformPreview() {
-        if (actualConfig != null && preview.getWidth() > 0 && preview.getHeight() > 0)
+        if (actualConfig != null && preview.getWidth() > 0 && preview.getHeight() > 0) {
             preview.setTransform(PreviewTransform.centerCrop(preview.getWidth(), preview.getHeight(),
                     actualConfig.width, actualConfig.height, rotation));
+        }
     }
 
-    private void show(int message, boolean canRetry) { show(getText(message), canRetry); }
+    private void show(int message, boolean canRetry) {
+        show(getText(message), canRetry);
+    }
 
     private void show(CharSequence message, boolean canRetry) {
         status.setText(message);

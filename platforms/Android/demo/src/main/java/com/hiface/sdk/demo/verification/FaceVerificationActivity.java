@@ -1,5 +1,6 @@
 package com.hiface.sdk.demo.verification;
 
+import android.content.Intent;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import com.hiface.sdk.common.HiFaceError;
@@ -21,12 +22,13 @@ public final class FaceVerificationActivity extends CameraFlowActivity {
     // Snapshot the selected reference and options for this camera run.
     private FaceVerificationConfig config;
 
-    @Override protected void onCreate(Bundle state) {
+    @Override
+    protected void onCreate(Bundle state) {
         super.onCreate(state);
         faceId = getIntent().getStringExtra(RecognitionFlowContract.FACE_ID);
         String feature = faceId == null ? null : new FaceFeatureStore().getFeature(faceId);
         if (feature == null || feature.trim().isEmpty()) {
-            complete(getString(R.string.verification_feature_missing), RecognitionFlowContract.ERROR);
+            completeError(getString(R.string.verification_feature_missing));
             return;
         }
         try {
@@ -37,7 +39,7 @@ public final class FaceVerificationActivity extends CameraFlowActivity {
                     .allowMultipleFaces(true)
                     .build();
         } catch (IllegalArgumentException error) {
-            complete(getString(R.string.recognition_invalid_options), RecognitionFlowContract.ERROR);
+            completeError(getString(R.string.recognition_invalid_options));
             return;
         }
         preparePromptSpeech();
@@ -45,39 +47,60 @@ public final class FaceVerificationActivity extends CameraFlowActivity {
         startCameraFlow();
     }
 
-    @Override protected void startCameraFlow() {
-        if (config == null) return;
+    @Override
+    protected void startCameraFlow() {
+        if (config == null) {
+            return;
+        }
         startCameraFlowRequest(() -> hiFaceSdk.verification().startCameraVerification(config, new FaceFlowListener() {
             @Override
             public void onProgress(@NonNull FaceFlowProgress progress) {
                 renderVerificationProgress(progress, config.getActionTimeoutMillis());
             }
-            @Override public void onResult(@NonNull FaceFlowResult result) {
-                if (!finishCameraFlow(true)) return;
-                String message;
-                switch (result.getOutcome()) {
-                    case PASSED:
-                    case NOT_MATCHED:
-                        Float similarity = result.getSimilarity();
-                        message = getString(result.isPassed() ? R.string.verification_match : R.string.verification_mismatch,
-                                faceId, similarity == null ? "—" : String.format(Locale.getDefault(), "%.2f%%", similarity * 100f));
-                        break;
-                    default:
-                        message = faceId + "\n" + FaceFlowUi.rejectionMessage(FaceVerificationActivity.this, result.getOutcome());
-                        break;
+
+            @Override
+            public void onResult(@NonNull FaceFlowResult result) {
+                if (!finishCameraFlow(true)) {
+                    return;
                 }
-                if (result.getLivenessScore() != null) message = getString(R.string.liveness_score_format, message, result.getLivenessScore());
-                complete(message, result.isPassed() ? RecognitionFlowContract.PASSED : RecognitionFlowContract.REJECTED);
+                complete(RecognitionFlowContract.result(formatResult(result), result));
             }
-            @Override public void onError(@NonNull HiFaceError error) {
-                if (finishCameraFlow()) complete(DemoErrorUi.messageFor(FaceVerificationActivity.this, error), RecognitionFlowContract.ERROR);
+
+            @Override
+            public void onError(@NonNull HiFaceError error) {
+                if (finishCameraFlow()) {
+                    completeError(DemoErrorUi.messageFor(FaceVerificationActivity.this, error));
+                }
             }
         }));
     }
 
-    // Return display text and outcome to the recognition page, which owns the result card.
-    private void complete(String message, String status) {
-        setResult(RESULT_OK, RecognitionFlowContract.result(getString(R.string.recognition_verification_title), message, status));
+    // Only a completed comparison has an identity outcome and may have a similarity score.
+    private String formatResult(FaceFlowResult result) {
+        String message;
+        switch (result.getOutcome()) {
+            case PASSED:
+            case NOT_MATCHED:
+                Float similarity = result.getSimilarity();
+                String score = similarity == null ? "—" : String.format(Locale.getDefault(), "%.2f%%",
+                        similarity * 100f);
+                message = getString(result.isPassed() ? R.string.verification_match : R.string.verification_mismatch,
+                        faceId, score);
+                break;
+            default:
+                message = faceId + "\n" + FaceFlowUi.rejectionMessage(this, result.getOutcome());
+                break;
+        }
+        Float livenessScore = result.getLivenessScore();
+        return livenessScore == null ? message : getString(R.string.liveness_score_format, message, livenessScore);
+    }
+
+    private void completeError(String message) {
+        complete(RecognitionFlowContract.result(message, RecognitionFlowContract.ERROR));
+    }
+
+    private void complete(Intent data) {
+        setResult(RESULT_OK, data);
         finish();
     }
 }

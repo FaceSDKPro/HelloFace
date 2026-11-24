@@ -247,5 +247,3 @@ in its Settings, then start search. The ordinary desktop remains landscape and
 RGB-only. A fresh pair and a current IR pass are required for every match;
 missing frames, multiple faces and geometric misalignment do not use RGB fallback.
 Camera calibration and target-hardware acceptance remain required.
-
-After cloning or downloading the repository, open the offline [HTML SDK API](../../docs/SDK-API/Linux/index.html).

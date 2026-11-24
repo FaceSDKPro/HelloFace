@@ -9,28 +9,38 @@ final class UvcSearchDisplayPolicy {
     private boolean active;
     private float previousBrightness;
 
-    UvcSearchDisplayPolicy(Window window) { this.window = window; }
+    UvcSearchDisplayPolicy(Window window) {
+        this.window = window;
+    }
 
     void start() {
-        if (active) return;
+        if (active) {
+            return;
+        }
         previousBrightness = window.getAttributes().screenBrightness;
         active = true;
         setIdle(false);
     }
 
     void setIdle(boolean idle) {
-        if (active) brightness(idle ? .1f : .9f);
+        if (active) {
+            brightness(idle ? .1f : .9f);
+        }
     }
 
     void stop() {
-        if (!active) return;
+        if (!active) {
+            return;
+        }
         active = false;
         brightness(previousBrightness);
     }
 
     private void brightness(float value) {
         WindowManager.LayoutParams attributes = window.getAttributes();
-        if (attributes.screenBrightness == value) return;
+        if (attributes.screenBrightness == value) {
+            return;
+        }
         attributes.screenBrightness = value;
         window.setAttributes(attributes);
     }

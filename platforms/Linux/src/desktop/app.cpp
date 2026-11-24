@@ -58,18 +58,23 @@ DesktopApp::DesktopApp(std::string models, std::string database, std::string dev
     } catch (...) {
         // A failed second start must join the first thread before unwinding.
         // 第二个线程启动失败时，先回收采集线程，再保留原异常交给界面处理。
-        stopping_ = true;
-        capture_changed_.notify_all();
+        requestStop();
         if (capture_worker_.joinable()) capture_worker_.join();
         throw;
     }
 }
 DesktopApp::~DesktopApp() {
-    stopping_ = true;
-    capture_changed_.notify_all();
-    work_changed_.notify_all();
+    requestStop();
     if (worker_.joinable()) worker_.join();
     if (capture_worker_.joinable()) capture_worker_.join();
+}
+void DesktopApp::requestStop() {
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        stopping_ = true;
+    }
+    capture_changed_.notify_all();
+    work_changed_.notify_all();
 }
 namespace {
 bool cancellable(const Command& command) {
@@ -90,7 +95,10 @@ void DesktopApp::post(Command command) {
         command.page_generation=++page_generation_;
         ++comparison_generations_[0];++comparison_generations_[1];
         auto pending=std::make_shared<ViewState>(*state_);pending->busy=true;pending->can_cancel=true;pending->failed=false;pending->visual_revision=++visual_revision_;
-        pending->status="Changing page...";state_=std::move(pending);commands_.push_back(std::move(command));return;
+        pending->status = "Changing page...";
+        pending->flow_result_pending = false;
+        pending->flow_result_frame.reset();
+        state_ = std::move(pending); commands_.push_back(std::move(command)); return;
     }
     command.page_generation=page_generation_;
     if (command.type == "preview-photo") {
@@ -143,7 +151,7 @@ std::shared_ptr<const ViewState> DesktopApp::snapshot() {
         view->frame = capture_state_.frame;
         view->fps = capture_state_.fps;
         view->preview_sequence = capture_state_.sequence;
-        if (!capture_state_.ready || !view->overlayFresh(monotonicMilliseconds(), capture_state_.last_frame_ms, capture_request_.generation, view->frame.get())) {
+        if (!capture_state_.ready || !view->overlayFresh(now, capture_state_.last_frame_ms, capture_request_.generation, view->frame.get())) {
             view->camera_boxes.reset(); view->boxes.clear();
             if (view->mode == 'S' && !view->failed && !view->busy && view->overlay_frame_ms > 0) {
                 view->analysis_fps = 0;
@@ -865,6 +873,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 state->duplicate_enrollment_id = workflow.duplicate_enrollment_id;
                 state->flow_result_pending = workflow.resultPending(); state->flow_result_generation = workflow.flow_result_generation; state->result_title = workflow.result_title;
                 state->flow_result_can_retry = workflow.result_can_retry; state->flow_result_passed = workflow.result_passed;
+                state->flow_result_frame = workflow.result_frame;
                 state->comparison_first_processing = comparison_completed[0] != comparison_generations_[0];
                 state->comparison_second_processing = comparison_completed[1] != comparison_generations_[1];
                 state->comparison_first_ready = workflow.comparison_first_ready && !state->comparison_first_processing;

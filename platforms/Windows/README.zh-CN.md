@@ -1,4 +1,4 @@
-# HiFace Windows · 0.8.15
+# HiFace Windows · 0.8.16
 
 [English](README.md) | 简体中文
 
@@ -26,5 +26,3 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./build_demo.ps1 -Publis
 
 修改 `demo/source/` 后重新编译，程序位于 `build/demo/bin/Release/hiface_demo.exe`。
 界面与相机验收见包内 `demo/Windows真机测试清单.txt`。
-
-下载或克隆仓库后，可在浏览器中打开离线 [HTML SDK API](../../docs/SDK-API/Windows/index.html).

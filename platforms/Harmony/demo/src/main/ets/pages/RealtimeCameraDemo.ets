@@ -8,7 +8,7 @@ import { SearchScreenPresentation } from '../search/SearchScreenPresentation';
 import { createDemoFaceSearchConfig } from '../search/DemoFaceSearchConfig';
 import { DemoTheme } from '../ui/DemoTheme';
 import { RealtimeMode } from '../camera/RealtimeMode';
-import { DemoCameraCallbacks, DemoFlowListener, DemoSearchListener } from '../camera/DemoCallbacks';
+import { DemoCameraCallbacks, DemoFlowListener, DemoSearchListener, RecognitionOutcome } from '../camera/DemoCallbacks';
 import { FaceDetectionOverlay } from '../detection/FaceDetectionOverlay';
 import { FaceCaptureOverlay } from '../ui/FaceCaptureOverlay';
 import { FaceSearchOverlay } from '../search/FaceSearchOverlay';
@@ -95,7 +95,8 @@ export struct RealtimeCameraDemo {
   @Prop recognitionConfigured: boolean = false;
   @Prop recognitionActions: FaceAction[] = [];
   @Prop recognitionSilent: boolean = true;
-  onRecognitionResult: (title: string, message: string, passed: boolean) => void = () => {};
+  onRecognitionResult: (message: string, outcome: RecognitionOutcome,
+    frameJpeg?: ArrayBuffer) => void = () => {};
   @Prop initialSearchConfig: FaceSearchSessionConfig = createDemoFaceSearchConfig();
   @Prop referenceFaceId: string = '';
   private readonly searchScreenPresentation: SearchScreenPresentation = new SearchScreenPresentation();
@@ -985,7 +986,7 @@ export struct RealtimeCameraDemo {
     this.detectedPeople = 0;
     this.searchedPeople = 0;
     this.guideState = DemoL10n.text("连续搜索已暂停");
-    this.resultState = this.searchRetryVisible || DemoErrorUi.isAccessUnavailable(error) ? DemoErrorUi.describe(error) :
+    this.resultState = this.searchRetryVisible || DemoErrorUi.isAccessError(error) ? DemoErrorUi.describe(error) :
       DemoL10n.text("搜索恢复失败，请检查配置并重新进入。");
     this.drawOverlay();
   }
@@ -1032,7 +1033,7 @@ export struct RealtimeCameraDemo {
       this.cameraController?.pauseAnalysis();
       this.guideState = DemoL10n.text("流程启动失败");
       this.resultState = DemoL10n.text("启动流程异常：{0}", [String(error)]);
-      if (this.returnRecognitionResult(false)) return;
+      if (this.returnRecognitionResult(RecognitionOutcome.ERROR)) return;
       this.drawOverlay();
     }
   }
@@ -1053,7 +1054,7 @@ export struct RealtimeCameraDemo {
       this.resultRetryVisible = DemoErrorUi.isRetryable(error);
       this.resultVisible = true;
       this.cameraController?.pauseAnalysis();
-      this.returnRecognitionResult(false);
+      this.returnRecognitionResult(RecognitionOutcome.ERROR);
       return;
     }
     this.activeRequest = result.requireValue();
@@ -1145,7 +1146,8 @@ export struct RealtimeCameraDemo {
       this.resultState = DemoL10n.text("未采集到合格人脸，请重试");
       this.resultVisible = true;
     }
-    if (this.returnRecognitionResult(result.isPassed(), true)) return;
+    if (this.returnRecognitionResult(result.isPassed() ? RecognitionOutcome.PASSED : RecognitionOutcome.REJECTED,
+      result.frameJpeg)) return;
     this.promptSpeech?.stop();
     this.drawOverlay();
   }
@@ -1346,19 +1348,20 @@ export struct RealtimeCameraDemo {
     this.cameraController?.pauseAnalysis();
     this.guideState = DemoL10n.text("流程执行失败");
     this.resultState = DemoErrorUi.describe(error);
-    if (this.returnRecognitionResult(false)) return;
+    if (this.returnRecognitionResult(RecognitionOutcome.ERROR)) return;
     this.drawOverlay();
   }
 
-  private returnRecognitionResult(passed: boolean, finishSpeech: boolean = false): boolean {
+  // The parent owns the terminal image while the camera page shuts down.
+  private returnRecognitionResult(outcome: RecognitionOutcome, frameJpeg?: ArrayBuffer): boolean {
     if (!this.recognitionConfigured || (this.currentMode !== RealtimeMode.VERIFICATION &&
       this.currentMode !== RealtimeMode.LIVENESS)) return false;
     this.resultVisible = false;
-    if (finishSpeech && this.isPageActive()) {
+    if ((outcome === RecognitionOutcome.PASSED || outcome === RecognitionOutcome.REJECTED) && this.isPageActive()) {
       this.promptSpeech?.finish();
       this.promptSpeech = undefined;
     }
-    this.onRecognitionResult(this.guideState, this.resultState, passed);
+    this.onRecognitionResult(this.resultState, outcome, frameJpeg);
     return true;
   }
 

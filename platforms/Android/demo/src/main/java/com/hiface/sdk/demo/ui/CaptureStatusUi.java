@@ -3,7 +3,6 @@ package com.hiface.sdk.demo.ui;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
-
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.flow.FaceFlowStage;
 

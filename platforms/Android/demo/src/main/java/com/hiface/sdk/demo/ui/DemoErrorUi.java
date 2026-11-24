@@ -2,14 +2,12 @@ package com.hiface.sdk.demo.ui;
 
 import android.content.Context;
 import android.util.Log;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
-
 import com.hiface.sdk.common.HiFaceError;
 import com.hiface.sdk.common.HiFaceErrorCode;
 import com.hiface.sdk.common.HiFaceErrorUi;
-import com.hiface.sdk.demo.R;
+import java.util.EnumSet;
 
 /**
  * Map SDK status to user guidance; keep original errors in logs and control retries in the Demo.
@@ -18,13 +16,19 @@ import com.hiface.sdk.demo.R;
  */
 public final class DemoErrorUi {
     private static final String TAG = "HiFaceDemo";
+    // The published 0.8.15 AAR and the current SDK share these public codes.
+    private static final EnumSet<HiFaceErrorCode> ACCESS_ERRORS = EnumSet.of(
+            HiFaceErrorCode.LICENSE_MISSING, HiFaceErrorCode.LICENSE_INVALID,
+            HiFaceErrorCode.LICENSE_NOT_YET_VALID, HiFaceErrorCode.LICENSE_EXPIRED,
+            HiFaceErrorCode.LICENSE_FEATURE_DENIED, HiFaceErrorCode.LICENSE_CLOCK_INVALID);
 
-    private DemoErrorUi() {}
+    private DemoErrorUi() {
+    }
 
     @NonNull
     public static String messageFor(@NonNull Context context, @NonNull HiFaceError error) {
         log(error);
-        return context.getString(messageResource(error.getCode()));
+        return HiFaceErrorUi.messageFor(context, error);
     }
 
     /**
@@ -51,8 +55,8 @@ public final class DemoErrorUi {
      *
      * 识别 SDK 状态错误，供调用页面停止分析并避免重复提示。
      */
-    public static boolean isLicenseError(@NonNull HiFaceError error) {
-        return licenseMessage(error.getCode()) != 0;
+    public static boolean isAccessError(@NonNull HiFaceError error) {
+        return ACCESS_ERRORS.contains(error.getCode());
     }
 
     /**
@@ -61,8 +65,8 @@ public final class DemoErrorUi {
      * 界面统一提示功能不可用，诊断日志保留原始错误码。
      */
     @StringRes
-    public static int licenseMessage(@NonNull HiFaceErrorCode code) {
-        return HiFaceErrorUi.isLicenseError(code) ? R.string.access_unavailable : 0;
+    public static int accessMessage(@NonNull HiFaceErrorCode code) {
+        return ACCESS_ERRORS.contains(code) ? HiFaceErrorUi.messageResource(code) : 0;
     }
 
     private static void log(@NonNull HiFaceError error) {
@@ -72,11 +76,5 @@ public final class DemoErrorUi {
         } else {
             Log.e(TAG, error.toString(), cause);
         }
-    }
-
-    @StringRes
-    private static int messageResource(@NonNull HiFaceErrorCode code) {
-        int accessMessage = licenseMessage(code);
-        return accessMessage != 0 ? accessMessage : HiFaceErrorUi.messageResource(code);
     }
 }

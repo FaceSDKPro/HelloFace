@@ -2,21 +2,18 @@ package com.hiface.sdk.demo.detection;
 
 import android.os.Bundle;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.camera.view.PreviewView;
-
 import com.hiface.sdk.HiFaceSdk;
 import com.hiface.sdk.common.HiFaceResult;
 import com.hiface.sdk.demo.R;
-import com.hiface.sdk.demo.ui.DemoErrorUi;
 import com.hiface.sdk.demo.camera.CameraBrightnessActivity;
 import com.hiface.sdk.demo.camera.CameraPreviewFragment;
+import com.hiface.sdk.demo.ui.DemoErrorUi;
 import com.hiface.sdk.demo.ui.DemoWindowInsets;
 import com.hiface.sdk.detection.FaceDetectionConfig;
 import com.hiface.sdk.detection.FaceDetectionResult;
-
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -27,13 +24,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class FaceDetectionActivity extends CameraBrightnessActivity {
     private CameraPreviewFragment cameraPreview;
     private FaceDetectionOverlayView detectionOverlay;
+    // Guard the latest result and its single pending draw across the analysis and main threads.
     private final Object overlayUpdateLock = new Object();
     @Nullable
     private FaceDetectionResult pendingOverlayFrame;
     private boolean overlayUpdatePosted;
     private boolean overlayActive;
     private final Runnable overlayUpdater = this::applyLatestOverlayFrame;
-    private final AtomicBoolean licenseFailurePosted = new AtomicBoolean();
+    private final AtomicBoolean licenseFailurePosted = new AtomicBoolean(); // One error prompt per screen.
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -52,19 +50,24 @@ public final class FaceDetectionActivity extends CameraBrightnessActivity {
         HiFaceSdk sdk = HiFaceSdk.builder(this).lifecycleOwner(this).build();
 
         FaceDetectionConfig detectionConfig = FaceDetectionConfig.builder()
-                .maxFaces(10) // 本页面需要展示多人；上限越高，低配设备开销越大 / This screen displays multiple faces; higher limits cost more on low-end devices.
-                .detailedLandmarks(true) // 本页面需要展示 468 点轮廓与头姿 / This screen displays the 468-point contours and head pose.
+                .maxFaces(
+                        10) // 本页面需要展示多人；上限越高，低配设备开销越大 / This screen displays multiple faces; higher limits cost more
+                // on low-end devices.
+                .detailedLandmarks(
+                        true) // 本页面需要展示 468 点轮廓与头姿 / This screen displays the 468-point contours and head pose.
                 .build();
 
         cameraPreview.setFrameListener(frame -> {
             HiFaceResult<FaceDetectionResult> result = sdk.processFrame(frame, detectionConfig);
             if (result.isFailure()) {
-                if (DemoErrorUi.isLicenseError(result.requireError())
+                if (DemoErrorUi.isAccessError(result.requireError())
                         && licenseFailurePosted.compareAndSet(false, true)) {
                     // Stop analysis and clear stale overlays; display the error only once.
                     // 停止分析并清除旧框，只提示一次错误。
                     runOnUiThread(() -> {
-                        if (isFinishing() || isDestroyed()) return;
+                        if (isFinishing() || isDestroyed()) {
+                            return;
+                        }
                         cameraPreview.pauseAnalysis();
                         clearOverlayUpdates();
                         Toast.makeText(this, DemoErrorUi.messageFor(this, result.requireError()),
@@ -78,8 +81,6 @@ public final class FaceDetectionActivity extends CameraBrightnessActivity {
         });
     }
 
-
-
     /**
      * Retain only the latest undrawn result on the main thread and render on the next vsync to avoid
      * Runnable buildup. FaceDetectionResult is immutable; camera YUV buffers never escape the analysis
@@ -90,7 +91,9 @@ public final class FaceDetectionActivity extends CameraBrightnessActivity {
      */
     private void queueOverlayUpdate(@NonNull FaceDetectionResult frameResult) {
         synchronized (overlayUpdateLock) {
-            if (!overlayActive) return;
+            if (!overlayActive) {
+                return;
+            }
             pendingOverlayFrame = frameResult;
             if (!overlayUpdatePosted) {
                 overlayUpdatePosted = true;
@@ -109,10 +112,12 @@ public final class FaceDetectionActivity extends CameraBrightnessActivity {
             pendingOverlayFrame = null;
             overlayUpdatePosted = false;
         }
-        if (frameResult != null && !isFinishing() && !isDestroyed()) {
-            detectionOverlay.updateFaces(frameResult,
-                    cameraPreview.analysisToPreview(frameResult.getImageWidth(), frameResult.getImageHeight()));
+        if (frameResult == null || isFinishing() || isDestroyed()) {
+            return;
         }
+        // Empty results still clear the previous boxes and need no coordinate transform.
+        detectionOverlay.updateFaces(frameResult, frameResult.getFaces().isEmpty() ? null
+                : cameraPreview.analysisToPreview(frameResult.getImageWidth(), frameResult.getImageHeight()));
     }
 
     private void clearOverlayUpdates() {
@@ -128,7 +133,9 @@ public final class FaceDetectionActivity extends CameraBrightnessActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        synchronized (overlayUpdateLock) { overlayActive = true; }
+        synchronized (overlayUpdateLock) {
+            overlayActive = true;
+        }
     }
 
     @Override

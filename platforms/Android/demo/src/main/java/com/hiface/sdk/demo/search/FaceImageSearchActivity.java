@@ -9,11 +9,11 @@ import android.graphics.RectF;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextPaint;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.text.TextUtils;
-import android.text.TextPaint;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -22,9 +22,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.hiface.sdk.HiFaceSdk;
 import com.hiface.sdk.capture.FaceImageCapture;
 import com.hiface.sdk.common.FaceRequest;
-import com.hiface.sdk.common.HiFaceResult;
-import com.hiface.sdk.common.HiFaceErrorCode;
 import com.hiface.sdk.common.HiFaceError;
+import com.hiface.sdk.common.HiFaceErrorCode;
+import com.hiface.sdk.common.HiFaceResult;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.comparison.FacePhotoPicker;
 import com.hiface.sdk.demo.ui.DemoErrorUi;
@@ -67,12 +67,14 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
         final RectF bounds;
         String label;
         boolean matched;
+
         ResultFace(FaceImageCapture face) {
             bounds = new RectF(face.getX(), face.getY(), face.getX() + face.getWidth(), face.getY() + face.getHeight());
         }
     }
 
-    @Override protected void onCreate(@Nullable Bundle state) {
+    @Override
+    protected void onCreate(@Nullable Bundle state) {
         super.onCreate(state);
         // This screen owns the image-search SDK; destruction closes it and discards pending callbacks.
         // 页面直接持有图片搜索 SDK，销毁时自动关闭并丢弃未执行回调。
@@ -98,8 +100,15 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
 
     private void pickPhoto() {
         picker.pick(new FacePhotoPicker.Callback() {
-            @Override public void onPicked(Bitmap bitmap) { load(bitmap); }
-            @Override public void onError(Throwable error) { onPhotoReadFailed(); }
+            @Override
+            public void onPicked(Bitmap bitmap) {
+                load(bitmap);
+            }
+
+            @Override
+            public void onError(Throwable error) {
+                onPhotoReadFailed();
+            }
         });
     }
 
@@ -133,7 +142,9 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
         loading.setVisibility(View.VISIBLE);
         status.setText(R.string.image_search_processing);
         request = sdk.capture().facesFromBitmap(bitmap, extracted -> {
-            if (generation != token) return;
+            if (generation != token) {
+                return;
+            }
             request = null;
             if (extracted.isFailure()) {
                 showError(token, extracted.requireError());
@@ -145,7 +156,9 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
     }
 
     private void search(List<FaceImageCapture> faces, int token) {
-        if (generation != token) return;
+        if (generation != token) {
+            return;
+        }
         List<ResultFace> results = new ArrayList<>();
         if (faces.isEmpty()) {
             main.post(() -> render(token, faces, results, false));
@@ -163,7 +176,9 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
                 return;
             }
             for (FaceImageCapture face : faces) {
-                if (generation != token) return;
+                if (generation != token) {
+                    return;
+                }
                 ResultFace result = new ResultFace(face);
                 if (face.getCapture().isFailure()) {
                     result.label = face.getCapture().requireError().getCode() == HiFaceErrorCode.IMAGE_FACE_TOO_SMALL
@@ -172,12 +187,15 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
                 } else {
                     HiFaceResult<List<FaceSearchMatch>> found = db.search(face.getCapture().requireValue().getFeature(),
                             FaceSearchConfig.defaultConfig());
-                    if (found.isFailure()) result.label = DemoErrorUi.messageFor(this, found.requireError());
-                    else if (found.requireValue().isEmpty()) result.label = getString(R.string.image_search_unmatched);
-                    else {
+                    if (found.isFailure()) {
+                        result.label = DemoErrorUi.messageFor(this, found.requireError());
+                    } else if (found.requireValue().isEmpty()) {
+                        result.label = getString(R.string.image_search_unmatched);
+                    } else {
                         FaceSearchMatch match = found.requireValue().get(0);
                         result.matched = true;
-                        result.label = match.getEntry().getFaceId() + "," + String.format(Locale.ROOT, "%.2f", match.getScore());
+                        result.label = match.getEntry().getFaceId() + "," + String.format(Locale.ROOT, "%.2f",
+                                match.getScore());
                     }
                 }
                 // Build labels once for both the photo and thumbnails; never fabricate IDs or scores for errors.
@@ -190,7 +208,9 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
 
     /** Labels and captures share SDK detection order. Only bounds, labels and thumbnail Bitmaps outlive this call. */
     private void render(int token, List<FaceImageCapture> captures, List<ResultFace> results, boolean emptyLibrary) {
-        if (generation != token) return;
+        if (generation != token) {
+            return;
+        }
         loading.setVisibility(View.GONE);
         clearThumbnails();
         strip.setVisibility(results.isEmpty() ? View.GONE : View.VISIBLE);
@@ -199,18 +219,25 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
         int matched = 0;
         for (int i = 0; i < results.size(); i++) {
             ResultFace result = results.get(i);
-            if (result.matched) matched++;
+            if (result.matched) {
+                matched++;
+            }
             addThumbnail(captures.get(i), result, i);
         }
         String summary = getString(R.string.image_search_summary, results.size(), matched);
-        if (results.isEmpty()) summary = getString(R.string.image_search_no_faces);
-        else if (emptyLibrary) summary += "\n" + getString(R.string.image_search_empty_library);
+        if (results.isEmpty()) {
+            summary = getString(R.string.image_search_no_faces);
+        } else if (emptyLibrary) {
+            summary += "\n" + getString(R.string.image_search_empty_library);
+        }
         status.setText(summary);
         photo.setContentDescription(summary);
     }
 
     private void showError(int token, HiFaceError error) {
-        if (generation != token) return;
+        if (generation != token) {
+            return;
+        }
         loading.setVisibility(View.GONE);
         status.setText(DemoErrorUi.messageFor(this, error));
     }
@@ -230,7 +257,8 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
             image.setImageBitmap(crop);
         } else {
             image.setImageResource(R.drawable.ic_search_person);
-            image.setImageTintList(android.content.res.ColorStateList.valueOf(getColor(R.color.content_text_secondary)));
+            image.setImageTintList(
+                    android.content.res.ColorStateList.valueOf(getColor(R.color.content_text_secondary)));
         }
         card.addView(image, new LinearLayout.LayoutParams(dp(72), dp(72)));
         TextView label = new TextView(this);
@@ -245,20 +273,29 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
         card.setOnClickListener(v -> {
             photo.selected = index;
             photo.invalidate();
-            for (int i = 0; i < crops.getChildCount(); i++) crops.getChildAt(i).setBackgroundResource(
-                    i == index ? R.drawable.bg_image_search_secondary : R.drawable.bg_image_search_card);
+            for (int i = 0; i < crops.getChildCount(); i++) {
+                crops.getChildAt(i).setBackgroundResource(
+                        i == index ? R.drawable.bg_image_search_secondary : R.drawable.bg_image_search_card);
+            }
         });
         crops.addView(card, params);
     }
 
-    private int dp(int n) { return Math.round(n * getResources().getDisplayMetrics().density); }
+    private int dp(int n) {
+        return Math.round(n * getResources().getDisplayMetrics().density);
+    }
+
     private void clearThumbnails() {
         crops.removeAllViews();
         strip.setVisibility(View.GONE);
-        for (Bitmap bitmap : thumbnails) bitmap.recycle();
+        for (Bitmap bitmap : thumbnails) {
+            bitmap.recycle();
+        }
         thumbnails.clear();
     }
-    @Override protected void onDestroy() {
+
+    @Override
+    protected void onDestroy() {
         cancelSearch();
         picker.close();
         worker.shutdown();
@@ -272,40 +309,59 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
         List<ResultFace> faces = new ArrayList<>();
         int selected = -1;
         final TextPaint paint = new TextPaint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-        PhotoView() { super(FaceImageSearchActivity.this); }
+
+        PhotoView() {
+            super(FaceImageSearchActivity.this);
+        }
+
         void setPhoto(Bitmap value) {
-            Bitmap previous = bitmap; bitmap = value; faces = new ArrayList<>(); selected = -1;
+            Bitmap previous = bitmap;
+            bitmap = value;
+            faces = new ArrayList<>();
+            selected = -1;
             setContentDescription(null);
             invalidate();
-            if (previous != null) previous.recycle();
+            if (previous != null) {
+                previous.recycle();
+            }
         }
-        @Override protected void onDraw(Canvas canvas) {
+
+        @Override
+        protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
-            if (bitmap == null) return;
+            if (bitmap == null) {
+                return;
+            }
             // Display the image with aspect-fit; boxes and labels share the same scale and padding offsets without
             // changing source coordinates.
             // 图片按 aspect-fit 展示，框和标签共用同一缩放与留白偏移，不改变原图坐标。
             float scale = Math.min(getWidth() / (float) bitmap.getWidth(), getHeight() / (float) bitmap.getHeight());
             float x = (getWidth() - bitmap.getWidth() * scale) / 2;
             float y = (getHeight() - bitmap.getHeight() * scale) / 2;
-            paint.setStyle(Paint.Style.FILL); paint.setColor(Color.WHITE);
-            canvas.drawBitmap(bitmap, null, new RectF(x, y, x + bitmap.getWidth()*scale, y + bitmap.getHeight()*scale), paint);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(Color.WHITE);
+            canvas.drawBitmap(bitmap, null,
+                    new RectF(x, y, x + bitmap.getWidth() * scale, y + bitmap.getHeight() * scale), paint);
             for (int i = 0; i < faces.size(); i++) {
                 ResultFace result = faces.get(i);
                 RectF source = result.bounds;
                 RectF box = new RectF(x + source.left * scale, y + source.top * scale,
                         x + source.right * scale, y + source.bottom * scale);
                 paint.setColor(result.matched ? Color.rgb(32, 185, 70) : Color.rgb(207, 126, 20));
-                paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(dp(i == selected ? 4 : 2));
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(dp(i == selected ? 4 : 2));
                 canvas.drawRect(box, paint);
-                paint.setStyle(Paint.Style.FILL); paint.setTextSize(dp(10));
+                paint.setStyle(Paint.Style.FILL);
+                paint.setTextSize(dp(10));
                 float maxLabelWidth = Math.min(getWidth() - dp(12), Math.max(box.width(), dp(96)));
-                String label = TextUtils.ellipsize(result.label, paint, maxLabelWidth, TextUtils.TruncateAt.END).toString();
-                float labelX = Math.max(dp(4), Math.min(box.left, getWidth()-paint.measureText(label)-dp(8)));
+                String label = TextUtils.ellipsize(result.label, paint, maxLabelWidth, TextUtils.TruncateAt.END)
+                        .toString();
+                float labelX = Math.max(dp(4), Math.min(box.left, getWidth() - paint.measureText(label) - dp(8)));
                 float labelY = Math.max(dp(16), box.top);
                 paint.setColor(0xCC111111);
-                canvas.drawRect(labelX, labelY-dp(16), labelX+paint.measureText(label)+dp(8), labelY, paint);
-                paint.setColor(Color.WHITE); canvas.drawText(label, labelX+dp(4), labelY-dp(4), paint);
+                canvas.drawRect(labelX, labelY - dp(16), labelX + paint.measureText(label) + dp(8), labelY, paint);
+                paint.setColor(Color.WHITE);
+                canvas.drawText(label, labelX + dp(4), labelY - dp(4), paint);
             }
         }
     }

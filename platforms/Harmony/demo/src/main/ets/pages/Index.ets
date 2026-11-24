@@ -1,6 +1,7 @@
 import { DemoL10n } from '../ui/DemoL10n';
 import { DemoErrorUi } from '../ui/DemoErrorUi';
 import { DemoPageHeader } from '../ui/DemoPageHeader';
+import { PixelMapResource } from '../ui/PixelMapResource';
 import { RecognitionOptionsPanel } from '../recognition/RecognitionOptionsPanel';
 import { FacePhotoLibrary, FacePhotoStore, FacePhotoThumbnail } from '../verification/FacePhotoStore';
 import { FaceReference, FaceFeatureStore } from '../verification/FaceFeatureStore';
@@ -10,6 +11,7 @@ import { FaceVerificationFlow } from '../verification/FaceVerificationFlow';
 import { FaceAction, FaceCaptureResult, FaceSearchSessionConfig, HiFaceResult, HiFaceSdk } from 'hiface';
 import { CameraSettingsDemo } from '../camera/CameraSettingsDemo';
 import { CameraPageLifecycle } from '../camera/CameraPageLifecycle';
+import { RecognitionOutcome } from '../camera/DemoCallbacks';
 import { RealtimeCameraDemo } from './RealtimeCameraDemo';
 import { RealtimeMode } from '../camera/RealtimeMode';
 import { FaceImageSearchDemo } from '../search/FaceImageSearchDemo';
@@ -19,6 +21,7 @@ import { createDemoFaceSearchConfig } from '../search/DemoFaceSearchConfig';
 import { bundleManager, common } from '@kit.AbilityKit';
 import { deviceInfo, pasteboard } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { image } from '@kit.ImageKit';
 
 // 导航只保存页面，不包装 SDK；各功能页直接调用 hiface 的公开 API。
 enum DemoPage {
@@ -57,9 +60,10 @@ struct Index {
   @State private livenessActionsEnabled: boolean = true;
   // Keep a separate action mask for standalone liveness, with the same bit order as verification.
   @State private livenessActionMask: number = 9;
-  @State private recognitionTitle: string = '';
   @State private recognitionMessage: string = '';
-  @State private recognitionPassed: boolean = false;
+  @State private recognitionOutcome: RecognitionOutcome = RecognitionOutcome.CANCELED;
+  @State private recognitionFrame: image.PixelMap | undefined = undefined;
+  @State private recognitionFrameSize: image.Size = { width: 0, height: 0 };
   @State private sdkState: string = DemoL10n.text("正在准备识别模型…");
   @State private sdkInitializing: boolean = true;
   @State private sdkFailed: boolean = false;
@@ -88,6 +92,8 @@ struct Index {
   private selectedActions: FaceAction[] = [];
   private readonly cameraLifecycle: CameraPageLifecycle = new CameraPageLifecycle();
   private readonly recognitionScroller: Scroller = new Scroller();
+  // Late decodes must not attach to another run or retain a released page.
+  private recognitionGeneration: number = 0;
   private readonly deviceValues: string[] = [
     `${deviceInfo.majorVersion}.${deviceInfo.seniorVersion}.${deviceInfo.featureVersion}`,
     deviceInfo.productModel || '-', deviceInfo.hardwareModel || '-'];
@@ -174,7 +180,7 @@ struct Index {
       } else {
         candidate.close();
         const error = ready.requireError();
-        this.sdkState = DemoErrorUi.isAccessUnavailable(error) ? DemoErrorUi.describe(error) :
+        this.sdkState = DemoErrorUi.isAccessError(error) ? DemoErrorUi.describe(error) :
           DemoL10n.text("识别引擎初始化失败，请点击重试");
       }
     } catch (_) {
@@ -199,6 +205,7 @@ struct Index {
     ++this.lifecycleToken;
     ++this.referenceStoreToken;
     this.cameraLifecycle.pause();
+    this.clearRecognitionResult();
     this.closeSdk();
     this.featureStore.clear();
     this.references = [];
@@ -234,9 +241,73 @@ struct Index {
 
   /** 返回栈只保存 Demo 功能页；相机释放由共享生命周期对象统一触发。 */
   private goBack(): void {
+    const previous: DemoPage = this.activePage;
     this.cameraLifecycle.leave();
     this.activePage = this.backStack.pop() ?? DemoPage.HOME;
     this.cameraPageKey += 1;
+    if (previous === DemoPage.RECOGNITION) this.clearRecognitionResult();
+    if (this.activePage === DemoPage.RECOGNITION && this.recognitionMessage.length === 0 &&
+      (previous === DemoPage.VERIFICATION || previous === DemoPage.LIVENESS)) {
+      this.recognitionOutcome = RecognitionOutcome.CANCELED;
+      this.recognitionMessage = DemoL10n.text('检测已取消');
+      this.scrollToRecognitionResult(this.recognitionGeneration);
+    }
+  }
+
+  private clearRecognitionResult(): void {
+    ++this.recognitionGeneration;
+    const previous: image.PixelMap | undefined = this.recognitionFrame;
+    this.recognitionFrame = undefined;
+    this.recognitionMessage = '';
+    PixelMapResource.release(previous);
+  }
+
+  private receiveRecognitionResult(pageKey: number, message: string, outcome: RecognitionOutcome,
+    frameJpeg?: ArrayBuffer): void {
+    // The same camera mode can already be open for a retry when an older page returns.
+    if (pageKey !== this.cameraPageKey ||
+      (this.activePage !== DemoPage.VERIFICATION && this.activePage !== DemoPage.LIVENESS)) return;
+    this.recognitionMessage = message;
+    this.recognitionOutcome = outcome;
+    this.goBack();
+    const token: number = this.recognitionGeneration;
+    this.scrollToRecognitionResult(token);
+    if (frameJpeg !== undefined) this.showRecognitionFrame(frameJpeg, token);
+  }
+
+  private async showRecognitionFrame(jpeg: ArrayBuffer, token: number): Promise<void> {
+    const frame: image.PixelMap | undefined = await PixelMapResource.createJpeg(jpeg);
+    if (token !== this.recognitionGeneration || this.activePage !== DemoPage.RECOGNITION) {
+      await PixelMapResource.release(frame);
+      return;
+    }
+    if (frame !== undefined) {
+      try {
+        const size: image.Size = frame.getImageInfoSync().size;
+        if (size.width <= 0 || size.height <= 0) {
+          await PixelMapResource.release(frame);
+          return;
+        }
+        // Fit the visible image so the card padding begins at the photo edge.
+        const scale: number = Math.min(160 / size.width, 120 / size.height);
+        this.recognitionFrameSize = {
+          width: Math.max(1, Math.round(size.width * scale)), height: Math.max(1, Math.round(size.height * scale))
+        };
+      } catch (_) {
+        await PixelMapResource.release(frame);
+        return;
+      }
+      this.recognitionFrame = frame;
+      this.scrollToRecognitionResult(token);
+    }
+  }
+
+  private scrollToRecognitionResult(token: number): void {
+    setTimeout((): void => {
+      if (token === this.recognitionGeneration && this.activePage === DemoPage.RECOGNITION) {
+        this.recognitionScroller.scrollEdge(Edge.Bottom);
+      }
+    }, 0);
   }
 
   private keepsImageSearch(): boolean {
@@ -302,18 +373,15 @@ struct Index {
         FaceSearchLibraryDemo({ sdk: this.sdk, cameraLifecycle: this.cameraLifecycle,
           onExit: (): void => this.goBack() })
       } else if (this.activePage !== DemoPage.IMAGE_SEARCH && this.sdk !== undefined) {
-        ForEach([this.cameraPageKey], (_key: number) => {
+        ForEach([this.cameraPageKey], (key: number) => {
           RealtimeCameraDemo({
             sdk: this.sdk!, cameraLifecycle: this.cameraLifecycle,
             initialMode: this.cameraMode(), initialReferenceFeature: this.selectedFeature,
             recognitionConfigured: this.activePage === DemoPage.VERIFICATION || this.activePage === DemoPage.LIVENESS,
             recognitionActions: this.selectedActions,
             recognitionSilent: this.verificationSilent,
-            onRecognitionResult: (title: string, message: string, passed: boolean): void => {
-              this.recognitionTitle = title; this.recognitionMessage = message; this.recognitionPassed = passed;
-              this.goBack();
-              setTimeout((): void => this.recognitionScroller.scrollEdge(Edge.Bottom), 0);
-            },
+            onRecognitionResult: (message: string, outcome: RecognitionOutcome,
+              frameJpeg?: ArrayBuffer): void => this.receiveRecognitionResult(key, message, outcome, frameJpeg),
             referenceFaceId: this.selectedFaceId, initialSearchConfig: this.searchConfig,
             onReferenceConfirmed: (faceId: string, feature: string): Promise<boolean> =>
               this.saveReference(faceId, feature),
@@ -384,6 +452,10 @@ struct Index {
   }
 
   private startRecognition(reference: FaceReference | undefined = undefined): void {
+    if (this.sdk === undefined) {
+      this.showToast(this.sdkState);
+      return;
+    }
     const verification: boolean = reference !== undefined;
     const enabled: boolean = verification ? this.verificationActionsEnabled : this.livenessActionsEnabled;
     const actions: FaceAction[] = this.recognitionActions(verification);
@@ -392,7 +464,7 @@ struct Index {
       return;
     }
     this.selectedActions = actions;
-    this.recognitionMessage = '';
+    this.clearRecognitionResult();
     if (reference !== undefined) {
       this.selectedFaceId = reference.faceId;
       this.selectedFeature = reference.feature;
@@ -531,12 +603,17 @@ struct Index {
         }.width('100%').alignItems(HorizontalAlign.Start).padding(14).backgroundColor('#FFFFFF')
           .borderRadius(16).border({ width: 1, color: '#E2E8E5' })
         if (this.recognitionMessage.length > 0) {
-          Column({ space: 6.6 }) {
-            Text(DemoL10n.text(this.recognitionPassed ? '检测通过' : '检测未通过'))
-              .fontSize(12).fontColor(this.recognitionPassed ? DemoTheme.contentAccent : DemoTheme.contentError)
-            Text(this.recognitionTitle).fontSize(18).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText)
-            Text(this.recognitionMessage).fontSize(14).fontColor(DemoTheme.contentSecondary)
-          }.alignItems(HorizontalAlign.Start).width('100%').padding(14).backgroundColor('#FFFFFF')
+          Row({ space: 12 }) {
+            Text(this.recognitionMessage).fontSize(14).fontColor(this.recognitionOutcome === RecognitionOutcome.PASSED
+              ? DemoTheme.contentAccent : this.recognitionOutcome === RecognitionOutcome.CANCELED
+              ? DemoTheme.contentSecondary : DemoTheme.contentError).layoutWeight(1)
+            if (this.recognitionFrame !== undefined) {
+              Image(this.recognitionFrame).width(this.recognitionFrameSize.width).height(this.recognitionFrameSize.height)
+                .objectFit(ImageFit.Contain)
+                .accessibilityText(DemoL10n.text('检测结束时的相机画面'))
+            }
+          }.alignItems(VerticalAlign.Center).width('100%').padding(14)
+            .backgroundColor('#FFFFFF')
             .borderRadius(16).border({ width: 1, color: '#E2E8E5' })
         }
         }.padding({ left: 12, right: 12, top: 8, bottom: 16 }).width('100%')

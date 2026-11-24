@@ -4,6 +4,9 @@
 #include "image_decode.h"
 #include "gallery.h"
 #include "image_search.h"
+#if defined(__linux__)
+#include <sys/prctl.h>
+#endif
 #include "synthetic_data.h"
 
 #include <array>
@@ -202,6 +205,10 @@ int main(int argc, char** argv) {
             || ((command == "search" || command == "search-faces") && argc == 5) || (command == "feature" && argc == 4)
             || (command == "capture" && argc == 5))) { usage(); return 2; }
     try {
+#if defined(__linux__)
+        // This CLI owns its process. Keep photo and gallery data out of crash dumps.
+        require(::prctl(PR_SET_DUMPABLE, 0L, 0L, 0L, 0L) == 0, "Cannot disable crash dumps");
+#endif
         require(hiface_get_api_version_v1() == HIFACE_C_API_VERSION_V1, "C ABI version mismatch");
         if (command == "generate-demo-features") {
             writeSyntheticDemoFeatures(argv[2]);
@@ -250,7 +257,8 @@ int main(int argc, char** argv) {
         }
         return 0;
     } catch (const DemoError& error) {
-        std::cerr << error.message << '\n';
+        const auto prompt = accessMessage(error.status);
+        std::cerr << (prompt.empty() ? error.message : prompt) << '\n';
         return 1;
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';

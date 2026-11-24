@@ -53,6 +53,7 @@ struct ViewState {
     bool flow_result_pending = false;
     bool flow_result_can_retry = true;
     bool flow_result_passed = false;
+    std::shared_ptr<const Image> flow_result_frame; // Shared unchanged between workflow and result card.
     std::string duplicate_enrollment_id, result_title;
     std::vector<GalleryEntry> captured_faces;
     bool comparison_first_ready = false, comparison_second_ready = false;
@@ -132,6 +133,9 @@ private:
     void setCapturePolicy(bool idle, int64_t white_light_until);
     CaptureState captureSnapshot();
     void run(const std::string& models, const std::string& database, std::string device, bool smoke, const std::string& assets);
+    // Change the wait predicate under mutex_ before waking either worker.
+    void requestStop();
+    // Read outside the mutex by capture and SDK work; written under mutex_ for the condition variables.
     std::atomic<bool> stopping_{false};
     // Latest offline photo-search request; a new photo makes older search results obsolete.
     std::atomic<uint64_t> photo_generation_{0};

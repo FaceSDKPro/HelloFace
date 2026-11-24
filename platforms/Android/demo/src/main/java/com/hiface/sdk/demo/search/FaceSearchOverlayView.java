@@ -8,7 +8,6 @@ import android.graphics.RectF;
 import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.view.View;
-
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.ui.OutlinedOverlayText;
 import com.hiface.sdk.search.FaceSearchFace;
@@ -34,12 +33,21 @@ public final class FaceSearchOverlayView extends View {
     private final Runnable expire = this::expireState;
     private Runnable onResultChanged;
 
-    public void setOnResultChanged(Runnable listener) { onResultChanged = listener; }
-    public String resultText() { return state.resultText(); }
+    public void setOnResultChanged(Runnable listener) {
+        onResultChanged = listener;
+    }
+
+    public String resultText() {
+        return state.resultText();
+    }
+
     public String bestScoreCaption(boolean includeLiveness) {
         return state.bestScoreCaption(includeLiveness, getContext().getString(R.string.search_ui_result_max_sim));
     }
-    public Float livenessScore() { return state.livenessScore(); }
+
+    public Float livenessScore() {
+        return state.livenessScore();
+    }
 
     /**
      * Expire scores or stalled imagery at the next deadline, refreshing even when no new frame arrives.
@@ -48,7 +56,9 @@ public final class FaceSearchOverlayView extends View {
      */
     private void expireState() {
         expirySchedule.reset();
-        if (state.expire(SystemClock.uptimeMillis())) invalidate();
+        if (state.expire(SystemClock.uptimeMillis())) {
+            invalidate();
+        }
         scheduleExpiry();
     }
 
@@ -76,7 +86,9 @@ public final class FaceSearchOverlayView extends View {
             boolean redraw = state.accept(frame, SystemClock.uptimeMillis());
             transform = null;
             scheduleExpiry();
-            if (redraw) postInvalidateOnAnimation();
+            if (redraw) {
+                postInvalidateOnAnimation();
+            }
             return;
         }
         if (matrix == null) {
@@ -111,7 +123,9 @@ public final class FaceSearchOverlayView extends View {
         state.clear();
         transform = null;
         invalidate();
-        if (onResultChanged != null) onResultChanged.run();
+        if (onResultChanged != null) {
+            onResultChanged.run();
+        }
     }
 
     /**
@@ -126,7 +140,9 @@ public final class FaceSearchOverlayView extends View {
         // complete may expire an old frame first; refresh once to clear drawn content before cancelling the
         // expiry task.
         // complete 可能先使旧帧到期；撤销到期任务前仍需刷新一次以清掉已绘制的内容。
-        if (wasVisible || state.hasVisibleFaces()) postInvalidateOnAnimation();
+        if (wasVisible || state.hasVisibleFaces()) {
+            postInvalidateOnAnimation();
+        }
         scheduleExpiry();
     }
 
@@ -137,8 +153,12 @@ public final class FaceSearchOverlayView extends View {
      * 控制短时评分的跨帧显示关联，关闭时不再猜测最大脸是否仍是同一个人。
      */
     public void setAssociationEnabled(boolean enabled) {
-        if (!state.setAssociationEnabled(enabled)) return;
-        if (state.hasVisibleFaces()) postInvalidateOnAnimation();
+        if (!state.setAssociationEnabled(enabled)) {
+            return;
+        }
+        if (state.hasVisibleFaces()) {
+            postInvalidateOnAnimation();
+        }
         scheduleExpiry();
     }
 
@@ -149,7 +169,9 @@ public final class FaceSearchOverlayView extends View {
      */
     public void rejectScoresThrough(long frameId) {
         state.rejectScoresThrough(frameId);
-        if (state.hasVisibleFaces()) postInvalidateOnAnimation();
+        if (state.hasVisibleFaces()) {
+            postInvalidateOnAnimation();
+        }
         scheduleExpiry();
     }
 
@@ -168,9 +190,13 @@ public final class FaceSearchOverlayView extends View {
      * 只安排最近一次到期刷新，避免每来一帧就重复排队延时任务。
      */
     private void scheduleExpiry() {
-        if (onResultChanged != null) onResultChanged.run();
+        if (onResultChanged != null) {
+            onResultChanged.run();
+        }
         long deadline = state.expiresAt();
-        if (!expirySchedule.update(deadline)) return;
+        if (!expirySchedule.update(deadline)) {
+            return;
+        }
         removeCallbacks(expire);
         if (deadline != 0) {
             postDelayed(expire, Math.max(1, deadline - SystemClock.uptimeMillis()));

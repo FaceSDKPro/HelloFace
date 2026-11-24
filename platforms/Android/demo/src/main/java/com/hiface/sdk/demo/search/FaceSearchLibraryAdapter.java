@@ -1,22 +1,19 @@
 package com.hiface.sdk.demo.search;
 
+import android.graphics.Bitmap;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 import android.widget.ImageView;
-import android.graphics.Bitmap;
-import com.hiface.sdk.demo.storage.FacePhotoStore;
-
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.search.FaceSearchStore.Person;
-
+import com.hiface.sdk.demo.storage.FacePhotoStore;
 import java.util.List;
 
 /**
@@ -52,7 +49,10 @@ final class FaceSearchLibraryAdapter extends ListAdapter<Person, FaceSearchLibra
         }
     };
 
-    interface OnEditListener { void onEdit(Person person); }
+    interface OnEditListener {
+        void onEdit(Person person);
+    }
+
     private OnEditListener onEdit;
     private OnDeleteListener onDelete;
     private PendingCommit pendingCommit;
@@ -65,12 +65,22 @@ final class FaceSearchLibraryAdapter extends ListAdapter<Person, FaceSearchLibra
      */
     static final class PendingCommit implements Runnable {
         private Runnable action;
-        PendingCommit(Runnable action) { this.action = action; }
-        void cancel() { action = null; }
-        @Override public void run() {
+
+        PendingCommit(Runnable action) {
+            this.action = action;
+        }
+
+        void cancel() {
+            action = null;
+        }
+
+        @Override
+        public void run() {
             Runnable value = action;
             action = null;
-            if (value != null) value.run();
+            if (value != null) {
+                value.run();
+            }
         }
     }
 
@@ -81,7 +91,9 @@ final class FaceSearchLibraryAdapter extends ListAdapter<Person, FaceSearchLibra
 
     @Override
     public void submitList(@Nullable List<Person> list, @Nullable Runnable commitCallback) {
-        if (pendingCommit != null) pendingCommit.cancel();
+        if (pendingCommit != null) {
+            pendingCommit.cancel();
+        }
         pendingCommit = commitCallback == null ? null : new PendingCommit(commitCallback);
         super.submitList(list, pendingCommit);
     }
@@ -93,7 +105,9 @@ final class FaceSearchLibraryAdapter extends ListAdapter<Person, FaceSearchLibra
     }
 
     private void delete(String faceId) {
-        if (onDelete != null) onDelete.onDelete(faceId);
+        if (onDelete != null) {
+            onDelete.onDelete(faceId);
+        }
     }
 
     /**
@@ -101,7 +115,9 @@ final class FaceSearchLibraryAdapter extends ListAdapter<Person, FaceSearchLibra
      *
      * 空列表期间暂缓恢复滚动状态，等待异步首批数据到达。
      */
-    FaceSearchLibraryAdapter(OnDeleteListener onDelete) { this(onDelete, null); }
+    FaceSearchLibraryAdapter(OnDeleteListener onDelete) {
+        this(onDelete, null);
+    }
 
     FaceSearchLibraryAdapter(OnDeleteListener onDelete, OnEditListener onEdit) {
         super(DIFF);
@@ -115,7 +131,11 @@ final class FaceSearchLibraryAdapter extends ListAdapter<Person, FaceSearchLibra
     public Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_search_person, parent, false);
-        return new Holder(view, this::delete, person -> { if (onEdit != null) onEdit.onEdit(person); });
+        return new Holder(view, this::delete, person -> {
+            if (onEdit != null) {
+                onEdit.onEdit(person);
+            }
+        });
     }
 
     @Override
@@ -123,7 +143,8 @@ final class FaceSearchLibraryAdapter extends ListAdapter<Person, FaceSearchLibra
         holder.bind(getItem(position));
     }
 
-    @Override public void onViewRecycled(@NonNull Holder holder) {
+    @Override
+    public void onViewRecycled(@NonNull Holder holder) {
         holder.releasePhoto();
         super.onViewRecycled(holder);
     }
@@ -163,7 +184,12 @@ final class FaceSearchLibraryAdapter extends ListAdapter<Person, FaceSearchLibra
             faceId = person.id;
             final String requestedId = faceId;
             photoRequest = FacePhotoStore.SEARCH.loadAsync(itemView.getContext(), requestedId, bitmap -> {
-                if (!requestedId.equals(faceId)) { if (bitmap != null) bitmap.recycle(); return; }
+                if (!requestedId.equals(faceId)) {
+                    if (bitmap != null) {
+                        bitmap.recycle();
+                    }
+                    return;
+                }
                 photoRequest = null;
                 photoBitmap = bitmap;
                 if (bitmap != null) {
@@ -186,13 +212,19 @@ final class FaceSearchLibraryAdapter extends ListAdapter<Person, FaceSearchLibra
         }
 
         void releasePhoto() {
-            if (photoRequest != null) { photoRequest.cancel(); photoRequest = null; }
+            if (photoRequest != null) {
+                photoRequest.cancel();
+                photoRequest = null;
+            }
             photo.setImageResource(R.drawable.ic_search_person);
             photo.setImageTintList(android.content.res.ColorStateList.valueOf(
                     androidx.core.content.ContextCompat.getColor(itemView.getContext(), R.color.search_accent)));
             int padding = (int) (11 * itemView.getResources().getDisplayMetrics().density + 0.5f);
             photo.setPadding(padding, padding, padding, padding);
-            if (photoBitmap != null) { photoBitmap.recycle(); photoBitmap = null; }
+            if (photoBitmap != null) {
+                photoBitmap.recycle();
+                photoBitmap = null;
+            }
         }
     }
 }

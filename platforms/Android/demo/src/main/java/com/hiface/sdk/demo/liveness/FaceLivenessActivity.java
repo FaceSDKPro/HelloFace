@@ -1,5 +1,6 @@
 package com.hiface.sdk.demo.liveness;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
@@ -19,7 +20,8 @@ import com.hiface.sdk.liveness.FaceLivenessConfig;
 public final class FaceLivenessActivity extends CameraFlowActivity {
     private FaceLivenessConfig config;
 
-    @Override protected void onCreate(Bundle state) {
+    @Override
+    protected void onCreate(Bundle state) {
         super.onCreate(state);
         View switchCameraButton = findViewById(R.id.switchCameraButton);
         switchCameraButton.setVisibility(View.VISIBLE);
@@ -28,7 +30,7 @@ public final class FaceLivenessActivity extends CameraFlowActivity {
             config = FaceLivenessConfig.builder().actions(RecognitionFlowContract.actions(getIntent()))
                     .allowMultipleFaces(true).build();
         } catch (IllegalArgumentException error) {
-            complete(getString(R.string.recognition_invalid_options), RecognitionFlowContract.ERROR);
+            completeError(getString(R.string.recognition_invalid_options));
             return;
         }
         preparePromptSpeech();
@@ -36,35 +38,57 @@ public final class FaceLivenessActivity extends CameraFlowActivity {
         startCameraFlow();
     }
 
-    @Override protected void startCameraFlow() {
-        if (config == null) return;
+    @Override
+    protected void startCameraFlow() {
+        if (config == null) {
+            return;
+        }
         startCameraFlowRequest(() -> hiFaceSdk.liveness().startCameraLiveness(config, new FaceFlowListener() {
             @Override
             public void onProgress(@NonNull FaceFlowProgress progress) {
                 renderVerificationProgress(progress, config.getActionTimeoutMillis());
             }
-            @Override public void onResult(@NonNull FaceFlowResult result) {
-                if (!finishCameraFlow(true)) return;
+
+            @Override
+            public void onResult(@NonNull FaceFlowResult result) {
+                if (!finishCameraFlow(true)) {
+                    return;
+                }
                 String message = result.isPassed() ? getString(R.string.liveness_result_passed)
                         : FaceFlowUi.rejectionMessage(FaceLivenessActivity.this, result.getOutcome());
-                if (result.getLivenessScore() != null) message = getString(R.string.liveness_score_format, message, result.getLivenessScore());
-                complete(message, result.isPassed() ? RecognitionFlowContract.PASSED : RecognitionFlowContract.REJECTED);
+                Float score = result.getLivenessScore();
+                if (score != null) {
+                    message = getString(R.string.liveness_score_format, message, score);
+                }
+                complete(RecognitionFlowContract.result(message, result));
             }
-            @Override public void onError(@NonNull HiFaceError error) {
-                if (finishCameraFlow()) complete(DemoErrorUi.messageFor(FaceLivenessActivity.this, error), RecognitionFlowContract.ERROR);
+
+            @Override
+            public void onError(@NonNull HiFaceError error) {
+                if (finishCameraFlow()) {
+                    completeError(DemoErrorUi.messageFor(FaceLivenessActivity.this, error));
+                }
             }
         }));
     }
 
-    private void complete(String message, String status) {
-        setResult(RESULT_OK, RecognitionFlowContract.result(getString(R.string.recognition_liveness_title), message, status));
+    private void completeError(String message) {
+        complete(RecognitionFlowContract.result(message, RecognitionFlowContract.ERROR));
+    }
+
+    private void complete(Intent data) {
+        setResult(RESULT_OK, data);
         finish();
     }
 
     private void switchCamera() {
         cameraPreview.pauseAnalysis();
         boolean switched = cameraPreview.switchCamera();
-        if (isCameraFlowRunning()) cameraPreview.resumeAnalysis();
-        if (!switched) Toast.makeText(getApplicationContext(), R.string.camera_switch_unavailable, Toast.LENGTH_SHORT).show();
+        if (isCameraFlowRunning()) {
+            cameraPreview.resumeAnalysis();
+        }
+        if (!switched) {
+            Toast.makeText(getApplicationContext(), R.string.camera_switch_unavailable, Toast.LENGTH_SHORT).show();
+        }
     }
 }

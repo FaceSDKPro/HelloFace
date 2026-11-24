@@ -18,12 +18,18 @@ final class UvcPreviewSurfaces {
     }
 
     /** Retain a destroyed TextureView texture; its listener returns false to defer system release. */
-    void retain(SurfaceTexture texture) { detachedTextures.add(texture); }
+    void retain(SurfaceTexture texture) {
+        detachedTextures.add(texture);
+    }
 
     void release() {
-        for (Surface surface : surfaces) surface.release();
+        for (Surface surface : surfaces) {
+            surface.release();
+        }
         surfaces.clear();
-        for (SurfaceTexture texture : detachedTextures) texture.release();
+        for (SurfaceTexture texture : detachedTextures) {
+            texture.release();
+        }
         detachedTextures.clear();
     }
 }

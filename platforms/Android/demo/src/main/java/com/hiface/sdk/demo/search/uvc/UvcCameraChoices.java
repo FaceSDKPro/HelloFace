@@ -9,8 +9,8 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
-import com.facesdkpro.uvccamera.DualCameraSession;
 import com.facesdkpro.uvccamera.CameraSelection;
+import com.facesdkpro.uvccamera.DualCameraSession;
 import com.hiface.sdk.demo.R;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,16 +55,22 @@ final class UvcCameraChoices {
         identities = Collections.emptyList();
     }
 
-    int size() { return devices.size(); }
+    int size() {
+        return devices.size();
+    }
 
     int preferredPosition(UvcDeviceChoicePolicy.Device previous, DualCameraSession.Role role) {
-        if (previous != null) return UvcDeviceChoicePolicy.retainedPosition(identities, previous);
+        if (previous != null) {
+            return UvcDeviceChoicePolicy.retainedPosition(identities, previous);
+        }
         CameraSelection suggested = CameraSelection.suggest(devices);
         UsbDevice candidate = role == DualCameraSession.Role.RGB ? suggested.rgb : suggested.ir;
         return candidate == null ? 0 : devices.indexOf(candidate) + 1;
     }
 
-    List<UvcDeviceChoicePolicy.Device> identities() { return identities; }
+    List<UvcDeviceChoicePolicy.Device> identities() {
+        return identities;
+    }
 
     UvcDeviceChoicePolicy.Device selectedIdentity(Spinner spinner) {
         int index = spinner.getSelectedItemPosition() - 1;
@@ -76,14 +82,18 @@ final class UvcCameraChoices {
         return index >= 0 && index < devices.size() ? devices.get(index) : null;
     }
 
-    void bindDevices(Spinner spinner, int position) { bind(spinner, labels, position); }
+    void bindDevices(Spinner spinner, int position) {
+        bind(spinner, labels, position);
+    }
 
     static void bindRotation(Spinner spinner, int degrees) {
         int position = degrees >= 0 && degrees <= 270 && degrees % 90 == 0 ? degrees / 90 : 0;
         bind(spinner, Arrays.asList("0°", "90°", "180°", "270°"), position);
     }
 
-    static int rotationDegrees(Spinner spinner) { return Math.max(0, spinner.getSelectedItemPosition()) * 90; }
+    static int rotationDegrees(Spinner spinner) {
+        return Math.max(0, spinner.getSelectedItemPosition()) * 90;
+    }
 
     static void bind(Spinner spinner, List<String> values, int position) {
         // Use the page theme for both the dark search page and the light enrollment page.
@@ -92,19 +102,27 @@ final class UvcCameraChoices {
         ColorStateList text = theme.getColorStateList(0);
         int surface = theme.getColor(1, android.graphics.Color.WHITE);
         theme.recycle();
-        spinner.setAdapter(new ArrayAdapter<String>(spinner.getContext(), android.R.layout.simple_spinner_dropdown_item, values) {
-            @Override public View getView(int index, View recycled, ViewGroup parent) {
-                TextView view = (TextView) super.getView(index, recycled, parent);
-                if (text != null) view.setTextColor(text);
-                return view;
-            }
-            @Override public View getDropDownView(int index, View recycled, ViewGroup parent) {
-                TextView view = (TextView) super.getDropDownView(index, recycled, parent);
-                if (text != null) view.setTextColor(text);
-                view.setBackgroundColor(surface);
-                return view;
-            }
-        });
+        spinner.setAdapter(
+                new ArrayAdapter<String>(spinner.getContext(), android.R.layout.simple_spinner_dropdown_item, values) {
+                    @Override
+                    public View getView(int index, View recycled, ViewGroup parent) {
+                        TextView view = (TextView) super.getView(index, recycled, parent);
+                        if (text != null) {
+                            view.setTextColor(text);
+                        }
+                        return view;
+                    }
+
+                    @Override
+                    public View getDropDownView(int index, View recycled, ViewGroup parent) {
+                        TextView view = (TextView) super.getDropDownView(index, recycled, parent);
+                        if (text != null) {
+                            view.setTextColor(text);
+                        }
+                        view.setBackgroundColor(surface);
+                        return view;
+                    }
+                });
         spinner.setSelection(position);
     }
 }

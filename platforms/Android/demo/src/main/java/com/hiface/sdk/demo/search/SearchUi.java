@@ -7,20 +7,18 @@ import android.graphics.Typeface;
 import android.text.InputType;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.ViewTreeObserver;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
-
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.view.ContextThemeWrapper;
-
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
@@ -28,7 +26,6 @@ import com.google.android.material.textfield.TextInputLayout;
 import com.hiface.sdk.common.HiFaceError;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.ui.DemoErrorUi;
-
 import java.util.Locale;
 
 /**
@@ -37,7 +34,8 @@ import java.util.Locale;
  * 搜索页面共用的主题、表单控件和错误文案。
  */
 public final class SearchUi {
-    private SearchUi() {}
+    private SearchUi() {
+    }
 
     public static String matchCaption(String faceId, float similarity, Float liveness) {
         // Match Linux: display at most eight characters without splitting a UTF-16 surrogate pair.
@@ -48,8 +46,9 @@ public final class SearchUi {
     public static String scoreCaption(String label, Float similarity, Float liveness) {
         String text = label + "=" + (similarity != null && !Float.isNaN(similarity) && !Float.isInfinite(similarity)
                 ? String.format(Locale.ROOT, "%.2f", similarity) : "—");
-        if (liveness != null && !Float.isNaN(liveness) && !Float.isInfinite(liveness))
+        if (liveness != null && !Float.isNaN(liveness) && !Float.isInfinite(liveness)) {
             text += String.format(Locale.ROOT, ", Liveness=%.2f", liveness);
+        }
         return text;
     }
 
@@ -97,7 +96,9 @@ public final class SearchUi {
     static void showFormDialog(AlertDialog dialog, FormScrollView scroll, int horizontalMarginDp) {
         dialog.show();
         Window window = dialog.getWindow();
-        if (window == null) return;
+        if (window == null) {
+            return;
+        }
         Context context = scroll.getContext();
         window.clearFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
                 | WindowManager.LayoutParams.FLAG_FULLSCREEN);
@@ -106,10 +107,12 @@ public final class SearchUi {
         int availableWidth = dp(context, context.getResources().getConfiguration().screenWidthDp);
         window.setLayout(Math.min(dp(context, 560), availableWidth - dp(context, horizontalMarginDp * 2)),
                 ViewGroup.LayoutParams.WRAP_CONTENT);
-        for (int which : new int[] {AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE,
+        for (int which : new int[]{AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE,
                 AlertDialog.BUTTON_NEUTRAL}) {
             Button button = dialog.getButton(which);
-            if (button == null) continue;
+            if (button == null) {
+                continue;
+            }
             button.setAllCaps(false);
             if (which == AlertDialog.BUTTON_POSITIVE) {
                 button.setBackgroundTintList(ColorStateList.valueOf(
@@ -124,16 +127,24 @@ public final class SearchUi {
         Rect visible = new Rect();
         ViewTreeObserver.OnGlobalLayoutListener listener = () -> {
             decor.getWindowVisibleDisplayFrame(visible);
-            if (visible.height() <= 0) return;
+            if (visible.height() <= 0) {
+                return;
+            }
             int chrome = Math.max(dp(context, 112), decor.getHeight() - scroll.getHeight());
             scroll.setMaximumHeight(Math.max(dp(context, 48), visible.height() - chrome - dp(context, 24)));
             View focus = scroll.findFocus();
-            if (focus instanceof TextInputEditText) revealInput(focus);
+            if (focus instanceof TextInputEditText) {
+                revealInput(focus);
+            }
         };
         decor.getViewTreeObserver().addOnGlobalLayoutListener(listener);
         scroll.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
-            @Override public void onViewAttachedToWindow(View view) {}
-            @Override public void onViewDetachedFromWindow(View view) {
+            @Override
+            public void onViewAttachedToWindow(View view) {
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View view) {
                 if (decor.getViewTreeObserver().isAlive()) {
                     decor.getViewTreeObserver().removeOnGlobalLayoutListener(listener);
                 }
@@ -144,7 +155,9 @@ public final class SearchUi {
 
     private static void revealInput(View input) {
         input.post(() -> {
-            if (!input.isAttachedToWindow() || !input.hasFocus()) return;
+            if (!input.isAttachedToWindow() || !input.hasFocus()) {
+                return;
+            }
             Rect bounds = new Rect();
             input.getDrawingRect(bounds);
             bounds.bottom += dp(input.getContext(), 24);
@@ -162,12 +175,15 @@ public final class SearchUi {
         }
 
         void setMaximumHeight(int value) {
-            if (maximumHeight == value) return;
+            if (maximumHeight == value) {
+                return;
+            }
             maximumHeight = value;
             requestLayout();
         }
 
-        @Override protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        @Override
+        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
             int mode = MeasureSpec.getMode(heightMeasureSpec);
             int height = mode == MeasureSpec.UNSPECIFIED ? maximumHeight
                     : Math.min(maximumHeight, MeasureSpec.getSize(heightMeasureSpec));
@@ -238,12 +254,18 @@ public final class SearchUi {
         edit.setInputType(type);
         edit.setImeOptions(EditorInfo.IME_ACTION_NEXT);
         edit.setOnFocusChangeListener((view, focused) -> {
-            if (focused) revealInput(view);
+            if (focused) {
+                revealInput(view);
+            }
         });
         edit.setOnEditorActionListener((view, action, event) -> {
-            if (action != EditorInfo.IME_ACTION_DONE) return false;
+            if (action != EditorInfo.IME_ACTION_DONE) {
+                return false;
+            }
             InputMethodManager keyboard = context.getSystemService(InputMethodManager.class);
-            if (keyboard != null) keyboard.hideSoftInputFromWindow(edit.getWindowToken(), 0);
+            if (keyboard != null) {
+                keyboard.hideSoftInputFromWindow(edit.getWindowToken(), 0);
+            }
             form.setFocusableInTouchMode(true);
             form.requestFocus();
             return true;
@@ -288,8 +310,10 @@ public final class SearchUi {
     static int errorText(HiFaceError error) {
         // Distinguish SDK availability from database errors.
         // SDK 不可用与数据库错误分别处理。
-        int license = DemoErrorUi.licenseMessage(error.getCode());
-        if (license != 0) return license;
+        int accessMessageRes = DemoErrorUi.accessMessage(error.getCode());
+        if (accessMessageRes != 0) {
+            return accessMessageRes;
+        }
         switch (error.getCode()) {
             case MODEL_LOAD_FAILED:
                 return R.string.search_ui_error_models;

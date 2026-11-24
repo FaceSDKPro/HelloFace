@@ -26,6 +26,7 @@ struct Snapshot {
     std::unordered_map<std::string, std::shared_ptr<const Image>> face_photos;
     std::vector<std::string> reference_ids;
     std::string reference_id, comparison_error_a, comparison_error_b, flow_summary;
+    std::shared_ptr<const Image> flow_frame; // Full terminal frame in display-ready BGRA.
     std::optional<float> comparison_similarity;
     std::array<bool, 2> comparison_slot_ready{};
     // Slot being extracted: 0 for A, 1 for B, -1 when idle.
@@ -80,5 +81,5 @@ private:
     void publish(const Snapshot& state);
     void run();
 };
-std::shared_ptr<const Image> bgraImage(const Image& image);
+std::shared_ptr<const Image> bgraImage(Image image);
 }

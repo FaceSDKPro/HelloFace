@@ -120,5 +120,5 @@ int wmain(int argc, wchar_t** argv) {
             }
         }
         return 0;
-    } catch (const std::exception& error) { writeLog(error.what()); std::cerr << error.what() << '\n'; return 1; }
+    } catch (const std::exception& error) { writeLog(error.what()); std::cerr << demoErrorMessage(std::current_exception()) << '\n'; return 1; }
 }

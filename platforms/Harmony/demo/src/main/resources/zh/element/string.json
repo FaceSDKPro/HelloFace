@@ -2329,10 +2329,6 @@
       "value": "（应用节流）"
     },
     {
-      "name": "demo_f59655755224",
-      "value": "功能不可用,请升级或联系技术支持"
-    },
-    {
       "name": "demo_b38373c53f06",
       "value": "设备时间异常，请校准后重试"
     },
@@ -2445,6 +2441,10 @@
       "value": "检测已取消"
     },
     {
+      "name": "demo_22b4d771ddec",
+      "value": "检测结束时的相机画面"
+    },
+    {
       "name": "demo_7469469bfd95",
       "value": "检测通过"
     },
@@ -2455,6 +2455,58 @@
     {
       "name": "demo_1a0f083db79d",
       "value": "检测参数无效，请返回重新选择。"
+    },
+    {
+      "name": "demo_c0ada49d69ce",
+      "value": "引擎未就绪，请稍后重试"
+    },
+    {
+      "name": "demo_0138aeccf096",
+      "value": "会话已关闭，请重新进入"
+    },
+    {
+      "name": "demo_619fce373c81",
+      "value": "输入无效"
+    },
+    {
+      "name": "demo_ab8fda8c596b",
+      "value": "图片或视频帧格式不支持"
+    },
+    {
+      "name": "demo_c10485d207fe",
+      "value": "人脸模型加载失败"
+    },
+    {
+      "name": "demo_c3898fbb4d92",
+      "value": "人脸过小"
+    },
+    {
+      "name": "demo_202041ccdb4a",
+      "value": "引擎正忙，请稍后重试"
+    },
+    {
+      "name": "demo_5bf3e94305fc",
+      "value": "处理失败，请重试"
+    },
+    {
+      "name": "demo_e4742da29659",
+      "value": "未找到人脸记录"
+    },
+    {
+      "name": "demo_00589b4f693b",
+      "value": "无法访问人脸库"
+    },
+    {
+      "name": "demo_6c615b4052e9",
+      "value": "内存或存储空间不足"
+    },
+    {
+      "name": "demo_0085c3087dd7",
+      "value": "人脸记录已存在"
+    },
+    {
+      "name": "demo_a9a5e27b2667",
+      "value": "功能不可用（错误码 {0}）"
     }
   ]
 }

@@ -27,10 +27,6 @@
     <string name="feature_face_detection_desc">查看人脸框、关键点、轮廓和头姿</string>
     <string name="feature_face_recognition">人脸识别</string>
     <string name="feature_face_recognition_desc">通过相机进行 1:1 人脸识别与活体检测</string>
-    <string name="feature_face_verification">1:1 人脸识别 + 活体检测</string>
-    <string name="feature_face_verification_desc">选择 Face ID，活体通过后验证</string>
-    <string name="feature_face_liveness">仅活体检测</string>
-    <string name="feature_face_liveness_desc">随机动作挑战与双模型静默检测</string>
     <string name="feature_face_enroll">人脸采集</string>
     <string name="feature_face_enroll_desc">采集正脸并保存特征</string>
     <string name="feature_face_search">人脸搜索识别</string>
@@ -78,8 +74,6 @@
     <string name="capture_status_move_closer">请靠近一点</string>
     <string name="capture_status_not_frontal">请摆正人脸</string>
     <string name="capture_status_hold_still">请保持不动</string>
-    <string name="verification_select_face">选择要验证的 Face ID</string>
-    <string name="verification_no_face_id">请先完成人脸采集</string>
     <string name="verification_feature_missing">该 Face ID 的特征不存在</string>
     <string name="verification_match">验证通过：%1$s，相似度 %2$s</string>
     <string name="verification_mismatch">验证未通过：%1$s，相似度 %2$s</string>
@@ -94,14 +88,9 @@
     <string name="liveness_perform_action">请%1$s（%2$d/%3$d）</string>
     <string name="liveness_face_forward">请正对屏幕</string>
     <string name="liveness_speech_locale">zh-CN</string>
-    <string name="liveness_result_title">活体检测</string>
-    <string name="liveness_error_title">活体检测执行失败</string>
     <string name="liveness_result_passed">活体检测通过</string>
     <string name="liveness_result_rejected">活体检测未通过</string>
-    <string name="liveness_result_error">活体检测发生错误</string>
     <string name="liveness_score_format">%1$s\n静默活体分数：%2$.4f</string>
-    <string name="liveness_retry">重试</string>
-    <string name="liveness_back">返回</string>
     <string name="liveness_failed_no_face">活体检测未通过：等待人脸超时</string>
     <string name="liveness_failed_face_lost">活体检测未通过：目标人脸已离开画面</string>
     <string name="liveness_failed_multiple_faces">活体检测未通过：画面中出现多张人脸</string>
@@ -170,7 +159,6 @@
     <string name="search_ui_parameters">识别参数</string>
     <string name="search_ui_threshold_label">相似度阈值</string>
     <string name="search_ui_threshold_help">0.75–0.85，数值越高，匹配要求越严格。</string>
-    <string name="search_ui_more_parameters">更多参数：间隔与超时</string>
     <string name="search_ui_interval_label">成功后的间隔</string>
     <string name="search_ui_interval_help">0–3000 毫秒，默认 0；匹配成功后等待的时间。</string>
     <string name="search_ui_timeout_label">每轮搜索超时</string>
@@ -210,7 +198,6 @@
     <string name="search_ui_import_continue">继续导入</string>
     <string name="search_ui_import_stop_exit">停止并退出</string>
     <string name="search_ui_import_stopping">正在停止并保存，请稍候…</string>
-    <string name="search_ui_import_failed">批量导入失败，请稍后重试</string>
     <string name="search_ui_delete_title">删除这条人脸？</string>
     <string name="search_ui_delete_message">Face ID：%1$s\n\n删除后需重新录入。</string>
     <string name="search_ui_delete_accessibility">删除人脸 %1$s</string>
@@ -237,7 +224,6 @@
     <string name="search_metadata_group">分组</string>
     <string name="search_metadata_tag">标签</string>
     <string name="search_metadata_save">保存资料</string>
-    <string name="access_unavailable">功能不可用,请升级或联系技术支持</string>
     <string name="uvc_search_allow_camera">请允许访问相机。</string>
     <string name="uvc_search_stream_timeout">无画面，请检查连接。</string>
     <string name="uvc_search_choose_cameras">请在设置中选择两路相机。</string>
@@ -261,7 +247,6 @@
     <string name="uvc_search_ir_camera">IR摄像头</string>
     <string name="uvc_search_rgb_rotation">RGB旋转</string>
     <string name="uvc_search_ir_rotation">IR旋转</string>
-    <string name="uvc_search_threshold">IR阈值（开发值，待设备标定）</string>
     <string name="uvc_search_start">开始搜索</string>
     <string name="uvc_search_stop">停止</string>
     <string name="uvc_search_enroll">录入</string>
@@ -278,8 +263,6 @@
     <string name="uvc_search_devices_found">发现 UVC 摄像头，请确认 RGB / IR</string>
     <string name="uvc_search_done">完成</string>
     <string name="uvc_search_fixed_mode">单人搜索，需通过红外活体。</string>
-    <string name="uvc_search_options">分组 %1$s · 相似度 %2$s · 间隔 %3$d ms · 超时 %4$d ms</string>
-    <string name="uvc_search_all_groups">全部</string>
     <string name="uvc_search_details">本次结果</string>
     <string name="uvc_search_usb_permission">请允许 USB 访问后重试。</string>
     <string name="uvc_search_usb_detached">相机已断开，请重新连接摄像头。</string>
@@ -322,8 +305,7 @@
     <string name="recognition_verify_person">验证 Face ID：%1$s；长按删除</string>
     <string name="recognition_start_liveness">开始活体检测</string>
     <string name="recognition_canceled">检测已取消</string>
-    <string name="recognition_passed">检测通过</string>
-    <string name="recognition_rejected">检测未通过</string>
+    <string name="recognition_result_frame">检测结束时的相机画面</string>
     <string name="recognition_invalid_options">检测参数无效，请返回重新选择。</string>
     <string name="enroll_single_photo">请选择只有一张人脸的照片。</string>
 </resources>

@@ -7,6 +7,9 @@
 
 namespace hiface_demo {
 struct CameraDevice { std::wstring name, symbolic_link; };
+// The camera must produce clear images; for face search, a camera with a wide dynamic range above
+// 105 dB is recommended.
+// 摄像头需成像清晰，人脸搜索建议相机宽动态大于105DB。
 class Camera {
 public:
     static std::vector<CameraDevice> devices();

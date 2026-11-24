@@ -16,7 +16,9 @@ final class UvcSearchIdlePolicy {
     /** Exclude stream gaps from no-face time; keep probing while idle so new faces can wake capture. */
     boolean shouldAnalyze(long now) {
         if ((lastPairAt >= 0 && now - lastPairAt > PAIR_GAP_MS)
-                || (lastDetectionAt >= 0 && now - lastDetectionAt >= DETECTION_GAP_MS)) reset();
+                || (lastDetectionAt >= 0 && now - lastDetectionAt >= DETECTION_GAP_MS)) {
+            reset();
+        }
         lastPairAt = now;
         return noFaceSince < 0 || now - lastDetectionAt >= IDLE_PROBE_MIN_MS;
     }
@@ -27,11 +29,15 @@ final class UvcSearchIdlePolicy {
             reset();
             return;
         }
-        if (noFaceSince < 0) noFaceSince = now;
+        if (noFaceSince < 0) {
+            noFaceSince = now;
+        }
         lastDetectionAt = now;
     }
 
-    boolean isIdle() { return noFaceSince >= 0 && lastDetectionAt - noFaceSince >= NO_FACE_IDLE_MS; }
+    boolean isIdle() {
+        return noFaceSince >= 0 && lastDetectionAt - noFaceSince >= NO_FACE_IDLE_MS;
+    }
 
     private void reset() {
         noFaceSince = -1;

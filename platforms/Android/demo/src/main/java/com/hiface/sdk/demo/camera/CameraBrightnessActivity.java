@@ -2,7 +2,6 @@ package com.hiface.sdk.demo.camera;
 
 import android.view.Window;
 import android.view.WindowManager;
-
 import androidx.appcompat.app.AppCompatActivity;
 
 /**
@@ -20,7 +19,9 @@ public abstract class CameraBrightnessActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (brightnessApplied) return;
+        if (brightnessApplied) {
+            return;
+        }
         Window window = getWindow();
         WindowManager.LayoutParams attributes = window.getAttributes();
         previousWindowBrightness = attributes.screenBrightness;
@@ -42,7 +43,9 @@ public abstract class CameraBrightnessActivity extends AppCompatActivity {
      * -1 表示恢复为继续跟随系统亮度，不把页面的 90% 写进系统设置。
      */
     private void restoreWindowBrightness() {
-        if (!brightnessApplied) return;
+        if (!brightnessApplied) {
+            return;
+        }
         Window window = getWindow();
         WindowManager.LayoutParams attributes = window.getAttributes();
         attributes.screenBrightness = previousWindowBrightness;

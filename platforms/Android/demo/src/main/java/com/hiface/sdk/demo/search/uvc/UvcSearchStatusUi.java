@@ -31,16 +31,21 @@ final class UvcSearchStatusUi {
     // Frame IDs reject late results; UI expiry/throttling use uptimeMillis, separate from capture timestamps.
     private long newestFrame = -1, invalidatedThrough = -1, resultDeadline, nextResultUpdate;
     private String fullResult, resultKey, pendingResult, pendingFullResult;
-    @StringRes private int pendingStatus;
+    @StringRes
+    private int pendingStatus;
     private AlertDialog detailsDialog;
 
     private final Runnable renderStatus = this::publishStatus;
     private final Runnable renderResult = this::publishResult;
     private final Runnable expire = new Runnable() {
-        @Override public void run() {
+        @Override
+        public void run() {
             long remaining = resultDeadline - SystemClock.uptimeMillis();
-            if (remaining > 0) handler.postDelayed(this, remaining);
-            else clearResult();
+            if (remaining > 0) {
+                handler.postDelayed(this, remaining);
+            } else {
+                clearResult();
+            }
         }
     };
 
@@ -54,7 +59,9 @@ final class UvcSearchStatusUi {
     }
 
     private void showDetails() {
-        if (fullResult == null) return;
+        if (fullResult == null) {
+            return;
+        }
         TextView text = new TextView(context);
         int padding = (int) (24 * context.getResources().getDisplayMetrics().density);
         text.setPadding(padding, padding, padding, padding);
@@ -70,34 +77,47 @@ final class UvcSearchStatusUi {
     }
 
     void camerasReady() {
-        if (newestFrame < 0) setText(status, context.getString(R.string.uvc_search_waiting_pair));
+        if (newestFrame < 0) {
+            setText(status, context.getString(R.string.uvc_search_waiting_pair));
+        }
     }
 
     void frame(FaceSearchFrame frame) {
         long frameId = frame.getFrameId();
-        if (frameId < newestFrame || frameId <= invalidatedThrough) return;
+        if (frameId < newestFrame || frameId <= invalidatedThrough) {
+            return;
+        }
         waitingPair = false;
         newestFrame = frameId;
         infrared = frame.getInfrared();
-        // Preserve completed results across detections, but clear a success on face loss, missing pairs or IR rejection.
-        if (frame.getFaces().isEmpty() || missingPair() || (resultIsMatch && invalidInfrared())) clearResult();
+        // Preserve completed results across detections, but clear a success on face loss, missing pairs or IR
+        // rejection.
+        if (frame.getFaces().isEmpty() || missingPair() || (resultIsMatch && invalidInfrared())) {
+            clearResult();
+        }
         render();
     }
 
     void progress(FaceSearchProgress progress) {
-        if (waitingPair) return;
+        if (waitingPair) {
+            return;
+        }
         stage = progress.getStage();
         multipleFaces = progress.getDetectedCount() > 1;
         if (stage == FaceSearchProgress.Stage.EMPTY_GALLERY || multipleFaces
                 || progress.getDetectedCount() == 0
-                || stage == FaceSearchProgress.Stage.FACE_TOO_SMALL) clearResult();
+                || stage == FaceSearchProgress.Stage.FACE_TOO_SMALL) {
+            clearResult();
+        }
         render();
     }
 
     void result(FaceSearchResult result) {
         long frameId = result.getFrame().getFrameId();
         if (waitingPair || frameId < newestFrame || frameId <= invalidatedThrough
-                || stage == FaceSearchProgress.Stage.EMPTY_GALLERY || multipleFaces) return;
+                || stage == FaceSearchProgress.Stage.EMPTY_GALLERY || multipleFaces) {
+            return;
+        }
         newestFrame = frameId;
         infrared = result.getFrame().getInfrared();
         if (result.getEndReason() == FaceSearchResult.EndReason.NO_FACE) {
@@ -124,7 +144,9 @@ final class UvcSearchStatusUi {
         }
         if (match == null) {
             String scores = diagnosticCaption(result, context.getString(R.string.search_ui_result_max_sim));
-            if (!scores.isEmpty()) text = scores;
+            if (!scores.isEmpty()) {
+                text = scores;
+            }
         }
         boolean first = fullResult == null;
         long now = SystemClock.uptimeMillis();
@@ -133,11 +155,16 @@ final class UvcSearchStatusUi {
         pendingFullResult = resultDetails(result, text, match, hint);
         handler.removeCallbacks(renderResult);
         // Throttle scores for one identity to 500 ms; replace a changed identity/verdict immediately.
-        if (!key.equals(resultKey) || now >= nextResultUpdate) renderResult.run();
-        else handler.postAtTime(renderResult, nextResultUpdate);
+        if (!key.equals(resultKey) || now >= nextResultUpdate) {
+            renderResult.run();
+        } else {
+            handler.postAtTime(renderResult, nextResultUpdate);
+        }
         resultKey = key;
         resultIsMatch = match != null;
-        if (first) handler.postDelayed(expire, RESULT_HOLD_MS);
+        if (first) {
+            handler.postDelayed(expire, RESULT_HOLD_MS);
+        }
         render();
     }
 
@@ -149,12 +176,19 @@ final class UvcSearchStatusUi {
     static String diagnosticCaption(FaceSearchResult result, String maxSimilarityLabel) {
         FaceSearchFace best = null;
         for (FaceSearchFace face : result.getFrame().getFaces()) {
-            if (face.getSimilarity() == null || Float.isNaN(face.getSimilarity()) || Float.isInfinite(face.getSimilarity())) continue;
-            if (best == null || face.getSimilarity() > best.getSimilarity()) best = face;
+            if (face.getSimilarity() == null || Float.isNaN(face.getSimilarity()) || Float.isInfinite(
+                    face.getSimilarity())) {
+                continue;
+            }
+            if (best == null || face.getSimilarity() > best.getSimilarity()) {
+                best = face;
+            }
         }
         InfraredSearchInfo ir = result.getFrame().getInfrared();
         Float liveness = ir == null ? null : ir.getRealScore();
-        if (best == null && (liveness == null || Float.isNaN(liveness) || Float.isInfinite(liveness))) return "";
+        if (best == null && (liveness == null || Float.isNaN(liveness) || Float.isInfinite(liveness))) {
+            return "";
+        }
         return SearchUi.scoreCaption(maxSimilarityLabel, best == null ? null : best.getSimilarity(), liveness);
     }
 
@@ -163,17 +197,23 @@ final class UvcSearchStatusUi {
         FaceSearchFrame frame = result.getFrame();
         InfraredSearchInfo infrared = frame.getInfrared();
         if (result.getEndReason() != FaceSearchResult.EndReason.MATCH_FOUND
-                || infrared == null || !infrared.isPassed()) return null;
+                || infrared == null || !infrared.isPassed()) {
+            return null;
+        }
         FaceSearchFace best = null;
-        for (FaceSearchFace face : frame.getFaces())
-            if (validMatch(face) && (best == null || face.getSimilarity() > best.getSimilarity())) best = face;
+        for (FaceSearchFace face : frame.getFaces()) {
+            if (validMatch(face) && (best == null || face.getSimilarity() > best.getSimilarity())) {
+                best = face;
+            }
+        }
         return best;
     }
 
     private String resultDetails(FaceSearchResult result, String caption, FaceSearchFace match, @StringRes int hint) {
         FaceSearchFrame frame = result.getFrame();
         FaceSearchFace face = match != null ? match : frame.getFaces().isEmpty() ? null : frame.getFaces().get(0);
-        String title = match != null ? context.getString(R.string.uvc_search_result_face_id, match.getFaceId()) : caption;
+        String title = match != null ? context.getString(R.string.uvc_search_result_face_id,
+                match.getFaceId()) : caption;
         InfraredSearchInfo info = frame.getInfrared();
         // Keep low/zero scores and mark unavailable values with —; a rejected candidate is never a match.
         return title + "\n" + context.getString(R.string.search_ui_overlay_similarity) + " "
@@ -185,13 +225,17 @@ final class UvcSearchStatusUi {
 
     private static boolean validMatch(FaceSearchFace face) {
         return face.isThresholdPassed() && face.getFaceId() != null
-                && face.getSimilarity() != null && !Float.isNaN(face.getSimilarity()) && !Float.isInfinite(face.getSimilarity());
+                && face.getSimilarity() != null && !Float.isNaN(face.getSimilarity()) && !Float.isInfinite(
+                face.getSimilarity());
     }
 
     void clear() {
         clearResult();
         cancelStatus();
-        if (detailsDialog != null) { detailsDialog.dismiss(); detailsDialog = null; }
+        if (detailsDialog != null) {
+            detailsDialog.dismiss();
+            detailsDialog = null;
+        }
         newestFrame = invalidatedThrough = -1;
         infrared = null;
         multipleFaces = waitingPair = false;
@@ -230,21 +274,35 @@ final class UvcSearchStatusUi {
         if (TextUtils.equals(status.getText(), context.getText(next))) {
             cancelStatus();
         } else {
-            if (pendingStatus == 0) handler.postDelayed(renderStatus, STATUS_REFRESH_MS);
+            if (pendingStatus == 0) {
+                handler.postDelayed(renderStatus, STATUS_REFRESH_MS);
+            }
             pendingStatus = next;
         }
     }
 
-    @StringRes private int guidance() {
+    @StringRes
+    private int guidance() {
         // Prioritize the current blocker over the previous round's success interval.
-        if (missingPair()) return R.string.uvc_search_waiting_pair;
-        if (stage == FaceSearchProgress.Stage.EMPTY_GALLERY) return R.string.search_ui_empty_caption;
-        if (multipleFaces) return R.string.capture_status_multiple_faces;
-        if (stage == FaceSearchProgress.Stage.FACE_TOO_SMALL) return R.string.search_ui_move_closer;
+        if (missingPair()) {
+            return R.string.uvc_search_waiting_pair;
+        }
+        if (stage == FaceSearchProgress.Stage.EMPTY_GALLERY) {
+            return R.string.search_ui_empty_caption;
+        }
+        if (multipleFaces) {
+            return R.string.capture_status_multiple_faces;
+        }
+        if (stage == FaceSearchProgress.Stage.FACE_TOO_SMALL) {
+            return R.string.search_ui_move_closer;
+        }
         int hint = infraredHint();
-        if (hint != 0) return hint;
-        if (stage == FaceSearchProgress.Stage.SUCCESS_INTERVAL && successInterval > 0)
+        if (hint != 0) {
+            return hint;
+        }
+        if (stage == FaceSearchProgress.Stage.SUCCESS_INTERVAL && successInterval > 0) {
             return R.string.search_ui_interval_title;
+        }
         return stage == FaceSearchProgress.Stage.WAITING_FOR_FACE
                 ? R.string.search_waiting : R.string.search_searching;
     }
@@ -252,12 +310,19 @@ final class UvcSearchStatusUi {
     private void publishStatus() {
         int next = pendingStatus;
         pendingStatus = 0;
-        if (next != 0) setText(status, context.getString(next));
+        if (next != 0) {
+            setText(status, context.getString(next));
+        }
     }
 
     private void publishResult() {
-        if (pendingResult == null) return;
-        if (SystemClock.uptimeMillis() >= resultDeadline) { clearResult(); return; }
+        if (pendingResult == null) {
+            return;
+        }
+        if (SystemClock.uptimeMillis() >= resultDeadline) {
+            clearResult();
+            return;
+        }
         String text = pendingResult;
         fullResult = pendingFullResult;
         pendingResult = pendingFullResult = null;
@@ -268,7 +333,9 @@ final class UvcSearchStatusUi {
     }
 
     private boolean invalidInfrared() {
-        if (infrared == null) return false;
+        if (infrared == null) {
+            return false;
+        }
         return infrared.getStatus() != InfraredSearchInfo.Status.NOT_EVALUATED && !infrared.isPassed();
     }
 
@@ -277,22 +344,34 @@ final class UvcSearchStatusUi {
                 || infrared.getStatus() == InfraredSearchInfo.Status.STALE_PAIR);
     }
 
-    @StringRes private int infraredHint() {
-        if (infrared == null) return 0;
+    @StringRes
+    private int infraredHint() {
+        if (infrared == null) {
+            return 0;
+        }
         switch (infrared.getStatus()) {
             case WAITING_PAIR:
-            case STALE_PAIR: return R.string.uvc_search_waiting_pair;
-            case MULTIPLE_FACES: return R.string.capture_status_multiple_faces;
-            case NO_FACE: return R.string.uvc_search_no_ir_face;
-            case FACE_MISMATCH: return R.string.uvc_search_face_mismatch;
-            case FACE_TOO_SMALL: return R.string.search_ui_move_closer;
-            case REJECTED: return R.string.search_spoof;
-            default: return 0;
+            case STALE_PAIR:
+                return R.string.uvc_search_waiting_pair;
+            case MULTIPLE_FACES:
+                return R.string.capture_status_multiple_faces;
+            case NO_FACE:
+                return R.string.uvc_search_no_ir_face;
+            case FACE_MISMATCH:
+                return R.string.uvc_search_face_mismatch;
+            case FACE_TOO_SMALL:
+                return R.string.search_ui_move_closer;
+            case REJECTED:
+                return R.string.search_spoof;
+            default:
+                return 0;
         }
     }
 
     private static void setText(TextView view, String text) {
-        if (!TextUtils.equals(view.getText(), text)) view.setText(text);
+        if (!TextUtils.equals(view.getText(), text)) {
+            view.setText(text);
+        }
     }
 
     private static String detailScore(Float value) {

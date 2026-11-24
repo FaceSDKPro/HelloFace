@@ -5,7 +5,8 @@ import java.util.Arrays;
 
 /** UVC-pairs records delivery; main adds IR results and reads bounded snapshots. 中文：只保存数值统计。 */
 final class RgbIrSearchStats {
-    enum Outcome { ACCEPTED, SKIPPED, ERROR, IDLE_SKIPPED }
+    enum Outcome {ACCEPTED, SKIPPED, ERROR, IDLE_SKIPPED}
+
     static final int WINDOW = 120;
     private final Samples skew = new Samples(), age = new Samples(), sdkDuration = new Samples();
     private long epoch, startedNanos, pairs, accepted, skipped, errors, idleSkipped;
@@ -24,35 +25,62 @@ final class RgbIrSearchStats {
         sdkDuration.clear();
     }
 
-    synchronized void stop(long epoch) { if (this.epoch == epoch) active = false; }
-    // Called only while holding this monitor; old sessions cannot update new statistics.
-    private boolean accepts(long epoch) { return active && this.epoch == epoch; }
+    synchronized void stop(long epoch) {
+        if (this.epoch == epoch) {
+            active = false;
+        }
+    }
 
-    synchronized void pair(long epoch, long rgbNanos, long irNanos, long nowNanos, long durationNanos, Outcome outcome) {
-        if (!accepts(epoch)) return;
+    // Called only while holding this monitor; old sessions cannot update new statistics.
+    private boolean accepts(long epoch) {
+        return active && this.epoch == epoch;
+    }
+
+    synchronized void pair(long epoch, long rgbNanos, long irNanos, long nowNanos, long durationNanos,
+            Outcome outcome) {
+        if (!accepts(epoch)) {
+            return;
+        }
         ++pairs;
         // Arrival/submission share a monotonic clock; exclude invalid timestamps from latency statistics.
         if (rgbNanos >= 0 && irNanos >= 0 && nowNanos >= rgbNanos && nowNanos >= irNanos) {
             skew.add(Math.abs(rgbNanos - irNanos) / 1e6);
             age.add((nowNanos - Math.min(rgbNanos, irNanos)) / 1e6);
         }
-        if (durationNanos >= 0) sdkDuration.add(durationNanos / 1e6);
+        if (durationNanos >= 0) {
+            sdkDuration.add(durationNanos / 1e6);
+        }
         switch (outcome) {
-            case ACCEPTED: ++accepted; break;
-            case SKIPPED: ++skipped; break;
-            case ERROR: ++errors; break;
-            case IDLE_SKIPPED: ++idleSkipped; break;
+            case ACCEPTED:
+                ++accepted;
+                break;
+            case SKIPPED:
+                ++skipped;
+                break;
+            case ERROR:
+                ++errors;
+                break;
+            case IDLE_SKIPPED:
+                ++idleSkipped;
+                break;
         }
     }
 
     synchronized void core(long epoch, InfraredSearchInfo info) {
-        if (!accepts(epoch) || info == null) return;
+        if (!accepts(epoch) || info == null) {
+            return;
+        }
         // onFrame/onResult can describe the same pair; count once and retain its final timings.
         boolean sameSource = latest != null && latest.getSourceId() == info.getSourceId();
-        if (sameSource && info.getPairId() < latest.getPairId()) return;
+        if (sameSource && info.getPairId() < latest.getPairId()) {
+            return;
+        }
         if (!sameSource || info.getPairId() != latest.getPairId()) {
-            if (info.getRealScore() != null) ++scored;
-            else if (info.getStatus() != InfraredSearchInfo.Status.NOT_EVALUATED) ++unavailable;
+            if (info.getRealScore() != null) {
+                ++scored;
+            } else if (info.getStatus() != InfraredSearchInfo.Status.NOT_EVALUATED) {
+                ++unavailable;
+            }
         }
         latest = info;
     }
@@ -102,7 +130,9 @@ final class RgbIrSearchStats {
         private final double[] values = new double[WINDOW];
         private int count, next;
 
-        void clear() { count = next = 0; }
+        void clear() {
+            count = next = 0;
+        }
 
         void add(double value) {
             values[next] = value;
@@ -111,12 +141,16 @@ final class RgbIrSearchStats {
         }
 
         Summary snapshot() {
-            if (count == 0) return new Summary(0, 0, 0, 0);
+            if (count == 0) {
+                return new Summary(0, 0, 0, 0);
+            }
             // Sort a copy so snapshot reads preserve the sampling ring.
             double[] sorted = Arrays.copyOf(values, count);
             Arrays.sort(sorted);
             double sum = 0;
-            for (double value : sorted) sum += value;
+            for (double value : sorted) {
+                sum += value;
+            }
             return new Summary(count, sum / count, sorted[(int) Math.ceil(count * .95) - 1], sorted[count - 1]);
         }
     }

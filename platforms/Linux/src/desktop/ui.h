@@ -56,6 +56,13 @@ private:
     void empty(Rect rect, const std::string& title, const std::string& hint);
     void home(const ViewState& state, Rect body);
     void recognition(const ViewState& state, Rect body);
+    enum class RecognitionOutcome { Passed, Rejected, Error, Canceled };
+    struct RecognitionResult {
+        std::string message;
+        RecognitionOutcome outcome;
+        std::shared_ptr<const Image> frame;
+    };
+    bool showRecognitionResult(const ViewState& state, RecognitionResult result);
     DemoSettings recognitionOptions(const ViewState& state, bool verification) const;
     void uvcCameraFaceSearch(const ViewState& state, Rect bounds);
     void uvcSettingsDialog(const ViewState& state);
@@ -116,8 +123,8 @@ private:
     // The recognition page scrolls vertically. Its enrolled-reference strip scrolls horizontally.
     int recognition_scroll_ = 0, recognition_max_scroll_ = 0, reference_scroll_ = 0, reference_max_scroll_ = 0;
     Rect recognition_reference_area_;
-    std::string recognition_result_title_, recognition_result_message_;
-    bool recognition_result_passed_ = false;
+    std::optional<RecognitionResult> recognition_result_;
+    bool reveal_recognition_result_ = false;
     std::string home_focus_;
     std::string observed_device_;
     int gallery_rows_ = 10;

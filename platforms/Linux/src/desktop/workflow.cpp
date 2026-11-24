@@ -15,6 +15,19 @@ int64_t monotonicMilliseconds() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 namespace {
+// Core owns the full frame until stop(). Copy it once for the optional result preview.
+std::shared_ptr<const Image> copyFlowFrame(HiFaceSessionHandle session) {
+    uint32_t width = 0, height = 0;
+    if (hiface_session_face_flow_copy_frame_v1(session, nullptr, 0, &width, &height) != HIFACE_STATUS_RESOURCE_EXHAUSTED ||
+        width == 0 || height == 0 || width > 720 || height > 720) return {};
+    try {
+        auto frame = std::make_shared<Image>(Image{static_cast<int>(width), static_cast<int>(height),
+            std::vector<uint8_t>(size_t(width) * height * 4)});
+        if (hiface_session_face_flow_copy_frame_v1(session, frame->rgba.data(), frame->rgba.size(), &width, &height) == HIFACE_STATUS_OK)
+            return frame;
+    } catch (const std::bad_alloc&) {} // An unavailable preview must not change the outcome.
+    return {};
+}
 std::string score(float value) { std::ostringstream out; out << std::fixed << std::setprecision(3) << value; return out.str(); }
 const char* actionInstruction(HiFaceFlowActionV1 action) {
     switch (action) {
@@ -141,6 +154,7 @@ FaceWorkflow::~FaceWorkflow() {
 void FaceWorkflow::recount() { check(hiface_search_count_v1(database_.handle, nullptr, nullptr, &gallery_count), "count gallery"); }
 void FaceWorkflow::stop() {
     search_frame_image.reset();
+    result_frame.reset();
     check(hiface_session_search_stop_v1(session_.handle), "stop search");
     check(hiface_session_face_flow_stop_v1(session_.handle), "stop flow");
     mode_ = 'D'; boxes.clear();
@@ -304,6 +318,7 @@ void FaceWorkflow::finishFlow() {
     Feature feature{}; std::vector<uint8_t> preview(HIFACE_ALIGNED_PREVIEW_RGBA_BYTES);
     check(hiface_session_face_flow_copy_result_v1(session_.handle, &result, feature.data(), feature.size(), preview.data(), preview.size()), "copy flow result");
     const char finished_mode = mode_;
+    auto frame = finished_mode == 'V' || finished_mode == 'L' ? copyFlowFrame(session_.handle) : nullptr;
     // Always release the completed Core flow, including when a later disk write fails.
     // 即使后续磁盘写入失败，也必须释放已经结束的 Core 流程。
     stop();
@@ -315,7 +330,8 @@ void FaceWorkflow::finishFlow() {
         message = std::string(result.outcome == HIFACE_FLOW_OUTCOME_PASSED ? "Verification passed: " : "Verification failed: ")
                 + reference_id + " | similarity " + percent.str() + "%";
     }
-    if (result.flags & HIFACE_FLOW_RESULT_HAS_PREVIEW)
+    // Core requires an output buffer for its crop. Only enrollment needs to retain it in the Demo.
+    if ((finished_mode == 'C' || finished_mode == 'E') && (result.flags & HIFACE_FLOW_RESULT_HAS_PREVIEW))
         aligned_preview = std::make_shared<Image>(Image{HIFACE_ALIGNED_PREVIEW_SIDE, HIFACE_ALIGNED_PREVIEW_SIDE, std::move(preview)});
     if (result.outcome == HIFACE_FLOW_OUTCOME_PASSED && (finished_mode == 'C' || finished_mode == 'E')) {
         require(result.flags & HIFACE_FLOW_RESULT_HAS_FEATURE, "Capture returned no feature");
@@ -326,6 +342,7 @@ void FaceWorkflow::finishFlow() {
     }
     status = message;
     if (finished_mode == 'C' || finished_mode == 'E' || finished_mode == 'L' || finished_mode == 'V') {
+        result_frame = std::move(frame);
         result_passed = result.outcome == HIFACE_FLOW_OUTCOME_PASSED;
         result_title = finished_mode == 'V' ? "1:1 Face Verification" : finished_mode == 'L' ? "Liveness" : "Face Capture";
         result_pending_ = true; result_can_retry = true; ++flow_result_generation;
@@ -349,7 +366,10 @@ void FaceWorkflow::previewComparisonPhoto(bool first, const std::string& path, c
     }
     Feature feature{}; std::string failure;
     try { loadModels(session_, "", false); feature = captureFeature(session_, *photo); }
-    catch (const DemoError& error) { failure = error.message; }
+    catch (const DemoError& error) {
+        failure = accessMessage(error.status);
+        if (failure.empty()) failure = error.message;
+    }
     if (stopped()) return;
     stop(); aligned_preview.reset(); image_matches.clear(); boxes.clear(); comparison_similarity.reset();
     (first ? image_first : image_second) = std::move(photo);

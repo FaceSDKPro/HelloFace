@@ -14,10 +14,16 @@ public final class UvcEnrollmentState extends ViewModel {
 
     /** Read the initial search group once; recreation must preserve the edited draft. */
     void initialize(String initialGroup) {
-        if (initialized) return;
+        if (initialized) {
+            return;
+        }
         initialized = true;
         group = initialGroup == null ? "" : initialGroup;
     }
 
-    @Override protected void onCleared() { pending = null; faceId = group = ""; }
+    @Override
+    protected void onCleared() {
+        pending = null;
+        faceId = group = "";
+    }
 }

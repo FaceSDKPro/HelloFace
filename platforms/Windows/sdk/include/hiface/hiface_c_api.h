@@ -560,7 +560,7 @@ HIFACE_API HiFaceStatus HIFACE_CALL hiface_session_prepare_loaded_models_v1(
  * **与实时链路完全隔离**：使用独立缓冲与姿态缓存，不打断相机的跨帧历史。
  * 因此返回结果的 frame_id 恒为 0；如需录入，调用方本来就握着原始像素，
  * 可通过 capture_rgba 一次完成最大脸选择与采集。
- * width/height 必须是 1..HIFACE_MAX_IMAGE_DIMENSION 内的偶数。
+ * width/height 必须是 2..HIFACE_MAX_IMAGE_DIMENSION 内的整数。
  */
 HIFACE_API HiFaceStatus HIFACE_CALL hiface_session_process_rgba_v1(
         HiFaceSessionHandle session,
@@ -595,7 +595,7 @@ HIFACE_API HiFaceStatus HIFACE_CALL hiface_session_extract_feature_v1(
  * 无人脸返回 IMAGE_NO_FACE；最大脸宽或高小于 HIFACE_FEATURE_MIN_FACE_SIZE_PIXELS
  * 返回 IMAGE_FACE_TOO_SMALL，恰好达到阈值可通过。尺寸按输入像素计算，不放大小脸。
  * 多人脸不报错，不执行活体或头姿门禁。需已加载检测和特征模型。
- * width/height 必须是 2..HIFACE_MAX_IMAGE_DIMENSION 内的偶数，方向由调用方处理。
+ * width/height 必须是 2..HIFACE_MAX_IMAGE_DIMENSION 内的整数，方向由调用方处理。
  * out_feature_count 必须为 HIFACE_FACE_FEATURE_DIMENSION。
  * 只需特征时传 out_preview_rgba=NULL、out_preview_size=0，不生成预览；否则缓冲至少
  * HIFACE_ALIGNED_PREVIEW_RGBA_BYTES 字节。有效输出缓冲在失败时清零。

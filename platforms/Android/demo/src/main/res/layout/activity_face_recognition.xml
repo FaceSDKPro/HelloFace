@@ -25,10 +25,17 @@
             <include android:id="@+id/livenessOptions" layout="@layout/view_recognition_options"/>
             <androidx.appcompat.widget.AppCompatButton android:id="@+id/startLiveness" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="12dp" android:text="@string/recognition_start_liveness" android:textAllCaps="false" android:backgroundTint="@color/content_accent" android:textColor="@android:color/white"/>
         </LinearLayout>
-        <LinearLayout android:id="@+id/recognitionResult" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="14dp" android:background="@drawable/bg_recognition_card" android:layout_marginTop="12dp" android:visibility="gone" android:accessibilityLiveRegion="polite">
-            <TextView android:id="@+id/resultStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:textStyle="bold" android:textSize="12sp"/>
-            <TextView android:id="@+id/resultHeading" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4.4dp" android:textSize="17sp" android:textStyle="bold" android:textColor="@color/content_text"/>
-            <TextView android:id="@+id/resultSummary" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6.6dp" android:textSize="14sp" android:textColor="@color/content_text_secondary" android:textIsSelectable="true"/>
+        <LinearLayout android:id="@+id/recognitionResult" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:padding="14dp" android:background="@drawable/bg_recognition_card" android:layout_marginTop="12dp" android:visibility="gone" android:accessibilityLiveRegion="polite">
+            <TextView android:id="@+id/resultSummary" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textSize="14sp" android:textColor="@color/content_text_secondary" android:textIsSelectable="true"/>
+            <ImageView
+                android:id="@+id/resultFrame"
+                android:layout_width="160dp"
+                android:layout_height="120dp"
+                android:layout_marginStart="12dp"
+                android:contentDescription="@string/recognition_result_frame"
+                android:saveEnabled="false"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

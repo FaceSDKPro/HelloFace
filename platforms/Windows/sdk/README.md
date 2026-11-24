@@ -1,6 +1,6 @@
 **English** | [简体中文](README.zh-CN.md)
 
-# HiFace Windows SDK · 0.8.15
+# HiFace Windows SDK · 0.8.16
 
 
 ## Quick start
@@ -15,7 +15,7 @@ cmake --build build --config Release --target hiface_model_consumer
 
 [model_consumer.cpp](../examples/model_consumer.cpp) loads the built-in CPU models and runs detection on a blank image. It prints `Built-in CPU models and blank RGBA detection passed without external model files` on success. The example build copies the DLLs next to the executable.
 
-For your own project, set `CMAKE_PREFIX_PATH` to the SDK folder, call `find_package(HiFace 0.8.15 CONFIG REQUIRED COMPONENTS C)`, and link `HiFace::HiFace`. Configure the runtime once with `hiface_runtime_configure_v1`, create a session with `hiface_session_create_v1`, load the requested models with `hiface_windows_session_load_model_v1`, then call `hiface_session_prepare_loaded_models_v1`. Deploy the x64 DLLs in `bin/` alongside your executable and include your application's CRT.
+For your own project, set `CMAKE_PREFIX_PATH` to the SDK folder, call `find_package(HiFace 0.8.16 CONFIG REQUIRED COMPONENTS C)`, and link `HiFace::HiFace`. Configure the runtime once with `hiface_runtime_configure_v1`, create a session with `hiface_session_create_v1`, load the requested models with `hiface_windows_session_load_model_v1`, then call `hiface_session_prepare_loaded_models_v1`. Deploy the x64 DLLs in `bin/` alongside your executable and include your application's CRT.
 
 ## API reference
 

@@ -9,10 +9,8 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
-
 import androidx.appcompat.app.AlertDialog;
 import androidx.lifecycle.Lifecycle;
-
 import com.hiface.sdk.capture.FaceCaptureListener;
 import com.hiface.sdk.capture.FaceCaptureResult;
 import com.hiface.sdk.common.HiFaceError;
@@ -66,19 +64,25 @@ public final class FaceSearchEnrollmentActivity extends CameraFlowActivity {
         startCameraFlowRequest(() -> hiFaceSdk.capture().startCameraCapture(new FaceCaptureListener() {
             @Override
             public void onProgress(FaceFlowProgress progress) {
-                if (isCameraFlowRunning()) CaptureStatusUi.apply(captureOverlay, progress.getStage());
+                if (isCameraFlowRunning()) {
+                    CaptureStatusUi.apply(captureOverlay, progress.getStage());
+                }
             }
 
             @Override
             public void onResult(FaceCaptureResult result) {
-                if (!finishCameraFlow()) return;
+                if (!finishCameraFlow()) {
+                    return;
+                }
                 pending = result;
                 showConfirmation(result);
             }
 
             @Override
             public void onError(HiFaceError error) {
-                if (!finishCameraFlow()) return;
+                if (!finishCameraFlow()) {
+                    return;
+                }
                 AlertDialog.Builder builder = SearchUi.dialog(FaceSearchEnrollmentActivity.this)
                         .setMessage(SearchUi.errorText(error))
                         .setNegativeButton(R.string.verification_close, (d, which) -> finish())
@@ -254,7 +258,9 @@ public final class FaceSearchEnrollmentActivity extends CameraFlowActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        if (store == null) store = new FaceSearchStore(this);
+        if (store == null) {
+            store = new FaceSearchStore(this);
+        }
     }
 
     /**
@@ -269,7 +275,9 @@ public final class FaceSearchEnrollmentActivity extends CameraFlowActivity {
             saveRequest.cancel();
             saveRequest = null;
             saving = false;
-            if (confirmation != null) setConfirmationEnabled(confirmation, true);
+            if (confirmation != null) {
+                setConfirmationEnabled(confirmation, true);
+            }
         }
         // Let submitted SQL finish; close this screen's connection in the background and reopen on demand
         // after resume.
@@ -288,7 +296,9 @@ public final class FaceSearchEnrollmentActivity extends CameraFlowActivity {
      */
     @Override
     protected void onDestroy() {
-        if (captureError != null) captureError.dismiss();
+        if (captureError != null) {
+            captureError.dismiss();
+        }
         if (overwriteDialog != null) {
             overwriteDialog.dismiss();
         }

@@ -3,14 +3,14 @@ package com.hiface.sdk.demo.ui;
 import android.app.Activity;
 import android.os.Build;
 import android.view.View;
-
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 /** Keeps Demo content clear of system UI when Android enforces edge-to-edge. */
 public final class DemoWindowInsets {
-    private DemoWindowInsets() {}
+    private DemoWindowInsets() {
+    }
 
     public static void applyToContent(Activity activity) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {

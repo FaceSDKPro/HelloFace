@@ -19,13 +19,19 @@ final class ReferenceGestureGate {
             blocked = true;
             return;
         }
-        if (action != MotionEvent.ACTION_MOVE || blocked) return;
+        if (action != MotionEvent.ACTION_MOVE || blocked) {
+            return;
+        }
         float dx = x - downX;
         float dy = y - downY;
         blocked = dx * dx + dy * dy > touchSlop * touchSlop;
     }
 
-    boolean canActivate() { return !blocked; }
+    boolean canActivate() {
+        return !blocked;
+    }
 
-    void consumeLongPress() { blocked = true; }
+    void consumeLongPress() {
+        blocked = true;
+    }
 }

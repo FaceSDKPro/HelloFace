@@ -9,16 +9,14 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
-import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.google.android.material.textfield.TextInputLayout;
 import com.hiface.sdk.HiFaceSdk;
 import com.hiface.sdk.common.HiFaceError;
@@ -27,7 +25,6 @@ import com.hiface.sdk.common.HiFaceResult;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.search.FaceSearchStore.Person;
 import com.hiface.sdk.demo.ui.DemoWindowInsets;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -55,6 +52,7 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
     private TextInputLayout queryField;
     private AlertDialog dialog;
     // Database and list-diff callbacks may update only the foreground query that started them.
+    // A refresh, a new query, or cancellation invalidates older page and import callbacks.
     private int generation;
     private int nextOffset;
     private long total;
@@ -114,7 +112,10 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
     private void bindActions() {
         findViewById(R.id.libraryBack).setOnClickListener(v -> requestExit());
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
-            @Override public void handleOnBackPressed() { requestExit(); }
+            @Override
+            public void handleOnBackPressed() {
+                requestExit();
+            }
         });
         menuButton.setOnClickListener(this::showMenu);
         queryField.setEndIconOnClickListener(v -> lookup());
@@ -126,7 +127,9 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
             return false;
         });
         query.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -135,7 +138,9 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
                 }
             }
 
-            @Override public void afterTextChanged(Editable value) {}
+            @Override
+            public void afterTextChanged(Editable value) {
+            }
         });
         rows.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
@@ -205,7 +210,9 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
      * 页面只选择导入类型；JSON 解析、下载、特征提取和分批写库都由 Store 串行完成。
      */
     private void startImport(boolean images) {
-        if (store == null || loading) return;
+        if (store == null || loading) {
+            return;
+        }
         int requestId = ++generation;
         int count = images ? FaceSearchStore.IMAGE_DEMO_COUNT
                 : FaceSearchStore.FEATURE_DEMO_COUNT;
@@ -227,11 +234,15 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
             }
         };
         FaceSearchStore.Callback<FaceSearchStore.ImportSummary> complete = result -> {
-            if (ownedSdk != null) ownedSdk.close();
+            if (ownedSdk != null) {
+                ownedSdk.close();
+            }
             if (requestId != generation) {
                 if (importCleanupPending) {
                     importCleanupPending = false;
-                    if (dialog != null) dialog.dismiss();
+                    if (dialog != null) {
+                        dialog.dismiss();
+                    }
                     if (pageStarted) {
                         if (result.isSuccess()) {
                             FaceSearchStore.ImportSummary summary = result.requireValue();
@@ -243,12 +254,16 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
                 }
                 return;
             }
-            if (pendingTask != null) importSaved = pendingTask.savedCount();
+            if (pendingTask != null) {
+                importSaved = pendingTask.savedCount();
+            }
             pendingTask = null;
             loading = false;
             importing = false;
             stoppingImport = false;
-            if (dialog != null) dialog.dismiss();
+            if (dialog != null) {
+                dialog.dismiss();
+            }
             if (result.isFailure()) {
                 showError(result.requireError(), false);
                 status.setText(getString(R.string.search_ui_import_failed_saved, importSaved)
@@ -257,7 +272,8 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
                 return;
             }
             FaceSearchStore.ImportSummary summary = result.requireValue();
-            String message = getString(summary.stopped ? R.string.search_ui_import_stopped : R.string.search_ui_import_done,
+            String message = getString(
+                    summary.stopped ? R.string.search_ui_import_stopped : R.string.search_ui_import_done,
                     summary.imported, summary.failed);
             if (exitAfterImport) {
                 dialog = SearchUi.dialog(this).setTitle(R.string.search_ui_import_saved_title)
@@ -293,7 +309,9 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
      * 清空旧列表并从前 100 条重新读取。
      */
     private void loadFirstPage() {
-        if (store == null) return;
+        if (store == null) {
+            return;
+        }
         cancelTask();
         generation++;
         lookupMode = false;
@@ -438,7 +456,9 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
      * 通过数据库修改资料，不创建推理 SDK。
      */
     private void editMetadata(Person person) {
-        if (loading || store == null) return;
+        if (loading || store == null) {
+            return;
+        }
         android.widget.LinearLayout fields = new android.widget.LinearLayout(this);
         fields.setOrientation(android.widget.LinearLayout.VERTICAL);
         int padding = (int) (20 * getResources().getDisplayMetrics().density);
@@ -446,16 +466,22 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
         EditText group = new EditText(this), tag = new EditText(this);
         group.setHint(R.string.search_metadata_group);
         tag.setHint(R.string.search_metadata_tag);
-        group.setSingleLine(true); tag.setSingleLine(true);
+        group.setSingleLine(true);
+        tag.setSingleLine(true);
         group.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(256)});
         tag.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(256)});
-        group.setText(person.group); tag.setText(person.tag);
+        group.setText(person.group);
+        tag.setText(person.tag);
         TextView groupLabel = new TextView(this), tagLabel = new TextView(this);
         groupLabel.setText(R.string.search_metadata_group);
         tagLabel.setText(R.string.search_metadata_tag);
-        fields.addView(groupLabel); fields.addView(group);
-        fields.addView(tagLabel); fields.addView(tag);
-        if (dialog != null) dialog.dismiss();
+        fields.addView(groupLabel);
+        fields.addView(group);
+        fields.addView(tagLabel);
+        fields.addView(tag);
+        if (dialog != null) {
+            dialog.dismiss();
+        }
         dialog = SearchUi.dialog(this).setTitle(R.string.search_metadata_edit)
                 .setMessage(person.id).setView(fields)
                 .setNegativeButton(android.R.string.cancel, null)
@@ -465,7 +491,9 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
     }
 
     private void saveMetadata(String id, String group, String tag) {
-        if (store == null || loading) return;
+        if (store == null || loading) {
+            return;
+        }
         int requestId = ++generation;
         showLoading(false);
         pendingTask = store.updateMetadata(id, group, tag, result -> onEntryChanged(requestId, result));
@@ -501,7 +529,9 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
      * 串行删除指定 ID，成功后刷新当前查询或从首批重新加载。
      */
     private void delete(String faceId) {
-        if (store == null || loading) return;
+        if (store == null || loading) {
+            return;
+        }
         int requestId = ++generation;
         showLoading(false);
         pendingTask = store.delete(faceId, result -> onEntryChanged(requestId, result));
@@ -509,12 +539,18 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
 
     /** Both edits and deletions refresh the view the user was browsing when the write began. */
     private void onEntryChanged(int requestId, HiFaceResult<Boolean> result) {
-        if (requestId != generation) return;
+        if (requestId != generation) {
+            return;
+        }
         pendingTask = null;
         loading = false;
-        if (result.isFailure()) showError(result.requireError(), adapter.getItemCount() == 0);
-        else if (lookupMode) lookup();
-        else loadFirstPage();
+        if (result.isFailure()) {
+            showError(result.requireError(), adapter.getItemCount() == 0);
+        } else if (lookupMode) {
+            lookup();
+        } else {
+            loadFirstPage();
+        }
     }
 
     /**
@@ -545,24 +581,36 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
 
     private void requestExit() {
         if (importCleanupPending || (importing && stoppingImport)) {
-            if (dialog != null && dialog.isShowing()) return;
+            if (dialog != null && dialog.isShowing()) {
+                return;
+            }
             dialog = SearchUi.dialog(this).setTitle(R.string.search_ui_import_running_title)
                     .setMessage(R.string.search_ui_import_stopping)
                     .setPositiveButton(android.R.string.ok, null).create();
             dialog.show();
             return;
         }
-        if (!importing) { finish(); return; }
-        if (dialog != null && dialog.isShowing()) return;
+        if (!importing) {
+            finish();
+            return;
+        }
+        if (dialog != null && dialog.isShowing()) {
+            return;
+        }
         dialog = SearchUi.dialog(this).setTitle(R.string.search_ui_import_running_title)
                 .setMessage(R.string.search_ui_import_exit_message)
                 .setNegativeButton(R.string.search_ui_import_continue, null)
                 .setPositiveButton(R.string.search_ui_import_stop_exit, (d, which) -> {
-                    if (!importing) { finish(); return; }
+                    if (!importing) {
+                        finish();
+                        return;
+                    }
                     exitAfterImport = true;
                     stoppingImport = true;
                     status.setText(R.string.search_ui_import_stopping);
-                    if (pendingTask != null) pendingTask.stop();
+                    if (pendingTask != null) {
+                        pendingTask.stop();
+                    }
                 }).create();
         dialog.show();
     }
@@ -625,7 +673,9 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
     }
 
     private void openAndLoad() {
-        if (store == null) store = new FaceSearchStore(this);
+        if (store == null) {
+            store = new FaceSearchStore(this);
+        }
         loading = false;
         lookup();
     }
@@ -647,7 +697,9 @@ public final class FaceSearchLibraryActivity extends AppCompatActivity {
         } else {
             cancelTask();
         }
-        if (store != null) store.close();
+        if (store != null) {
+            store.close();
+        }
         store = null;
         if (dialog != null) {
             dialog.dismiss();

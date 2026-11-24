@@ -1,7 +1,6 @@
 package com.hiface.sdk.demo.camera;
 
 import com.hiface.sdk.common.FaceRequest;
-
 import java.util.Objects;
 
 /**
@@ -22,7 +21,8 @@ public final class CameraFlowRequest {
     }
 
     // The SDK may call back before start() returns its handle. STARTING admits frames in that interval.
-    private static final FaceRequest STARTING = () -> {};
+    private static final FaceRequest STARTING = () -> {
+    };
     private volatile FaceRequest request;
 
     boolean isActive() {
@@ -30,22 +30,31 @@ public final class CameraFlowRequest {
     }
 
     boolean start(Starter starter) {
-        if (isActive()) return false;
+        if (isActive()) {
+            return false;
+        }
         request = STARTING;
         try {
             FaceRequest next = Objects.requireNonNull(starter.start(), "request");
             // A synchronous completion may already have started a retry with its own handle.
-            if (request == STARTING) request = next;
-            else next.cancel();
+            if (request == STARTING) {
+                request = next;
+            } else {
+                next.cancel();
+            }
             return true;
         } catch (RuntimeException | Error error) {
-            if (request == STARTING) request = null;
+            if (request == STARTING) {
+                request = null;
+            }
             throw error;
         }
     }
 
     boolean finish() {
-        if (!isActive()) return false;
+        if (!isActive()) {
+            return false;
+        }
         request = null;
         return true;
     }
@@ -53,6 +62,8 @@ public final class CameraFlowRequest {
     void cancel() {
         FaceRequest previous = request;
         request = null;
-        if (previous != null) previous.cancel();
+        if (previous != null) {
+            previous.cancel();
+        }
     }
 }

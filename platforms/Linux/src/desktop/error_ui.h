@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <cerrno>
 #include <cctype>
-#include <clocale>
-#include <string_view>
 #include <ctime>
 #include <sstream>
 
@@ -39,27 +37,30 @@ inline std::string sdkLabel(const RuntimeInfo& info) {
     if (info.actual_sdk.empty()) return "SDK version unavailable (expected " + info.expected_sdk + ")";
     return "SDK " + info.actual_sdk;
 }
+
+inline HiFaceStatus statusInDiagnostic(const std::string& raw) {
+    for (int value = 1; value <= HIFACE_STATUS_LICENSE_CLOCK_INVALID; ++value) {
+        const auto candidate = static_cast<HiFaceStatus>(value);
+        if (raw.find(std::string(statusName(candidate)) + " (" + std::to_string(value) + ")") != std::string::npos) {
+            return candidate;
+        }
+    }
+    return HIFACE_STATUS_OK;
+}
+
 inline ErrorPresentation presentError(const std::string& raw, HiFaceStatus status = HIFACE_STATUS_OK,
                                       int system_error = 0, bool camera = false) {
     // Keep the original SDK code. Raw messages are classification inputs only;
     // diagnostics below never copy paths, identifiers or payloads from them.
     // 保留 SDK 原码；原文只用于分类，诊断不会复制其中的路径、标识或数据内容。
-    if (status == HIFACE_STATUS_OK) for (int value = 1; value <= HIFACE_STATUS_LICENSE_CLOCK_INVALID; ++value) {
-        const auto candidate = static_cast<HiFaceStatus>(value);
-        if (raw.find(std::string(statusName(candidate)) + " (" + std::to_string(value) + ")") != std::string::npos) {
-            status = candidate; break;
-        }
-    }
+    if (status == HIFACE_STATUS_OK) status = statusInDiagnostic(raw);
     ErrorPresentation result{"Operation failed.", "Retry or contact support.", "DEMO_ERROR", status};
     if (status != HIFACE_STATUS_OK) result.code = std::string(statusName(status)) + " (" + std::to_string(status) + ")";
     std::string lower = raw;
     std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
     const auto has = [&](const char* value) { return lower.find(value) != std::string::npos; };
-    if ((status >= HIFACE_STATUS_LICENSE_MISSING && status <= HIFACE_STATUS_LICENSE_FEATURE_DENIED) ||
-        status == HIFACE_STATUS_LICENSE_CLOCK_INVALID) {
-        const char* locale = std::setlocale(LC_CTYPE, nullptr);
-        const bool chinese = locale && std::string_view(locale).rfind("zh", 0) == 0;
-        result.summary = chinese ? u8"功能不可用,请升级或联系技术支持" : "Feature unavailable. Update or contact support.";
+    if (auto message = accessMessage(status); !message.empty()) {
+        result.summary = message;
         result.advice.clear();
         result.clock = status == HIFACE_STATUS_LICENSE_CLOCK_INVALID || status == HIFACE_STATUS_LICENSE_NOT_YET_VALID;
     } else if (system_error == ENOSPC || has("no space left") || has("disk full")) {

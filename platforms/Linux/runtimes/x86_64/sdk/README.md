@@ -14,7 +14,7 @@ cmake --build build --target hiface_sdk_image_search
 ./build/hiface_sdk_image_search --builtin :memory: --blank 256 256
 ```
 
-[image_search.c](../../../examples/image-search/image_search.c) loads the built-in models and runs on an empty image and an in-memory face database. Expected output begins with `faces=0`. To use a photo, replace `--blank 256 256` with `photo.rgba WIDTH HEIGHT`. Apply photo orientation first. Use tightly packed RGBA with even dimensions and exactly `WIDTH * HEIGHT * 4` bytes.
+[image_search.c](../../../examples/image-search/image_search.c) loads the built-in models and runs on an empty image and an in-memory face database. Expected output begins with `faces=0`. To use a photo, replace `--blank 256 256` with `photo.rgba WIDTH HEIGHT`. Apply photo orientation first. Use tightly packed RGBA with each dimension between 2 and 4096 pixels and exactly `WIDTH * HEIGHT * 4` bytes.
 
 For your own project, set `CMAKE_PREFIX_PATH` to the SDK folder, call `find_package(HiFace CONFIG REQUIRED)`, and link `HiFace::HiFace`. Configure the runtime once with `hiface_runtime_configure_v1`, create a session with `hiface_session_create_v1`, then load the required built-in models with `hiface_linux_load_builtin_models_v1`. Use a persistent, private runtime state location such as the default `~/.local/state/hiface` or a configured `$XDG_STATE_HOME/hiface`.
 
@@ -39,7 +39,7 @@ Zero-initialize configurations, then explicitly fill required fields. Initializa
 
 ### Face detection
 
-Use `hiface_session_process_rgba_v1` for photos and `hiface_session_process_camera_yuv420_v1` for camera frames. Provide the actual frame strides and rotation. On success, read the first `count` entries in `faces`. No faces sets `count=0`. Face boxes use top-left coordinates, width and height in pixels. Camera results refer to the rotated, unmirrored image.
+Use `hiface_session_process_rgba_v1` for photos. Pass tightly packed RGBA8888 pixels with the orientation already corrected. For camera frames, use `hiface_session_process_camera_yuv420_v1` and pass the actual frame strides and rotation. On success, read the first `count` entries in `faces`. No faces sets `count=0`. Face boxes use top-left coordinates, width and height in pixels. Camera results refer to the rotated, unmirrored image.
 
 | `HiFaceDetectionRequestV1` parameter | Range and suggested value | Purpose |
 |---|---|---|
@@ -54,7 +54,11 @@ Use `hiface_session_process_rgba_v1` for photos and `hiface_session_process_came
 - `hiface_session_capture_faces_rgba_v1` handles multiple faces. Supply a capacity of 1–10 and check each face's status. No faces is a successful `count=0`.
 - For guided enrollment, use `hiface_session_face_flow_start_v1` with `HIFACE_FLOW_GUIDED_CAPTURE`. Photo capture performs no liveness check. Save the feature after the user confirms enrollment.
 
-Feature capacity is measured in `HIFACE_FACE_FEATURE_DIMENSION` float elements; preview capacity is `HIFACE_ALIGNED_PREVIEW_RGBA_BYTES` bytes. To omit previews, pass `NULL/0`. Strict single-face enrollment uses the multi-face API with capacity 10 and requires one returned face with status `OK`; largest-face capture does not reject multi-person photos.
+For photo capture, pass tightly packed, orientation-corrected RGBA8888 pixels. Each dimension must be between 2 and 4096 pixels. Odd sizes such as 999 × 999 are supported, and face boxes use the original image coordinates. The face box must be at least 100 pixels wide and high. Allocate `HIFACE_FACE_FEATURE_DIMENSION` float elements per feature and `HIFACE_ALIGNED_PREVIEW_RGBA_BYTES` bytes per preview. If you only need features, pass `NULL/0` to skip preview generation. For repeated photo processing, load models at startup and reuse the session and caller-owned output buffers.
+
+For strict single-face enrollment, use the multi-face API with capacity 2. Check the overall return status before requiring `count == 1` and `OK` for that face. A count of 2 means the detector found two or more faces. Allocate feature and preview buffers for the full capacity even if only one face is expected. Use `hiface_session_capture_rgba_v1` when choosing the largest face from a group photo is acceptable.
+
+On the server, cap the upload size and decoded pixel count before decoding. Validate the format, apply EXIF orientation, and decode from the same input bytes. Bound concurrent work and log only request IDs and error codes. Disable crash dumps for processes that handle these photos and features. The SDK leaves host crash dump settings to the application.
 
 ### Liveness and 1:1 verification
 

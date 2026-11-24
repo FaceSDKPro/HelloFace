@@ -10,10 +10,9 @@
 #include <sstream>
 
 namespace hiface_demo {
-std::shared_ptr<const Image> bgraImage(const Image& source) {
-    auto image = std::make_shared<Image>(source);
-    for (size_t i = 0; i + 3 < image->rgba.size(); i += 4) std::swap(image->rgba[i], image->rgba[i + 2]);
-    return image;
+std::shared_ptr<const Image> bgraImage(Image image) {
+    for (size_t i = 0; i + 3 < image.rgba.size(); i += 4) std::swap(image.rgba[i], image.rgba[i + 2]);
+    return std::make_shared<const Image>(std::move(image));
 }
 App::~App() { stop(); }
 void App::start() {
@@ -21,7 +20,13 @@ void App::start() {
     try { worker_ = std::thread([this] { run(); }); } catch (...) { active_ = false; throw; }
 }
 void App::stop() {
-    stopping_ = true; ++generation; changed_.notify_all();
+    {
+        // Update the wait predicate under the same mutex used by the worker entering wait().
+        std::lock_guard<std::mutex> lock(mutex_);
+        stopping_ = true;
+        ++generation;
+    }
+    changed_.notify_all();
     if (worker_.joinable()) worker_.join();
 }
 uint64_t App::enqueue(Command command) {
@@ -32,7 +37,9 @@ uint64_t App::enqueue(Command command) {
 }
 std::shared_ptr<const Snapshot> App::current() { std::lock_guard<std::mutex> lock(mutex_); return snapshot_; }
 void App::publish(const Snapshot& state) {
-    { std::lock_guard<std::mutex> lock(mutex_); snapshot_ = std::make_shared<Snapshot>(state); }
+    // Copy gallery rows outside the queue lock; readers only synchronize the pointer swap.
+    auto next = std::make_shared<const Snapshot>(state);
+    { std::lock_guard<std::mutex> lock(mutex_); snapshot_.swap(next); }
     if (!notification_pending.exchange(true) && !PostMessageW(window, kFrameReady, 0, 0))
         notification_pending = false; // Retry on the next snapshot if the message queue was full. / 投递失败时允许下次快照重试。
 }
@@ -52,8 +59,8 @@ void App::run() {
             try {
                 if(!references)references=std::make_unique<CapturedReferences>(demoDataDirectory()/L"captured-faces.db");
                 state.reference_ids=references->ids();reference_store_error.clear();
-            } catch(const std::exception& error) {
-                references.reset();state.reference_ids.clear();reference_store_error=error.what();
+            } catch(const std::exception&) {
+                references.reset();state.reference_ids.clear();reference_store_error=demoErrorMessage(std::current_exception());
             }
         };
         auto reference_store = [&]() -> CapturedReferences& {
@@ -73,6 +80,9 @@ void App::run() {
         };
         auto clear_reference = [&] {
             reference_draft.clear(); state.pending_reference = false;
+        };
+        auto clear_flow_result = [&] {
+            state.flow_summary.clear(); state.flow_frame.reset();
         };
         GalleryListing listing;
         std::string enrollment_notice;
@@ -138,7 +148,6 @@ void App::run() {
                 state.comparison_ready = false; state.comparison_similarity.reset();
                 state.comparison_slot_ready = {};
                 state.comparison_extracting = -1;
-                state.flow_summary.clear();
                 state.comparison_error_a.clear(); state.comparison_error_b.clear();
                 if (settings.page == Page::Verification || state.settings.page == Page::Verification) {
                     reference.clear(); state.has_reference = false; state.reference_id.clear();
@@ -149,7 +158,7 @@ void App::run() {
                 state.capture_fps = state.analysis_fps = state.inference_ms = 0;
             }
             state.preview_at_ms = state.analysis_at_ms = -1;
-            state.flow_summary.clear();
+            clear_flow_result();
             state.settings = settings; state.flow_active = false; state.paused = keep_paused;
             if (returning_to_photo && suspended_photo) {
                 search_source = std::move(suspended_photo->source); state.search_photo = std::move(suspended_photo->photo);
@@ -269,7 +278,7 @@ void App::run() {
                             }
                             break;
                         case Action::CloseCamera:
-                            state.flow_summary.clear();
+                            clear_flow_result();
                             if (sdk) sdk->cancelFlow(); camera.reset(); state.camera_open = state.flow_active = false;
                             state.preview.reset(); state.capture_fps = state.analysis_fps = state.inference_ms = 0;
                             state.update = {}; state.update.message = u8"摄像头已关闭，数据已保留"; break;
@@ -282,7 +291,7 @@ void App::run() {
                             begin_flow(); break;
                         }
                         case Action::Cancel:
-                            state.flow_summary.clear();
+                            clear_flow_result();
                             if (sdk) sdk->cancelFlow(); state.flow_active = false;
                             if (state.settings.page == Page::Search && sdk) { sdk->pauseSearch(true); state.paused = true; }
                             clear_enrollment();
@@ -580,7 +589,8 @@ void App::run() {
                 state.inference_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - begin).count();
                 state.flow_active = sdk->flowActive(); ++analyzed;
                 if (update.result) {
-                    if (!update.result->preview.rgba.empty()) state.captured = std::make_shared<Image>(update.result->preview);
+                    if (isCapturePage(state.settings.page) && !update.result->preview.rgba.empty())
+                        state.captured = std::make_shared<Image>(update.result->preview);
                     if (state.settings.page == Page::Reference && update.matched && !update.result->feature.empty()) {
                         reference_draft.stage(update.result->feature); state.pending_reference = true;
                         update.message = u8"采集成功，填写 Face ID 并确认后保存到参考库";
@@ -591,17 +601,26 @@ void App::run() {
                         update.message = u8"采集成功，尚未入库；请核对预览和 ID 后确认保存，或重新采集";
                     }
                     if (guidedRecognition(state.settings.page)) {
+                        state.error = false;
                         state.flow_passed = update.matched;
                         const auto& result = update.result->metadata;
                         std::ostringstream summary;
                         summary << flowOutcomeText(result.outcome);
-                        if (!state.reference_id.empty()) summary << "\nFace ID: " << state.reference_id;
+                        // Standalone liveness has no reference even if the app retains one for verification.
+                        if (state.settings.page == Page::Verification && !state.reference_id.empty())
+                            summary << "\nFace ID: " << state.reference_id;
                         summary << std::fixed << std::setprecision(2);
                         if ((result.flags & HIFACE_FLOW_RESULT_HAS_SIMILARITY) && std::isfinite(result.similarity))
                             summary << u8"\n相似度 " << result.similarity * 100 << '%';
                         if ((result.flags & HIFACE_FLOW_RESULT_HAS_LIVENESS) && std::isfinite(result.liveness_score))
                             summary << u8"\n活体分数 " << result.liveness_score;
                         state.flow_summary = summary.str();
+                        // Convert once on the worker and share the image with the inline result card.
+                        state.flow_frame.reset();
+                        if (!update.result->frame.rgba.empty()) {
+                            try { state.flow_frame = bgraImage(std::move(update.result->frame)); }
+                            catch (const std::bad_alloc&) {} // Text remains usable if the preview cannot be allocated.
+                        }
                         ++state.flow_completion;
                     }
                     notice = update.message; notice_until = last_frame + std::chrono::seconds(6);

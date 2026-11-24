@@ -7,16 +7,14 @@ import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
-
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.hiface.sdk.demo.R;
-import com.hiface.sdk.search.FaceSearchSessionConfig;
 import com.hiface.sdk.search.FaceSearchMode;
+import com.hiface.sdk.search.FaceSearchSessionConfig;
 
 /**
  * Settings edit only a draft; update running search only after validation and an explicit Apply

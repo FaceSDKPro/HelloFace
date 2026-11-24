@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'"><title>Linux · 最小示例</title><link rel="stylesheet" href="../style.css"></head><body><header class="topbar"><div class="topbar-inner"><a class="brand" href="../index.zh-CN.html">HiFace<span>SDK API</span></a><span class="version">0.8.15</span><nav class="language-switch" aria-label="Language"><a lang="en" hreflang="en" href="example.html">English</a><span aria-current="page" lang="zh-CN">简体中文</span></nav></div></header><main class="container"><section class="hero"><h1>Linux · 最小示例</h1></section><article class="api-entry"><pre><code>/* Public C ABI only. Input is tightly packed, orientation-normalized RGBA8888.
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'"><title>Linux · 最小示例</title><link rel="stylesheet" href="../style.css"></head><body><header class="topbar"><div class="topbar-inner"><a class="brand" href="../index.zh-CN.html">HiFace<span>SDK API</span></a><span class="version">0.8.16</span><nav class="language-switch" aria-label="Language"><a lang="en" hreflang="en" href="example.html">English</a><span aria-current="page" lang="zh-CN">简体中文</span></nav></div></header><main class="container"><section class="hero"><h1>Linux · 最小示例</h1></section><article class="api-entry"><pre><code>/* Public C ABI only. Input is tightly packed, orientation-normalized RGBA8888.
 
 仅使用公开 C ABI；输入为方向已归正、紧密排列的 RGBA8888。 */
 #include &lt;hiface/hiface_linux.h&gt;
@@ -38,8 +38,7 @@ static int dimension(const char *text) {
     long value;
     errno = 0;
     value = strtol(text, &amp;end, 10);
-    return !errno &amp;&amp; *text &amp;&amp; !*end &amp;&amp; value &gt;= 2 &amp;&amp; value &lt;= HIFACE_MAX_IMAGE_DIMENSION &amp;&amp;
-            value % 2 == 0 ? (int)value : 0;
+    return !errno &amp;&amp; *text &amp;&amp; !*end &amp;&amp; value &gt;= 2 &amp;&amp; value &lt;= HIFACE_MAX_IMAGE_DIMENSION ? (int)value : 0;
 }
 
 int main(int argc, char **argv) {
@@ -58,7 +57,7 @@ int main(int argc, char **argv) {
     size_t size = 0, expected;
     if (argc != 6 || strcmp(argv[1], &quot;--builtin&quot;) != 0 || !(width = dimension(argv[4])) || !(height = dimension(argv[5]))) {
         fprintf(stderr, &quot;Usage: %s --builtin DATABASE INPUT.rgba WIDTH HEIGHT\n&quot;
-                &quot;Use --blank for INPUT.rgba to run a no-face inference check. Dimensions: even, 2..4096.\n&quot;, argv[0]);
+                &quot;Use --blank for INPUT.rgba to run a no-face inference check. Dimensions: 2..4096.\n&quot;, argv[0]);
         return 2;
     }
     expected = (size_t)width * (size_t)height * 4;
@@ -109,4 +108,4 @@ done:
     free(rgba);
     return exit_code;
 }
-</code></pre></article><footer><div class="footer-inner"><span>HiFace SDK 0.8.15</span><span>API 参考文档 · 可离线查看</span></div></footer></main></body></html>
+</code></pre></article><footer><div class="footer-inner"><span>HiFace SDK 0.8.16</span><span>API 参考文档 · 可离线查看</span></div></footer></main></body></html>

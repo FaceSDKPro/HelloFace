@@ -6,11 +6,11 @@
 
 Requires Android 6.0 / API 23 or later and an ARM64 or ARMv7 device.
 
-Version `0.8.15` is used below. Add the SDK's bundled `maven-repository` to your project's Gradle repositories and keep `google()` and `mavenCentral()` for dependencies. If you use Maven Central for HiFace, confirm that the same version is published there. In the app module:
+Version `0.8.16` is used below. Add the SDK's bundled `maven-repository` to your project's Gradle repositories and keep `google()` and `mavenCentral()` for dependencies. If you use Maven Central for HiFace, confirm that the same version is published there. In the app module:
 
 ```kotlin
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.15")
+    implementation("io.github.facesdkpro:hiface-android:0.8.16")
 }
 android {
     androidResources { noCompress += "bphfm" }
@@ -233,6 +233,8 @@ Use `FaceSearchConfig.builder().build()` for the default database query configur
 ## Errors and cleanup
 
 Check `HiFaceResult.isSuccess()` before reading `requireValue()` or `requireError().getCode()`. Out-of-range builder values throw `IllegalArgumentException`; building 1:1 configuration without `referenceFeature` throws `IllegalStateException`. SDK callbacks arrive asynchronously on the main thread. Reuse one SDK per page and call `close()` on teardown, or call `builder(...).lifecycleOwner(owner)` on the main thread for automatic closing.
+
+Use `HiFaceErrorUi.isAccessError(error.getCode())` to identify access errors. `HiFaceErrorUi.messageFor(context, error)` returns localized guidance followed by the stable error number, for example `(Error code 1605)` for expiration. Use `error.getCode()` for the specific cause. The Demo’s `DemoErrorUi.accessMessage(code)` returns the numbered string resource for an access error and `0` for other errors.
 
 | Condition | What to do |
 |---|---|

@@ -11,7 +11,6 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
-
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -20,7 +19,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
@@ -59,7 +57,8 @@ public final class FacePhotoPicker implements AutoCloseable {
         // The recipient owns the decoded Bitmap and releases it after its last use.
         void onPicked(@NonNull Bitmap bitmap);
 
-        default void onCanceled() {}
+        default void onCanceled() {
+        }
 
         default void onError(@NonNull Throwable error) {
         }
@@ -92,7 +91,9 @@ public final class FacePhotoPicker implements AutoCloseable {
             return;
         }
 
-        if (pendingCallback != null) return;
+        if (pendingCallback != null) {
+            return;
+        }
         pendingCallback = callback;
         try {
             launcher.launch(new PickVisualMediaRequest.Builder()
@@ -108,7 +109,9 @@ public final class FacePhotoPicker implements AutoCloseable {
     private void handlePickerResult(@Nullable Uri uri) {
         Callback callback = pendingCallback;
         pendingCallback = null;
-        if (callback == null || closed) return;
+        if (callback == null || closed) {
+            return;
+        }
         if (uri == null) {
             callback.onCanceled();
             return;
@@ -172,7 +175,9 @@ public final class FacePhotoPicker implements AutoCloseable {
             normalized = normalize(decoded, maximumDimension);
             return normalized;
         } finally {
-            if (normalized != decoded) recycle(decoded);
+            if (normalized != decoded) {
+                recycle(decoded);
+            }
         }
     }
 
@@ -237,7 +242,9 @@ public final class FacePhotoPicker implements AutoCloseable {
                     source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
             return rotated;
         } finally {
-            if (rotated != source) recycle(source);
+            if (rotated != source) {
+                recycle(source);
+            }
         }
     }
 
@@ -264,7 +271,7 @@ public final class FacePhotoPicker implements AutoCloseable {
         if (targetWidth < 2 || targetHeight < 2) {
             throw new IllegalArgumentException("Photo is too small after resizing");
         }
-        return new int[] {targetWidth, targetHeight};
+        return new int[]{targetWidth, targetHeight};
     }
 
     /**
@@ -291,13 +298,21 @@ public final class FacePhotoPicker implements AutoCloseable {
         Bitmap cropped = null;
         try {
             cropped = Bitmap.createBitmap(resized, 0, 0, targetWidth, targetHeight);
-            if (cropped.getConfig() == Bitmap.Config.ARGB_8888) return cropped;
+            if (cropped.getConfig() == Bitmap.Config.ARGB_8888) {
+                return cropped;
+            }
             Bitmap argb = cropped.copy(Bitmap.Config.ARGB_8888, false);
-            if (argb == null) throw new IllegalStateException("Unable to create ARGB bitmap");
+            if (argb == null) {
+                throw new IllegalStateException("Unable to create ARGB bitmap");
+            }
             return argb;
         } finally {
-            if (resized != source && resized != cropped) recycle(resized);
-            if (cropped != null && cropped != source && cropped.getConfig() != Bitmap.Config.ARGB_8888) recycle(cropped);
+            if (resized != source && resized != cropped) {
+                recycle(resized);
+            }
+            if (cropped != null && cropped != source && cropped.getConfig() != Bitmap.Config.ARGB_8888) {
+                recycle(cropped);
+            }
         }
     }
 
@@ -315,7 +330,8 @@ public final class FacePhotoPicker implements AutoCloseable {
      */
     @RequiresApi(Build.VERSION_CODES.P)
     private static final class Api28Impl {
-        private Api28Impl() {}
+        private Api28Impl() {
+        }
 
         @NonNull
         static Bitmap decode(
@@ -327,7 +343,9 @@ public final class FacePhotoPicker implements AutoCloseable {
                 int height = info.getSize().getHeight();
                 int[] size = decodeSize(width, height, maximumDimension);
                 decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);
-                if (size[0] != width || size[1] != height) decoder.setTargetSize(size[0], size[1]);
+                if (size[0] != width || size[1] != height) {
+                    decoder.setTargetSize(size[0], size[1]);
+                }
             });
         }
     }

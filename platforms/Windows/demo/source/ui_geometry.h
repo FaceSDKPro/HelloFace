@@ -63,12 +63,13 @@ struct RecognitionCardLayout {
 };
 
 struct RecognitionLayout {
-    UiRect viewport, scrollbar, result;
+    UiRect viewport, scrollbar, result, result_summary, result_frame;
     RecognitionCardLayout verification{0, 0, 240, true, false}, liveness{0, 0, 240, false, false};
     int content_height = 0;
     RecognitionLayout(int width, int height, bool has_result, bool verify_actions, bool live_actions,
-        bool has_references, int scroll = 0) {
-        constexpr int gap = 12, result_height = 146;
+        bool has_references, int scroll = 0, int image_width = 0, int image_height = 0) {
+        constexpr int gap = 12;
+        const int result_height = image_width > 0 && image_height > 0 ? 146 : 116;
         viewport = {12, 72, width - 12, std::max(73, height - 54)};
         const bool wide = width >= 900;
         const int verify_height = RecognitionCardLayout(0, 0, 240, true, verify_actions, has_references).bounds.height();
@@ -84,7 +85,30 @@ struct RecognitionLayout {
         verification = {viewport.left, top, card_width, true, verify_actions, has_references};
         liveness = {wide ? verification.bounds.right + gap : viewport.left,
             wide ? top : verification.bounds.bottom + gap, card_width, false, live_actions};
-        if (has_result) result = {viewport.left, top + cards_height + gap, viewport.right, top + content_height};
+        if (has_result) {
+            result = {viewport.left, top + cards_height + gap, viewport.right, top + content_height};
+            constexpr int preview_width = 160, preview_height = 120, min_text_width = 152;
+            const int left = result.left + 16;
+            int text_right = result.right - 16;
+            const int available = result.right - left - gap - min_text_width;
+            if (image_width > 0 && image_height > 0 && available > result_height / 2) {
+                double scale = std::min(double(preview_width) / image_width, double(preview_height) / image_height);
+                // Reserve space for the fitted image and its right gap, which equals the vertical gap.
+                const double width_minus_half_height = image_width - image_height / 2.0;
+                if (width_minus_half_height > 0)
+                    scale = std::min(scale, (available - result_height / 2) / width_minus_half_height);
+                const int frame_width = static_cast<int>(image_width * scale);
+                const int frame_height = static_cast<int>(image_height * scale);
+                if (frame_width > 0 && frame_height > 0) {
+                    const int inset = (result_height - frame_height) / 2;
+                    const int right = result.right - inset;
+                    const int frame_top = result.top + inset;
+                    result_frame = {right - frame_width, frame_top, right, frame_top + frame_height};
+                    text_right = result_frame.left - gap;
+                }
+            }
+            result_summary = {left, result.top + 14, text_right, result.bottom - 14};
+        }
     }
     int clampScroll(int scroll) const { return std::clamp(scroll, 0, std::max(0, content_height - viewport.height())); }
     UiRect visible(UiRect bounds) const {

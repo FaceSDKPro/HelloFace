@@ -82,6 +82,8 @@ final class CameraDemoModel: ObservableObject {
     private let recognitionReferenceID: String?
     private var promptSpeech: DemoPromptSpeech?
     @Published private(set) var completedPassed = false
+    // Only the terminal image follows the camera result back to the recognition page.
+    private(set) var completedFrameJPEG: Data?
     private let mode: CameraDemoMode
     let enrollsInSearchLibrary: Bool
     // Capture, liveness, and verification finish once. Search keeps its session across scene pauses.
@@ -221,6 +223,7 @@ final class CameraDemoModel: ObservableObject {
 
     // Leaving the page closes search and camera resources; the model retains its SDK until deinit.
     func stop() {
+        completedFrameJPEG = nil
         guard started else { return }
         started = false
         suspended = false
@@ -291,6 +294,7 @@ final class CameraDemoModel: ObservableObject {
         searchSession?.close()
         searchSession = nil
         clearPendingCapture()
+        completedFrameJPEG = nil
         detection = nil
         clearSearchDisplay()
         resetActionProgress()
@@ -697,8 +701,7 @@ final class CameraDemoModel: ObservableObject {
         request = nil
         pipeline.pauseAnalysis()
         resetActionProgress()
-        phase = .completed
-        alignedFace = result.alignedFace?.makeCGImage()
+        completedFrameJPEG = result.frameJPEG
         switch mode {
         case .liveness:
             let outcomeMessage = result.passed ? DemoL10n.text("活体检测通过") : FaceFlowPresentation.outcomeText(result.outcome)
@@ -728,6 +731,8 @@ final class CameraDemoModel: ObservableObject {
         default:
             status = result.passed ? DemoL10n.text("流程通过") : FaceFlowPresentation.outcomeText(result.outcome)
         }
+        // The phase change publishes the completed text and image together.
+        phase = .completed
     }
 
     private func handle(_ result: FaceSearchResult) {
@@ -805,9 +810,9 @@ final class CameraDemoModel: ObservableObject {
         pipeline.pauseAnalysis()
         resetActionProgress()
         failureAllowsRetry = DemoErrorPresentation.isRetryable(error)
-        phase = .failed
         status = DemoL10n.text("处理失败")
         detail = DemoErrorPresentation.message(for: error)
+        phase = .failed
     }
 
     private func handleSearchError(_ error: HiFaceError) {
@@ -818,7 +823,8 @@ final class CameraDemoModel: ObservableObject {
         failureAllowsRetry = FaceSearchPresentation.canResumeSearch(error)
         phase = .failed
         status = DemoL10n.text("人脸搜索已暂停")
-        detail = "\(DemoErrorPresentation.message(for: error)) (\(error.code.rawValue))"
+        let message = DemoErrorPresentation.message(for: error)
+        detail = DemoErrorPresentation.isAccessError(error.code) ? message : "\(message) (\(error.code.rawValue))"
     }
 
     private func handleCameraError(_ message: String) {

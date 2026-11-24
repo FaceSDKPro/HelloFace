@@ -1,9 +1,7 @@
 package com.hiface.sdk.demo;
 
 import android.app.Application;
-
 import com.tencent.mmkv.MMKV;
-
 import java.util.Objects;
 
 /**

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdlib>
+#include <clocale>
 #include <fstream>
 #include <iomanip>
 #include <locale>
@@ -22,6 +23,32 @@ struct DemoError {
     explicit DemoError(std::string text) : message(std::move(text)) {}
     DemoError(std::string text, HiFaceStatus code) : message(std::move(text)), status(code), sdk_status_known(true) {}
 };
+
+inline int accessErrorCode(HiFaceStatus status) {
+    switch (status) {
+        case HIFACE_STATUS_LICENSE_MISSING: return 1602;
+        case HIFACE_STATUS_LICENSE_INVALID: return 1603;
+        case HIFACE_STATUS_LICENSE_NOT_YET_VALID: return 1604;
+        case HIFACE_STATUS_LICENSE_EXPIRED: return 1605;
+        case HIFACE_STATUS_LICENSE_FEATURE_DENIED: return 1606;
+        case HIFACE_STATUS_LICENSE_CLOCK_INVALID: return 1608;
+        default: return 0;
+    }
+}
+
+inline bool isAccessError(HiFaceStatus status) {
+    return accessErrorCode(status) != 0;
+}
+
+inline std::string accessMessage(HiFaceStatus status) {
+    const int code = accessErrorCode(status);
+    if (!code) return {};
+    const char* locale = std::setlocale(LC_CTYPE, nullptr);
+    if (locale && std::string_view(locale).rfind("zh", 0) == 0) {
+        return u8"功能不可用（错误码 " + std::to_string(code) + u8"）";
+    }
+    return "Feature unavailable. (Error code " + std::to_string(code) + ")";
+}
 
 inline const char* statusName(HiFaceStatus status) {
     switch (status) {

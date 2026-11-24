@@ -3,22 +3,28 @@ package com.hiface.sdk.demo.recognition;
 import android.app.Dialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
-
+import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.OneShotPreDrawListener;
 import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.ViewModel;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.hiface.sdk.HiFaceSdk;
 import com.hiface.sdk.common.FaceRequest;
 import com.hiface.sdk.demo.R;
@@ -32,8 +38,8 @@ import com.hiface.sdk.demo.verification.FaceFeatureStore;
 import com.hiface.sdk.demo.verification.FaceVerificationActivity;
 import com.hiface.sdk.demo.verification.ReferenceConfirmation;
 import com.hiface.sdk.flow.FaceAction;
-
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /** Configure the next camera request, choose a confirmed reference, and display returned results. */
@@ -50,34 +56,30 @@ public final class FaceRecognitionActivity extends AppCompatActivity {
     private RecyclerView references;
     private TextView referenceHint;
     private FaceReferenceAdapter referenceAdapter;
-    // The first three fields describe the inline result. pendingTitle labels a canceled camera launch.
-    private String resultTitle, resultMessage, resultStatus, pendingTitle;
+    private final FaceFeatureStore referenceStore = new FaceFeatureStore();
+    private View resultCard;
+    private ImageView resultFrame;
+    // Keep the XML limits in physical pixels after the view is resized to fit the image.
+    private int resultFrameMaxWidth, resultFrameMaxHeight;
+    private ResultPreview resultPreview;
+    private String resultMessage, resultStatus;
     private final ActivityResultLauncher<Intent> cameraFlow = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(), result -> {
-                Intent data = result.getData();
-                if (result.getResultCode() == RESULT_OK && data != null) {
-                    resultTitle = data.getStringExtra(RecognitionFlowContract.TITLE);
-                    resultMessage = data.getStringExtra(RecognitionFlowContract.MESSAGE);
-                    resultStatus = data.getStringExtra(RecognitionFlowContract.STATUS);
-                } else {
-                    resultTitle = pendingTitle;
-                    resultMessage = getString(R.string.recognition_canceled);
-                    resultStatus = RecognitionFlowContract.CANCELED;
-                }
-                renderResult();
-                findViewById(R.id.recognitionContent).requestFocus();
-                ScrollView scroll = findViewById(R.id.main);
-                scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
-            });
+            new ActivityResultContracts.StartActivityForResult(), this::onCameraResult);
     private final ActivityResultLauncher<Intent> enrollment = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(), ignored -> refreshReferences(true));
 
-    @Override protected void onCreate(Bundle state) {
+    @Override
+    protected void onCreate(Bundle state) {
         super.onCreate(state);
         setContentView(R.layout.activity_face_recognition);
         DemoWindowInsets.applyToContent(this);
         findViewById(R.id.recognitionContent).requestFocus();
         findViewById(R.id.backButton).setOnClickListener(view -> finish());
+        resultCard = findViewById(R.id.recognitionResult);
+        resultFrame = findViewById(R.id.resultFrame);
+        resultFrameMaxWidth = resultFrame.getLayoutParams().width;
+        resultFrameMaxHeight = resultFrame.getLayoutParams().height;
+        resultPreview = new ViewModelProvider(this).get(ResultPreview.class);
         verification = new Options(findViewById(R.id.verificationOptions), false, state, "verification.");
         liveness = new Options(findViewById(R.id.livenessOptions), true, state, "liveness.");
         picker = new FacePhotoPicker(this, FacePhotoPicker.IMAGE_SEARCH_MAX_DIMENSION_PX);
@@ -85,32 +87,33 @@ public final class FaceRecognitionActivity extends AppCompatActivity {
         references = findViewById(R.id.referenceList);
         referenceHint = findViewById(R.id.referenceHint);
         references.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
-        referenceAdapter = new FaceReferenceAdapter(id -> {
-            if (!verification.validate()) return;
-            pendingTitle = getString(R.string.recognition_verification_title);
-            Intent intent = new Intent(this, FaceVerificationActivity.class).putExtra(RecognitionFlowContract.FACE_ID, id);
-            launch(RecognitionFlowContract.configure(intent, verification.actions(), verification.silent.isChecked()));
-        }, this::confirmDeleteReference);
+        referenceAdapter = new FaceReferenceAdapter(id -> launchCameraFlow(
+                new Intent(this, FaceVerificationActivity.class).putExtra(RecognitionFlowContract.FACE_ID, id),
+                verification), this::confirmDeleteReference);
         references.setAdapter(referenceAdapter);
-        findViewById(R.id.addReference).setOnClickListener(view -> enrollment.launch(new Intent(this, FaceEnrollmentActivity.class)));
-        findViewById(R.id.startLiveness).setOnClickListener(view -> {
-            if (!liveness.validate()) return;
-            pendingTitle = getString(R.string.recognition_liveness_title);
-            launch(RecognitionFlowContract.configure(new Intent(this, FaceLivenessActivity.class), liveness.actions(), true));
-        });
+        findViewById(R.id.addReference).setOnClickListener(
+                view -> enrollment.launch(new Intent(this, FaceEnrollmentActivity.class)));
+        findViewById(R.id.startLiveness).setOnClickListener(view -> launchCameraFlow(
+                new Intent(this, FaceLivenessActivity.class), liveness));
         if (state != null) {
-            resultTitle = state.getString("resultTitle"); resultMessage = state.getString("resultMessage");
-            resultStatus = state.getString("resultStatus"); pendingTitle = state.getString("pendingTitle");
+            resultMessage = state.getString("resultMessage");
+            resultStatus = state.getString("resultStatus");
         }
         renderResult();
     }
 
-    @Override protected void onResume() { super.onResume(); refreshReferences(false); }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshReferences(false);
+    }
 
     // Allow thumbnail reload on confirmed writes, including updates that keep the same Face ID.
     private void refreshReferences(boolean reloadPhotos) {
-        if (references == null || isDestroyed()) return;
-        List<String> ids = new FaceFeatureStore().getFaceIds();
+        if (references == null || isDestroyed()) {
+            return;
+        }
+        List<String> ids = referenceStore.getFaceIds();
         referenceAdapter.update(ids, reloadPhotos);
         references.setVisibility(ids.isEmpty() ? View.GONE : View.VISIBLE);
         referenceHint.setText(defaultReferenceHint());
@@ -125,16 +128,26 @@ public final class FaceRecognitionActivity extends AppCompatActivity {
     private void pickReference() {
         findViewById(R.id.albumReference).setEnabled(false);
         picker.pick(new FacePhotoPicker.Callback() {
-            @Override public void onPicked(Bitmap photo) {
+            @Override
+            public void onPicked(Bitmap photo) {
                 try {
-                    if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) extractReference(photo);
-                    else finishPhotoSelection(defaultReferenceHint());
+                    if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
+                        extractReference(photo);
+                    } else {
+                        finishPhotoSelection(defaultReferenceHint());
+                    }
                 } finally {
                     photo.recycle(); // The SDK snapshots the pixels before returning the request.
                 }
             }
-            @Override public void onCanceled() { finishPhotoSelection(defaultReferenceHint()); }
-            @Override public void onError(Throwable error) {
+
+            @Override
+            public void onCanceled() {
+                finishPhotoSelection(defaultReferenceHint());
+            }
+
+            @Override
+            public void onError(Throwable error) {
                 finishPhotoSelection(getString(R.string.face_compare_photo_failed));
             }
         });
@@ -142,7 +155,9 @@ public final class FaceRecognitionActivity extends AppCompatActivity {
 
     /** Stage a single aligned face for confirmation. Saving stays in ReferenceConfirmation. */
     private void extractReference(Bitmap photo) {
-        if (photoSdk == null) photoSdk = HiFaceSdk.builder(this).lifecycleOwner(this).build();
+        if (photoSdk == null) {
+            photoSdk = HiFaceSdk.builder(this).lifecycleOwner(this).build();
+        }
         referenceHint.setText(R.string.image_search_processing);
         photoRequest = photoSdk.capture().facesFromBitmap(photo, result -> {
             photoRequest = null;
@@ -173,7 +188,8 @@ public final class FaceRecognitionActivity extends AppCompatActivity {
         referenceHint.setText(message);
     }
 
-    @Override protected void onStop() {
+    @Override
+    protected void onStop() {
         if (photoRequest != null) {
             photoRequest.cancel();
             photoRequest = null;
@@ -182,10 +198,38 @@ public final class FaceRecognitionActivity extends AppCompatActivity {
         super.onStop();
     }
 
-    private void launch(Intent intent) {
-        resultTitle = resultMessage = resultStatus = null;
+    // Clear the previous result only after the next run's options pass validation.
+    private void launchCameraFlow(Intent intent, Options options) {
+        List<FaceAction> actions = options.actionsForLaunch();
+        if (actions == null) {
+            return;
+        }
+        resultMessage = resultStatus = null;
+        resultPreview.bitmap = null;
         renderResult();
-        cameraFlow.launch(intent);
+        cameraFlow.launch(RecognitionFlowContract.configure(intent, actions, options.silentEnabled()));
+    }
+
+    private void onCameraResult(ActivityResult result) {
+        Intent data = result.getData();
+        if (result.getResultCode() == RESULT_OK && data != null) {
+            resultMessage = data.getStringExtra(RecognitionFlowContract.MESSAGE);
+            resultStatus = data.getStringExtra(RecognitionFlowContract.STATUS);
+            resultPreview.bitmap = RecognitionFlowContract.readPreview(data, resultFrameMaxWidth, resultFrameMaxHeight);
+        } else {
+            resultMessage = getString(R.string.recognition_canceled);
+            resultStatus = RecognitionFlowContract.CANCELED;
+            resultPreview.bitmap = null;
+        }
+        renderResult();
+        findViewById(R.id.recognitionContent).requestFocus();
+        ScrollView scroll = findViewById(R.id.main);
+        // Wait for the image layout and bring the result into view on short screens.
+        OneShotPreDrawListener.add(scroll, () -> {
+            if (resultCard.isShown()) {
+                scroll.smoothScrollTo(0, resultCard.getTop());
+            }
+        });
     }
 
     private void confirmDeleteReference(String faceId) {
@@ -194,7 +238,7 @@ public final class FaceRecognitionActivity extends AppCompatActivity {
                 .setMessage(getString(R.string.search_ui_delete_message, faceId))
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(R.string.search_ui_delete_confirm, (dialog, which) -> {
-                    new FaceFeatureStore().remove(faceId);
+                    referenceStore.remove(faceId);
                     FacePhotoStore.execute(() -> FacePhotoStore.REFERENCE.remove(getApplicationContext(), faceId));
                     refreshReferences(true);
                 })
@@ -202,82 +246,135 @@ public final class FaceRecognitionActivity extends AppCompatActivity {
     }
 
     private void renderResult() {
-        View card = findViewById(R.id.recognitionResult);
-        card.setVisibility(resultMessage == null ? View.GONE : View.VISIBLE);
-        if (resultMessage == null) return;
-        TextView status = findViewById(R.id.resultStatus);
+        Bitmap frame = resultMessage == null ? null : resultPreview.bitmap;
+        if (frame != null) {
+            // Size the view to the fitted photo so the card padding reaches the visible image edge.
+            float scale = Math.min((float) resultFrameMaxWidth / frame.getWidth(),
+                    (float) resultFrameMaxHeight / frame.getHeight());
+            ViewGroup.LayoutParams size = resultFrame.getLayoutParams();
+            size.width = Math.max(1, Math.round(frame.getWidth() * scale));
+            size.height = Math.max(1, Math.round(frame.getHeight() * scale));
+            resultFrame.setLayoutParams(size);
+        }
+        resultFrame.setImageDrawable(frame == null ? null : new BitmapDrawable(getResources(), frame));
+        resultFrame.setVisibility(frame == null ? View.GONE : View.VISIBLE);
+        resultCard.setVisibility(resultMessage == null ? View.GONE : View.VISIBLE);
+        if (resultMessage == null) {
+            return;
+        }
+        TextView summary = findViewById(R.id.resultSummary);
         boolean passed = RecognitionFlowContract.PASSED.equals(resultStatus);
         boolean canceled = RecognitionFlowContract.CANCELED.equals(resultStatus);
-        status.setText(passed ? R.string.recognition_passed : canceled ? R.string.recognition_canceled
-                : RecognitionFlowContract.ERROR.equals(resultStatus) ? R.string.liveness_result_error : R.string.recognition_rejected);
-        status.setTextColor(ContextCompat.getColor(this, passed ? R.color.content_accent
+        summary.setTextColor(ContextCompat.getColor(this, passed ? R.color.content_accent
                 : canceled ? R.color.content_text_secondary : R.color.content_error));
-        ((TextView) findViewById(R.id.resultHeading)).setText(resultTitle);
-        ((TextView) findViewById(R.id.resultSummary)).setText(resultMessage);
+        summary.setText(resultMessage);
     }
 
-    @Override protected void onSaveInstanceState(Bundle state) {
-        verification.save(state, "verification."); liveness.save(state, "liveness.");
-        state.putString("resultTitle", resultTitle); state.putString("resultMessage", resultMessage);
-        state.putString("resultStatus", resultStatus); state.putString("pendingTitle", pendingTitle);
+    @Override
+    protected void onSaveInstanceState(Bundle state) {
+        verification.save(state);
+        liveness.save(state);
+        state.putString("resultMessage", resultMessage);
+        state.putString("resultStatus", resultStatus);
         super.onSaveInstanceState(state);
     }
 
-    @Override protected void onDestroy() {
+    @Override
+    protected void onDestroy() {
         picker.close();
-        if (photoConfirmation != null) photoConfirmation.dismiss();
-        if (referenceAdapter != null) referenceAdapter.close();
+        if (photoConfirmation != null) {
+            photoConfirmation.dismiss();
+        }
+        if (referenceAdapter != null) {
+            referenceAdapter.close();
+        }
         super.onDestroy();
     }
+
+    /** Hold the decoded preview in memory across Activity recreation. */
+    public static final class ResultPreview extends ViewModel {
+        private Bitmap bitmap;
+    }
+
+    private static final FaceAction[] ACTION_ORDER = {
+            FaceAction.BLINK, FaceAction.MOUTH_OPEN, FaceAction.SHAKE_HEAD, FaceAction.NOD_HEAD
+    };
 
     private final class Options {
         final SwitchCompat silent, enabled;
         final CheckBox[] choices;
         final View root;
         final boolean standalone;
-        final FaceAction[] order = {FaceAction.BLINK, FaceAction.MOUTH_OPEN, FaceAction.SHAKE_HEAD, FaceAction.NOD_HEAD};
+        final String statePrefix;
+
         Options(View root, boolean standalone, Bundle state, String prefix) {
-            this.root = root; this.standalone = standalone;
-            silent = root.findViewById(R.id.silentSwitch); enabled = root.findViewById(R.id.actionsSwitch);
+            this.root = root;
+            this.standalone = standalone;
+            statePrefix = prefix;
+            silent = root.findViewById(R.id.silentSwitch);
+            enabled = root.findViewById(R.id.actionsSwitch);
             choices = new CheckBox[]{root.findViewById(R.id.blinkChoice), root.findViewById(R.id.mouthChoice),
                     root.findViewById(R.id.shakeChoice), root.findViewById(R.id.nodChoice)};
             root.findViewById(R.id.silentRow).setVisibility(standalone ? View.GONE : View.VISIBLE);
             if (state != null) {
                 silent.setChecked(state.getBoolean(prefix + "silent", true));
                 enabled.setChecked(state.getBoolean(prefix + "enabled", enabled.isChecked()));
-                for (int i = 0; i < choices.length; i++) choices[i].setChecked(state.getBoolean(prefix + i, i == 0 || i == 3));
+                for (int i = 0; i < choices.length; i++) {
+                    choices[i].setChecked(state.getBoolean(prefix + i, i == 0 || i == 3));
+                }
             }
             silent.setOnCheckedChangeListener((button, checked) -> render());
             enabled.setOnCheckedChangeListener((button, checked) -> render());
-            for (CheckBox choice : choices) choice.setOnCheckedChangeListener((button, checked) -> render());
+            for (CheckBox choice : choices) {
+                choice.setOnCheckedChangeListener((button, checked) -> render());
+            }
             render();
         }
-        List<FaceAction> actions() {
-            List<FaceAction> selected = new ArrayList<>();
-            if (enabled.isChecked()) for (int i = 0; i < choices.length; i++) if (choices[i].isChecked()) selected.add(order[i]);
-            return selected;
+
+        boolean silentEnabled() {
+            return standalone || silent.isChecked();
         }
-        boolean validate() {
-            if (!enabled.isChecked()) return true;
-            for (CheckBox choice : choices) if (choice.isChecked()) return true;
+
+        // Snapshot the ordered challenge. An enabled but empty challenge blocks launch.
+        @Nullable
+        List<FaceAction> actionsForLaunch() {
+            if (!enabled.isChecked()) {
+                return Collections.emptyList();
+            }
+            List<FaceAction> selected = new ArrayList<>();
+            for (int i = 0; i < choices.length; i++) {
+                if (choices[i].isChecked()) {
+                    selected.add(ACTION_ORDER[i]);
+                }
+            }
+            if (!selected.isEmpty()) {
+                return selected;
+            }
             TextView validation = root.findViewById(R.id.actionValidation);
             validation.setText(R.string.recognition_choose_action);
             validation.setTextColor(ContextCompat.getColor(FaceRecognitionActivity.this, R.color.content_error));
             validation.requestFocus();
-            return false;
+            return null;
         }
+
         void render() {
             root.findViewById(R.id.actionChoices).setVisibility(enabled.isChecked() ? View.VISIBLE : View.GONE);
             TextView validation = root.findViewById(R.id.actionValidation);
             validation.setText(R.string.recognition_action_order);
-            validation.setTextColor(ContextCompat.getColor(FaceRecognitionActivity.this, R.color.content_text_secondary));
+            validation.setTextColor(
+                    ContextCompat.getColor(FaceRecognitionActivity.this, R.color.content_text_secondary));
             ((TextView) root.findViewById(R.id.optionsHint)).setText(enabled.isChecked()
-                    ? R.string.recognition_combined_hint : standalone || silent.isChecked()
-                    ? R.string.recognition_passive_hint : R.string.recognition_identity_hint);
+                    ? R.string.recognition_combined_hint : silentEnabled()
+                                                           ? R.string.recognition_passive_hint :
+                                                           R.string.recognition_identity_hint);
         }
-        void save(Bundle state, String prefix) {
-            state.putBoolean(prefix + "silent", silent.isChecked()); state.putBoolean(prefix + "enabled", enabled.isChecked());
-            for (int i = 0; i < choices.length; i++) state.putBoolean(prefix + i, choices[i].isChecked());
+
+        void save(Bundle state) {
+            state.putBoolean(statePrefix + "silent", silent.isChecked());
+            state.putBoolean(statePrefix + "enabled", enabled.isChecked());
+            for (int i = 0; i < choices.length; i++) {
+                state.putBoolean(statePrefix + i, choices[i].isChecked());
+            }
         }
     }
 }

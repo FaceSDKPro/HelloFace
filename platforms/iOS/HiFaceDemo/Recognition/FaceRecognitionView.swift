@@ -9,6 +9,7 @@ struct FaceRecognitionView: View {
     @State private var verification = RecognitionOptions()
     @State private var liveness = RecognitionOptions()
     @State private var references: [String] = []
+    @State private var referenceError: String?
     // A request snapshots the options and reference ID for the next camera destination.
     @State private var request: RecognitionRequest?
     // Show this result inline after the camera screen returns.
@@ -45,6 +46,10 @@ struct FaceRecognitionView: View {
                         }
                     }
                     .buttonStyle(.plain).font(.subheadline.bold()).foregroundStyle(DemoTheme.homeBackground)
+                    if let referenceError {
+                        Text(DemoL10n.text("读取参考人脸失败")).font(.footnote.bold()).foregroundStyle(.red)
+                        Text(referenceError).font(.footnote).foregroundStyle(.red)
+                    }
                     if albumExtraction != nil { ProgressView() }
                     if let albumError { Text(albumError).font(.footnote).foregroundStyle(.red) }
                 }
@@ -62,21 +67,29 @@ struct FaceRecognitionView: View {
                 }
                 if let result {
                     recognitionCard {
-                        Text(DemoL10n.text(result.passed ? "检测通过" : "检测未通过"))
-                            .font(.caption.bold()).foregroundStyle(result.passed ? DemoTheme.contentAccent : .red)
-                        Text(result.title).font(.headline)
-                        if !result.detail.isEmpty { Text(result.detail).font(.subheadline).foregroundStyle(DemoTheme.contentSecondaryText) }
+                        HStack(alignment: .center, spacing: 12) {
+                            Text(result.message).font(.subheadline).foregroundStyle(result.outcome.color)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            if let frame = result.frame {
+                                // Use the fitted image's bounds so card padding starts at the visible edge.
+                                let scale = min(160 / frame.size.width, 120 / frame.size.height)
+                                Image(uiImage: frame).resizable().scaledToFit()
+                                    .frame(width: frame.size.width * scale, height: frame.size.height * scale)
+                                    .accessibilityLabel(DemoL10n.text("检测结束时的相机画面"))
+                            }
+                        }
                     }
                     .id("recognition.result")
+                    .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("recognition.result")
                 }
             }.padding(.horizontal, 12).padding(.vertical, 10)
         }
         .onChange(of: result?.id) { _ in
-            if result != nil { scroll.scrollTo("recognition.result", anchor: .bottom) }
+            if result != nil { scroll.scrollTo("recognition.result", anchor: .top) }
         }
         .onAppear {
-            if result != nil { scroll.scrollTo("recognition.result", anchor: .bottom) }
+            if result != nil { scroll.scrollTo("recognition.result", anchor: .top) }
         }
         }
         .disabled(albumExtraction != nil || albumConfirmation != nil)
@@ -135,12 +148,15 @@ struct FaceRecognitionView: View {
                 }, secondaryButton: .cancel(Text(DemoL10n.text("取消"))))
         }
         .background {
-            NavigationLink(isActive: Binding(get: { request != nil }, set: { if !$0 { request = nil } })) {
+            NavigationLink(isActive: Binding(get: { request != nil }, set: { if !$0 { cameraDidReturn() } })) {
                 LazyDestination {
                     if let request {
                         CameraDemoView(mode: request.faceID == nil ? .liveness : .verification,
                             recognitionActions: request.options.actions, recognitionSilent: request.options.silent,
-                            recognitionReferenceID: request.faceID, onRecognitionResult: returnedResult).id(request.id)
+                            recognitionReferenceID: request.faceID, onRecognitionResult: { returned in
+                                guard self.request?.id == request.id else { return }
+                                result = returned
+                            }).id(request.id)
                     }
                 }
             } label: { EmptyView() }
@@ -175,7 +191,7 @@ struct FaceRecognitionView: View {
         }
     }
 
-    // Re-read IDs after returning from enrollment; features remain in the private reference store.
+    // Refresh the reference list on return without replacing a completed camera result.
     private func reloadReferences() {
         #if DEBUG
         if let ids = ProcessInfo.processInfo.environment["HIFACE_UI_TEST_REFERENCE_IDS"] {
@@ -183,8 +199,12 @@ struct FaceRecognitionView: View {
             return
         }
         #endif
-        do { references = try DemoFaceStore.faceIDs() }
-        catch { result = RecognitionInlineResult(title: DemoL10n.text("读取参考人脸失败"), detail: error.localizedDescription, passed: false) }
+        do {
+            references = try DemoFaceStore.faceIDs()
+            referenceError = nil
+        } catch {
+            referenceError = error.localizedDescription
+        }
     }
 
     // Build the shared confirmation from a photo without starting the camera.
@@ -212,8 +232,13 @@ struct FaceRecognitionView: View {
         request = RecognitionRequest(options: options, faceID: faceID)
     }
 
-    private func returnedResult(_ title: String, _ detail: String, _ passed: Bool) {
-        result = RecognitionInlineResult(title: title, detail: detail, passed: passed)
+    // A back gesture can pop the camera without an SDK terminal callback.
+    private func cameraDidReturn() {
+        guard request != nil else { return }
+        self.request = nil
+        if result == nil {
+            result = RecognitionInlineResult(message: DemoL10n.text("检测已取消"), outcome: .canceled)
+        }
     }
 
     private func deleteReference(_ faceID: String) {
@@ -222,8 +247,8 @@ struct FaceRecognitionView: View {
             references.removeAll { $0 == faceID }
             Task { await FacePhotoStore.remove(faceID: faceID, library: .reference) }
         } catch {
-            result = RecognitionInlineResult(title: DemoL10n.text("删除失败"),
-                detail: error.localizedDescription, passed: false)
+            result = RecognitionInlineResult(message: [DemoL10n.text("删除失败"), error.localizedDescription]
+                .joined(separator: "\n"), outcome: .error)
         }
     }
 
@@ -236,11 +261,30 @@ struct FaceRecognitionView: View {
     }
 }
 
-private struct RecognitionInlineResult {
+struct RecognitionInlineResult {
+    enum Outcome {
+        case passed, rejected, error, canceled
+
+        var color: Color {
+            switch self {
+            case .passed: DemoTheme.contentAccent
+            case .canceled: DemoTheme.contentSecondaryText
+            case .rejected, .error: .red
+            }
+        }
+    }
+
     let id = UUID()
-    let title: String
-    let detail: String
-    let passed: Bool
+    let message: String
+    let outcome: Outcome
+    let frame: UIImage?
+
+    // Decode once for the inline card. A malformed image leaves the text result available.
+    init(message: String, outcome: Outcome, frameJPEG: Data? = nil) {
+        self.message = message
+        self.outcome = outcome
+        frame = frameJPEG.flatMap { UIImage(data: $0) }
+    }
 }
 
 private struct ReferenceDeletion: Identifiable {

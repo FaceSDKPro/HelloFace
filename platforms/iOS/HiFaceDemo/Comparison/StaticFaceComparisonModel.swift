@@ -34,6 +34,7 @@ final class StaticFaceComparisonModel: ObservableObject {
     // Keep one SDK per model; image versions reject stale results, and deinit closes the SDK.
     // 每个模型持有一个 SDK；图片版本号用于丢弃旧结果，模型销毁时关闭 SDK。
     private let sdk: HiFaceSDK
+    // Each slot advances independently, so replacing one photo leaves the other extraction running.
     private var versions: [ComparisonSide: Int] = [.left: 0, .right: 0]
     private var photoTasks: [ComparisonSide: Task<Void, Never>] = [:]
     private var comparisonTask: Task<Void, Never>?
@@ -73,8 +74,10 @@ final class StaticFaceComparisonModel: ObservableObject {
             case .failure(let error):
                 finish(side, version: version, error: error)
             case .success(let result):
+                let alignedPreview = result.alignedFace?.makeCGImage()
                 update(side) {
-                    $0.preview = result.alignedFace?.makeCGImage() ?? image.makeCGImage()
+                    // Reuse the displayed source if the SDK has no aligned preview.
+                    $0.preview = alignedPreview ?? $0.preview
                     $0.feature = result.feature
                     $0.status = DemoL10n.text("已就绪，点击可更换")
                     $0.isProcessing = false

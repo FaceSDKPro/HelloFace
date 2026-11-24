@@ -8,8 +8,8 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import com.facesdkpro.uvccamera.DualCameraConfig;
 import com.facesdkpro.uvccamera.CameraSelection;
+import com.facesdkpro.uvccamera.DualCameraConfig;
 import com.facesdkpro.uvccamera.DualCameraSession;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.hiface.sdk.demo.R;
@@ -65,8 +65,13 @@ final class UvcCameraSettings {
         debug.setOnCheckedChangeListener((button, checked) -> debugChanged.run());
     }
 
-    UsbDevice selectedRgbDevice() { return cameras.selected(rgbDevice); }
-    int rgbRotationDegrees() { return UvcCameraChoices.rotationDegrees(rgbRotation); }
+    UsbDevice selectedRgbDevice() {
+        return cameras.selected(rgbDevice);
+    }
+
+    int rgbRotationDegrees() {
+        return UvcCameraChoices.rotationDegrees(rgbRotation);
+    }
 
     Bundle enrollmentChoice() {
         Bundle choice = new Bundle();
@@ -75,9 +80,17 @@ final class UvcCameraSettings {
         return choice;
     }
 
-    boolean debugEnabled() { return debug.isChecked(); }
-    int validationMessage() { return validationMessage; }
-    int deviceCount() { return cameras.size(); }
+    boolean debugEnabled() {
+        return debug.isChecked();
+    }
+
+    int validationMessage() {
+        return validationMessage;
+    }
+
+    int deviceCount() {
+        return cameras.size();
+    }
 
     boolean usesDevice(UsbDevice device) {
         return device.equals(selectedRgbDevice()) || device.equals(cameras.selected(irDevice));
@@ -87,8 +100,12 @@ final class UvcCameraSettings {
     boolean refreshDevices() {
         UvcDeviceChoicePolicy.Device rgb = cameras.selectedIdentity(rgbDevice);
         UvcDeviceChoicePolicy.Device ir = cameras.selectedIdentity(irDevice);
-        if (rgb != null) rememberedRgb = rgb;
-        if (ir != null) rememberedIr = ir;
+        if (rgb != null) {
+            rememberedRgb = rgb;
+        }
+        if (ir != null) {
+            rememberedIr = ir;
+        }
         List<UvcDeviceChoicePolicy.Device> previous = cameras.identities();
         try {
             cameras.refresh();
@@ -104,16 +121,22 @@ final class UvcCameraSettings {
     }
 
     int setupHint() {
-        if (cameras.size() < 2) return R.string.uvc_search_connect_cameras;
+        if (cameras.size() < 2) {
+            return R.string.uvc_search_connect_cameras;
+        }
         UsbDevice rgb = selectedRgbDevice(), ir = cameras.selected(irDevice);
-        if (rgb == null || ir == null) return R.string.uvc_search_choose_cameras;
+        if (rgb == null || ir == null) {
+            return R.string.uvc_search_choose_cameras;
+        }
         return CameraSelection.isPair(rgb, ir) ? R.string.uvc_search_ready : R.string.uvc_search_choose_distinct;
     }
 
     /** Keep invalid input editable; return capture settings only after device and threshold validation. */
     Selection read() {
         validationMessage = setupHint();
-        if (validationMessage != R.string.uvc_search_ready) return null;
+        if (validationMessage != R.string.uvc_search_ready) {
+            return null;
+        }
         Float value = validateThreshold();
         if (value == null) {
             validationMessage = R.string.uvc_search_threshold_invalid;
@@ -121,9 +144,9 @@ final class UvcCameraSettings {
         }
         // Pairing and SDK checks share 50/150 ms limits; calibrate mapping and IoU for the target module.
         InfraredSearchConfig infrared = new InfraredSearchConfig(value,
-                new float[]{1,0,0,0,1,0,0,0,1}, .25f, 80, MAX_PAIR_SKEW_MS, MAX_FRAME_AGE_MS);
+                new float[]{1, 0, 0, 0, 1, 0, 0, 0, 1}, .25f, 80, MAX_PAIR_SKEW_MS, MAX_FRAME_AGE_MS);
         DualCameraConfig config = DualCameraConfig.forStreams(rgbStream.read(DualCameraSession.Role.RGB),
-                irStream.read(DualCameraSession.Role.IR))
+                        irStream.read(DualCameraSession.Role.IR))
                 .withPairingLimits(MAX_PAIR_SKEW_MS, MAX_FRAME_AGE_MS, 30)
                 .withRotations(rgbRotationDegrees(), UvcCameraChoices.rotationDegrees(irRotation));
         return new Selection(selectedRgbDevice(), cameras.selected(irDevice), config, infrared);
@@ -132,7 +155,9 @@ final class UvcCameraSettings {
     static Float parseThreshold(String text) {
         try {
             double value = Double.parseDouble(text);
-            if (value >= .80 && value <= .99) return (float) value;
+            if (value >= .80 && value <= .99) {
+                return (float) value;
+            }
         } catch (NumberFormatException ignored) { /* Keep the draft open for correction. */ }
         return null;
     }
@@ -151,14 +176,20 @@ final class UvcCameraSettings {
         dialog.setTitle(discovered ? R.string.uvc_search_devices_found : R.string.uvc_search_settings);
         // Bind the current callback on each show; Done cannot dismiss an invalid threshold.
         dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
-            if (validateThreshold() == null) return;
+            if (validateThreshold() == null) {
+                return;
+            }
             dialog.dismiss();
             done.run();
         }));
         dialog.show();
     }
 
-    void dismiss() { if (dialog != null) dialog.dismiss(); }
+    void dismiss() {
+        if (dialog != null) {
+            dialog.dismiss();
+        }
+    }
 
     void setEditable(boolean editable) {
         form.findViewById(R.id.uvcRefresh).setEnabled(editable);
@@ -166,7 +197,9 @@ final class UvcCameraSettings {
     }
 
     void restore(Bundle saved) {
-        if (saved == null) return;
+        if (saved == null) {
+            return;
+        }
         rgbStream.restore(saved);
         irStream.restore(saved);
         rgbRotation.setSelection(saved.getInt("rgbRotation"));

@@ -1,4 +1,4 @@
-# HiFace Windows · 0.8.15
+# HiFace Windows · 0.8.16
 
 English | [简体中文](README.zh-CN.md)
 
@@ -26,5 +26,3 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./build_demo.ps1 -Publis
 
 Edit `demo/source/`; the rebuilt executable is `build/demo/bin/Release/hiface_demo.exe`.
 GUI and camera testing: package file `demo/Windows真机测试清单.txt`.
-
-After cloning or downloading the repository, open the offline [HTML SDK API](../../docs/SDK-API/Windows/index.html).

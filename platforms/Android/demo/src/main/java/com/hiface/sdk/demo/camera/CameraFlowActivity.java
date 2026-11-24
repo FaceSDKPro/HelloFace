@@ -4,7 +4,6 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.Lifecycle;
-
 import com.hiface.sdk.HiFaceSdk;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.ui.DemoPromptSpeech;
@@ -38,10 +37,14 @@ public abstract class CameraFlowActivity extends CameraBrightnessActivity {
 
     /** Bind the SDK to this screen once the flow inputs are ready. */
     protected final void initializeCameraSdk() {
-        if (hiFaceSdk != null) return;
+        if (hiFaceSdk != null) {
+            return;
+        }
         hiFaceSdk = HiFaceSdk.builder(this).lifecycleOwner(this).build();
         cameraPreview.setFrameListener(frame -> {
-            if (flow.isActive()) hiFaceSdk.processFrame(frame);
+            if (flow.isActive()) {
+                hiFaceSdk.processFrame(frame);
+            }
         });
     }
 
@@ -65,7 +68,9 @@ public abstract class CameraFlowActivity extends CameraBrightnessActivity {
     /** Run the screen’s SDK start call only when the camera and lifecycle are ready. */
     protected final void startCameraFlowRequest(CameraFlowRequest.Starter starter) {
         if (hiFaceSdk == null || flow.isActive() || isFinishing() || !cameraPreview.isCameraReady()
-                || !getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) return;
+                || !getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
+            return;
+        }
         try {
             flow.start(() -> {
                 cameraPreview.resumeAnalysis();
@@ -73,7 +78,9 @@ public abstract class CameraFlowActivity extends CameraBrightnessActivity {
                 return starter.start();
             });
         } catch (RuntimeException | Error error) {
-            if (!flow.isActive()) stopCameraFlow();
+            if (!flow.isActive()) {
+                stopCameraFlow();
+            }
             throw error;
         }
     }
@@ -88,7 +95,9 @@ public abstract class CameraFlowActivity extends CameraBrightnessActivity {
     }
 
     protected final boolean finishCameraFlow(boolean finishSpeech) {
-        if (!flow.finish()) return false;
+        if (!flow.finish()) {
+            return false;
+        }
         cameraPreview.pauseAnalysis();
         captureOverlay.finishCountdown();
         if (finishSpeech && resumed && !isFinishing() && promptSpeech != null) {

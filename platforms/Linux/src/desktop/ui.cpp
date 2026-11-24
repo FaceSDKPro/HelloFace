@@ -56,6 +56,9 @@ const char* modeName(char mode) {
     switch (mode) { case 'C': return "Capture"; case 'L': return "Liveness"; case 'V': return "Verify"; case 'E': return "Enroll"; case 'S': return "Search"; case 'P': return "Search paused"; default: return "Detection"; }
 }
 std::string friendly(const std::string& text) {
+    if (text.find("LICENSE_") != std::string::npos) {
+        if (auto message = accessMessage(statusInDiagnostic(text)); !message.empty()) return message;
+    }
     if (text.find("IMAGE_NO_FACE") != std::string::npos) return "No face found. Choose a clear photo with a visible face.";
     if (text.find("IMAGE_FACE_TOO_SMALL") != std::string::npos) return "The face is too small. Choose a photo with a face at least 100 pixels wide and high.";
     if (text.find("ALREADY_EXISTS") != std::string::npos) return "This face ID already exists. Choose another ID or edit its entry in Face library.";
@@ -286,10 +289,24 @@ void DemoUi::recognition(const ViewState& s, Rect b) {
     const int verify_height = (touch ? 386 : 317) + strip_height + pager_height + (verify_actions ? (touch ? 77 : 35) : 0);
     const int live_height=touch?282+(live_actions?76:0):230+(live_actions?35:0);
     const int cards_height=wide?std::max(verify_height,live_height):verify_height+live_height+12;
-    const int result_height=recognition_result_message_.empty()?0:96;
+    constexpr int result_gap = 12, summary_height = 64, text_left = 26, min_text_width = 152;
+    constexpr int preview_width = 160, preview_height = 120;
+    const int card_right = b.w - 12;
+    const int width_limit = std::clamp(card_right - text_left - result_gap - min_text_width - summary_height / 2,
+        0, preview_width);
+    const Image* frame = recognition_result_ ? recognition_result_->frame.get() : nullptr;
+    const Rect fitted = frame && width_limit > 0
+        ? fitImage({0, 0, width_limit, preview_height}, frame->width, frame->height) : Rect{};
+    const int result_height = recognition_result_ ? std::max(summary_height, fitted.h + 2 * result_gap) : 0;
+    // Align the fitted pixels on the right. Letterboxing inside the preview must not change the gap.
+    const int preview_inset = (result_height - fitted.h) / 2;
+    const int preview_right = card_right - preview_inset;
     const Rect viewport{12,64,b.w-24,std::max(1,b.h-136)};
-    const int total=cards_height+result_height;
+    const int total = cards_height + (result_height ? result_height + result_gap : 0);
     recognition_max_scroll_=std::max(0,total-viewport.h);
+    // Reveal the latest result after returning from the camera page.
+    if (reveal_recognition_result_) recognition_scroll_ = cards_height + result_gap;
+    reveal_recognition_result_ = false;
     recognition_scroll_=std::clamp(recognition_scroll_,0,recognition_max_scroll_);
     const auto old_clip=scene_.clip;scene_.clip=viewport;
     int top=viewport.y-recognition_scroll_;
@@ -357,11 +374,18 @@ void DemoUi::recognition(const ViewState& s, Rect b) {
     button({verify.x+inset+w+gap,y,w,h},chineseLabels() ? u8"相机录入" : "Use Camera","recognition-capture",enrollment_button,enabled,Font::Caption);
     y=options(live,false);
     button({live.x+(touch?18:14),y+(touch?6:4),live.w-(touch?36:28),touch?48:40},"Start liveness detection","recognition-liveness",1,enabled,touch?Font::Large:Font::Body);
-    if(result_height){
-        const int result_top=top+cards_height+12;
-        card({12,result_top,b.w-24,72});
-        text(26,result_top+20,recognition_result_title_,recognition_result_passed_?accent:danger,b.w-52,Font::Large);
-        wrap(26,result_top+45,recognition_result_message_,muted,b.w-52,2,touch?Font::Body:Font::Small);
+    if (recognition_result_) {
+        const auto& result = *recognition_result_;
+        const int result_top = top + cards_height + result_gap;
+        card({12, result_top, b.w - 24, result_height});
+        const int text_right = fitted.w ? preview_right - fitted.w - result_gap : b.w - text_left;
+        const int text_top = result_top + (result_height - summary_height) / 2;
+        const auto color = result.outcome == RecognitionOutcome::Passed ? accent :
+            result.outcome == RecognitionOutcome::Canceled ? muted : danger;
+        wrap(text_left, text_top + 20, result.message, color, text_right - text_left, 2, touch ? Font::Body : Font::Small);
+        if (frame && fitted.w > 0)
+            scene_.image({preview_right - fitted.w, result_top + preview_inset, fitted.w, fitted.h},
+                frame->rgba.data(), frame->width, frame->height, false);
     }
     scene_.clip=old_clip;
     if(!notice_.empty())text(24,b.h-53,notice_,danger,b.w-48,touch?Font::Body:Font::Small);
@@ -450,7 +474,7 @@ void DemoUi::startupFailure(const ViewState& state) {
     const int h = std::min(370, scene_.height - 210), y = std::max(78, (scene_.height - 110 - h) / 2);
     card({x, y, w, h});
     wrap(x + 24, y + 40, error.summary, danger, w - 48, 2, Font::Large);
-    text(x + 24, y + 102, error.code, danger, w - 48);
+    text(x + 24, y + 102, isAccessError(error.sdk_status) ? statusName(error.sdk_status) : error.code, danger, w - 48);
     wrap(x + 24, y + 144, error.advice, ink, w - 48, 2);
     if (error.clock) {
         text(x + 24, y + 208, deviceTime(), muted, w - 48, Font::Small);
@@ -1281,6 +1305,9 @@ void DemoUi::page(const std::string& next, const ViewState& state, bool force) {
     else if (homePage(next,embeddedDisplay())) page_history_ = {"home"};
     else if (page_ == "home") page_history_ = next == "references" ? std::vector<std::string>{"home"} : std::vector<std::string>{"home", "camera"};
     else if (!(next == "verification" && page_ == "references" && !returning)) page_history_.push_back(page_);
+    // X11 may relayout before the worker receives this navigation. Ignore the old snapshot's result.
+    flow_result_generation_ = std::max(flow_result_generation_, state.flow_result_generation);
+    if (recognition_request || (page_ == "recognition" && next == "home")) recognition_result_.reset();
     page_ = next; camera_menu_ = library_menu_ = soft_keyboard_open_ = false; focused_.clear(); keyboard_focus_.clear(); select_all_ = false;
     if(next=="home")keyboard_focus_=home_focus_;
     else if(next=="recognition")keyboard_focus_=state.captured_faces.empty()?"browse:reference-photo":"recognition-verify:0";
@@ -1308,7 +1335,19 @@ void DemoUi::back(const ViewState& state) {
         confirm({"ui-back", {parent}, {}}, "Stop import and go back?", "Completed batches are saved. Stop importing and return to the previous page?");
         return;
     }
+    if (parent == "recognition" && (page_ == "verification" || page_ == "liveness")) {
+        showRecognitionResult(state, {"Detection canceled", RecognitionOutcome::Canceled, {}});
+        return;
+    }
     page(parent, state);
+}
+
+bool DemoUi::showRecognitionResult(const ViewState& state, RecognitionResult result) {
+    page("recognition", state, true);
+    if (page_ != "recognition") return false;
+    recognition_result_ = std::move(result);
+    reveal_recognition_result_ = true;
+    return true;
 }
 void DemoUi::requestClose(const ViewState& state) {
     if(!state.ready && state.failed){running_=false;return;}
@@ -1462,7 +1501,7 @@ void DemoUi::handle(const std::string& action, const ViewState& state) {
         if(values_[prefix+"enabled"]=="1" && (verify?options.verification_actions:options.actions).empty()) {
             notice_="Choose at least one action.";return;
         }
-        recognition_result_message_.clear();notice_.clear();
+        notice_.clear();
         if(verify) {
             const auto index=static_cast<size_t>(std::stoul(action.substr(19)));
             if(index>=state.captured_faces.size())return;
@@ -1559,7 +1598,9 @@ void DemoUi::handle(const std::string& action, const ViewState& state) {
         else emit("action", {selected_task_});
         return;
     }
-    if (action.rfind("mode:", 0) == 0) emit("action", {action.substr(5)});
+    if (action == "mode:X" && (page_ == "verification" || page_ == "liveness") &&
+        !page_history_.empty() && page_history_.back() == "recognition") back(state);
+    else if (action.rfind("mode:", 0) == 0) emit("action", {action.substr(5)});
     else if (action == "connect") emit("connect", {values_["device"]});
     else if (action == "mirror" || action == "next" || action == "pause" || action == "cancel-import") emit(action);
     else if (action == "clear-reference") confirm({"clear-reference", {}, {}}, "Clear reference?", "Remove the saved verification reference. Face library entries and captured photos will be kept.");
@@ -1651,12 +1692,14 @@ void DemoUi::click(int x, int y, const ViewState& state) {
 }
 bool DemoUi::defersClick(int x, int y) const {
     for (auto it = controls_.rbegin(); it != controls_.rend(); ++it) {
-        if (it->enabled && it->bounds.contains(x, y))
+        if (it->enabled && it->bounds.contains(x, y)) {
             return it->action.rfind("recognition-verify:", 0) == 0;
+        }
     }
     return false;
 }
 void DemoUi::beginDeferredClick(int x) {
+    if (page_ != "recognition") return;
     reference_drag_active_ = true;
     reference_drag_origin_x_ = x;
     reference_drag_origin_scroll_ = reference_scroll_;
@@ -1704,7 +1747,7 @@ void DemoUi::key(Key key_value, const std::string& value, bool shift, const View
     }
     if (key_value == Key::Escape) {
         if (uvc_settings_open_) { handleUvcSettings("uvc-settings-cancel", state); return; }
-        if (error_details_ || !state.ready && state.failed) { handle("error-back", state); return; }
+        if (error_details_ || (!state.ready && state.failed && !startup_home_)) { handle("error-back", state); return; }
         if (metadata_pending_) return;
         if (enrolling_ && enrollment_saving_) return;
         if (enrolling_ && !replacement_declined_ && !state.duplicate_enrollment_id.empty() && state.duplicate_enrollment_id == values_["enroll-id"]) {
@@ -1844,7 +1887,9 @@ void DemoUi::key(Key key_value, const std::string& value, bool shift, const View
 }
 void DemoUi::browser() {
     controls_.clear(); const int w = std::min(760, scene_.width - 80), h = std::min(548, scene_.height - 80), x = (scene_.width - w) / 2, y = (scene_.height - h) / 2;
-    scene_.box({0, 0, scene_.width, scene_.height}, 0x253342); card({x, y, w, h}); text(x + 22, y + 34, browser_target_ == "exchange-path" ? "Choose a JSON file or folder" : browser_target_=="image-folder"?"Choose an image folder":"Choose a photo", ink, w - 44, Font::Title);
+    scene_.box({0, 0, scene_.width, scene_.height}, 0x253342); card({x, y, w, h});
+    text(x + 22, y + 34,
+        browser_target_ == "exchange-path" ? "Choose a JSON file or folder" : browser_target_=="image-folder"?"Choose an image folder":"Choose a photo", ink, w - 44, Font::Title);
     field({x + 22, y + 58, w - 218, 56}, "browser-path", "Directory", browser_directory_);
     button({x + w - 184, y + 79, 74, 34}, "Open", "browser-go"); button({x + w - 100, y + 79, 78, 34}, "Parent", "browser-up");
     const int row_y = y + 136, rh = 34;
@@ -1862,7 +1907,8 @@ void DemoUi::browser() {
         text(x+36,row_y+96,"Change the directory above or use Parent to go back.",muted,w-72,Font::Small);
     } else if (browser_entries_.empty()) {
         text(x + 32, row_y + 30, "No matching files in this folder", ink, w - 64);
-        wrap(x+32,row_y+62,browser_target_ == "exchange-path" ? "Choose a folder or a .json feature file." : "Supported photos: JPEG, PNG, BMP and PPM.",muted,w-64,2,Font::Small);
+        wrap(x+32,row_y+62,
+            browser_target_ == "exchange-path" ? "Choose a folder or a .json feature file." : "Supported photos: JPEG, PNG, BMP and PPM.",muted,w-64,2,Font::Small);
     }
     const int bottom = y + h - 94;
     button({x + 22, bottom, 90, 30}, "Previous", "browser-prev", 0, browser_offset_ > 0); button({x + 120, bottom, 78, 30}, "Next", "browser-next", 0, browser_offset_ + browser_rows_ < int(browser_entries_.size()));
@@ -2016,13 +2062,16 @@ const Scene& DemoUi::render(const ViewState& state, int width, int height) {
         saved_capture_generation_ = state.saved_capture_generation;
         if (page_ == "capture" && state.saved_capture_kind == 'C' || page_ == "enrollment" && state.saved_capture_kind == 'E') { dismissOverlay(); back(state); }
     }
-    if (cameraPage(page_) && state.flow_result_pending && state.flow_result_generation != flow_result_generation_) {
-        flow_result_generation_ = state.flow_result_generation;
-        if(page_=="verification" || page_=="liveness") {
-            recognition_result_title_=state.result_title;recognition_result_message_=state.status;
-            recognition_result_passed_=state.flow_result_passed;recognition_scroll_=1000000;
-            page("recognition",state,true);
-        } else { beginOverlay(); result_dialog_ = true; }
+    if (cameraPage(page_) && state.flow_result_pending && state.flow_result_generation > flow_result_generation_) {
+        if (page_ == "verification" || page_ == "liveness") {
+            const auto outcome = state.failed ? RecognitionOutcome::Error :
+                state.flow_result_passed ? RecognitionOutcome::Passed : RecognitionOutcome::Rejected;
+            if (showRecognitionResult(state, {state.status, outcome, state.flow_result_frame}))
+                flow_result_generation_ = state.flow_result_generation;
+        } else {
+            flow_result_generation_ = state.flow_result_generation;
+            beginOverlay(); result_dialog_ = true;
+        }
     }
     if (page_=="recognition") { recognition(state,{0,0,width,height}); modal(state); softKeyboard(); return scene_; }
     if (page_=="home") { home(state, {0, 0, width, height}); modal(state); softKeyboard(); return scene_; }

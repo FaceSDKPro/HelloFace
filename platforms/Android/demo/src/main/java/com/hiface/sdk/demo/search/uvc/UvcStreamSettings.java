@@ -32,9 +32,13 @@ final class UvcStreamSettings {
     }
 
     void restore(Bundle saved) {
-        if (saved == null) return;
+        if (saved == null) {
+            return;
+        }
         resolution.setSelection(saved.getInt(key + "Resolution") == 1 ? 1 : 0);
-        if (saved.containsKey(key + "Fps")) fps.setSelection(saved.getInt(key + "Fps") == 1 ? 1 : 0);
+        if (saved.containsKey(key + "Fps")) {
+            fps.setSelection(saved.getInt(key + "Fps") == 1 ? 1 : 0);
+        }
     }
 
     void save(Bundle out) {

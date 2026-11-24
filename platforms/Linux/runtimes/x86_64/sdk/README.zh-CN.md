@@ -14,7 +14,7 @@ cmake --build build --target hiface_sdk_image_search
 ./build/hiface_sdk_image_search --builtin :memory: --blank 256 256
 ```
 
-[image_search.c](../../../examples/image-search/image_search.c) 加载内置模型，处理空白图，使用内存人脸库。预期输出以 `faces=0` 开头。处理自己的照片时，将 `--blank 256 256` 换成 `photo.rgba WIDTH HEIGHT`。先调整照片方向，传入宽高均为偶数、连续排列的 RGBA 像素，长度为 `WIDTH * HEIGHT * 4` 字节。
+[image_search.c](../../../examples/image-search/image_search.c) 加载内置模型，处理空白图，使用内存人脸库。预期输出以 `faces=0` 开头。处理自己的照片时，将 `--blank 256 256` 换成 `photo.rgba WIDTH HEIGHT`。先调整照片方向，传入宽高均在 2–4096 范围内、连续排列的 RGBA 像素，长度为 `WIDTH * HEIGHT * 4` 字节。
 
 在自己的项目中，将 `CMAKE_PREFIX_PATH` 指向 SDK 目录，调用 `find_package(HiFace CONFIG REQUIRED)` 并链接 `HiFace::HiFace`。用 `hiface_runtime_configure_v1` 配置运行时，再用 `hiface_session_create_v1` 创建会话，最后通过 `hiface_linux_load_builtin_models_v1` 加载内置模型。运行时状态使用私有的持久目录，默认 `~/.local/state/hiface`，也可使用配置后的 `$XDG_STATE_HOME/hiface`。
 
@@ -39,7 +39,7 @@ cmake --build build --target hiface_sdk_image_search
 
 ### 人脸检测
 
-照片用 `hiface_session_process_rgba_v1`，相机用 `hiface_session_process_camera_yuv420_v1`。传入实际行步长和旋转角度。成功时读取 `faces[0..count)`；无人脸时 `count=0`。人脸框为左上角和宽高，单位是像素。相机结果对应旋转后、未镜像的画面。
+照片用 `hiface_session_process_rgba_v1`，传入方向已归正、紧密排列的 RGBA8888 像素。相机用 `hiface_session_process_camera_yuv420_v1`，传入实际行步长和旋转角度。成功时读取 `faces[0..count)`；无人脸时 `count=0`。人脸框为左上角和宽高，单位是像素。相机结果对应旋转后、未镜像的画面。
 
 | `HiFaceDetectionRequestV1` 参数 | 范围与建议值 | 用途 |
 |---|---|---|
@@ -54,7 +54,11 @@ cmake --build build --target hiface_sdk_image_search
 - `hiface_session_capture_faces_rgba_v1` 采集多张脸。调用方提供容量 1–10，逐张读取状态，无人脸时成功返回 `count=0`。
 - 相机引导录入使用 `hiface_session_face_flow_start_v1` 与 `HIFACE_FLOW_GUIDED_CAPTURE`。照片采集无活体判定，用户确认后再保存特征。
 
-特征输出容量按 `HIFACE_FACE_FEATURE_DIMENSION` 个 `float` 计算，对齐图容量按 `HIFACE_ALIGNED_PREVIEW_RGBA_BYTES` 字节计算；两者单位不同。不要预览时传 `NULL/0`。严格单人录入用多脸接口、容量设为 10，并要求返回一张且该条状态为 `OK`；最大脸接口不会拒绝多人照片。
+照片采集使用方向已归正的连续 RGBA8888 像素，宽高均为 2–4096 像素，支持 999 × 999 等奇数尺寸，检测框使用原图坐标。人脸框的宽和高均需达到 100 像素。特征输出容量以 `HIFACE_FACE_FEATURE_DIMENSION` 个 `float` 为单位，预览容量以 `HIFACE_ALIGNED_PREVIEW_RGBA_BYTES` 字节为单位。只提取特征时传 `NULL/0`，SDK 会跳过预览生成。批量处理照片时，在启动阶段加载模型，复用 Session 和调用方的输出缓冲。
+
+严格单人录入可用多脸接口，容量设为 2。先检查整体状态，再要求 `count == 1` 且该条状态为 `OK`。`count == 2` 表示检测到至少两张脸，业务应拒绝。多脸接口的特征和预览缓冲均须按容量分配，即使最后只有一张有效人脸。允许合照选最大脸时可直接用 `hiface_session_capture_rgba_v1`。
+
+服务端应在解码前限制上传字节数和解码像素数。对同一份输入完成格式检查、EXIF 归正和解码。限制并发工作量，日志只记录请求标识与错误码，避免记录照片、路径、裁剪图或特征。处理此类数据的进程应禁用崩溃转储。SDK 不改变宿主进程的转储设置。
 
 ### 活体与 1:1 验证
 

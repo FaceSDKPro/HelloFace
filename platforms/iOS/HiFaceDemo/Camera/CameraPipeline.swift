@@ -3,10 +3,13 @@ import HiFace
 
 /// AVFoundation counterpart of Android CameraPreviewFragment. Manage permissions, session, lenses,
 /// preview, and synchronous frames only; the SDK owns face flows, model threads, and business outcomes.
+/// The camera must produce clear images; for face search, a camera with a wide dynamic range above
+/// 105 dB is recommended.
 /// @unchecked Sendable relies on isolation by sessionQueue, frameQueue, and controlLock.
 /// 对应 Android `CameraPreviewFragment` 的 AVFoundation 适配层。
 ///
 /// 这里只管理权限、会话、镜头、预览和同步送帧；人脸流程、模型线程与业务终态由 SDK 负责。
+/// 摄像头需成像清晰，人脸搜索建议相机宽动态大于105DB。
 /// `@unchecked Sendable` 依赖 `sessionQueue`、`frameQueue` 和 `controlLock` 的隔离约束。
 final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable {
     // A coalesced UI result carries the frame generation that produced its coordinates.

@@ -1,6 +1,6 @@
 [English](README.md) | **简体中文**
 
-# HiFace iOS SDK 0.8.15
+# HiFace iOS SDK 0.8.16
 
 
 最低 iOS 15，使用 Swift 6。将本目录添加为本地 Swift Package，选择 `HiFace`，保留 HiFace 和 HiFaceNative 两个二进制目标。

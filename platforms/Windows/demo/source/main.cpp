@@ -22,6 +22,7 @@
 #include <utility>
 #include <windowsx.h>
 
+
 namespace {
 using namespace hiface_demo;
 constexpr wchar_t kWebsiteUrl[] = L"https://helloface.pages.dev/";
@@ -95,7 +96,8 @@ struct Ui {
     // Avoid posting duplicate navigation while a flow result is on its way back to the recognition page.
     bool recognition_return_pending = false;
     RecognitionOutcome recognition_outcome = RecognitionOutcome::Canceled;
-    std::wstring recognition_result_title,recognition_result_message;
+    std::wstring recognition_result_message;
+    std::shared_ptr<const Image> recognition_result_frame;
     UiRect recognition_strip;
     std::optional<ReferencePress> reference_press;
     std::unordered_map<std::string,std::shared_ptr<const Image>> recognition_photos;
@@ -434,9 +436,10 @@ HomeLayout homeGeometry(const Ui& ui) {
 }
 RecognitionLayout recognitionGeometry(const Ui& ui) {
     RECT client{};GetClientRect(ui.app.window,&client);
+    const auto& frame = ui.recognition_result_frame;
     return {MulDiv(client.right,96,ui.theme.dpi),MulDiv(client.bottom,96,ui.theme.dpi),
         !ui.recognition_result_message.empty(),checked(ui.app.window,RecognitionVerifyActions),checked(ui.app.window,RecognitionLiveActions),
-        !ui.rendered_reference_ids.empty(),ui.scroll};
+        !ui.rendered_reference_ids.empty(),ui.scroll,frame ? frame->width : 0,frame ? frame->height : 0};
 }
 int scrollTarget(HWND scrollbar, int code, int current, int line, int page) {
     switch (code) {
@@ -815,10 +818,10 @@ void update(Ui& ui) {
         ui.handled_conflict = state->completed_command;
         PostMessageW(window, WM_COMMAND, MAKEWPARAM(ConfirmReplacement, BN_CLICKED), 0);
     }
-    if(current_view&&!ui.recognition_return_pending&&(ui.page==Page::Liveness||ui.page==Page::Verification)&&
-       ((!state->flow_summary.empty()&&state->flow_completion>ui.handled_flow_completion)||(state->error&&!state->busy&&!state->flow_active))){
-        ui.recognition_return_pending=true;
-        ui.handled_flow_completion=state->flow_completion;PostMessageW(window,WM_COMMAND,MAKEWPARAM(ShowFlowResult,BN_CLICKED),0);
+    if (current_view && !ui.recognition_return_pending && guidedRecognition(ui.page) && !state->busy && !state->flow_active &&
+        (state->error || (!state->flow_summary.empty() && state->flow_completion > ui.handled_flow_completion))) {
+        // Return after this control update. The handler must recheck the worker snapshot.
+        ui.recognition_return_pending = PostMessageW(window, WM_COMMAND, MAKEWPARAM(ShowFlowResult, BN_CLICKED), 0) != 0;
     }
     if(ui.page==Page::Reference){
         setText(window,SearchGuide,L"核对预览与 Face ID。\r\n确认后保存到独立采集参考库。\r\n已有同名参考将更新。");
@@ -953,13 +956,11 @@ void paint(Ui& ui) {
             const auto& result = view.result;
             card(dc,nativeRect(result),colors::surface,colors::line,px(16));
             const auto status = ui.recognition_outcome;
-            const auto heading = ui.recognition_result_title + L" · " +
-                (status == RecognitionOutcome::Passed ? L"通过" : status == RecognitionOutcome::Rejected ? L"未通过"
-                 : status == RecognitionOutcome::Canceled ? L"已取消" : L"发生错误");
-            label(dc,heading.c_str(),rect(result.left+16,result.top+8,result.width()-32,32),ui.theme.title,
-                status == RecognitionOutcome::Passed ? colors::success : status == RecognitionOutcome::Canceled ? colors::muted : colors::error);
-            label(dc,ui.recognition_result_message.c_str(),rect(result.left+16,result.top+48,result.width()-32,result.height()-58),
-                ui.theme.recognition,colors::ink,wrapped);
+            label(dc,ui.recognition_result_message.c_str(),nativeRect(view.result_summary),ui.theme.recognition,
+                status == RecognitionOutcome::Passed ? colors::success : status == RecognitionOutcome::Canceled ? colors::muted : colors::error,
+                wrapped);
+            if (ui.recognition_result_frame && view.result_frame.width() > 0)
+                bitmap(dc, *ui.recognition_result_frame, nativeRect(view.result_frame));
         }
         for (const bool verification : {true,false}) {
             const auto& a = verification ? view.verification : view.liveness;
@@ -1387,16 +1388,20 @@ bool prepareRecognitionDraft(Ui& ui,bool verification){
     auto& draft=ui.drafts[static_cast<size_t>(verification?Page::Verification:Page::Liveness)];
     draft.actions=std::move(selected);draft.action_preset=actions?7:0;
     draft.silent=verification?checked(window,RecognitionSilent):true;
-    ui.recognition_result_message.clear();ui.parameter_notice.clear();return true;
+    ui.recognition_result_message.clear();
+    ui.recognition_result_frame.reset();
+    ui.parameter_notice.clear(); return true;
 }
 
 void action(Ui& ui, int id, int notification);
-void showRecognitionResult(Ui& ui, RecognitionOutcome outcome, std::wstring message) {
-    ui.recognition_result_title = ui.page == Page::Verification ? L"1:1 人脸验证" : L"独立活体检测";
+void showRecognitionResult(Ui& ui, RecognitionOutcome outcome, std::wstring message,
+    std::shared_ptr<const Image> frame = {}) {
     ui.recognition_result_message = std::move(message);
     ui.recognition_outcome = outcome;
+    ui.recognition_result_frame = std::move(frame);
     action(ui,NavBase+static_cast<int>(Page::Recognition),BN_CLICKED);
-    ui.scroll = recognitionGeometry(ui).clampScroll(100000);
+    const auto view = recognitionGeometry(ui);
+    ui.scroll = view.clampScroll(ui.scroll + view.result.top - view.viewport.top);
     layout(ui);
     InvalidateRect(ui.app.window,nullptr,FALSE);
 }
@@ -1456,6 +1461,10 @@ void action(Ui& ui, int id, int notification) {
         previous.interval = text(window, Interval); previous.timeout = text(window, Timeout); previous.search_mode = selection(window, SearchMode);
         previous.id = text(window, PersonId); previous.group = text(window, Group); previous.tag = text(window, Tag);
         const auto next_page = static_cast<Page>(id - NavBase), old_page = ui.page;
+        if (old_page == Page::Recognition && next_page == Page::Home) {
+            ui.recognition_result_message.clear();
+            ui.recognition_result_frame.reset();
+        }
         if(next_page==Page::Verification)send(window,ReferenceChoice,CB_SETCURSEL,-1,0);
         if ((old_page == Page::ImageSearch && next_page != Page::Gallery) || (old_page == Page::Gallery && next_page != Page::ImageSearch))
             ui.image_search.setContent(nullptr, nullptr);
@@ -1568,11 +1577,18 @@ void action(Ui& ui, int id, int notification) {
         case ReferenceChoice:
             if(notification==CBN_SELCHANGE&&ui.page==Page::Verification){submit(ui,Action::SelectReference);}break;
         case ShowFlowResult: {
+            if (!ui.recognition_return_pending) break;
+            ui.recognition_return_pending = false;
             const auto state=ui.app.current();
-            if((ui.page!=Page::Verification&&ui.page!=Page::Liveness)||state->view_generation!=ui.app.generation||state->flow_active||state->busy)break;
+            if (!guidedRecognition(ui.page) || state->settings.page != ui.page ||
+                state->view_generation != ui.app.generation || state->flow_active || state->busy) break;
+            if (!state->error && (state->flow_summary.empty() || state->flow_completion <= ui.handled_flow_completion)) break;
+            // Only consume a completion once the current page can display it.
+            ui.handled_flow_completion = state->flow_completion;
             const auto outcome = state->error || state->fatal ? RecognitionOutcome::Error
                 : state->flow_passed ? RecognitionOutcome::Passed : RecognitionOutcome::Rejected;
-            showRecognitionResult(ui,outcome,widen(state->flow_summary.empty() ? state->update.message : state->flow_summary));
+            showRecognitionResult(ui, outcome, widen(state->flow_summary.empty() ? state->update.message : state->flow_summary),
+                outcome == RecognitionOutcome::Error ? nullptr : state->flow_frame);
             break;
         }
         case SaveReference: {

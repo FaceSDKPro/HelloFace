@@ -88,6 +88,7 @@ public:
     std::string reference_id;
     std::vector<GalleryEntry> captured_faces;
     std::string duplicate_enrollment_id, result_title;
+    std::shared_ptr<const Image> result_frame; // Full terminal frame for verification or liveness.
     // UI acknowledgment counters for successful saves and new guided-flow result dialogs.
     uint64_t saved_capture_generation = 0, flow_result_generation = 0;
     char saved_capture_kind = 0;

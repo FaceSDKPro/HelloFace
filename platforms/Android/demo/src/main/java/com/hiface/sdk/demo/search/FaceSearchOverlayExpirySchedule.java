@@ -10,10 +10,14 @@ final class FaceSearchOverlayExpirySchedule {
     private long deadline;
 
     boolean update(long value) {
-        if (deadline == value || (deadline != 0 && value >= deadline)) return false;
+        if (deadline == value || (deadline != 0 && value >= deadline)) {
+            return false;
+        }
         deadline = value;
         return true;
     }
 
-    void reset() { deadline = 0; }
+    void reset() {
+        deadline = 0;
+    }
 }

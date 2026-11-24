@@ -16,13 +16,13 @@ import com.hiface.sdk.common.HiFaceError;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.camera.CameraPreviewFragment;
 import com.hiface.sdk.demo.ui.DemoWindowInsets;
-import com.hiface.sdk.search.FaceSearchSessionConfig;
 import com.hiface.sdk.search.FaceSearchFrame;
 import com.hiface.sdk.search.FaceSearchListener;
 import com.hiface.sdk.search.FaceSearchMode;
 import com.hiface.sdk.search.FaceSearchProgress;
 import com.hiface.sdk.search.FaceSearchResult;
 import com.hiface.sdk.search.FaceSearchSession;
+import com.hiface.sdk.search.FaceSearchSessionConfig;
 
 /**
  * Search integration example: start a session, send camera frames, then pause and release it with the
@@ -405,7 +405,8 @@ public final class FaceSearchActivity extends AppCompatActivity {
                 "multi", config.getMode() == FaceSearchMode.MULTI_FACE);
         config = FaceSearchSessionConfig.builder()
                 .mode(multi ? FaceSearchMode.MULTI_FACE : FaceSearchMode.SINGLE_FACE)
-                .needLiveness(state.getBoolean("live", !multi)) // 仅单人搜索允许开启活体 / Only single-face search allows liveness.
+                .needLiveness(
+                        state.getBoolean("live", !multi)) // 仅单人搜索允许开启活体 / Only single-face search allows liveness.
                 .group(state.getString("group", config.getGroup())) // 人脸库分组过滤 / Face-library group filter.
                 .threshold(state.getFloat("threshold", config.getThreshold()))
                 .searchIntervalMillis(state.getInt(

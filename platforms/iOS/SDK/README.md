@@ -1,6 +1,6 @@
 **English** | [简体中文](README.zh-CN.md)
 
-# HiFace iOS SDK 0.8.15
+# HiFace iOS SDK 0.8.16
 
 
 Requires iOS 15+ and Swift 6. Add this directory as a local Swift Package and select `HiFace`. Retain both HiFace and HiFaceNative binary targets.

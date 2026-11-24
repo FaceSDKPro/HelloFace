@@ -4,15 +4,13 @@ import android.content.Context;
 import android.content.res.ColorStateList;
 import android.view.View;
 import android.widget.TextView;
-
 import androidx.annotation.ColorRes;
 import androidx.annotation.StringRes;
-
 import com.hiface.sdk.common.HiFaceError;
 import com.hiface.sdk.demo.R;
-import com.hiface.sdk.search.FaceSearchSessionConfig;
 import com.hiface.sdk.search.FaceSearchMode;
 import com.hiface.sdk.search.FaceSearchProgress;
+import com.hiface.sdk.search.FaceSearchSessionConfig;
 
 /**
  * Search-specific text and controls; the Activity still demonstrates SDK calls and recognition-result
@@ -52,12 +50,20 @@ final class FaceSearchStatusUi {
     // 固定两行不增高，完整 ID 和诊断提示在点击后查看/复制。
     private void renderCaption() {
         String text = !errorVisible && !matchCaption.isEmpty() ? matchCaption : !errorVisible && !fullResult.isEmpty()
-                ? fullResult.substring(0, fullResult.indexOf('\n') < 0 ? fullResult.length() : fullResult.indexOf('\n'))
-                : errorVisible ? hintText : stateTitleId == R.string.search_ui_empty_title
-                    ? context.getString(R.string.search_ui_empty_caption) : stateTitle;
+                                                                                ? fullResult.substring(0,
+                fullResult.indexOf('\n') < 0 ? fullResult.length() : fullResult.indexOf('\n'))
+                                                                                : errorVisible ? hintText :
+                                                                                  stateTitleId == R.string.search_ui_empty_title
+                                                                                  ?
+                                                                                          context.getString(
+                                                                                                  R.string.search_ui_empty_caption) : stateTitle;
         text = text.replace('\r', ' ').replace('\n', ' ');
-        if (!modeText.contentEquals(options.getText())) options.setText(modeText);
-        if (!text.contentEquals(guidance.getText())) guidance.setText(text);
+        if (!modeText.contentEquals(options.getText())) {
+            options.setText(modeText);
+        }
+        if (!text.contentEquals(guidance.getText())) {
+            guidance.setText(text);
+        }
         guidance.setContentDescription(text);
     }
 
@@ -67,7 +73,9 @@ final class FaceSearchStatusUi {
         android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(context)
                 .setMessage(text).setPositiveButton(android.R.string.ok, null).show();
         TextView message = dialog.findViewById(android.R.id.message);
-        if (message != null) message.setTextIsSelectable(true);
+        if (message != null) {
+            message.setTextIsSelectable(true);
+        }
     }
 
     /**
@@ -90,9 +98,9 @@ final class FaceSearchStatusUi {
         boolean canRetry = SearchUi.canResumeSearch(error);
         // Show generic guidance for unavailable SDK state; do not offer ineffective retries.
         // SDK 不可用时显示统一提示，不提供无效重试。
-        int license = com.hiface.sdk.demo.ui.DemoErrorUi.licenseMessage(error.getCode());
+        int accessMessageRes = com.hiface.sdk.demo.ui.DemoErrorUi.accessMessage(error.getCode());
         showState(R.string.search_ui_paused,
-                license != 0 ? license : (canRetry ? SearchUi.errorText(error) : R.string.search_ui_error_reenter),
+                accessMessageRes != 0 ? accessMessageRes : (canRetry ? SearchUi.errorText(error) : R.string.search_ui_error_reenter),
                 R.color.search_error_color, canRetry);
     }
 
@@ -143,7 +151,7 @@ final class FaceSearchStatusUi {
             people.setText(config.getMode() == FaceSearchMode.SINGLE_FACE
                     ? context.getString(R.string.search_ui_single_people, progress.getDetectedCount())
                     : context.getString(R.string.search_ui_multi_people,
-                            progress.getDetectedCount(), progress.getSelectedCount()));
+                    progress.getDetectedCount(), progress.getSelectedCount()));
             people.setVisibility(View.VISIBLE);
         } else {
             clearPeopleHint();

@@ -5,13 +5,11 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
-
 import com.hiface.sdk.HiFaceSdk;
 import com.hiface.sdk.capture.FaceCaptureResult;
 import com.hiface.sdk.common.FaceRequest;
@@ -104,7 +102,9 @@ public final class FaceComparisonActivity extends AppCompatActivity {
         slot.request = hiFaceSdk.capture().fromBitmap(bitmap, result -> {
             // Ignore both success and error from an old image after the photo is replaced or its slot is released.
             // 已更换照片或释放槽位时，旧图片的成功结果和错误都不再更新界面。
-            if (slot.bitmap != bitmap || slot.request == null) return;
+            if (slot.bitmap != bitmap || slot.request == null) {
+                return;
+            }
             slot.request = null;
             if (result.isSuccess()) {
                 slot.setCapture(result.requireValue());
@@ -124,7 +124,9 @@ public final class FaceComparisonActivity extends AppCompatActivity {
     private void compareFaces() {
         String faceFeature1 = leftSlot.feature;
         String faceFeature2 = rightSlot.feature;
-        if (faceFeature1 == null || faceFeature2 == null) return;
+        if (faceFeature1 == null || faceFeature2 == null) {
+            return;
+        }
         HiFaceResult<Float> result = hiFaceSdk.verification().compare(faceFeature1, faceFeature2);
         similarityValue.setVisibility(View.VISIBLE);
         similarityValue.setTextColor(ContextCompat.getColor(this,
@@ -171,13 +173,16 @@ public final class FaceComparisonActivity extends AppCompatActivity {
         @Nullable
         private String feature;
         // Each slot owns its pending extraction until its main-thread callback or a replacement.
-        @Nullable private FaceRequest request;
+        @Nullable
+        private FaceRequest request;
         @Nullable
         private String error;
 
         FacePhotoSlot(@NonNull View root, @StringRes int labelText) {
             container = root.findViewById(R.id.photoContainer);
-            container.setClipToOutline(true); // 方法从 API 21 可用，XML 属性仅在较新系统生效。 / The method is available from API 21; the XML attribute works only on newer systems.
+            container.setClipToOutline(
+                    true); // 方法从 API 21 可用，XML 属性仅在较新系统生效。 / The method is available from API 21; the XML attribute
+            // works only on newer systems.
             imageView = root.findViewById(R.id.photoImage);
             placeholder = root.findViewById(R.id.photoPlaceholder);
             loading = root.findViewById(R.id.photoLoading);
@@ -195,11 +200,15 @@ public final class FaceComparisonActivity extends AppCompatActivity {
             bitmap = value;
             imageView.setImageBitmap(value);
             placeholder.setVisibility(value == null ? View.VISIBLE : View.GONE);
-            if (previous != null && previous != value) previous.recycle();
+            if (previous != null && previous != value) {
+                previous.recycle();
+            }
         }
 
         void cancelExtraction() {
-            if (request != null) request.cancel();
+            if (request != null) {
+                request.cancel();
+            }
             request = null;
         }
 
@@ -216,7 +225,7 @@ public final class FaceComparisonActivity extends AppCompatActivity {
             }
             status.setTextColor(ContextCompat.getColor(container.getContext(), error != null
                     ? R.color.content_error : feature != null
-                    ? R.color.content_accent : R.color.content_text_secondary));
+                                              ? R.color.content_accent : R.color.content_text_secondary));
             CharSequence state = status.getVisibility() == View.VISIBLE
                     ? status.getText() : container.getContext().getString(R.string.face_compare_select_photo);
             container.setContentDescription(label.getText() + " · " + state);

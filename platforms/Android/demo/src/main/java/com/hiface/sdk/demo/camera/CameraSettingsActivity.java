@@ -2,11 +2,9 @@ package com.hiface.sdk.demo.camera;
 
 import android.os.Bundle;
 import android.widget.RadioGroup;
-
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
-
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.ui.DemoWindowInsets;
 

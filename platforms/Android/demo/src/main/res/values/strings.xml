@@ -27,10 +27,6 @@
     <string name="feature_face_detection_desc">View face boxes, landmarks, contours and pose</string>
     <string name="feature_face_recognition">Face Recognition</string>
     <string name="feature_face_recognition_desc">Camera-based 1:1 face recognition and liveness detection</string>
-    <string name="feature_face_verification">1:1 Face Recognition + Liveness</string>
-    <string name="feature_face_verification_desc">Select a Face ID, then verify with liveness</string>
-    <string name="feature_face_liveness">Liveness Only</string>
-    <string name="feature_face_liveness_desc">Random action challenges and passive liveness detection with both models</string>
     <string name="feature_face_enroll">Face Capture</string>
     <string name="feature_face_enroll_desc">Capture a face and save its feature</string>
     <string name="feature_face_search">Face Search and Recognition</string>
@@ -78,8 +74,6 @@
     <string name="capture_status_move_closer">Move closer</string>
     <string name="capture_status_not_frontal">Face forward</string>
     <string name="capture_status_hold_still">Hold still</string>
-    <string name="verification_select_face">Select a Face ID to verify</string>
-    <string name="verification_no_face_id">Capture a face first</string>
     <string name="verification_feature_missing">No feature exists for this Face ID</string>
     <string name="verification_match">Verification passed: %1$s, similarity %2$s</string>
     <string name="verification_mismatch">Verification failed: %1$s, similarity %2$s</string>
@@ -94,14 +88,9 @@
     <string name="liveness_perform_action">Please %1$s (%2$d/%3$d)</string>
     <string name="liveness_face_forward">Face the screen</string>
     <string name="liveness_speech_locale">en-US</string>
-    <string name="liveness_result_title">Liveness</string>
-    <string name="liveness_error_title">Unable to run liveness detection</string>
     <string name="liveness_result_passed">Liveness detection passed</string>
     <string name="liveness_result_rejected">Liveness detection failed</string>
-    <string name="liveness_result_error">Liveness detection error</string>
     <string name="liveness_score_format">%1$s\nPassive liveness score: %2$.4f</string>
-    <string name="liveness_retry">Retry</string>
-    <string name="liveness_back">Back</string>
     <string name="liveness_failed_no_face">Liveness detection failed: timed out waiting for a face</string>
     <string name="liveness_failed_face_lost">Liveness detection failed: the face left the frame</string>
     <string name="liveness_failed_multiple_faces">Liveness detection failed: multiple faces detected</string>
@@ -170,7 +159,6 @@
     <string name="search_ui_parameters">Recognition settings</string>
     <string name="search_ui_threshold_label">Similarity threshold</string>
     <string name="search_ui_threshold_help">0.75–0.85. Higher values require a closer match.</string>
-    <string name="search_ui_more_parameters">More settings: interval and timeout</string>
     <string name="search_ui_interval_label">Interval after a match</string>
     <string name="search_ui_interval_help">0–3000 ms, default 0. Wait time after a match.</string>
     <string name="search_ui_timeout_label">Search timeout</string>
@@ -210,7 +198,6 @@
     <string name="search_ui_import_continue">Continue import</string>
     <string name="search_ui_import_stop_exit">Stop and exit</string>
     <string name="search_ui_import_stopping">Stopping and saving…</string>
-    <string name="search_ui_import_failed">Batch import failed. Try again later.</string>
     <string name="search_ui_delete_title">Delete this face?</string>
     <string name="search_ui_delete_message">Face ID: %1$s\n\nEnroll again to restore this face.</string>
     <string name="search_ui_delete_accessibility">Delete face %1$s</string>
@@ -237,7 +224,6 @@
     <string name="search_metadata_group">Group</string>
     <string name="search_metadata_tag">Tag</string>
     <string name="search_metadata_save">Save metadata</string>
-    <string name="access_unavailable">Feature unavailable. Update or contact support.</string>
     <string name="uvc_search_allow_camera">Allow camera access.</string>
     <string name="uvc_search_stream_timeout">No video. Check the connection.</string>
     <string name="uvc_search_choose_cameras">Select both cameras in Settings.</string>
@@ -261,7 +247,6 @@
     <string name="uvc_search_ir_camera">IR camera</string>
     <string name="uvc_search_rgb_rotation">RGB rotation</string>
     <string name="uvc_search_ir_rotation">IR rotation</string>
-    <string name="uvc_search_threshold">IR threshold (development; device calibration required)</string>
     <string name="uvc_search_start">Start</string>
     <string name="uvc_search_stop">Stop</string>
     <string name="uvc_search_enroll">Enroll</string>
@@ -278,8 +263,6 @@
     <string name="uvc_search_devices_found">UVC cameras detected · confirm RGB / IR</string>
     <string name="uvc_search_done">Done</string>
     <string name="uvc_search_fixed_mode">Single-person search requires IR liveness.</string>
-    <string name="uvc_search_options">Group %1$s · Similarity %2$s · Interval %3$d ms · Timeout %4$d ms</string>
-    <string name="uvc_search_all_groups">All</string>
     <string name="uvc_search_details">Result details</string>
     <string name="uvc_search_usb_permission">Allow USB access and retry.</string>
     <string name="uvc_search_usb_detached">Camera disconnected. Reconnect to select cameras.</string>
@@ -322,8 +305,7 @@
     <string name="recognition_verify_person">Verify Face ID: %1$s; touch and hold to delete</string>
     <string name="recognition_start_liveness">Start liveness detection</string>
     <string name="recognition_canceled">Detection canceled</string>
-    <string name="recognition_passed">Passed</string>
-    <string name="recognition_rejected">Not passed</string>
+    <string name="recognition_result_frame">Final camera frame</string>
     <string name="recognition_invalid_options">Invalid detection options. Return and select them again.</string>
     <string name="enroll_single_photo">Choose a photo with exactly one face.</string>
 </resources>
