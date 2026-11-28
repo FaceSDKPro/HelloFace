@@ -34,6 +34,7 @@ final class CameraDemoModel: ObservableObject {
     @Published var previewMirrored = true
     @Published var overlayMirrored = true
     @Published var cameraResolution = DemoL10n.text("等待相机画面")
+    @Published private(set) var previewFrameSize = CGSize(width: 3, height: 4)
     @Published var cameraZoom = DemoL10n.text("等待倍率")
     @Published var cameraNotice: String?
     @Published var status = DemoL10n.text("正在启动…")
@@ -120,10 +121,9 @@ final class CameraDemoModel: ObservableObject {
         let detectionConfiguration = mode == .detection
             ? (try? FaceDetectionConfiguration(maxFaces: 10, includesDetailedLandmarks: true)) ?? .default
             : FaceDetectionConfiguration.default
-        // Search defaults to 640x480; saved camera settings take precedence.
-        // 搜索默认 640×480，已保存的相机设置优先。
+        // Saved camera preferences override the feature's default resolution.
         let cameraSettings = DemoCameraSettings.load(
-            defaultAnalysisResolution: mode == .search ? .low : .medium
+            defaultAnalysisResolution: mode == .search ? .high : .low
         )
         pipeline = CameraPipeline(
             sdk: sdk,
@@ -155,6 +155,7 @@ final class CameraDemoModel: ObservableObject {
         }
         pipeline.onAnalysisResolutionChanged = { [weak self] width, height, fallback in
             guard let self, self.started else { return }
+            previewFrameSize = CGSize(width: width, height: height)
             cameraResolution = "\(width) × \(height)" + (fallback ? DemoL10n.text(" · 已适配") : "")
         }
         pipeline.onZoomFactorChanged = { [weak self] factor, constrained in

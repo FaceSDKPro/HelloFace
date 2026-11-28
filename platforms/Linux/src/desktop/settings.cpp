@@ -62,7 +62,7 @@ std::vector<FormField> settingsFields(const DemoSettings& s) {
     for (auto action : s.verification_actions) { if (!verification_actions.empty()) verification_actions += ','; verification_actions += actionName(action); }
     auto number = [](float x) { std::ostringstream text; text << x; return text.str(); };
     auto boolean = [](bool x) { return x ? "1" : "0"; };
-    return {
+    std::vector<FormField> fields = {
         {"detection_faces", "Detection faces (1..10)", std::to_string(s.detection_faces)},
         {"detailed", "468 landmarks / pose (0/1)", boolean(s.detailed)},
         {"actions", "Actions: blink,nod,shake,mouth; empty = silent", actions},
@@ -88,6 +88,9 @@ std::vector<FormField> settingsFields(const DemoSettings& s) {
         {"camera_rotation", "Clockwise camera rotation (0/90/180/270)", std::to_string(s.camera_rotation)},
         {"ui_rotation", "Clockwise UI rotation (0/90/180/270)", std::to_string(s.ui_rotation)}
     };
+    if (!embeddedDisplay())
+        fields.push_back({"camera_resolution_override", "Override the feature default (0/1)", boolean(s.camera_resolution_overridden)});
+    return fields;
 }
 DemoSettings parseSettings(const std::vector<FormField>& fields) {
     std::map<std::string, std::string> values;
@@ -121,6 +124,8 @@ DemoSettings parseSettings(const std::vector<FormField>& fields) {
     s.group = values["group"]; s.tag = values["tag"];
     s.camera_width = integer("camera_width", 2, 1920); s.camera_height = integer("camera_height", 2, 1080);
     require(!(s.camera_width & 1) && !(s.camera_height & 1), "Camera dimensions must be even");
+    if (!embeddedDisplay() && values.count("camera_resolution_override"))
+        s.camera_resolution_overridden = integer("camera_resolution_override", 0, 1) != 0;
     s.camera_fps = integer("camera_fps", 1, 60); s.camera_mjpeg = integer("camera_mjpeg", 0, 1); s.mirror = integer("mirror", 0, 1);
     s.ui_rotation = integer("ui_rotation", 0, 270);
     require(s.ui_rotation % 90 == 0, "ui_rotation must be 0, 90, 180 or 270");
@@ -163,7 +168,16 @@ DemoSettings loadSettings(const std::string& file) {
         require(found, "Unknown saved setting: " + key);
     }
     require(input.eof(), "Invalid settings file");
-    return parseSettings(fields);
+    auto settings = parseSettings(fields);
+    if (!embeddedDisplay() && !seen.count("camera_resolution_override")) {
+        // Translate the old desktop presets only for files that predate the override flag.
+        const auto size = settings.cameraSize();
+        if (size == CameraSize{1280, 720})
+            settings.camera_height = desktop_camera_presets[1].height;
+        else if (size == CameraSize{1920, 1080})
+            settings.camera_width = desktop_camera_presets[2].width;
+    }
+    return settings;
 }
 void saveSettings(const std::string& file, const DemoSettings& settings) {
     const auto fields = settingsFields(settings);

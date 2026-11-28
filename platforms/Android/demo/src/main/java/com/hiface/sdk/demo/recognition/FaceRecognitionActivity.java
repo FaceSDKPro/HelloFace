@@ -315,7 +315,11 @@ public final class FaceRecognitionActivity extends AppCompatActivity {
             enabled = root.findViewById(R.id.actionsSwitch);
             choices = new CheckBox[]{root.findViewById(R.id.blinkChoice), root.findViewById(R.id.mouthChoice),
                     root.findViewById(R.id.shakeChoice), root.findViewById(R.id.nodChoice)};
-            root.findViewById(R.id.silentRow).setVisibility(standalone ? View.GONE : View.VISIBLE);
+            if (standalone) {
+                silent.setVisibility(View.GONE);
+                TextView description = root.findViewById(R.id.silentDescription);
+                description.setText(R.string.recognition_standalone_silent_hint);
+            }
             if (state != null) {
                 silent.setChecked(state.getBoolean(prefix + "silent", true));
                 enabled.setChecked(state.getBoolean(prefix + "enabled", enabled.isChecked()));
@@ -350,23 +354,24 @@ public final class FaceRecognitionActivity extends AppCompatActivity {
             if (!selected.isEmpty()) {
                 return selected;
             }
-            TextView validation = root.findViewById(R.id.actionValidation);
-            validation.setText(R.string.recognition_choose_action);
-            validation.setTextColor(ContextCompat.getColor(FaceRecognitionActivity.this, R.color.content_error));
-            validation.requestFocus();
+            root.findViewById(R.id.actionValidation).requestFocus();
             return null;
         }
 
         void render() {
-            root.findViewById(R.id.actionChoices).setVisibility(enabled.isChecked() ? View.VISIBLE : View.GONE);
-            TextView validation = root.findViewById(R.id.actionValidation);
-            validation.setText(R.string.recognition_action_order);
-            validation.setTextColor(
-                    ContextCompat.getColor(FaceRecognitionActivity.this, R.color.content_text_secondary));
-            ((TextView) root.findViewById(R.id.optionsHint)).setText(enabled.isChecked()
-                    ? R.string.recognition_combined_hint : silentEnabled()
-                                                           ? R.string.recognition_passive_hint :
-                                                           R.string.recognition_identity_hint);
+            boolean actionsEnabled = enabled.isChecked();
+            boolean hasSelection = false;
+            for (CheckBox choice : choices) {
+                hasSelection |= choice.isChecked();
+            }
+            root.findViewById(R.id.actionChoices).setVisibility(actionsEnabled ? View.VISIBLE : View.GONE);
+            root.findViewById(R.id.actionValidation)
+                    .setVisibility(actionsEnabled && !hasSelection ? View.VISIBLE : View.GONE);
+            TextView hint = root.findViewById(R.id.optionsHint);
+            hint.setVisibility(actionsEnabled ? View.GONE : View.VISIBLE);
+            if (!actionsEnabled) {
+                hint.setText(silentEnabled() ? R.string.recognition_passive_hint : R.string.recognition_identity_hint);
+            }
         }
 
         void save(Bundle state) {

@@ -140,7 +140,7 @@ export class CameraPreviewController {
       const capability: camera.CameraOutputCapability =
         manager.getSupportedOutputCapability(device, camera.SceneMode.NORMAL_VIDEO);
       const profiles: camera.Profile[] = CameraProfileSelector.select(
-        capability.previewProfiles, this.settings.highResolution);
+        capability.previewProfiles, this.settings.resolution);
       for (let index: number = 0; index < profiles.length; index++) {
         if (token !== this.generation) return;
         try {
@@ -265,7 +265,7 @@ export class CameraPreviewController {
         }
       }, 1000);
       this.callbacks.onCameraState(CameraPreviewState.RUNNING, this.frontCamera,
-        `${this.settings.highResolution ? DemoL10n.text("高清") : DemoL10n.text("标准")} ${profileLabel} · ` +
+        `${profileLabel} · ` +
         DemoL10n.text("相机会话 {0} fps{1} · ", [String(this.targetSessionFrameRate), String(this.analysisOutputRateLimited ? '' : DemoL10n.text("（应用节流）"))]) +
         `rotation ${this.rotationDegrees}° · NV21/BT.709 video`);
     } catch (error) {

@@ -1,20 +1,24 @@
 package com.hiface.sdk.demo.search;
 
 import org.junit.Test;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public final class FaceSearchOverlayExpiryScheduleTest {
-    @Test public void extendedDeadlinesKeepOneEarlyCheck() {
+    @Test
+    public void extendedDeadlinesKeepOneEarlyCheck() {
         FaceSearchOverlayExpirySchedule schedule = new FaceSearchOverlayExpirySchedule();
         assertFalse(schedule.update(0));
         assertTrue(schedule.update(1200));
-        for (int index = 0; index < 10_000; index++) assertFalse(schedule.update(1200 + index));
+        for (int index = 0; index < 10_000; index++) {
+            assertFalse(schedule.update(1200 + index));
+        }
         schedule.reset();
         assertTrue(schedule.update(11_200));
     }
 
-    @Test public void earlierDeadlinePreemptsAndEmptyContentCancels() {
+    @Test
+    public void earlierDeadlinePreemptsAndEmptyContentCancels() {
         FaceSearchOverlayExpirySchedule schedule = new FaceSearchOverlayExpirySchedule();
         assertTrue(schedule.update(1200));
         assertTrue(schedule.update(1000));

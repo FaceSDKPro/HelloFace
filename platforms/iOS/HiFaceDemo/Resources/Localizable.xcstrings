@@ -1,6 +1,125 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "低 · {0} × {1}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Low · {0} × {1}"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "低 · {0} × {1}"
+          }
+        }
+      }
+    },
+    "中 · {0} × {1}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Medium · {0} × {1}"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中 · {0} × {1}"
+          }
+        }
+      }
+    },
+    "高 · {0} × {1}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "High · {0} × {1}"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "高 · {0} × {1}"
+          }
+        }
+      }
+    },
+    "根据你的业务场景，配置合适的摄像头支持的分辨率。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a camera-supported resolution that suits your use case."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "根据你的业务场景，配置合适的摄像头支持的分辨率。"
+          }
+        }
+      }
+    },
+    "未选择档位时，实时人脸搜索使用高档，其他相机功能使用低档。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live face search defaults to High. Other camera features default to Low."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未选择档位时，实时人脸搜索使用高档，其他相机功能使用低档。"
+          }
+        }
+      }
+    },
+    "镜头不支持目标尺寸时，使用兼容规格。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The camera uses a compatible size if it cannot provide the selected dimensions."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "镜头不支持目标尺寸时，使用兼容规格。"
+          }
+        }
+      }
+    },
+    "按功能默认": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use feature defaults"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按功能默认"
+          }
+        }
+      }
+    },
     " · 已适配": {
       "extractionState": "manual",
       "localizations": {
@@ -9895,19 +10014,19 @@
         }
       }
     },
-    "选择已录入的人脸，与当前相机人脸进行比对": {
+    "1:1人脸验证+活体检测": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose an enrolled reference to compare with the camera face."
+            "value": "1:1 Face Verification + Liveness"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "选择已录入的人脸，与当前相机人脸进行比对"
+            "value": "1:1人脸验证+活体检测"
           }
         }
       }
@@ -9925,23 +10044,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "独立活体检测"
-          }
-        }
-      }
-    },
-    "不比对身份。静默活体始终开启，可叠加动作挑战。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No identity comparison. Passive liveness is always on; action challenges are optional."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "不比对身份。静默活体始终开启，可叠加动作挑战。"
           }
         }
       }
@@ -9980,6 +10082,23 @@
         }
       }
     },
+    "始终开启，无需指定动作即可检测是否为真人。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Always on. Checks for a live person without requiring an action."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "始终开启，无需指定动作即可检测是否为真人。"
+          }
+        }
+      }
+    },
     "动作活体": {
       "extractionState": "manual",
       "localizations": {
@@ -10010,23 +10129,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "勾选需要完成的动作"
-          }
-        }
-      }
-    },
-    "至少选择一个动作，按下方顺序执行": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Choose at least one action; actions run in the order below"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "至少选择一个动作，按下方顺序执行"
           }
         }
       }
@@ -10082,40 +10184,6 @@
         }
       }
     },
-    "按勾选顺序完成动作，再正对镜头完成检测。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Perform the selected actions in order, then face the camera to finish."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "按勾选顺序完成动作，再正对镜头完成检测。"
-          }
-        }
-      }
-    },
-    "已录入的人脸": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enrolled references"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已录入的人脸"
-          }
-        }
-      }
-    },
     "相机录入": {
       "extractionState": "manual",
       "localizations": {
@@ -10133,36 +10201,19 @@
         }
       }
     },
-    "左右滑动，点击头像开始 1:1 验证": {
+    "点击头像开始验证，长按删除（左右滑动列表）": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Swipe sideways and tap a portrait to verify"
+            "value": "Tap a portrait to verify; touch and hold to delete (swipe the list sideways)"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "左右滑动，点击头像开始 1:1 验证"
-          }
-        }
-      }
-    },
-    "左右滑动，点击头像开始 1:1 验证，长按删除": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Swipe sideways; tap a portrait to verify, or touch and hold to delete"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "左右滑动，点击头像开始 1:1 验证，长按删除"
+            "value": "点击头像开始验证，长按删除（左右滑动列表）"
           }
         }
       }

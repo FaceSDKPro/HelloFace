@@ -11,17 +11,19 @@ export struct RecognitionOptionsPanel {
 
   build() {
     Column({ space: 11 }) {
-      if (!this.standalone) {
-        Row({ space: 12 }) {
-          Column({ space: 3.3 }) {
-            Text(DemoL10n.text('静默活体')).fontSize(17).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText)
-            Text(DemoL10n.text('检测是否为真人，无需指定动作')).fontSize(12).fontColor(DemoTheme.contentSecondary)
-          }.alignItems(HorizontalAlign.Start).layoutWeight(1)
+      Row({ space: 12 }) {
+        Column({ space: 3.3 }) {
+          Text(DemoL10n.text('静默活体')).fontSize(17).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText)
+          Text(DemoL10n.text(this.standalone ?
+            '始终开启，无需指定动作即可检测是否为真人。' : '检测是否为真人，无需指定动作'))
+            .fontSize(12).fontColor(DemoTheme.contentSecondary)
+        }.alignItems(HorizontalAlign.Start).layoutWeight(1)
+        if (!this.standalone) {
           Toggle({ type: ToggleType.Switch, isOn: this.silent }).selectedColor(DemoTheme.contentAccent)
             .onChange((checked: boolean): void => { this.silent = checked; })
             .accessibilityText(DemoL10n.text('静默活体'))
-        }.width('100%')
-      }
+        }
+      }.width('100%')
       Row({ space: 12 }) {
         Column({ space: 3.3 }) {
           Text(DemoL10n.text('动作活体')).fontSize(17).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText)
@@ -32,8 +34,9 @@ export struct RecognitionOptionsPanel {
           .accessibilityText(DemoL10n.text('动作活体'))
       }.width('100%')
       if (this.actionsEnabled) {
-        Text(DemoL10n.text(this.actionMask === 0 ? '请至少勾选一个动作' : '至少选择一个动作，按下方顺序执行'))
-          .fontSize(12).fontColor(this.actionMask === 0 ? DemoTheme.contentError : DemoTheme.contentSecondary).width('100%')
+        if (this.actionMask === 0) {
+          Text(DemoL10n.text('请至少勾选一个动作')).fontSize(12).fontColor(DemoTheme.contentError).width('100%')
+        }
         Row({ space: 2 }) {
           ForEach(this.titles, (title: string, index: number) => {
             Row({ space: 2 }) {
@@ -46,11 +49,12 @@ export struct RecognitionOptionsPanel {
             }.layoutWeight(1).height(40)
           }, (title: string): string => title)
         }.width('100%')
+      } else {
+        Text(DemoL10n.text(this.standalone || this.silent ?
+          '正对镜头即可，无需做指定动作。' : '仅进行 1:1 人脸比对，不进行活体检测。'))
+          .fontSize(12).fontColor(DemoTheme.contentSecondary).width('100%').padding(10)
+          .backgroundColor('#EFF7F3').borderRadius(10)
       }
-      Text(DemoL10n.text(this.actionsEnabled ? '按勾选顺序完成动作，再正对镜头完成检测。' : this.standalone || this.silent ?
-        '正对镜头即可，无需做指定动作。' : '仅进行 1:1 人脸比对，不进行活体检测。'))
-        .fontSize(12).fontColor(DemoTheme.contentSecondary).width('100%').padding(10)
-        .backgroundColor('#EFF7F3').borderRadius(10)
     }.width('100%').alignItems(HorizontalAlign.Start)
   }
 }

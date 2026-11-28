@@ -6,11 +6,11 @@
 
 使用 Android 6.0 / API 23 或更高版本的 ARM64 或 ARMv7 设备。
 
-当前接入示例版本为 `0.8.16`。将随包提供的 `maven-repository` 加入项目的 Gradle 仓库配置，保留 `google()` 和 `mavenCentral()` 下载依赖。通过 Maven Central 获取 HiFace 前请确认同版本已上架。在应用模块添加：
+当前接入示例版本为 `0.8.17`。将随包提供的 `maven-repository` 加入项目的 Gradle 仓库配置，保留 `google()` 和 `mavenCentral()` 下载依赖。通过 Maven Central 获取 HiFace 前请确认同版本已上架。在应用模块添加：
 
 ```kotlin
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.16")
+    implementation("io.github.facesdkpro:hiface-android:0.8.17")
 }
 android {
     androidResources { noCompress += "bphfm" }
@@ -233,6 +233,8 @@ FaceSearchSessionConfig config = FaceSearchSessionConfig.builder()
 ## 错误处理与资源释放
 
 通过 `HiFaceResult.isSuccess()` 判断后，再读取 `requireValue()` 或 `requireError().getCode()`。构建器数值越界会抛出 `IllegalArgumentException`；1:1 配置未设置 `referenceFeature` 时，`build()` 抛出 `IllegalStateException`。SDK 回调异步投递到主线程。页面复用同一个 SDK，退出时调用 `close()`，也可在主线程通过 `builder(...).lifecycleOwner(owner)` 自动关闭。
+
+使用 `HiFaceErrorUi.isAccessError(error.getCode())` 判断是否为授权错误。`HiFaceErrorUi.messageFor(context, error)` 返回带稳定编号的本地化提示，例如授权到期显示“功能不可用（错误码 1605）”，具体原因可通过 `error.getCode()` 区分。Demo 的 `DemoErrorUi.accessMessage(code)` 对授权错误返回这条提示的资源 ID，对其他错误返回 `0`。
 
 | 情况 | 处理方式 |
 |---|---|

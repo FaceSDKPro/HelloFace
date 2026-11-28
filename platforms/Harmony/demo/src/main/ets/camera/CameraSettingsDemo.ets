@@ -2,7 +2,10 @@ import { DemoL10n } from '../ui/DemoL10n';
 import { DemoTheme } from '../ui/DemoTheme';
 import { DemoPageHeader } from '../ui/DemoPageHeader';
 import { common } from '@kit.AbilityKit';
-import { CameraDemoSettings, CameraDemoSettingsStore } from './CameraDemoSettings';
+import {
+  CAMERA_RESOLUTION_PRESETS, CameraAnalysisResolution, CameraDemoSettings, CameraDemoSettingsStore,
+  CameraResolutionPreset, cameraResolutionLabel
+} from './CameraDemoSettings';
 
 /**
  * Shared resolution and coordinate-mirroring settings for all real-time Demos.
@@ -12,7 +15,7 @@ import { CameraDemoSettings, CameraDemoSettingsStore } from './CameraDemoSetting
 @Component
 export struct CameraSettingsDemo {
   onExit: () => void = () => {};
-  @State private highResolution: boolean = false;
+  @State private resolution: CameraAnalysisResolution | undefined = undefined;
   @State private mirrorCoordinates: boolean = false;
   @State private loading: boolean = true;
   @State private saveState: string = DemoL10n.text("正在读取设置…");
@@ -47,13 +50,15 @@ export struct CameraSettingsDemo {
               .fontColor(DemoTheme.contentText)
               .fontWeight(FontWeight.Bold)
               .width('100%')
-            Text(DemoL10n.text("标准更省电；高清保留远处细节，自动选择 1080p 内兼容规格。"))
+            Text(DemoL10n.text("根据你的业务场景，配置合适的摄像头支持的分辨率。") + '\n' +
+              DemoL10n.text("未选择档位时，实时人脸搜索使用高档，其他相机功能使用低档。"))
               .fontSize(13)
               .lineHeight(20)
               .fontColor(DemoTheme.contentSecondary)
               .width('100%')
-            this.ResolutionOption('standard', DemoL10n.text("标准 · 接近 640×480"), false)
-            this.ResolutionOption('high', DemoL10n.text("高清 · 接近 1280×720"), true)
+            ForEach(CAMERA_RESOLUTION_PRESETS, (preset: CameraResolutionPreset) => {
+              this.ResolutionOption(preset.tier, cameraResolutionLabel(preset))
+            }, (preset: CameraResolutionPreset): string => preset.tier)
           }
           .padding(20)
           .backgroundColor('#FFFFFF')
@@ -101,17 +106,17 @@ export struct CameraSettingsDemo {
   }
 
   @Builder
-  private ResolutionOption(value: string, label: string, high: boolean) {
+  private ResolutionOption(value: CameraAnalysisResolution, label: string) {
     Row({ space: 8 }) {
       Radio({ value: value, group: 'camera-resolution' })
-        .checked(this.highResolution === high)
+        .checked(this.resolution === value)
         .enabled(!this.loading)
         .radioStyle({ checkedBackgroundColor: DemoTheme.contentAccent })
         .accessibilityText(label)
-        .onChange((checked: boolean): void => { if (checked) this.setHighResolution(high); })
+        .onChange((checked: boolean): void => { if (checked) this.setResolution(value); })
       Text(label).fontSize(15).fontColor(DemoTheme.contentText).layoutWeight(1)
     }.width('100%').constraintSize({ minHeight: 56 }).padding({ left: 8, right: 8 })
-      .enabled(!this.loading).onClick(() => this.setHighResolution(high))
+      .enabled(!this.loading).onClick(() => this.setResolution(value))
   }
 
   private async loadSettings(generation: number): Promise<void> {
@@ -129,7 +134,7 @@ export struct CameraSettingsDemo {
       if (!this.visible || generation !== this.lifecycleGeneration) {
         return;
       }
-      this.highResolution = settings.highResolution;
+      this.resolution = settings.resolution;
       this.mirrorCoordinates = settings.mirrorCoordinates;
       this.saveState = DemoL10n.text("已加载 · {0} · 坐标校正{1}", [String(settings.resolutionLabel()), String(settings.mirrorCoordinates ? DemoL10n.text("开") : DemoL10n.text("关"))]);
     } catch (error) {
@@ -143,11 +148,11 @@ export struct CameraSettingsDemo {
     }
   }
 
-  private setHighResolution(enabled: boolean): void {
-    if (this.loading || this.highResolution === enabled) {
+  private setResolution(value: CameraAnalysisResolution): void {
+    if (this.loading || this.resolution === value) {
       return;
     }
-    this.highResolution = enabled;
+    this.resolution = value;
     this.requestSave();
   }
 
@@ -196,7 +201,7 @@ export struct CameraSettingsDemo {
     }
     while (this.savePending) {
       this.savePending = false;
-      const settings = new CameraDemoSettings(this.highResolution, this.mirrorCoordinates);
+      const settings = new CameraDemoSettings(this.resolution, this.mirrorCoordinates);
       try {
         await CameraDemoSettingsStore.save(context, settings);
         if (this.visible) {

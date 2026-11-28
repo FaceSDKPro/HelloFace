@@ -16,7 +16,11 @@ struct CameraResolutionPolicyTests {
         let typical = [option(3840, 2160), option(1920, 1080), option(640, 480), option(1280, 720)]
         precondition(select(typical, .low) == 2)
         precondition(select(typical, .medium) == 3)
-        precondition(select(typical, .high) == 1)
+        precondition(select(typical, .high) == 3)
+        let fourThree = [option(640, 480), option(1280, 960), option(1440, 1080)]
+        precondition(select(fourThree, .low) == 0)
+        precondition(select(fourThree, .medium) == 1)
+        precondition(select(fourThree, .high) == 2)
         precondition(select([], .high) == nil)
         precondition(select([option(3840, 2160), option(1440, 1440)], .high) == nil)
         precondition(select([option(1920, 1080), option(1280, 720)], .low) == 1)
@@ -38,7 +42,7 @@ struct CameraResolutionPolicyTests {
         }
         func searchSelect(_ formats: [CameraFormatOption]) -> Int? {
             CameraResolutionPolicy.selectIndex(
-                from: formats, tier: .low, sdkLimit: limit, preferredFrameRates: [15, 10]
+                from: formats, tier: .high, sdkLimit: limit, preferredFrameRates: [15, 10]
             )
         }
         let fixed30 = captureOption(1280, 720, minimum: 30, maximum: 30)
@@ -80,11 +84,12 @@ struct CameraResolutionPolicyTests {
         precondition(searchSelect([captureOption(3840, 2160, minimum: 5, maximum: 30), fixed30]) == 1)
         precondition(searchSelect([captureOption(3840, 2160, minimum: 30, maximum: 30)]) == nil)
         precondition(searchSelect([captureOption(641, 480, minimum: 30, maximum: 30)]) == nil)
-        precondition(CameraAnalysisResolution(storedValue: "standard") == .medium)
-        precondition(CameraAnalysisResolution(storedValue: nil) == .medium)
-        precondition(CameraAnalysisResolution(storedValue: "corrupt") == .medium)
-        precondition(CameraAnalysisResolution(storedValue: nil, fallback: .low) == .low)
-        precondition(CameraAnalysisResolution(storedValue: "corrupt", fallback: .low) == .low)
+        precondition(CameraAnalysisResolution(storedValue: "standard") == .low)
+        precondition(CameraAnalysisResolution(storedValue: nil) == .low)
+        precondition(CameraAnalysisResolution(storedValue: "corrupt") == .low)
+        precondition(CameraAnalysisResolution(storedValue: nil, fallback: .high) == .high)
+        precondition(CameraAnalysisResolution(storedValue: "low", fallback: .high) == .low)
+        precondition(CameraAnalysisResolution(storedValue: "medium", fallback: .high) == .medium)
         precondition(CameraAnalysisResolution(storedValue: "high", fallback: .low) == .high)
         for tier in CameraAnalysisResolution.allCases {
             precondition(CameraAnalysisResolution(storedValue: tier.rawValue) == tier)

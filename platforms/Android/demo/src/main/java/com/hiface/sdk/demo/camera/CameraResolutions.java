@@ -11,27 +11,36 @@ import androidx.camera.core.resolutionselector.ResolutionSelector;
 import androidx.camera.core.resolutionselector.ResolutionStrategy;
 import com.hiface.sdk.frame.Yuv420Frame;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
- * Prefer VGA preview; try at most three advertised analysis sizes near 720P, then use the default
- * size.
- *
- * 预览优先 VGA；分析最多尝试三个接近 720P 的实际尺寸，最后使用默认尺寸。
+ * Target VGA for preview. The selected tier controls the separate analysis stream.
  */
 final class CameraResolutions {
-    static final Size DEFAULT = new Size(640, 480);
-    private static final long HIGH_PIXELS = 1280L * 720;
+    private static final int MAX_TIER_CANDIDATES = 3;
+
+    enum Tier {
+        LOW(640, 480), MEDIUM(1280, 960), HIGH(1440, 1080);
+
+        final Size size;
+
+        Tier(int width, int height) {
+            size = new Size(width, height);
+        }
+    }
 
     private CameraResolutions() {
     }
 
     static ResolutionSelector preview() {
-        return selector(DEFAULT, ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER);
+        return selector(Tier.LOW.size, ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER);
     }
 
     static ResolutionSelector analysis(Size size) {
+        // The fragment retries the next analysis size if CameraX cannot bind this stream pair.
         return selector(size, ResolutionStrategy.FALLBACK_RULE_NONE);
     }
 
@@ -41,45 +50,52 @@ final class CameraResolutions {
     }
 
     @SuppressLint("UnsafeOptInUsageError")
-    static List<Size> analysisCandidates(CameraInfo camera, boolean highResolution) {
+    static List<Size> analysisCandidates(CameraInfo camera, Tier tier) {
         StreamConfigurationMap map = Camera2CameraInfo.from(camera)
                 .getCameraCharacteristic(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
         Size[] supported = map == null ? null : map.getOutputSizes(ImageFormat.YUV_420_888);
+        Size standard = Tier.LOW.size;
         List<Size> sizes = new ArrayList<>();
         if (supported != null) {
             for (Size size : supported) {
                 if (Math.max(size.getWidth(), size.getHeight()) <= Yuv420Frame.MAX_LONG_SIDE_PIXELS
                         && Math.min(size.getWidth(), size.getHeight()) <= Yuv420Frame.MAX_SHORT_SIDE_PIXELS
-                        && !sizes.contains(size)) {
+                        && (size.getWidth() & 1) == 0 && (size.getHeight() & 1) == 0
+                        && size.getWidth() > 0 && size.getHeight() > 0 && !sizes.contains(size)) {
                     sizes.add(size);
                 }
             }
         }
         if (sizes.isEmpty()) {
-            return Collections.singletonList(DEFAULT);
+            // CameraX can still try the nominal sizes when Camera2 reports no usable sizes.
+            return tier == Tier.LOW ? Collections.singletonList(standard) : Arrays.asList(tier.size, standard);
         }
-        sortByPixels(sizes, pixels(DEFAULT));
-        Size normal = sizes.contains(DEFAULT) ? DEFAULT : sizes.get(0);
+        Comparator<Size> nearestStandard = (a, b) -> Double.compare(score(a, standard), score(b, standard));
+        Size standardFallback = sizes.contains(standard) ? standard : Collections.min(sizes, nearestStandard);
         List<Size> candidates = new ArrayList<>();
-        if (highResolution) {
-            sortByPixels(sizes, HIGH_PIXELS);
+        // Bound retries above VGA, then fall back to the size closest to VGA.
+        if (tier != Tier.LOW) {
+            Collections.sort(sizes, (a, b) -> {
+                int byTier = Double.compare(score(a, tier.size), score(b, tier.size));
+                return byTier != 0 ? byTier : nearestStandard.compare(a, b);
+            });
             for (Size size : sizes) {
-                if (pixels(size) > pixels(DEFAULT) && pixels(size) <= HIGH_PIXELS * 3 / 2
-                        && !size.equals(normal)) {
+                if (pixels(size) > pixels(standard) && pixels(size) <= pixels(tier.size)
+                        && !size.equals(standardFallback)) {
                     candidates.add(size);
-                }
-                if (candidates.size() == 3) {
-                    break;
+                    if (candidates.size() == MAX_TIER_CANDIDATES) break;
                 }
             }
         }
-        candidates.add(normal);
+        candidates.add(standardFallback);
         return candidates;
     }
 
-    private static void sortByPixels(List<Size> sizes, long target) {
-        Collections.sort(sizes, (a, b) -> Long.compare(
-                Math.abs(pixels(a) - target), Math.abs(pixels(b) - target)));
+    private static double score(Size size, Size target) {
+        double ratio = (double) Math.max(size.getWidth(), size.getHeight())
+                / Math.min(size.getWidth(), size.getHeight());
+        // Use pixel-count distance with a soft preference for 4:3 in either orientation.
+        return Math.abs(pixels(size) - pixels(target)) + 100_000 * Math.abs(ratio - 4.0 / 3.0);
     }
 
     private static long pixels(Size size) {

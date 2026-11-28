@@ -15,12 +15,14 @@ struct UiRect {
     bool contains(int x, int y) const { return x >= left && x < right && y >= top && y < bottom; }
 };
 // Recognition uses logical pixels for Win32 controls and painted text alike.
+enum class RecognitionActions { Disabled, Selected, Empty };
+
 struct RecognitionCardLayout {
     static constexpr int tile_width = 104, tile_step = 112;
-    UiRect bounds, title, description, passive, action_toggle, choices[4], hint;
-    UiRect start, album_reference, add_reference, reference_title, reference_help, strip, strip_scroll;
+    UiRect bounds, title, passive, action_toggle, choices[4], hint;
+    UiRect start, album_reference, add_reference, reference_help, strip, strip_scroll;
 
-    RecognitionCardLayout(int x, int y, int width, bool verification, bool actions, bool has_references = false) {
+    RecognitionCardLayout(int x, int y, int width, bool verification, RecognitionActions actions, bool has_references = false) {
         const int left = x + 16, right = x + width - 16;
         double row = y + 12;
         auto place = [&](int height, int gap) {
@@ -30,11 +32,10 @@ struct RecognitionCardLayout {
             row += height + gap * 1.1;
             return area;
         };
-        title = place(32, 2);
-        description = place(44, 4);
-        if (verification) passive = place(42, 4);
+        title = place(32, verification ? 9 : 2);
+        passive = place(verification ? 42 : 60, 4);
         action_toggle = place(42, 6);
-        if (actions) {
+        if (actions != RecognitionActions::Disabled) {
             const auto choice_row = place(42, 8);
             constexpr int gap = 8;
             const int available = choice_row.width() - 3 * gap;
@@ -43,9 +44,8 @@ struct RecognitionCardLayout {
                     left + (i + 1) * available / 4 + i * gap, choice_row.bottom};
             }
         }
-        hint = place(42, 10);
+        if (actions != RecognitionActions::Selected) hint = place(42, 10);
         if (verification) {
-            reference_title = place(28, 4);
             reference_help = place(36, 4);
             if (has_references) {
                 strip = place(112, 4);
@@ -58,15 +58,16 @@ struct RecognitionCardLayout {
         } else {
             start = place(46, 0);
         }
-        bounds = {x, y, x + width, static_cast<int>(std::lround(row)) + 14};
+        bounds = {x, y, x + width, static_cast<int>(std::lround(row)) + (verification ? 6 : 14)};
     }
 };
 
 struct RecognitionLayout {
     UiRect viewport, scrollbar, result, result_summary, result_frame;
-    RecognitionCardLayout verification{0, 0, 240, true, false}, liveness{0, 0, 240, false, false};
+    RecognitionCardLayout verification{0, 0, 240, true, RecognitionActions::Disabled};
+    RecognitionCardLayout liveness{0, 0, 240, false, RecognitionActions::Disabled};
     int content_height = 0;
-    RecognitionLayout(int width, int height, bool has_result, bool verify_actions, bool live_actions,
+    RecognitionLayout(int width, int height, bool has_result, RecognitionActions verify_actions, RecognitionActions live_actions,
         bool has_references, int scroll = 0, int image_width = 0, int image_height = 0) {
         constexpr int gap = 12;
         const int result_height = image_width > 0 && image_height > 0 ? 146 : 116;
@@ -158,6 +159,12 @@ inline ImageFit fitImage(int width, int height, const UiRect& area) {
     fit.width = static_cast<int>(width * fit.scale); fit.height = static_cast<int>(height * fit.scale);
     fit.x = area.left + (area.width() - fit.width) / 2; fit.y = area.top + (area.height() - fit.height) / 2;
     return fit;
+}
+inline UiRect cameraViewfinder(UiRect stage, int inset, int width, int height) {
+    inset = std::max(0, std::min({inset, (stage.width() - 1) / 2, (stage.height() - 1) / 2}));
+    const auto fit = fitImage(width, height,
+        {stage.left + inset, stage.top + inset, stage.right - inset, stage.bottom - inset});
+    return {fit.x, fit.y, fit.x + fit.width, fit.y + fit.height};
 }
 struct PhotoLayout {
     UiRect client, photo, details, strip;

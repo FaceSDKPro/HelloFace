@@ -1,11 +1,7 @@
 import { DemoL10n } from '../ui/DemoL10n';
 import { camera } from '@kit.CameraKit';
 import { Yuv420Frame } from 'hiface';
-
-const STANDARD_WIDTH: number = 640;
-const STANDARD_HEIGHT: number = 480;
-const HIGH_WIDTH: number = 1280;
-const HIGH_HEIGHT: number = 720;
+import { CameraAnalysisResolution, CameraResolutionPreset, cameraResolutionPreset } from './CameraDemoSettings';
 
 /**
  * Use the same profile for both outputs and bound restart cost to preferred, near-standard, and
@@ -14,9 +10,9 @@ const HIGH_HEIGHT: number = 720;
  * 双路使用相同规格；最多尝试首选、标准附近和最小规格，限制重启成本。
  */
 export class CameraProfileSelector {
-  static select(profiles: Array<camera.Profile>, highResolution: boolean): camera.Profile[] {
-    const targetWidth: number = highResolution ? HIGH_WIDTH : STANDARD_WIDTH;
-    const targetHeight: number = highResolution ? HIGH_HEIGHT : STANDARD_HEIGHT;
+  static select(profiles: Array<camera.Profile>, resolution: CameraAnalysisResolution | undefined): camera.Profile[] {
+    const standard: CameraResolutionPreset = cameraResolutionPreset(CameraAnalysisResolution.LOW);
+    const target: CameraResolutionPreset = cameraResolutionPreset(resolution);
     const valid: camera.Profile[] = [];
     for (const profile of profiles) {
       const width: number = profile.size.width;
@@ -30,22 +26,29 @@ export class CameraProfileSelector {
         item.size.width === width && item.size.height === height)) valid.push(profile);
     }
     if (valid.length === 0) throw new Error(DemoL10n.text("没有符合 1080p 上限的 YUV_420_SP 预览规格"));
-    const score = (profile: camera.Profile, width: number, height: number): number =>
-      Math.abs(profile.size.width * profile.size.height - width * height) +
-        Math.abs(profile.size.width / profile.size.height - width / height) * 100000;
-    valid.sort((a: camera.Profile, b: camera.Profile): number =>
-      score(a, targetWidth, targetHeight) - score(b, targetWidth, targetHeight));
-    const preferred: camera.Profile = valid[0];
+    const pixels = (profile: camera.Profile): number => profile.size.width * profile.size.height;
+    const score = (profile: camera.Profile, preset: CameraResolutionPreset): number =>
+      Math.abs(pixels(profile) - preset.width * preset.height) +
+        Math.abs(profile.size.width / profile.size.height - preset.width / preset.height) * 100000;
+    // Treat the tier as a pixel budget with a soft 4:3 preference. When nothing fits, allow a
+    // larger profile that still satisfies the SDK limits above.
+    const inBudget: camera.Profile[] = valid.filter((item: camera.Profile): boolean =>
+      pixels(item) <= target.width * target.height);
+    const candidates: camera.Profile[] = inBudget.length > 0 ? inBudget : valid;
+    candidates.sort((a: camera.Profile, b: camera.Profile): number =>
+      score(a, target) - score(b, target));
+    const preferred: camera.Profile = candidates[0];
     const smaller: camera.Profile[] = valid.filter((item: camera.Profile): boolean =>
-      item.size.width * item.size.height < preferred.size.width * preferred.size.height);
+      pixels(item) < pixels(preferred));
     smaller.sort((a: camera.Profile, b: camera.Profile): number =>
-      score(a, STANDARD_WIDTH, STANDARD_HEIGHT) - score(b, STANDARD_WIDTH, STANDARD_HEIGHT));
+      score(a, standard) - score(b, standard));
     const result: camera.Profile[] = [preferred];
     if (smaller.length > 0) {
-      result.push(smaller[0]);
-      smaller.sort((a: camera.Profile, b: camera.Profile): number =>
-        a.size.width * a.size.height - b.size.width * b.size.height);
-      if (smaller[0] !== result[1]) result.push(smaller[0]);
+      const standardFallback: camera.Profile = smaller[0];
+      const smallest: camera.Profile = smaller.reduce((best: camera.Profile, item: camera.Profile): camera.Profile =>
+        pixels(item) < pixels(best) ? item : best, standardFallback);
+      result.push(standardFallback);
+      if (smallest !== standardFallback) result.push(smallest);
     }
     return result;
   }

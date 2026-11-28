@@ -66,12 +66,12 @@ On Ubuntu, desktop runtime tools can be installed with `sudo apt install libx11-
 No Qt, OpenCV or compiler is required to run prebuilt programs. Launch in a graphical desktop terminal;
 headless systems can use self-tests and the CLI. Camera support is V4L2 single-plane or multiplanar MMAP with
 YUYV/MJPEG/NV12/NV21 (packed in one buffer plane),
-requesting 640×480 at 25 FPS on ordinary desktops (640×360 for embedded displays); the driver negotiates actual parameters.
+requesting 640×480 at 25 FPS on ordinary desktops, or 1440×1080 at 25 FPS for live face search. Embedded displays default to 640×360. The driver negotiates the actual parameters.
 Advanced FPS requests retain the selected value from 1 to 60; search idle never requests a higher rate than the
 configured value. Preview and recognition retain their own processing caps, regardless of camera capture FPS.
 Set `HIFACE_CAMERA_ROTATE=left` (aliases: `ccw`, `90ccw`) to turn a landscape sensor frame into
-a portrait frame before both rendering and face analysis (480×640 on desktop defaults, 360×640 on board defaults). Use `right` (aliases: `cw`, `90cw`) for the opposite direction.
-On ordinary desktops, **SDK Settings** saves 640×480 / 1280×720 / 1920×1080 presets, mirror and **Camera rotation** automatically. Camera rotation affects preview and analysis together while desktop controls remain upright. A saved angle overrides the startup `HIFACE_CAMERA_ROTATE` default; the two are not added.
+a portrait frame before both rendering and face analysis. Use `right` (aliases: `cw`, `90cw`) for the opposite direction.
+On ordinary desktops, **SDK Settings** saves the selected resolution preset (Low 640×480, Medium 1280×960, or High 1440×1080), mirror and **Camera rotation** automatically. A saved resolution overrides the feature default. Camera rotation affects preview and analysis together while desktop controls remain upright. A saved angle overrides the startup `HIFACE_CAMERA_ROTATE` default; the two are not added.
 
 In embedded mode, open **SDK Settings**, select a clockwise **UI rotation** (0°, 90°, 180° or 270°); the choice saves automatically. The complete interface, camera preview, face boxes and landmarks rotate together; mouse/touch coordinates follow the same transform. The angle is saved in `settings.conf` and restored on restart. Existing `HIFACE_DISPLAY_ROTATE` aliases remain startup defaults when no angle is saved; numeric `0`, `90`, `180` and `270` are also supported. Runtime rotation requires `libXrender.so.1`.
 

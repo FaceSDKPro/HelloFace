@@ -129,7 +129,7 @@ private:
         std::shared_ptr<CameraFrame> frame, analysis_frame;
     };
     void captureLoop();
-    void configureCapture(const std::string& device, const DemoSettings& settings, bool open);
+    void configureCapture(const std::string& device, const DemoSettings& settings, bool open, bool desktop_search = false);
     void setCapturePolicy(bool idle, int64_t white_light_until);
     CaptureState captureSnapshot();
     void run(const std::string& models, const std::string& database, std::string device, bool smoke, const std::string& assets);

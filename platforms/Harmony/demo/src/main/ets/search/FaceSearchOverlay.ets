@@ -15,7 +15,7 @@ export class FaceSearchOverlay {
     state.expire(now);
     const frame: FaceSearchFrame | undefined = state.frame();
     if (frame === undefined || frame.faces.length === 0) return;
-    const transform: PreviewCoordinateTransform = PreviewCoordinateTransform.fill(
+    const transform: PreviewCoordinateTransform = PreviewCoordinateTransform.fit(
       frame.imageWidth, frame.imageHeight, width, height, mirrored);
     context.save();
     // Match Android's 14 * density size so text does not shrink on high-density screens.

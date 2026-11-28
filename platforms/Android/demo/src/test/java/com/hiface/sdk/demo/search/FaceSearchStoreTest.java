@@ -6,11 +6,8 @@ import com.hiface.sdk.common.HiFaceResult;
 import com.hiface.sdk.search.FaceSearchDatabase;
 import com.hiface.sdk.search.FaceSearchEntry;
 import com.hiface.sdk.search.FaceSearchFeatureEntry;
-
-import org.junit.Test;
-
-import java.lang.reflect.Proxy;
 import java.lang.reflect.Field;
+import java.lang.reflect.Proxy;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayDeque;
@@ -23,7 +20,7 @@ import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-
+import org.junit.Test;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -37,7 +34,9 @@ public final class FaceSearchStoreTest {
         QueuedExecutor worker = new QueuedExecutor();
         Queue<Runnable> main = new ArrayDeque<>();
         FaceSearchStore store = new FaceSearchStore(worker, dispatcher(main),
-                () -> { throw new AssertionError("Cancelled work opened database"); });
+                () -> {
+                    throw new AssertionError("Cancelled work opened database");
+                });
         FaceSearchStore.Request<?> request = store.save("A", "feature", "group", false,
                 result -> fail("Cancelled callback"));
         request.cancel();
@@ -81,11 +80,15 @@ public final class FaceSearchStoreTest {
         QueuedExecutor worker = new QueuedExecutor();
         Queue<Runnable> main = new ArrayDeque<>();
         FaceSearchStore store = new FaceSearchStore(worker, dispatcher(main),
-                () -> { throw new AssertionError("Test only advances progress"); });
+                () -> {
+                    throw new AssertionError("Test only advances progress");
+                });
         List<Integer> progress = new ArrayList<>();
         FaceSearchStore.Request<?> request = store.importFeatureDemo(
                 value -> progress.add(value.processed), result -> fail("Unexpected completion"));
-        for (int i = 1; i <= 1000; i++) request.postProgress(i, 1000);
+        for (int i = 1; i <= 1000; i++) {
+            request.postProgress(i, 1000);
+        }
         assertEquals(1, main.size());
         drain(main);
         assertEquals(Collections.singletonList(1000), progress);
@@ -114,7 +117,8 @@ public final class FaceSearchStoreTest {
         FaceSearchStore.Request<?> queued = store.delete("A", result -> fail("Late deletion"));
         List<FaceSearchStore.ImportSummary> summaries = new ArrayList<>();
         FaceSearchStore.Request<?> progress = store.importFeatureDemo(
-                value -> {}, result -> summaries.add(result.requireValue()));
+                value -> {
+                }, result -> summaries.add(result.requireValue()));
         progress.postProgress(100, 1000);
         store.close();
         assertReleased(posted);
@@ -142,7 +146,8 @@ public final class FaceSearchStoreTest {
             }));
         });
         List<FaceSearchStore.ImportSummary> summaries = new ArrayList<>();
-        FaceSearchStore.Request<?> request = holder[0].importFeatureDemo(value -> {},
+        FaceSearchStore.Request<?> request = holder[0].importFeatureDemo(value -> {
+                },
                 result -> summaries.add(result.requireValue()));
         worker.drain();
         drain(main);
@@ -156,7 +161,9 @@ public final class FaceSearchStoreTest {
     @Test
     public void softStopSavesTailAndReportsCommittedCount() {
         List<FaceSearchFeatureEntry> batch = new ArrayList<>();
-        for (int i = 0; i < 37; i++) batch.add(new FaceSearchFeatureEntry("tail" + i, "HF1:test", 0, "", "image"));
+        for (int i = 0; i < 37; i++) {
+            batch.add(new FaceSearchFeatureEntry("tail" + i, "HF1:test", 0, "", "image"));
+        }
         List<Integer> writes = new ArrayList<>();
         FaceSearchDatabase db = database((method, args) -> {
             assertEquals("saveFeatures", method);
@@ -254,13 +261,22 @@ public final class FaceSearchStoreTest {
     private static final class QueuedDispatcher implements FaceSearchStore.Dispatcher {
         final Queue<Runnable> queue;
         boolean reject;
-        QueuedDispatcher(Queue<Runnable> queue) { this.queue = queue; }
-        @Override public boolean post(Object token, Runnable action) {
-            if (reject) return false;
+
+        QueuedDispatcher(Queue<Runnable> queue) {
+            this.queue = queue;
+        }
+
+        @Override
+        public boolean post(Object token, Runnable action) {
+            if (reject) {
+                return false;
+            }
             queue.add(new Posted(token, action));
             return true;
         }
-        @Override public void remove(Object token) {
+
+        @Override
+        public void remove(Object token) {
             queue.removeIf(action -> ((Posted) action).token == token);
         }
     }
@@ -268,8 +284,16 @@ public final class FaceSearchStoreTest {
     private static final class Posted implements Runnable {
         final Object token;
         final Runnable action;
-        Posted(Object token, Runnable action) { this.token = token; this.action = action; }
-        @Override public void run() { action.run(); }
+
+        Posted(Object token, Runnable action) {
+            this.token = token;
+            this.action = action;
+        }
+
+        @Override
+        public void run() {
+            action.run();
+        }
     }
 
     @Test
@@ -395,9 +419,9 @@ public final class FaceSearchStoreTest {
             opens[0]++;
             return opens[0] == 1 ? HiFaceResult.failure(error)
                     : HiFaceResult.success(database((method, args) -> {
-                        assertEquals("get", method);
-                        return HiFaceResult.success(entry());
-                    }));
+                assertEquals("get", method);
+                return HiFaceResult.success(entry());
+            }));
         });
         store.loadPage(0, 20, result -> errors.add(result.requireError()));
         List<String> delivered = new ArrayList<>();
@@ -419,7 +443,9 @@ public final class FaceSearchStoreTest {
         FaceSearchStore store = new FaceSearchStore(worker, dispatcher(main), () -> {
             request[0].cancel();
             return HiFaceResult.success(database((method, args) -> {
-                if (!method.equals("close")) fail("Cancelled delete reached SQL");
+                if (!method.equals("close")) {
+                    fail("Cancelled delete reached SQL");
+                }
                 return null;
             }));
         });
@@ -434,9 +460,20 @@ public final class FaceSearchStoreTest {
     public void stoppingDownloadsDisconnectsActiveConnectionsAndRejectsLateDownloads() throws Exception {
         int[] disconnects = {0};
         HttpURLConnection connection = new HttpURLConnection(new URL("https://example.com/face.png")) {
-            @Override public void disconnect() { disconnects[0]++; }
-            @Override public boolean usingProxy() { return false; }
-            @Override public void connect() { fail("Test must not access the network"); }
+            @Override
+            public void disconnect() {
+                disconnects[0]++;
+            }
+
+            @Override
+            public boolean usingProxy() {
+                return false;
+            }
+
+            @Override
+            public void connect() {
+                fail("Test must not access the network");
+            }
         };
         FaceSearchStore.Request<?> request = new FaceSearchStore.Request<>();
         assertTrue(request.trackDownload(connection));
@@ -638,10 +675,25 @@ public final class FaceSearchStoreTest {
             queue.add(command);
         }
 
-        @Override public void shutdown() { shutdown = true; }
-        @Override public boolean isShutdown() { return shutdown; }
-        @Override public boolean isTerminated() { return shutdown && queue.isEmpty(); }
-        @Override public boolean awaitTermination(long timeout, TimeUnit unit) { return isTerminated(); }
+        @Override
+        public void shutdown() {
+            shutdown = true;
+        }
+
+        @Override
+        public boolean isShutdown() {
+            return shutdown;
+        }
+
+        @Override
+        public boolean isTerminated() {
+            return shutdown && queue.isEmpty();
+        }
+
+        @Override
+        public boolean awaitTermination(long timeout, TimeUnit unit) {
+            return isTerminated();
+        }
 
         @Override
         public List<Runnable> shutdownNow() {

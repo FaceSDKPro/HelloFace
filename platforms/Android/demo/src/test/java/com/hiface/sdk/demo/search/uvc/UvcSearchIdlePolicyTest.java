@@ -1,18 +1,19 @@
 package com.hiface.sdk.demo.search.uvc;
 
+import org.junit.Test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.junit.Test;
-
 public final class UvcSearchIdlePolicyTest {
-    @Test public void idleStartsAfterTenSecondsOfSuccessfulEmptyDetections() {
+    @Test
+    public void idleStartsAfterTenSecondsOfSuccessfulEmptyDetections() {
         UvcSearchIdlePolicy policy = new UvcSearchIdlePolicy();
         observeEmptyScene(policy);
         assertTrue(policy.isIdle());
     }
 
-    @Test public void emptyDetectionImmediatelySlowsAnalysisAndTheFirstFaceRestoresIt() {
+    @Test
+    public void emptyDetectionImmediatelySlowsAnalysisAndTheFirstFaceRestoresIt() {
         UvcSearchIdlePolicy policy = new UvcSearchIdlePolicy();
         assertTrue(policy.shouldAnalyze(0));
         policy.onDetection(0, false);
@@ -29,7 +30,8 @@ public final class UvcSearchIdlePolicyTest {
         assertTrue(policy.shouldAnalyze(463));
     }
 
-    @Test public void pairLossRestartsTheObservationWindow() {
+    @Test
+    public void pairLossRestartsTheObservationWindow() {
         UvcSearchIdlePolicy policy = new UvcSearchIdlePolicy();
         observeEmptyScene(policy);
         assertFalse(policy.shouldAnalyze(10_100));
@@ -40,10 +42,13 @@ public final class UvcSearchIdlePolicyTest {
         assertFalse(policy.isIdle());
     }
 
-    @Test public void pairsWithoutSuccessfulDetectionsDoNotSustainIdle() {
+    @Test
+    public void pairsWithoutSuccessfulDetectionsDoNotSustainIdle() {
         UvcSearchIdlePolicy policy = new UvcSearchIdlePolicy();
         observeEmptyScene(policy);
-        for (long now = 10_100; now <= 13_000; now += 100) policy.shouldAnalyze(now);
+        for (long now = 10_100; now <= 13_000; now += 100) {
+            policy.shouldAnalyze(now);
+        }
         assertFalse(policy.isIdle());
     }
 

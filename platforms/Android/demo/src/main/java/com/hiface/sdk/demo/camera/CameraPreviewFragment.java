@@ -74,7 +74,8 @@ public final class CameraPreviewFragment extends Fragment {
     private ProcessCameraProvider provider;
     private PreviewView previewView;
     private ExecutorService analysisExecutor;
-    private CameraSettings settings = new CameraSettings(false, false);
+    private CameraResolutions.Tier defaultResolution = CameraResolutions.Tier.LOW;
+    private CameraSettings settings = new CameraSettings(null, false);
     private CameraInfo selectedCamera;
     private List<Size> analysisSizes;
     private int resolutionIndex;
@@ -130,10 +131,10 @@ public final class CameraPreviewFragment extends Fragment {
     }
 
     /**
-     * Detection uses FIT_CENTER and search uses FILL_CENTER; overlays share CameraX crop, rotation, and
+     * Detection and search use FIT_CENTER; overlays share CameraX crop, rotation, and
      * mirror transforms.
      *
-     * 检测用 FIT_CENTER，搜索用 FILL_CENTER；Overlay 共用 CameraX 裁剪、旋转和镜像映射。
+     * 检测与搜索使用 FIT_CENTER；Overlay 共用 CameraX 裁剪、旋转和镜像映射。
      */
     @MainThread
     public void configureOverlayPreview(PreviewView.ScaleType scaleType) {
@@ -339,7 +340,7 @@ public final class CameraPreviewFragment extends Fragment {
         super.onStart();
         started = true;
         CameraSettings next = CameraSettings.load();
-        if (next.highResolution != settings.highResolution) {
+        if (next.resolutionOr(defaultResolution) != settings.resolutionOr(defaultResolution)) {
             unbind();
             resetResolutions();
         }
@@ -352,6 +353,10 @@ public final class CameraPreviewFragment extends Fragment {
             binding.opened = false;
             watchStartup(binding);
         }
+    }
+
+    public void useSearchResolutionByDefault() {
+        defaultResolution = CameraResolutions.Tier.HIGH;
     }
 
     @Override
@@ -414,7 +419,8 @@ public final class CameraPreviewFragment extends Fragment {
                 selectedCamera = chooseCamera();
             }
             if (analysisSizes == null) {
-                analysisSizes = CameraResolutions.analysisCandidates(selectedCamera, settings.highResolution);
+                analysisSizes = CameraResolutions.analysisCandidates(selectedCamera,
+                        settings.resolutionOr(defaultResolution));
                 Log.i(TAG, "Analysis resolution candidates: " + analysisSizes);
             }
             int rotation = previewView.getDisplay() == null

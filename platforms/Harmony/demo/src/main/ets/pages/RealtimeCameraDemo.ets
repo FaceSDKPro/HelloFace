@@ -48,7 +48,7 @@ import {
   Yuv420Frame
 } from 'hiface';
 import { CameraFlowStartQueue } from '../camera/CameraFlowStartQueue';
-import { CameraDemoSettings, CameraDemoSettingsStore } from '../camera/CameraDemoSettings';
+import { CameraAnalysisResolution, CameraDemoSettings, CameraDemoSettingsStore } from '../camera/CameraDemoSettings';
 import { CameraPageLifecycle } from '../camera/CameraPageLifecycle';
 import { CameraScreenPresentation } from '../camera/CameraScreenPresentation';
 import { FaceChallenge } from '../ui/FaceChallenge';
@@ -320,45 +320,41 @@ export struct RealtimeCameraDemo {
   @Builder
   private CameraContent() {
     Column() {
+      if (!this.isGuidedMode()) {
+        this.CameraToolbar()
+      }
       Stack({ alignContent: Alignment.TopStart }) {
-        // 对齐 Android PreviewView：搜索使用 FILL_CENTER，其余页面使用 FIT_CENTER。
-        // Surface 与 Overlay 都以预览区域中心为原点，裁剪量只在搜索页生效。
         Stack({ alignContent: Alignment.Center }) {
-          XComponent({ id: 'hiface-camera-preview', type: XComponentType.SURFACE,
-            controller: this.xComponentController })
-            .width(this.previewSurfaceWidth()).height(this.previewSurfaceHeight())
-            .backgroundColor('#000000')
-            .onLoad(() => this.onSurfaceReady())
-            .onDestroy(() => this.onSurfaceDestroyed())
+          Stack() {
+            XComponent({ id: 'hiface-camera-preview', type: XComponentType.SURFACE,
+              controller: this.xComponentController })
+              .width('100%').height('100%')
+              .backgroundColor('#000000')
+              .onLoad(() => this.onSurfaceReady())
+              .onDestroy(() => this.onSurfaceDestroyed())
+            if (!this.isGuidedMode()) {
+              Canvas(this.canvasContext).width('100%').height('100%').hitTestBehavior(HitTestMode.None)
+                .onReady(() => this.drawOverlay())
+            }
+            if (this.isSearchMode() && this.detectedPeople > 1) {
+              Column() {
+                Blank()
+                Text(DemoL10n.text("检测到 {0} 人 · ", [String(this.detectedPeople)]) +
+                  (this.currentMode === RealtimeMode.SEARCH_SINGLE ? DemoL10n.text("优先识别最大脸") :
+                    DemoL10n.text("本次处理 {0} 人", [String(this.searchedPeople)])))
+                  .fontSize(11).fontColor(DemoTheme.textOnDark)
+                  .padding({ left: 10, right: 10, top: 8, bottom: 8 })
+                  .backgroundColor('#D9172233').borderRadius(12).maxLines(2)
+              }.width('100%').height('100%').padding(12).alignItems(HorizontalAlign.Start)
+              .hitTestBehavior(HitTestMode.None).zIndex(1)
+            }
+          }.width(this.previewSurfaceWidth()).height(this.previewSurfaceHeight())
+            .borderRadius(this.isGuidedMode() ? 0 : 18).clip(true)
         }.width('100%').height('100%')
-        Canvas(this.canvasContext).width('100%').height('100%').hitTestBehavior(HitTestMode.None)
-          .onReady(() => this.drawOverlay())
-        Row() {
-          this.CameraIcon($r('app.media.ic_navigation_back'), DemoL10n.text("返回"), (): void => this.onExit())
-          Blank()
-          if (this.isSearchMode()) {
-            this.CameraIcon($r('app.media.ic_search_settings'), DemoL10n.text("搜索设置"), (): void => this.openSearchSettings())
-          }
-          if (this.currentMode === RealtimeMode.DETECTION || this.isSearchMode() ||
-            this.currentMode === RealtimeMode.LIVENESS) {
-            this.CameraIcon($r('app.media.ic_camera_switch'), DemoL10n.text("切换摄像头"), (): void => { this.switchCamera(); })
-          }
-        }.width('100%').padding({
-          top: this.isSearchMode() ? 6 : 12,
-          left: this.isSearchMode() ? 6 : 12,
-          right: this.isSearchMode() ? 6 : 12
-        }).zIndex(2)
-        if (this.isSearchMode() && this.detectedPeople > 1) {
-          Column() {
-            Blank()
-            Text(DemoL10n.text("检测到 {0} 人 · ", [String(this.detectedPeople)]) +
-              (this.currentMode === RealtimeMode.SEARCH_SINGLE ? DemoL10n.text("优先识别最大脸") :
-                DemoL10n.text("本次处理 {0} 人", [String(this.searchedPeople)])))
-              .fontSize(11).fontColor(DemoTheme.textOnDark)
-              .padding({ left: 10, right: 10, top: 8, bottom: 8 })
-              .backgroundColor('#D9172233').borderRadius(12).maxLines(2)
-          }.width('100%').height('100%').padding(12).alignItems(HorizontalAlign.Start)
-          .hitTestBehavior(HitTestMode.None).zIndex(1)
+        if (this.isGuidedMode()) {
+          Canvas(this.canvasContext).width('100%').height('100%').hitTestBehavior(HitTestMode.None)
+            .onReady(() => this.drawOverlay())
+          this.CameraToolbar()
         }
         if (this.cameraFailed) {
           Column({ space: 12 }) {
@@ -368,7 +364,7 @@ export struct RealtimeCameraDemo {
             Button(DemoL10n.text("重试")).backgroundColor(DemoTheme.primary).fontColor(DemoTheme.contentText).onClick(() => this.onSurfaceReady())
           }.width('100%').height('100%').justifyContent(FlexAlign.Center).zIndex(1)
         }
-      }.layoutWeight(1).width('100%').backgroundColor('#000000').clip(true)
+      }.layoutWeight(1).width('100%').backgroundColor(this.isGuidedMode() ? '#000000' : DemoTheme.searchBackground).clip(true)
       .onAreaChange((_, area) => {
         this.previewWidth = Number.parseFloat(`${area.width}`);
         this.previewHeight = Number.parseFloat(`${area.height}`);
@@ -386,6 +382,25 @@ export struct RealtimeCameraDemo {
         }.padding({ left: 16, right: 16, top: 10, bottom: 12 }).width('100%')
       }
     }.width('100%').height('100%').backgroundColor(DemoTheme.searchBackground)
+  }
+
+  @Builder
+  private CameraToolbar() {
+    Row() {
+      this.CameraIcon($r('app.media.ic_navigation_back'), DemoL10n.text("返回"), (): void => this.onExit())
+      Blank()
+      if (this.isSearchMode()) {
+        this.CameraIcon($r('app.media.ic_search_settings'), DemoL10n.text("搜索设置"), (): void => this.openSearchSettings())
+      }
+      if (this.currentMode === RealtimeMode.DETECTION || this.isSearchMode() ||
+        this.currentMode === RealtimeMode.LIVENESS) {
+        this.CameraIcon($r('app.media.ic_camera_switch'), DemoL10n.text("切换摄像头"), (): void => { this.switchCamera(); })
+      }
+    }.width('100%').padding({
+      top: this.isSearchMode() ? 6 : 12,
+      left: this.isSearchMode() ? 6 : 12,
+      right: this.isSearchMode() ? 6 : 12
+    }).zIndex(2)
   }
 
   @Builder
@@ -567,9 +582,11 @@ export struct RealtimeCameraDemo {
       }
       return;
     }
-    let settings: CameraDemoSettings = new CameraDemoSettings();
+    const defaultResolution: CameraAnalysisResolution = this.isSearchMode()
+      ? CameraAnalysisResolution.HIGH : CameraAnalysisResolution.LOW;
+    let settings: CameraDemoSettings = new CameraDemoSettings(defaultResolution);
     try {
-      settings = await CameraDemoSettingsStore.load(context);
+      settings = await CameraDemoSettingsStore.load(context, defaultResolution);
     } catch (_) {
       if (this.visible && generation === this.cameraSurfaceGeneration) {
         this.resultState = DemoL10n.text("设置读取失败，已恢复默认相机参数");
@@ -1567,8 +1584,9 @@ export struct RealtimeCameraDemo {
   }
 
   private previewBounds(): CameraPreviewBounds {
-    return CameraPreviewLayout.centeredBounds(this.currentMode, this.previewAspect,
-      this.previewWidth, this.previewHeight);
+    const inset: boolean = !this.isGuidedMode();
+    return CameraPreviewLayout.centeredBounds(this.previewAspect,
+      Math.max(1, this.previewWidth - (inset ? 24 : 0)), Math.max(1, this.previewHeight - (inset ? 16 : 0)));
   }
 
   private searchOptions(): string {
@@ -1644,10 +1662,11 @@ export struct RealtimeCameraDemo {
   private drawOverlayFrame(): void {
     this.overlayFramePending = false;
     if (!this.visible) return;
-    const width: number = this.previewWidth;
-    const height: number = this.previewHeight;
+    if (this.previewWidth <= 0 || this.previewHeight <= 0) return;
+    const bounds: CameraPreviewBounds = this.previewBounds();
+    const width: number = this.isGuidedMode() ? this.previewWidth : bounds.width;
+    const height: number = this.isGuidedMode() ? this.previewHeight : bounds.height;
     const context: CanvasRenderingContext2D = this.canvasContext;
-    if (width <= 0 || height <= 0) return;
     context.clearRect(0, 0, width, height);
     if (this.isGuidedMode()) {
       FaceCaptureOverlay.draw(context, width, height, this.guideState, this.countdownRemaining);

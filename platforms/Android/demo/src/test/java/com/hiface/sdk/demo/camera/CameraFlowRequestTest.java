@@ -1,13 +1,16 @@
 package com.hiface.sdk.demo.camera;
 
-import org.junit.Test;
-
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.junit.Assert.*;
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public final class CameraFlowRequestTest {
-    @Test public void idleDoesNotForwardFramesOrFinish() {
+    @Test
+    public void idleDoesNotForwardFramesOrFinish() {
         CameraFlowRequest flow = new CameraFlowRequest();
         assertFalse(flow.isActive());
         assertFalse(flow.finish());
@@ -15,28 +18,33 @@ public final class CameraFlowRequestTest {
         assertFalse(flow.isActive());
     }
 
-    @Test public void startEnablesFrameDeliveryBeforeCreatingRequest() {
+    @Test
+    public void startEnablesFrameDeliveryBeforeCreatingRequest() {
         CameraFlowRequest flow = new CameraFlowRequest();
         assertTrue(flow.start(() -> {
             assertTrue(flow.isActive());
-            return () -> {};
+            return () -> {
+            };
         }));
         assertTrue(flow.isActive());
     }
 
-    @Test public void duplicateStartDoesNotReplaceOrCreateRequest() {
+    @Test
+    public void duplicateStartDoesNotReplaceOrCreateRequest() {
         CameraFlowRequest flow = new CameraFlowRequest();
         AtomicInteger cancellations = new AtomicInteger();
         flow.start(() -> cancellations::incrementAndGet);
         assertFalse(flow.start(() -> {
             fail("A second request must not be created");
-            return () -> {};
+            return () -> {
+            };
         }));
         flow.cancel();
         assertEquals(1, cancellations.get());
     }
 
-    @Test public void completionRunsOnlyOnceAndReleasesTerminalRequest() {
+    @Test
+    public void completionRunsOnlyOnceAndReleasesTerminalRequest() {
         CameraFlowRequest flow = new CameraFlowRequest();
         AtomicInteger cancellations = new AtomicInteger();
         flow.start(() -> cancellations::incrementAndGet);
@@ -47,7 +55,8 @@ public final class CameraFlowRequestTest {
         assertEquals(0, cancellations.get());
     }
 
-    @Test public void backgroundCancellationClosesFrameGateBeforeCancellingSdk() {
+    @Test
+    public void backgroundCancellationClosesFrameGateBeforeCancellingSdk() {
         CameraFlowRequest flow = new CameraFlowRequest();
         AtomicInteger cancellations = new AtomicInteger();
         flow.start(() -> () -> {
@@ -60,7 +69,8 @@ public final class CameraFlowRequestTest {
         assertEquals(1, cancellations.get());
     }
 
-    @Test public void cancellationAndCompletionBothAllowAnotherChallenge() {
+    @Test
+    public void cancellationAndCompletionBothAllowAnotherChallenge() {
         CameraFlowRequest flow = new CameraFlowRequest();
         AtomicInteger first = new AtomicInteger();
         AtomicInteger second = new AtomicInteger();
@@ -74,11 +84,13 @@ public final class CameraFlowRequestTest {
         assertEquals(1, second.get());
     }
 
-    @Test public void synchronousCompletionCannotRetainReturnedHandle() {
+    @Test
+    public void synchronousCompletionCannotRetainReturnedHandle() {
         assertSynchronousEndReleasesHandle(true);
     }
 
-    @Test public void synchronousCancellationCannotRetainReturnedHandle() {
+    @Test
+    public void synchronousCancellationCannotRetainReturnedHandle() {
         assertSynchronousEndReleasesHandle(false);
     }
 
@@ -86,8 +98,11 @@ public final class CameraFlowRequestTest {
         CameraFlowRequest flow = new CameraFlowRequest();
         AtomicInteger cancellations = new AtomicInteger();
         flow.start(() -> {
-            if (complete) assertTrue(flow.finish());
-            else flow.cancel();
+            if (complete) {
+                assertTrue(flow.finish());
+            } else {
+                flow.cancel();
+            }
             return cancellations::incrementAndGet;
         });
         assertFalse(flow.isActive());
@@ -95,20 +110,25 @@ public final class CameraFlowRequestTest {
         assertEquals(1, cancellations.get());
     }
 
-    @Test public void failedStartRollsBackAndAllowsRetry() {
+    @Test
+    public void failedStartRollsBackAndAllowsRetry() {
         CameraFlowRequest flow = new CameraFlowRequest();
         RuntimeException failure = new IllegalStateException("failed");
         try {
-            flow.start(() -> { throw failure; });
+            flow.start(() -> {
+                throw failure;
+            });
             fail("Expected startup failure");
         } catch (RuntimeException error) {
             assertSame(failure, error);
         }
         assertFalse(flow.isActive());
-        assertTrue(flow.start(() -> () -> {}));
+        assertTrue(flow.start(() -> () -> {
+        }));
     }
 
-    @Test public void synchronousRetryKeepsTheNewHandleWhenTheOldStartReturns() {
+    @Test
+    public void synchronousRetryKeepsTheNewHandleWhenTheOldStartReturns() {
         CameraFlowRequest flow = new CameraFlowRequest();
         AtomicInteger old = new AtomicInteger(), retry = new AtomicInteger();
         flow.start(() -> {
@@ -121,7 +141,8 @@ public final class CameraFlowRequestTest {
         assertEquals(1, retry.get());
     }
 
-    @Test public void synchronousRetrySurvivesAnExceptionFromTheOldStart() {
+    @Test
+    public void synchronousRetrySurvivesAnExceptionFromTheOldStart() {
         CameraFlowRequest flow = new CameraFlowRequest();
         AtomicInteger retry = new AtomicInteger();
         RuntimeException failure = new IllegalStateException("old start failed");
@@ -140,7 +161,8 @@ public final class CameraFlowRequestTest {
         assertEquals(1, retry.get());
     }
 
-    @Test public void missingHandleRollsBackInsteadOfLeavingFrameGateOpen() {
+    @Test
+    public void missingHandleRollsBackInsteadOfLeavingFrameGateOpen() {
         CameraFlowRequest flow = new CameraFlowRequest();
         try {
             flow.start(() -> null);
@@ -149,6 +171,7 @@ public final class CameraFlowRequestTest {
             assertEquals("request", expected.getMessage());
         }
         assertFalse(flow.isActive());
-        assertTrue(flow.start(() -> () -> {}));
+        assertTrue(flow.start(() -> () -> {
+        }));
     }
 }

@@ -1,10 +1,8 @@
 # HiFace iOS 集成 Demo
 
-人脸识别页的 1:1 验证与独立活体检测默认开启动作活体，预选“眨眼、点头”，可手动关闭或修改动作。
-
 [English](README.md) | 简体中文
 
-SDK：**0.8.16**
+SDK：**0.8.17**
 
 支持检测、采集、活体、1:1 比对、1:N/M:N 搜索和人脸库管理，算法在设备端运行。
 
@@ -30,5 +28,3 @@ SDK：**0.8.16**
 接入说明：[SDK API](SDK/API.zh-CN.md) · [Demo](DEMO.zh-CN.md)。
 
 请及时升级 SDK 版本。[更新说明](https://github.com/FaceSDKPro/)。
-
-下载或克隆仓库后，可在浏览器中打开离线 [HTML SDK API](../../docs/SDK-API/iOS/index.html).

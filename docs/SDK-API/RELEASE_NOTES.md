@@ -1,4 +1,3 @@
-# HiFace 0.8.16
+# HiFace 0.8.17
 
-- Offline authorization recovers after the device clock is corrected when the certificate is still valid. Expiry follows the original certificate dates.
-- The manufacturer-signed trial certificate is valid from 2026-11-24 00:00 until 2027-11-24 00:00 (UTC+08:00).
+- The five platform demos improve the recognition page, liveness guidance, and camera viewfinder. Live search requests 1440×1080 by default and negotiates the actual frame size with the device. A saved camera setting takes precedence.

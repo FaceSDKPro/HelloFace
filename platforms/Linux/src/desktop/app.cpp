@@ -174,15 +174,16 @@ DesktopApp::CaptureState DesktopApp::captureSnapshot() {
     std::lock_guard<std::mutex> lock(mutex_);
     return capture_state_;
 }
-void DesktopApp::configureCapture(const std::string& device, const DemoSettings& settings, bool open) {
+void DesktopApp::configureCapture(const std::string& device, const DemoSettings& settings, bool open, bool desktop_search) {
     std::unique_lock<std::mutex> lock(mutex_);
     const uint64_t generation = ++capture_request_.generation;
     capture_request_.open = open;
     capture_request_.search_idle = false;
     capture_request_.white_light_until = 0;
     capture_request_.device = device;
-    capture_request_.width = settings.camera_width;
-    capture_request_.height = settings.camera_height;
+    const auto size = settings.cameraSizeForCapture(desktop_search);
+    capture_request_.width = size.width;
+    capture_request_.height = size.height;
     capture_request_.rotation = settings.camera_rotation;
     capture_request_.fps = settings.camera_fps;
     capture_request_.mjpeg = settings.camera_mjpeg;
@@ -534,7 +535,8 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
             search_power.reset(); backlight.update(false, false);
             require(fixed_camera.empty() || device == fixed_camera, "This board uses the fixed camera " + fixed_camera);
             if (reset_flow) workflow.clearPageResults();
-            configureCapture(device, workflow.settings(), true);
+            const bool desktop_search = !embedded && cameraPage(page) && demoPage(page)->camera_mode == 'S';
+            configureCapture(device, workflow.settings(), true, desktop_search);
             analyzed_sequence = 0;
             overlay_frame_ms = 0;
             analysis_fps_start = next_analysis = monotonicMilliseconds();

@@ -1,28 +1,40 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical">
-    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp"
-        android:layout_weight="1" android:background="@android:color/black">
+    android:background="@color/search_background">
+    <LinearLayout android:id="@+id/searchCameraToolbar"
+        android:layout_width="0dp" android:layout_height="48dp"
+        android:layout_marginStart="12dp" android:layout_marginEnd="12dp" android:gravity="center_vertical"
+        app:layout_constraintTop_toTopOf="parent" app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+        <ImageButton android:id="@+id/searchBack" style="@style/Widget.HiFace.Search.CameraIcon"
+            android:src="@drawable/ic_navigation_back" android:contentDescription="@string/search_back"/>
+        <Space android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
+        <ImageButton android:id="@+id/searchSettings" style="@style/Widget.HiFace.Search.CameraIcon"
+            android:src="@drawable/ic_search_settings" android:contentDescription="@string/search_settings"/>
+        <ImageButton android:id="@+id/searchSwitch" style="@style/Widget.HiFace.Search.CameraIcon"
+            android:src="@drawable/ic_camera_switch" android:contentDescription="@string/switch_camera"/>
+    </LinearLayout>
+
+    <com.hiface.sdk.demo.camera.CameraViewfinder
+        android:id="@+id/searchViewfinder"
+        style="@style/Widget.HiFace.CameraViewfinder"
+        app:layout_constraintTop_toBottomOf="@id/searchCameraToolbar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintDimensionRatio="@string/camera_viewfinder_ratio">
         <androidx.fragment.app.FragmentContainerView android:id="@+id/searchCamera"
             android:name="com.hiface.sdk.demo.camera.CameraPreviewFragment"
             android:layout_width="match_parent" android:layout_height="match_parent"/>
         <com.hiface.sdk.demo.search.FaceSearchOverlayView android:id="@+id/searchOverlay"
             android:layout_width="match_parent" android:layout_height="match_parent"/>
-        <LinearLayout android:layout_width="match_parent" android:layout_height="48dp"
-            android:layout_margin="6dp" android:gravity="center_vertical">
-            <ImageButton android:id="@+id/searchBack" style="@style/Widget.HiFace.Search.CameraIcon"
-                android:src="@drawable/ic_navigation_back" android:contentDescription="@string/search_back"/>
-            <Space android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
-            <ImageButton android:id="@+id/searchSettings" style="@style/Widget.HiFace.Search.CameraIcon"
-                android:src="@drawable/ic_search_settings" android:contentDescription="@string/search_settings"/>
-            <ImageButton android:id="@+id/searchSwitch" style="@style/Widget.HiFace.Search.CameraIcon"
-                android:src="@drawable/ic_camera_switch" android:contentDescription="@string/switch_camera"/>
-        </LinearLayout>
         <TextView android:id="@+id/searchPeopleHint" android:layout_width="wrap_content"
             android:layout_height="wrap_content" android:layout_gravity="bottom|start"
             android:layout_margin="12dp" android:paddingStart="10dp" android:paddingEnd="10dp"
             android:paddingTop="8dp" android:paddingBottom="8dp"
             android:background="@drawable/bg_search_pill" android:textColor="@android:color/white"
             android:textSize="11sp" android:maxLines="2" android:visibility="gone"/>
-    </FrameLayout>
-</LinearLayout>
+    </com.hiface.sdk.demo.camera.CameraViewfinder>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include "form_field.h"
 #include "sdk_helpers.h"
 
@@ -7,6 +8,16 @@ namespace hiface_linux_demo {
 // 桌面与板端显式选择，不能仅凭屏幕分辨率推断运行环境。
 bool embeddedDisplay();
 int initialCameraRotation();
+struct CameraSize {
+    int width, height;
+    constexpr bool operator==(CameraSize other) const { return width == other.width && height == other.height; }
+};
+// Desktop uses 4:3 tiers. The embedded UI uses the board's 16:9 presets.
+inline constexpr std::array<CameraSize, 3> desktop_camera_presets{{{640, 480}, {1280, 960}, {1440, 1080}}};
+inline constexpr std::array<CameraSize, 3> embedded_camera_presets{{{640, 360}, {1280, 720}, {1920, 1080}}};
+inline constexpr const auto& cameraPresets(bool embedded) {
+    return embedded ? embedded_camera_presets : desktop_camera_presets;
+}
 struct DemoSettings {
     uint32_t detection_faces = 10;
     bool detailed = true, allow_multiple = true, verification_liveness = true;
@@ -18,9 +29,21 @@ struct DemoSettings {
     uint32_t search_faces = 3, search_interval = 0, search_timeout = 3000;
     float search_threshold = .8f;
     std::string group, tag;
-    int camera_width = 640, camera_height = embeddedDisplay() ? 360 : 480, camera_fps = 25;
+    int camera_width = desktop_camera_presets.front().width;
+    int camera_height = cameraPresets(embeddedDisplay()).front().height, camera_fps = 25;
     int ui_rotation = 0, camera_rotation = initialCameraRotation();
     bool camera_mjpeg = false, mirror = false;
+    bool camera_resolution_overridden = false;
+    CameraSize cameraSize() const { return {camera_width, camera_height}; }
+    bool hasCameraResolutionOverride() const {
+        // Keep custom dimensions and distinguish selected Low from an unset desktop preference.
+        return camera_resolution_overridden || !(cameraSize() == desktop_camera_presets.front());
+    }
+    CameraSize cameraSizeForCapture(bool desktop_search) const {
+        // Apply the search default only to the capture request, leaving the stored settings intact.
+        if (desktop_search && !hasCameraResolutionOverride()) return desktop_camera_presets[2];
+        return cameraSize();
+    }
 };
 int initialUiRotation();
 bool useSoftwareMouseCursor(const std::string& mode, bool embedded_display);

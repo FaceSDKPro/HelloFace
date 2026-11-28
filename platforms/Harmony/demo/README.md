@@ -1,8 +1,11 @@
+**English** | [简体中文](README.zh-CN.md)
+
 # HiFace HarmonyOS Demo Guide
 
-English | [简体中文](README.zh-CN.md)
 
 See the [SDK API](../SDK.md) for integration requirements and API details.
+
+On Face Recognition, action challenges start enabled for both 1:1 verification and standalone liveness, with Blink and Nod Head selected. You can turn them off or choose other actions.
 
 Camera verification and standalone liveness use system text-to-speech for face-position and action prompts. The Demo supplies English (`en-US`) and Chinese (`zh-CN`) prompts, and playback depends on a matching voice on the device. Repeated prompt text leaves playback uninterrupted. A new prompt replaces it. The camera guidance stays visible throughout.
 

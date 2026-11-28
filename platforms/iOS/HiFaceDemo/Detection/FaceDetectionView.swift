@@ -7,14 +7,13 @@ struct FaceDetectionView: View {
     let onClose: () -> Void
 
     var body: some View {
-        ZStack {
-            CameraPreview(session: model.pipeline.captureSession, mirrored: model.previewMirrored)
-                .ignoresSafeArea()
-            FaceDetectionOverlayView(result: model.detection, mirrored: model.overlayMirrored)
-                .ignoresSafeArea()
+        VStack(spacing: 0) {
+            DemoCameraControls(model: model, onClose: onClose, onSwitchCamera: model.switchCamera)
+            LiveCameraViewfinder(session: model.pipeline.captureSession, mirrored: model.previewMirrored,
+                                 frameSize: model.previewFrameSize) {
+                FaceDetectionOverlayView(result: model.detection, mirrored: model.overlayMirrored)
+            }
             VStack {
-                DemoCameraControls(model: model, onClose: onClose, onSwitchCamera: model.switchCamera)
-                Spacer()
                 if let notice = model.cameraNotice {
                     Text(notice).font(.caption).multilineTextAlignment(.center).padding(16)
                 }
@@ -36,6 +35,6 @@ struct FaceDetectionView: View {
             }
         }
         .foregroundStyle(.white)
-        .background(.black)
+        .background(DemoTheme.search.ignoresSafeArea())
     }
 }

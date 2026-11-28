@@ -1,10 +1,8 @@
 # HiFace iOS Integration Demo
 
-On Face Recognition, action challenges start enabled for both 1:1 verification and standalone liveness, with Blink and Nod Head selected. You can turn them off or choose other actions.
-
 English | [简体中文](README.zh-CN.md)
 
-SDK: **0.8.16**
+SDK: **0.8.17**
 
 On-device detection, capture, liveness, 1:1 comparison, 1:N/M:N search and face-library management.
 
@@ -30,5 +28,3 @@ Use `HiFaceSDK()` with its default model bundle. Add `NSCameraUsageDescription` 
 Guides: [SDK API](SDK/API.md) · [Demo](DEMO.md).
 
 Please keep the SDK version up to date. [Updates](https://github.com/FaceSDKPro/).
-
-After cloning or downloading the repository, open the offline [HTML SDK API](../../docs/SDK-API/iOS/index.html).

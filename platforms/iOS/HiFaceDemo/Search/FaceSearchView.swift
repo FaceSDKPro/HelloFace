@@ -11,15 +11,13 @@ struct FaceSearchView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ZStack(alignment: .top) {
-                CameraPreview(session: model.pipeline.captureSession, mirrored: model.previewMirrored)
-                FaceSearchOverlayView(overlay: model.searchOverlay, mirrored: model.overlayMirrored)
-                VStack {
-                    DemoCameraControls(model: model, onClose: onClose,
-                                       showsResolution: false,
-                                       onSwitchCamera: model.switchCamera,
-                                       onSearchSettings: { showsSearchSettings = true })
-                    Spacer()
+            DemoCameraControls(model: model, onClose: onClose,
+                               onSwitchCamera: model.switchCamera,
+                               onSearchSettings: { showsSearchSettings = true })
+            LiveCameraViewfinder(session: model.pipeline.captureSession, mirrored: model.previewMirrored,
+                                 frameSize: model.previewFrameSize) {
+                ZStack(alignment: .bottomLeading) {
+                    FaceSearchOverlayView(overlay: model.searchOverlay, mirrored: model.overlayMirrored)
                     if model.searchDetectedCount > 1 {
                         Text(model.searchConfiguration.mode == .singleFace
                              ? DemoL10n.text("检测到 {0} 人 · 优先识别最大脸", [String(describing: model.searchDetectedCount)])
@@ -27,13 +25,10 @@ struct FaceSearchView: View {
                             .font(.caption2)
                             .padding(10)
                             .background(DemoTheme.searchSurface.opacity(0.85), in: Capsule())
-                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(12)
                     }
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .clipped()
             VStack(spacing: 10) {
                 HStack(spacing: 8) {
                     Button { showsResultDetails = true } label: {

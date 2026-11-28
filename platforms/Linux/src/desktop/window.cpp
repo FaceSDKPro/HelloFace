@@ -47,7 +47,7 @@ struct DesktopWindow::Impl {
     SharedMemorySegmentInfo shared_image{};
     bool shared_image_attached = false, shared_memory_disabled = false;
     RenderPicture source_picture = 0, destination_picture = 0;
-    std::array<XFontSet, size_t(Font::Result) + 1> fonts{}; XIM input_method = nullptr; XIC input_context = nullptr;
+    std::array<XFontSet, size_t(Font::Tiny) + 1> fonts{}; XIM input_method = nullptr; XIC input_context = nullptr;
     XFontStruct* unicode_title_font = nullptr;
     GC unicode_title_gc = nullptr;
     iconv_t unicode_title_encoding = (iconv_t)-1;
@@ -178,7 +178,7 @@ struct DesktopWindow::Impl {
         // retains the requested pixel sizes instead of silently using `fixed`.
         // 目标 Buildroot 镜像自带 X11 misc 位图字体而非 Helvetica；优先指定已安装别名，以保留要求的像素字号，避免静默回退 fixed。
         const char* patterns[] = {"7x14,fixed", "6x12,fixed", "10x20,9x18B,fixed", "9x18B,10x20,fixed", "9x15bold,9x15,7x14,fixed",
-            "-misc-fixed-medium-r-normal--30-*-*-*-*-*-iso10646-1,10x20,fixed"};
+            "-misc-fixed-medium-r-normal--30-*-*-*-*-*-iso10646-1,10x20,fixed", "9x18B,9x15bold,fixed", "6x10,6x12,fixed"};
         for (size_t i = 0; i < fonts.size(); ++i) { char** missing = nullptr; int count = 0; char* fallback = nullptr; fonts[i] = XCreateFontSet_fn(display, patterns[i], &missing, &count, &fallback); if (missing) XFreeStringList_fn(missing); }
         if (embedded) {
             XRectangle ink{}, logical{};
@@ -300,7 +300,8 @@ struct DesktopWindow::Impl {
         return channel((rgb >> 16) & 255, visual->red_mask) | channel((rgb >> 8) & 255, visual->green_mask) | channel(rgb & 255, visual->blue_mask);
     }
     std::vector<XChar2b> fallbackGlyphs(const std::string& text, Font font) const {
-        if (!unicode_title_gc || unicode_title_encoding == (iconv_t)-1 || (font != Font::Title && font != Font::Caption) ||
+        if (!unicode_title_gc || unicode_title_encoding == (iconv_t)-1 ||
+                (font != Font::Title && font != Font::Caption && font != Font::LargeBold) ||
                 std::none_of(text.begin(), text.end(), [](unsigned char c) { return c >= 0x80; })) return {};
         static_assert(sizeof(XChar2b) == 2);
         std::vector<XChar2b> glyphs(text.size());
@@ -313,7 +314,8 @@ struct DesktopWindow::Impl {
     }
     int measure(const std::string& text, Font font) const {
         const auto glyphs = fallbackGlyphs(text, font);
-        if (!glyphs.empty()) return XTextWidth16_fn(unicode_title_font, glyphs.data(), glyphs.size()) + (font == Font::Caption);
+        if (!glyphs.empty())
+            return XTextWidth16_fn(unicode_title_font, glyphs.data(), glyphs.size()) + (font == Font::Caption || font == Font::LargeBold);
         if (fonts[size_t(font)]) { XRectangle ink{}, logical{}; Xutf8TextExtents_fn(fonts[size_t(font)], text.c_str(), text.size(), &ink, &logical); return logical.width; }
         return int(text.size()) * 7;
     }
@@ -326,7 +328,7 @@ struct DesktopWindow::Impl {
             XSetForeground_fn(display, unicode_title_gc, pixel(draw.color));
             XDrawString16_fn(display, back_buffer, unicode_title_gc, draw.bounds.x, draw.bounds.y, glyphs.data(), glyphs.size());
             // The embedded CJK bitmap font has only a regular face.
-            if (draw.font == Font::Caption)
+            if (draw.font == Font::Caption || draw.font == Font::LargeBold)
                 XDrawString16_fn(display, back_buffer, unicode_title_gc, draw.bounds.x + 1, draw.bounds.y, glyphs.data(), glyphs.size());
             return;
         }

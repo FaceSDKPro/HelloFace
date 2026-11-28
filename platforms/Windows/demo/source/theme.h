@@ -25,6 +25,7 @@ constexpr COLORREF surface_secondary = whiteOverlay(surface, 191), hover_line = 
 enum class ButtonStyle { Standard, Primary, Enrollment };
 struct Theme {
     HFONT body = nullptr, title = nullptr, small = nullptr, result = nullptr, parameter_title = nullptr, recognition = nullptr;
+    HFONT enrollment = nullptr;
     HBRUSH background = nullptr, surface = nullptr, home_background = nullptr;
     UINT dpi = 96;
     Theme(); ~Theme();

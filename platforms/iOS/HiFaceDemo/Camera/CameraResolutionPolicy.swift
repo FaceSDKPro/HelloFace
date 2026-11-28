@@ -10,7 +10,7 @@ enum CameraAnalysisResolution: String, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
-    init(storedValue: String?, fallback: CameraAnalysisResolution = .medium) {
+    init(storedValue: String?, fallback: CameraAnalysisResolution = .low) {
         self = Self(rawValue: storedValue ?? "") ?? fallback
     }
 
@@ -23,18 +23,15 @@ enum CameraAnalysisResolution: String, CaseIterable, Identifiable, Sendable {
     }
 
     var detail: String {
-        switch self {
-        case .low: DemoL10n.text("约 640 × 480 · 性能优先")
-        case .medium: DemoL10n.text("约 1280 × 720 · 兼顾清晰度与性能")
-        case .high: DemoL10n.text("约 1920 × 1080 · 细节更多，耗电更高")
-        }
+        let size = preferredSize
+        return "\(size.width) × \(size.height)"
     }
 
     var preferredSize: CameraFrameSize {
         switch self {
         case .low: CameraFrameSize(width: 640, height: 480)
-        case .medium: CameraFrameSize(width: 1280, height: 720)
-        case .high: CameraFrameSize(width: 1920, height: 1080)
+        case .medium: CameraFrameSize(width: 1280, height: 960)
+        case .high: CameraFrameSize(width: 1440, height: 1080)
         }
     }
 }
@@ -119,41 +116,35 @@ struct CameraFormatOption: Sendable {
 }
 
 enum CameraResolutionPolicy {
-    /// Prefer support for all target rates, then the active rate; fixed-rate cameras can still throttle SDK
-    /// delivery. Choose the clearest format within budget and the wider field of view at equal dimensions.
-    /// If none fits the budget, choose the smallest SDK-compatible format without exceeding SDK limits.
-    /// 优先支持全部目标帧率，其次活跃帧率；固定帧率相机仍可由送帧节流控制分析频率。
-    /// 在档位预算内取最清晰的格式；相同尺寸优先更宽的视野，避免额外裁切。
-    /// 若镜头没有预算内的格式，取 SDK 允许的最小格式，始终不超过 SDK 上限。
+    /// Rank SDK-compatible formats by frame-rate support first: all targets, the active target, then
+    /// any other rate. Within that group, prefer the largest native format within both tier dimensions.
+    /// If every format in the group exceeds the tier, use the smallest. Break pixel-count ties by
+    /// wider field of view. Native 4:3 and 16:9 modes compete on the same criteria.
     static func selectIndex(
         from formats: [CameraFormatOption],
         tier: CameraAnalysisResolution,
         sdkLimit: CameraFrameSize,
         preferredFrameRates: [Double] = []
     ) -> Int? {
-        let sizeCompatible = formats.indices.filter { formats[$0].size.fits(within: sdkLimit) }
-        let allFrameRates = sizeCompatible.filter { index in
-            preferredFrameRates.allSatisfy { formats[index].supportsFrameRate($0) }
-        }
-        let activeFrameRate = sizeCompatible.filter { index in
-            guard let active = preferredFrameRates.first else { return true }
-            return formats[index].supportsFrameRate(active)
-        }
-        let supported = !allFrameRates.isEmpty ? allFrameRates
-            : !activeFrameRate.isEmpty ? activeFrameRate : sizeCompatible
-        let preferred = supported.filter { formats[$0].size.fits(within: tier.preferredSize) }
-        let candidates = preferred.isEmpty ? supported : preferred
-        return candidates.sorted { left, right in
-            let lhs = formats[left]
-            let rhs = formats[right]
-            if lhs.size.pixelCount != rhs.size.pixelCount {
-                return preferred.isEmpty
-                    ? lhs.size.pixelCount < rhs.size.pixelCount
-                    : lhs.size.pixelCount > rhs.size.pixelCount
+        let budget = tier.preferredSize
+        var best: (rank: (frameRate: Int, overBudget: Int, pixels: Int, fieldOfView: Float), index: Int)?
+        for (index, format) in formats.enumerated() where format.size.fits(within: sdkLimit) {
+            let frameRateRank: Int
+            if preferredFrameRates.allSatisfy({ format.supportsFrameRate($0) }) {
+                frameRateRank = 0
+            } else if let active = preferredFrameRates.first, format.supportsFrameRate(active) {
+                frameRateRank = 1
+            } else {
+                frameRateRank = 2
             }
-            if lhs.fieldOfView != rhs.fieldOfView { return lhs.fieldOfView > rhs.fieldOfView }
-            return left < right
-        }.first
+            let fitsBudget = format.size.fits(within: budget)
+            let pixelRank = fitsBudget ? -format.size.pixelCount : format.size.pixelCount
+            let rank = (frameRateRank, fitsBudget ? 0 : 1, pixelRank, -format.fieldOfView)
+            if best.map({ rank < $0.rank }) ?? true {
+                best = (rank, index)
+            }
+        }
+        return best?.index
     }
 }
 
@@ -189,7 +180,7 @@ struct DemoCameraSettings: Sendable {
 
     static func load(
         defaults: UserDefaults = .standard,
-        defaultAnalysisResolution: CameraAnalysisResolution = .medium
+        defaultAnalysisResolution: CameraAnalysisResolution = .low
     ) -> DemoCameraSettings {
         DemoCameraSettings(
             analysisResolution: CameraAnalysisResolution(

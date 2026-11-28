@@ -1,5 +1,5 @@
 {
-  "version": "0.8.16",
+  "version": "0.8.17",
   "channel": "stable",
   "architecture": "x86_64",
   "glibc_baseline": "2.35",

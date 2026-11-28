@@ -220,9 +220,9 @@ void readCameraSettings(Ui& ui, Settings& settings) {
     if (device >= 0 && static_cast<size_t>(device) < ui.app.cameras.size()) {
         settings.camera_index = static_cast<unsigned>(device); settings.camera_link = ui.app.cameras[static_cast<size_t>(device)].symbolic_link;
     }
-    const int resolution = selection(window, Resolution);
-    if (resolution == 1) { settings.width = 1280; settings.height = 720; }
-    else if (resolution == 2) { settings.width = 1920; settings.height = 1080; }
+    const auto size = cameraSizeForSelection(selection(window, Resolution), settings.page == Page::Search);
+    settings.width = size.width;
+    settings.height = size.height;
     settings.rotation = std::max(0, selection(window, Rotation)) * 90; settings.mirror = checked(window, Mirror);
 }
 // Validate one immutable command payload. Navigation separately preserves invalid
@@ -283,7 +283,8 @@ void submit(Ui& ui, Action action, std::vector<std::filesystem::path> files = {}
     if (action == Action::Pause && !ui.app.current()->paused && ui.dirty)
         ui.parameter_notice = L"搜索已暂停；修改后的参数仍需点击应用修改。";
     if (action == Action::Apply || action == Action::OpenCamera)
-        saveCameraPreferences(demoDataDirectory() / L"camera-settings.txt", {settings.width, settings.height, settings.rotation, settings.mirror});
+        saveCameraPreferences(demoDataDirectory() / L"camera-settings.txt", {settings.width, settings.height,
+            settings.rotation, settings.mirror, selection(ui.app.window, Resolution) >= 0});
     ui.pending_command = ui.app.enqueue({action, std::move(settings), std::move(files), 0});
     if (action == Action::SearchPhoto || action == Action::SearchPhotoAgain)
         ui.search_request_generation = ui.app.generation;
@@ -435,10 +436,15 @@ HomeLayout homeGeometry(const Ui& ui) {
     return {MulDiv(client.right,96,ui.theme.dpi),MulDiv(client.bottom,96,ui.theme.dpi),kFeatureCount};
 }
 RecognitionLayout recognitionGeometry(const Ui& ui) {
-    RECT client{};GetClientRect(ui.app.window,&client);
+    const auto window = ui.app.window;
+    RECT client{};GetClientRect(window,&client);
+    auto actionState = [&](bool verification) {
+        if (!checked(window,actionToggle(verification))) return RecognitionActions::Disabled;
+        return hasRecognitionAction(window,verification) ? RecognitionActions::Selected : RecognitionActions::Empty;
+    };
     const auto& frame = ui.recognition_result_frame;
     return {MulDiv(client.right,96,ui.theme.dpi),MulDiv(client.bottom,96,ui.theme.dpi),
-        !ui.recognition_result_message.empty(),checked(ui.app.window,RecognitionVerifyActions),checked(ui.app.window,RecognitionLiveActions),
+        !ui.recognition_result_message.empty(),actionState(true),actionState(false),
         !ui.rendered_reference_ids.empty(),ui.scroll,frame ? frame->width : 0,frame ? frame->height : 0};
 }
 int scrollTarget(HWND scrollbar, int code, int current, int line, int page) {
@@ -541,8 +547,8 @@ void layout(Ui& ui) {
         const auto& v = view.verification;
         const auto& l = view.liveness;
         for (int id = RecognitionSilent; id <= RecognitionStart; ++id) font(id,ui.theme.recognition);
-        font(RecognitionAlbum,ui.theme.parameter_title);
-        font(RecognitionAdd,ui.theme.parameter_title);
+        font(RecognitionAlbum,ui.theme.enrollment);
+        font(RecognitionAdd,ui.theme.enrollment);
         show(RecognitionSilent,v.passive);
         show(RecognitionVerifyActions,v.action_toggle);
         show(RecognitionLiveActions,l.action_toggle);
@@ -607,7 +613,7 @@ void layout(Ui& ui) {
         const bool opened=ui.app.current()->settings.page==ui.page&&ui.app.current()->camera_open;
         ShowWindow(child(window,opened?Close:Open),SW_SHOW);
     }
-    if(settings){tool(Resolution,116);tool(Rotation,108);tool(Mirror,104);}
+    if(settings){tool(Resolution,144);tool(Rotation,108);tool(Mirror,104);}
     if(ui.page==Page::Search){tool(Enroll,104);tool(GoGallery,104);}
     if(ui.page==Page::ImageSearch)tool(GoGallery,104);
     if(ui.page==Page::Verification){if(ui.rendered_reference_ids.empty())tool(GoGallery,124);else tool(ReferenceChoice,width<1100?220:280);}
@@ -934,7 +940,15 @@ void paint(Ui& ui) {
     const int logical_width = MulDiv(client.right, 96, ui.theme.dpi);
     const int title_left = ui.page == Page::Home ? 32 : ui.page == Page::Recognition ? 104 : 128;
     label(dc, ui.page == Page::Home ? L"HelloFace SDK" : page_info[static_cast<int>(ui.page)].title, rect(title_left, 18, std::max(1, logical_width - title_left - 244), 38), ui.theme.title, is_home ? home_colors::text : colors::ink, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
-    if(ui.page!=Page::Recognition)label(dc, ui.page == Page::Home ? L"Offline | Private | Fast" : page_info[static_cast<int>(ui.page)].description, rect(ui.main_left + 8, 56, std::max(1, logical_width - ui.main_left - 30), guided?26:20), guided?ui.theme.recognition:ui.theme.small, is_home ? home_colors::secondary : colors::muted, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+    if (ui.page != Page::Recognition) {
+        const wchar_t* subtitle = is_home ? L"Offline | Private | Fast" : page_info[static_cast<int>(ui.page)].description;
+        if (ui.page == Page::CameraSettings)
+            subtitle = chineseUi() ? L"根据你的业务场景，配置合适的摄像头支持的分辨率。"
+                                  : L"Choose a camera-supported resolution that suits your use case.";
+        label(dc, subtitle, rect(ui.main_left + 8, 56, std::max(1, logical_width - ui.main_left - 30), guided ? 26 : 20),
+            guided ? ui.theme.recognition : ui.theme.small, is_home ? home_colors::secondary : colors::muted,
+            DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+    }
     if (IsWindowVisible(ui.pane)) {
         card(dc, ui.parameters, colors::surface, colors::line, px(14));
         label(dc, ui.page==Page::Reference?L"确认采集基准":ui.page==Page::Enrollment?L"核对并确认录入":L"参数与操作", rect(ui.main_left + 18, ui.card_top + 8, ui.parameter_width - 36, 26), ui.theme.body, colors::ink);
@@ -965,22 +979,28 @@ void paint(Ui& ui) {
         for (const bool verification : {true,false}) {
             const auto& a = verification ? view.verification : view.liveness;
             card(dc,nativeRect(a.bounds),colors::surface,colors::line,px(16));
-            label(dc,verification ? L"1:1 人脸验证" : L"独立活体检测",nativeRect(a.title),ui.theme.title,colors::ink);
-            label(dc,verification ? L"用已采集的人脸比对身份。" : L"仅检测活体，始终启用静默活体。",nativeRect(a.description),
-                ui.theme.recognition,colors::muted,wrapped);
-            const bool actions = checked(ui.app.window,actionToggle(verification));
-            const bool missing = actions && !hasRecognitionAction(ui.app.window,verification);
-            const wchar_t* hint = missing ? L"请至少选择一个动作。" : actions ? L"从左到右完成所选动作。"
-                : verification && !checked(ui.app.window,RecognitionSilent) ? L"仅比对身份，未开启活体。" : L"正对镜头，无需做动作。";
-            auto hint_area = nativeRect(a.hint);
-            const auto hint_fill = missing ? RGB(255,238,237) : colors::selected;
-            card(dc,hint_area,hint_fill,hint_fill,px(10));
-            InflateRect(&hint_area,-px(12),-px(3));
-            label(dc,hint,hint_area,ui.theme.recognition,missing ? colors::error : colors::muted,
-                DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+            label(dc,verification ? L"1:1人脸验证+活体检测" : L"独立活体检测",nativeRect(a.title),ui.theme.title,colors::ink);
+            if (!verification) {
+                auto passive = a.passive;
+                const int description_top = passive.top + 24;
+                label(dc,L"静默活体",nativeRect({passive.left,passive.top,passive.right,description_top}),
+                    ui.theme.recognition,colors::ink);
+                passive.top = description_top;
+                label(dc,L"始终开启，无需指定动作即可检测是否为真人。",nativeRect(passive),ui.theme.body,colors::muted,wrapped);
+            }
+            if (a.hint.height()) {
+                const bool missing = checked(ui.app.window,actionToggle(verification));
+                const wchar_t* hint = missing ? L"请至少选择一个动作。"
+                    : verification && !checked(ui.app.window,RecognitionSilent) ? L"仅比对身份，未开启活体。" : L"正对镜头，无需做动作。";
+                auto hint_area = nativeRect(a.hint);
+                const auto hint_fill = missing ? RGB(255,238,237) : colors::selected;
+                card(dc,hint_area,hint_fill,hint_fill,px(10));
+                InflateRect(&hint_area,-px(12),-px(3));
+                label(dc,hint,hint_area,ui.theme.recognition,missing ? colors::error : colors::muted,
+                    DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+            }
             if (verification) {
-                label(dc,L"已采集的人脸",nativeRect(a.reference_title),ui.theme.result,colors::ink);
-                const wchar_t* help = ui.rendered_reference_ids.empty() ? L"暂无已录入的人脸。" : L"拖动浏览 · 点击验证 · 右键或 Delete 删除";
+                const wchar_t* help = ui.rendered_reference_ids.empty() ? L"暂无已录入的人脸。" : L"点击头像开始验证 · 右键或 Delete 删除（左右拖动列表）";
                 label(dc,ui.parameter_notice.empty() ? help : ui.parameter_notice.c_str(),nativeRect(a.reference_help),
                     ui.theme.recognition,ui.parameter_notice.empty() ? colors::muted : colors::error,wrapped);
             }
@@ -990,11 +1010,21 @@ void paint(Ui& ui) {
         DeleteObject(buffer);DeleteDC(dc);EndPaint(ui.app.window,&paint);return;
     }
     const auto state = ui.app.current();
+    const bool current_view = state->settings.page == ui.page && state->view_generation == ui.app.generation;
     const wchar_t* badge = state->fatal || state->error ? L"发生错误 · 查看下方提示" : state->busy || ui.pending_command ? L"处理中，请稍候…" : state->flow_active ? L"流程进行中" : ui.page == Page::Enrollment && state->pending_enrollment ? L"待确认录入 · 尚未写入人脸库" : ui.page == Page::CameraSettings ? L"相机预览 · 不执行人脸分析" : ui.page == Page::ImageSearch ? L"图片搜索 · 无需摄像头" : state->camera_open ? state->paused ? L"摄像头已连接 · 搜索暂停" : L"摄像头已连接" : L"摄像头未打开";
     RECT badge_area{ui.canvas.left + px(10), ui.canvas.top - px(32), ui.canvas.right, ui.canvas.top - px(6)};
     label(dc, badge, badge_area, ui.theme.small, state->error || state->fatal ? colors::error : colors::muted, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
     RECT area = ui.canvas;
-    card(dc, area, ui.page == Page::Gallery ? colors::surface : colors::canvas, colors::line, px(14));
+    const bool live_view = usesCamera(ui.page) && !ui.album_reference && !ui.capture_preview;
+    card(dc, area, ui.page == Page::Gallery || live_view ? colors::surface : colors::canvas, colors::line, px(14));
+    if (live_view) {
+        const auto* frame = current_view ? state->preview.get() : nullptr;
+        const bool portrait = state->settings.rotation % 180 != 0;
+        const auto viewfinder = cameraViewfinder({area.left,area.top,area.right,area.bottom},px(10),
+            frame ? frame->width : portrait ? 3 : 4, frame ? frame->height : portrait ? 4 : 3);
+        area = {viewfinder.left,viewfinder.top,viewfinder.right,viewfinder.bottom};
+        card(dc,area,colors::canvas,colors::line,px(12));
+    }
     if (ui.page == Page::Gallery) {
         RECT title = area; title.left += px(18); title.top += px(10); title.bottom = title.top + px(32);
         const bool current=state->settings.page==Page::Gallery&&state->view_generation==ui.app.generation;
@@ -1004,7 +1034,6 @@ void paint(Ui& ui) {
         label(dc, caption, title, ui.theme.body, colors::ink);
     }
 
-    const bool current_view = state->settings.page == ui.page && state->view_generation == ui.app.generation;
     if (state->settings.page == ui.page && ui.page != Page::Gallery && ui.page != Page::ImageSearch &&
         (ui.page != Page::Comparison || current_view)) {
         InflateRect(&area, -px(2), -px(2));
@@ -1283,7 +1312,15 @@ void create(Ui& ui) {
     button(ui, HomeVersion, aboutTitle().c_str());
     const auto toast = control(ui, L"STATIC", L"", WebsiteToast, SS_CENTER | SS_CENTERIMAGE);
     ShowWindow(toast, SW_HIDE);
-    combo(ui, Resolution, {L"640×480", L"1280×720", L"1920×1080"}); combo(ui, Rotation, {L"旋转 0°", L"旋转 90°", L"旋转 180°", L"旋转 270°"});
+    combo(ui, Resolution, {});
+    const std::array<const wchar_t*, camera_presets.size()> tier_names{L"低", L"中", L"高"};
+    for (size_t i = 0; i < camera_presets.size(); ++i) {
+        const auto [width, height] = camera_presets[i];
+        const auto label = std::wstring(tier_names[i]) + L" · " + std::to_wstring(width) + L" × " + std::to_wstring(height);
+        send(window, Resolution, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(label.c_str()));
+    }
+    send(window, Resolution, CB_SETCUEBANNER, 0, reinterpret_cast<LPARAM>(L"按功能默认"));
+    combo(ui, Rotation, {L"旋转 0°", L"旋转 90°", L"旋转 180°", L"旋转 270°"});
     control(ui, L"BUTTON", L"镜像预览", Mirror, BS_AUTOCHECKBOX | WS_TABSTOP); button(ui, Apply, L"应用参数");
     field(ui, PersonId, L"人员 ID", L"person-001"); field(ui, Group, L"分组", L""); field(ui, Tag, L"标签", L"");
     field(ui, MaxFaces, L"最多人脸", L"3"); field(ui, Threshold, L"相似度阈值", L"0.80"); field(ui, Interval, L"成功间隔 ms", L"0"); field(ui, Timeout, L"搜索超时 ms", L"3000");
@@ -1363,7 +1400,8 @@ void create(Ui& ui) {
     const int tab_order[] = {Enroll, GoGallery, ReferenceChoice, QueryId, LookupPerson, ClearQuery, GalleryMenu, Parameters, Device, RefreshDevices, Open, Close, Resolution, Rotation, Mirror, Apply, ParameterPane, Primary, SearchImageAgain, Cancel, SearchResults, People, Logs, Help, HomeVersion};
     for (const int id : tab_order) tabStop(id);
     const auto preferences = loadCameraPreferences(demoDataDirectory() / L"camera-settings.txt");
-    send(window, Resolution, CB_SETCURSEL, preferences.width == 1920 ? 2 : preferences.width == 1280 ? 1 : 0, 0);
+    send(window, Resolution, CB_SETCURSEL,
+        preferences.resolution_overridden ? cameraPresetIndex(preferences.width, preferences.height) : -1, 0);
     send(window, Rotation, CB_SETCURSEL, preferences.rotation / 90, 0); checkBox(window, Mirror, preferences.mirror);
     ui.image_search.create(window, ui.theme);
     ui.drafts[static_cast<size_t>(Page::Enrollment)].id.clear();
@@ -1886,7 +1924,7 @@ LRESULT CALLBACK windowProcedure(HWND window, UINT message, WPARAM wparam, LPARA
                     }
                     RestoreDC(item.hDC,saved);
                     RECT caption=item.rcItem;caption.top+=ui->theme.px(76);caption.left+=ui->theme.px(4);caption.right-=ui->theme.px(4);
-                    label(item.hDC,widen(id).c_str(),caption,ui->theme.recognition,colors::ink,DT_CENTER|DT_VCENTER|DT_SINGLELINE|DT_END_ELLIPSIS);
+                    label(item.hDC,widen(id).c_str(),caption,ui->theme.body,colors::ink,DT_CENTER|DT_VCENTER|DT_SINGLELINE|DT_END_ELLIPSIS);
                     if(item.itemState&ODS_FOCUS){RECT focus=item.rcItem;InflateRect(&focus,-3,-3);DrawFocusRect(item.hDC,&focus);}return TRUE;
                 }
                 if (ui->page == Page::Home && item.CtlID >= HomeBase && item.CtlID < HomeBase + kFeatureCount) {

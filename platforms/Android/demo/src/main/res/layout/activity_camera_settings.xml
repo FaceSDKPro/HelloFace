@@ -61,6 +61,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
+                    android:text="@string/camera_settings_resolution_guidance"
+                    android:textColor="@color/content_text_secondary"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
                     android:text="@string/camera_settings_resolution_hint"
                     android:textColor="@color/content_text_secondary"
                     android:textSize="13sp" />
@@ -79,7 +87,17 @@
                         android:minHeight="56dp"
                         android:paddingStart="8dp"
                         android:paddingEnd="8dp"
-                        android:text="@string/camera_settings_default"
+                        android:textColor="@color/content_text"
+                        android:textSize="15sp"
+                        app:buttonTint="@color/content_accent" />
+
+                    <androidx.appcompat.widget.AppCompatRadioButton
+                        android:id="@+id/cameraResolutionMedium"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="56dp"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
                         android:textColor="@color/content_text"
                         android:textSize="15sp"
                         app:buttonTint="@color/content_accent" />
@@ -91,7 +109,6 @@
                         android:minHeight="56dp"
                         android:paddingStart="8dp"
                         android:paddingEnd="8dp"
-                        android:text="@string/camera_settings_high"
                         android:textColor="@color/content_text"
                         android:textSize="15sp"
                         app:buttonTint="@color/content_accent" />

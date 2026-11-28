@@ -57,3 +57,26 @@ struct CameraPreview: UIViewRepresentable {
         view.previewLayer.session = nil
     }
 }
+
+struct LiveCameraViewfinder<Overlay: View>: View {
+    let session: AVCaptureSession
+    let mirrored: Bool
+    let frameSize: CGSize
+    @ViewBuilder var overlay: () -> Overlay
+
+    var body: some View {
+        GeometryReader { geometry in
+            let available = CGSize(width: max(1, geometry.size.width - 24), height: max(1, geometry.size.height - 16))
+            let scale = CameraPreviewLayout.scale(view: available, image: frameSize)
+            let shape = RoundedRectangle(cornerRadius: 18)
+            ZStack {
+                CameraPreview(session: session, mirrored: mirrored)
+                overlay()
+            }
+            .frame(width: frameSize.width * scale, height: frameSize.height * scale)
+            .clipShape(shape)
+            .overlay { shape.strokeBorder(.white.opacity(0.18)).allowsHitTesting(false) }
+            .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+        }
+    }
+}

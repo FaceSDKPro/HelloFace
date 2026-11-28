@@ -25,6 +25,34 @@
       "value": "Import 1,000 Images"
     },
     {
+      "name": "demo_147a97d224b0",
+      "value": "Low · {0} × {1}"
+    },
+    {
+      "name": "demo_d4a5d0920d57",
+      "value": "Medium · {0} × {1}"
+    },
+    {
+      "name": "demo_762f25bd3eed",
+      "value": "High · {0} × {1}"
+    },
+    {
+      "name": "demo_3c47bbb91fb5",
+      "value": "Choose a camera-supported resolution that suits your use case."
+    },
+    {
+      "name": "demo_a0179ad1baaf",
+      "value": "Live face search defaults to High. Other camera features default to Low."
+    },
+    {
+      "name": "demo_729b2928fb41",
+      "value": "The camera uses a compatible size if it cannot provide the selected dimensions."
+    },
+    {
+      "name": "demo_6cd27fcc01ef",
+      "value": "Use feature defaults"
+    },
+    {
       "name": "demo_6f37f7ed24d4",
       "value": " · adapted"
     },
@@ -2353,16 +2381,12 @@
       "value": "Choose a flow and liveness options. Results appear here."
     },
     {
-      "name": "demo_2886e8ec5c66",
-      "value": "Choose an enrolled reference to compare with the camera face."
+      "name": "demo_9820a2fc35ea",
+      "value": "1:1 Face Verification + Liveness"
     },
     {
       "name": "demo_8423ce994e9a",
       "value": "Independent Liveness"
-    },
-    {
-      "name": "demo_a08fc3b98a9f",
-      "value": "No identity comparison. Passive liveness is always on; action challenges are optional."
     },
     {
       "name": "demo_7bc3693d6d18",
@@ -2373,16 +2397,16 @@
       "value": "Check for a live person without requiring an action"
     },
     {
+      "name": "demo_91863f9324ab",
+      "value": "Always on. Checks for a live person without requiring an action."
+    },
+    {
       "name": "demo_90045e1da381",
       "value": "Action challenges"
     },
     {
       "name": "demo_a34c6d627cf8",
       "value": "Choose the actions to perform"
-    },
-    {
-      "name": "demo_a49d8277c944",
-      "value": "Choose at least one action; actions run in the order below"
     },
     {
       "name": "demo_1e28701b09dd",
@@ -2397,24 +2421,12 @@
       "value": "Compare identity only, without liveness detection."
     },
     {
-      "name": "demo_37fd568d53fb",
-      "value": "Perform the selected actions in order, then face the camera to finish."
-    },
-    {
-      "name": "demo_e8ab1db95112",
-      "value": "Enrolled references"
-    },
-    {
       "name": "demo_3f589c176388",
       "value": "Use Camera"
     },
     {
-      "name": "demo_9a9cb1c6461d",
-      "value": "Swipe sideways and tap a portrait to verify"
-    },
-    {
-      "name": "demo_bf9fb6c8f521",
-      "value": "Swipe sideways; tap a portrait to verify, or touch and hold to delete"
+      "name": "demo_0225447646c6",
+      "value": "Tap a portrait to verify; touch and hold to delete (swipe the list sideways)"
     },
     {
       "name": "demo_e05df0d137e5",

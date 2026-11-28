@@ -37,19 +37,20 @@ void label(HDC dc, const wchar_t* value, RECT rectangle, HFONT font, COLORREF co
 }
 Theme::Theme() { background = CreateSolidBrush(colors::background); surface = CreateSolidBrush(colors::surface); home_background = CreateSolidBrush(home_colors::background); setDpi(96); }
 Theme::~Theme() {
-    for (auto font : {body, title, small, result, parameter_title, recognition}) DeleteObject(font);
+    for (auto font : {body, title, small, result, parameter_title, recognition, enrollment}) DeleteObject(font);
     DeleteObject(background); DeleteObject(surface); DeleteObject(home_background);
 }
 int Theme::px(int value) const { return MulDiv(value, static_cast<int>(dpi), 96); }
 void Theme::setDpi(UINT value) {
     dpi = value;
-    for (auto font : {body, title, small, result, parameter_title, recognition}) DeleteObject(font);
+    for (auto font : {body, title, small, result, parameter_title, recognition, enrollment}) DeleteObject(font);
     auto font = [&](int size, int weight) { return CreateFontW(-px(size), 0, 0, 0, weight, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Microsoft YaHei UI"); };
     body = font(14, FW_NORMAL); title = font(23, FW_SEMIBOLD); small = font(12, FW_NORMAL);
     result = font(18, FW_MEDIUM);
     parameter_title = font(15, FW_BOLD);
     recognition = font(17, FW_NORMAL);
+    enrollment = font(17, FW_BOLD);
 }
 void Theme::style(HWND control) {
     SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(body), TRUE);

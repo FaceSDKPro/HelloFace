@@ -1,9 +1,9 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
-    <LinearLayout android:id="@+id/silentRow" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:orientation="horizontal" android:gravity="center_vertical">
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/recognition_silent" android:textSize="15sp" android:textStyle="bold" android:textColor="@color/content_text"/>
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/recognition_silent_hint" android:textSize="12sp" android:textColor="@color/content_text_secondary" android:layout_marginTop="3.3dp"/>
+            <TextView android:id="@+id/silentDescription" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/recognition_silent_hint" android:textSize="12sp" android:textColor="@color/content_text_secondary" android:layout_marginTop="3.3dp"/>
         </LinearLayout>
         <androidx.appcompat.widget.SwitchCompat android:id="@+id/silentSwitch" android:layout_width="wrap_content" android:layout_height="48dp" android:checked="true" android:saveEnabled="false" android:contentDescription="@string/recognition_silent"/>
     </LinearLayout>
@@ -15,7 +15,7 @@
         <androidx.appcompat.widget.SwitchCompat android:id="@+id/actionsSwitch" android:checked="true" android:layout_width="wrap_content" android:layout_height="48dp" android:saveEnabled="false" android:contentDescription="@string/recognition_actions"/>
     </LinearLayout>
     <LinearLayout android:id="@+id/actionChoices" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
-        <TextView android:id="@+id/actionValidation" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6.6dp" android:text="@string/recognition_action_order" android:textSize="11sp" android:textColor="@color/content_text_secondary" android:accessibilityLiveRegion="polite"/>
+        <TextView android:id="@+id/actionValidation" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6.6dp" android:text="@string/recognition_choose_action" android:textSize="11sp" android:textColor="@color/content_error" android:visibility="gone" android:accessibilityLiveRegion="polite"/>
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
             <CheckBox android:id="@+id/blinkChoice" android:layout_width="0dp" android:layout_weight="1" android:layout_height="42dp" android:saveEnabled="false" android:checked="true" android:text="@string/liveness_action_blink" android:textSize="11sp" android:maxLines="1" android:buttonTint="@color/content_accent" android:textColor="@color/content_text"/>
             <CheckBox android:id="@+id/mouthChoice" android:layout_width="0dp" android:layout_weight="1" android:layout_height="42dp" android:saveEnabled="false" android:checked="false" android:text="@string/liveness_action_mouth_open" android:textSize="11sp" android:maxLines="1" android:buttonTint="@color/content_accent" android:textColor="@color/content_text"/>

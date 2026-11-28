@@ -4,19 +4,29 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/search_background"
     tools:context=".detection.FaceDetectionActivity">
 
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/cameraPreview"
-        android:name="com.hiface.sdk.demo.camera.CameraPreviewFragment"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:layout="@layout/fragment_camera_preview" />
+    <com.hiface.sdk.demo.camera.CameraViewfinder
+        android:id="@+id/detectionViewfinder"
+        style="@style/Widget.HiFace.CameraViewfinder"
+        app:layout_constraintTop_toBottomOf="@id/backButton"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintDimensionRatio="@string/camera_viewfinder_ratio">
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/cameraPreview"
+            android:name="com.hiface.sdk.demo.camera.CameraPreviewFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:layout="@layout/fragment_camera_preview" />
 
-    <com.hiface.sdk.demo.detection.FaceDetectionOverlayView
-        android:id="@+id/detectionOverlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        <com.hiface.sdk.demo.detection.FaceDetectionOverlayView
+            android:id="@+id/detectionOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </com.hiface.sdk.demo.camera.CameraViewfinder>
 
     <ImageButton
         android:id="@+id/backButton"

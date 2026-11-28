@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct CameraSettingsView: View {
-    // Persist a resolution preference; CameraPipeline negotiates the actual supported device format.
+    // An empty value shows no selected tier and leaves the default to the current camera feature.
     @AppStorage(DemoCameraSettings.resolutionKey)
-    private var resolution = CameraAnalysisResolution.medium.rawValue
+    private var resolution = ""
     // Extra overlay-coordinate correction is independent of the camera preview's mirroring.
     @AppStorage(DemoCameraSettings.mirrorCoordinatesKey)
     private var mirrorsOverlayCoordinates = false
@@ -17,7 +17,10 @@ struct CameraSettingsView: View {
             } header: {
                 Text(DemoL10n.text("摄像头分辨率"))
             } footer: {
-                Text(DemoL10n.text("自动适配镜头；低档适合近距离，中档适合日常检测与活体。实际尺寸见相机页。"))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(DemoL10n.text("根据你的业务场景，配置合适的摄像头支持的分辨率。"))
+                    Text(DemoL10n.text("未选择档位时，实时人脸搜索使用高档，其他相机功能使用低档。"))
+                }
             }
 
             Section {
@@ -52,9 +55,6 @@ struct CameraSettingsView: View {
         .tint(DemoTheme.contentAccent)
         .navigationTitle(DemoL10n.text("SDK参数设置"))
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            resolution = CameraAnalysisResolution(storedValue: resolution).rawValue
-        }
     }
 
     private func resolutionRow(_ value: CameraAnalysisResolution) -> some View {
@@ -64,14 +64,7 @@ struct CameraSettingsView: View {
         } label: {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 8) {
-                        Text(value.title).foregroundStyle(.primary)
-                        if value == .medium {
-                            Text(DemoL10n.text("推荐"))
-                                .font(.caption)
-                                .foregroundStyle(DemoTheme.contentAccent)
-                        }
-                    }
+                    Text(value.title).foregroundStyle(.primary)
                     Text(value.detail)
                         .font(.footnote)
                         .foregroundStyle(.secondary)

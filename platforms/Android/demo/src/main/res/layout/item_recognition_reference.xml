@@ -5,6 +5,6 @@
     <ImageView android:id="@+id/referenceAvatar" android:layout_width="72dp" android:layout_height="72dp"
         android:background="@drawable/bg_recognition_avatar" android:scaleType="centerCrop" android:importantForAccessibility="no"/>
     <TextView android:id="@+id/referenceFaceId" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:layout_marginTop="8dp" android:gravity="center" android:textSize="13sp" android:textColor="@color/content_text"
+        android:layout_marginTop="8dp" android:gravity="center" android:textSize="12sp" android:textColor="@color/content_text"
         android:maxLines="2" android:ellipsize="end" android:minHeight="36dp" android:importantForAccessibility="no"/>
 </LinearLayout>

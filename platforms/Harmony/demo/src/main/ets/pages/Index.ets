@@ -545,7 +545,7 @@ struct Index {
   @Builder
   private EnrollmentButton(label: string, action: () => void) {
     Button(label, { type: ButtonType.Normal }).layoutWeight(1).height(42).padding({ left: 4, right: 4 })
-      .backgroundColor(Color.Transparent).fontColor(DemoTheme.homeBackground).fontSize(16).fontWeight(FontWeight.Bold)
+      .backgroundColor(Color.Transparent).fontColor(DemoTheme.homeBackground).fontSize(18).fontWeight(FontWeight.Bold)
       .onClick(action)
   }
 
@@ -556,21 +556,20 @@ struct Index {
       Scroll(this.recognitionScroller) {
         Column({ space: 12 }) {
         Column({ space: 11 }) {
-          Text(DemoL10n.text('1:1 人脸验证')).fontSize(18).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText)
-          Text(DemoL10n.text('选择已录入的人脸，与当前相机人脸进行比对')).fontSize(12).fontColor(DemoTheme.contentSecondary)
+          Text(DemoL10n.text('1:1人脸验证+活体检测')).fontSize(18).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText)
+            .margin({ bottom: 7 })
           RecognitionOptionsPanel({ silent: $verificationSilent, actionsEnabled: $verificationActionsEnabled,
             actionMask: $verificationActionMask })
-          Text(DemoL10n.text('已录入的人脸')).fontSize(14).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText)
           Column({ space: 4 }) {
             Text(DemoL10n.text(this.references.length === 0 ? '暂无已录入的人脸。' :
-              '左右滑动，点击头像开始 1:1 验证，长按删除')).fontSize(12).fontColor(DemoTheme.contentSecondary)
+              '点击头像开始验证，长按删除（左右滑动列表）')).fontSize(12).fontColor(DemoTheme.contentSecondary)
             if (this.references.length > 0) {
               List({ space: 12 }) {
                 ForEach(this.references, (entry: FaceReference) => {
                   ListItem() {
                     Column({ space: 8 }) {
                       FacePhotoThumbnail({ faceId: entry.faceId, library: FacePhotoLibrary.REFERENCE, diameter: 72, circular: true })
-                      Text(entry.faceId).fontSize(13).fontColor(DemoTheme.contentText).maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
+                      Text(entry.faceId).fontSize(12).fontColor(DemoTheme.contentText).maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
                         .textAlign(TextAlign.Center).width('100%')
                     }.width(96).padding({ top: 4, bottom: 4 })
                   }.priorityGesture(GestureGroup(GestureMode.Exclusive,
@@ -590,11 +589,10 @@ struct Index {
               Text(this.albumError).fontSize(12).fontColor(DemoTheme.contentError)
             }
           }.alignItems(HorizontalAlign.Start).width('100%')
-        }.width('100%').alignItems(HorizontalAlign.Start).padding({ left: 14, right: 14, top: 14, bottom: 6 }).backgroundColor('#FFFFFF')
+        }.width('100%').alignItems(HorizontalAlign.Start).padding({ left: 14, right: 14, top: 14, bottom: 2 }).backgroundColor('#FFFFFF')
           .borderRadius(16).border({ width: 1, color: '#E2E8E5' })
         Column({ space: 11 }) {
           Text(DemoL10n.text('独立活体检测')).fontSize(18).fontWeight(FontWeight.Medium).fontColor(DemoTheme.contentText)
-          Text(DemoL10n.text('不比对身份。静默活体始终开启，可叠加动作挑战。')).fontSize(12).fontColor(DemoTheme.contentSecondary)
           RecognitionOptionsPanel({ silent: $livenessSilent, actionsEnabled: $livenessActionsEnabled,
             actionMask: $livenessActionMask, standalone: true })
           Button(DemoL10n.text('开始活体检测')).width('100%').height(48)

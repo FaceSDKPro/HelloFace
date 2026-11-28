@@ -72,7 +72,8 @@ DemoUi::DemoUi(Measure measure) : measure_(std::move(measure)) {
         for(int i=0;i<4;++i)values_[prefix+std::to_string(i)]=(i==0||i==3)?"1":"0";
     }
     if (!measure_) measure_ = [](const std::string& value, Font font) {
-        int width = 0; for (unsigned char c : value) if ((c & 0xc0) != 0x80) width += c < 128 ? (font == Font::Result ? 15 : font == Font::Title ? 12 : font == Font::Large ? 10 : font == Font::Caption ? 9 : font == Font::Small ? 6 : 7) : (font == Font::Result ? 30 : font == Font::Title ? 22 : font == Font::Large ? 18 : font == Font::Caption ? 15 : 14); return width;
+        const bool large = font == Font::Large || font == Font::LargeBold;
+        int width = 0; for (unsigned char c : value) if ((c & 0xc0) != 0x80) width += c < 128 ? (font == Font::Result ? 15 : font == Font::Title ? 12 : large ? 10 : font == Font::Caption ? 9 : font == Font::Small || font == Font::Tiny ? 6 : 7) : (font == Font::Result ? 30 : font == Font::Title ? 22 : large ? 18 : font == Font::Caption ? 15 : font == Font::Tiny ? 12 : 14); return width;
     };
 }
 void DemoUi::text(int x, int y, std::string value, uint32_t color, int max_width, Font font, bool centered) {
@@ -148,7 +149,8 @@ void DemoUi::button(Rect r, const std::string& label, const std::string& action,
         scene_.box({r.x + 1, r.y + 1, r.w - 2, r.h - 2}, fill, home ? 13 : 7);
     }
     const int label_width = measure_(label, font);
-    text(r.x + std::max(9, (r.w - label_width) / 2), r.y + r.h / 2 + (font == Font::Large ? 6 : 5), label, color, r.w - 18, font);
+    const bool large = font == Font::Large || font == Font::LargeBold;
+    text(r.x + std::max(9, (r.w - label_width) / 2), r.y + r.h / 2 + (large ? 6 : 5), label, color, r.w - 18, font);
     if (bounds.w > 0 && bounds.h > 0) controls_.push_back({bounds, action, "", enabled});
 }
 void DemoUi::field(Rect r, const std::string& key, const std::string& label, const std::string& initial, bool enabled, Font font) {
@@ -280,14 +282,42 @@ void DemoUi::recognition(const ViewState& s, Rect b) {
     const bool wide=b.w>=900;
     const bool touch=embeddedDisplay();
     const bool verify_actions=values_["recognition:verify:enabled"]=="1",live_actions=values_["recognition:live:enabled"]=="1";
+    const bool verify_empty = verify_actions && recognitionOptions(s, true).verification_actions.empty();
+    const bool live_empty = live_actions && recognitionOptions(s, false).actions.empty();
     const int card_width=wide?(b.w-36)/2:b.w-24;
-    // 板端以触控为主：单独增加卡片留白与点击热区，桌面端仍保持紧凑布局。
-    const int strip_height = s.captured_faces.empty() ? 0 : 96;
+    // Keep larger touch targets on embedded displays.
+    const int inset = touch ? 18 : 14;
+    const bool chinese = chineseLabels();
+    const std::string verify_title = chinese ? u8"1:1人脸验证+活体检测" : "1:1 Face Verification + Liveness";
+    const int title_top = touch ? 28 : 24;
+    const int options_top = touch ? 48 : 41;
+    const int title_wrap = measure_(verify_title, Font::Large) > card_width - 2 * inset ? 26 : 0;
+    const int verification_title_gap = 8;
+    const int passive_step = touch ? 53 : 41;
+    const int standalone_passive_step = touch ? 70 : 62;
+    const int toggle_step = touch ? 51 : 39;
+    const int choice_step = touch ? 51 : 35;
+    const int hint_step = touch ? 59 : 45;
+    const auto reference_font = touch ? Font::Body : Font::Small;
+    const std::string reference_guide = chinese ? u8"点击头像开始验证，长按删除（左右滑动列表）"
+        : "Tap a portrait to verify; hold to delete (swipe the list sideways)";
+    const bool has_references = !s.captured_faces.empty();
+    const bool guide_wraps = has_references && !s.failed && measure_(reference_guide, reference_font) > card_width - 2 * inset;
+    const int reference_help_step = (touch ? 28 : 24) + (guide_wraps ? 19 : 0);
+    const int enrollment_gap = 6, enrollment_height = touch ? 40 : 30;
+    const int verification_bottom_padding = 6;
+    const int start_gap = touch ? 6 : 4, start_height = touch ? 48 : 40;
+    const int strip_height = has_references ? 96 : 0;
     const int strip_width = card_width - 28;
     reference_max_scroll_ = std::max(0, int(s.captured_faces.size()) * 88 - strip_width);
     const int pager_height = reference_max_scroll_ > 0 ? (touch ? 32 : 24) : 0;
-    const int verify_height = (touch ? 386 : 317) + strip_height + pager_height + (verify_actions ? (touch ? 77 : 35) : 0);
-    const int live_height=touch?282+(live_actions?76:0):230+(live_actions?35:0);
+    auto options_height = [&](bool verification, bool actions, bool empty) {
+        return options_top + (verification ? title_wrap + verification_title_gap + passive_step : standalone_passive_step) + toggle_step
+            + (actions ? choice_step : 0) + (!actions || empty ? hint_step : 0);
+    };
+    const int verify_height = options_height(true, verify_actions, verify_empty) + reference_help_step
+        + strip_height + (pager_height ? pager_height + 2 : 0) + enrollment_gap + enrollment_height + verification_bottom_padding;
+    const int live_height = options_height(false, live_actions, live_empty) + start_gap + start_height + inset;
     const int cards_height=wide?std::max(verify_height,live_height):verify_height+live_height+12;
     constexpr int result_gap = 12, summary_height = 64, text_left = 26, min_text_width = 152;
     constexpr int preview_width = 160, preview_height = 120;
@@ -312,42 +342,54 @@ void DemoUi::recognition(const ViewState& s, Rect b) {
     int top=viewport.y-recognition_scroll_;
     const Rect verify{12,top,card_width,verify_height},live{wide?24+card_width:12,wide?top:top+verify_height+12,card_width,live_height};
     const bool enabled=s.ready&&!s.busy&&!s.importing;
-    auto options=[&](Rect area,bool verification){
+    auto options=[&](Rect area,bool verification,bool actions,bool empty){
         const std::string prefix=verification?"recognition:verify:":"recognition:live:";
-        const bool actions=values_[prefix+"enabled"]=="1";
-        const int inset=touch?18:14;
         card(area);
-        text(area.x+inset,area.y+(touch?28:24),verification?"1:1 Face Verification":"Liveness Detection",ink,area.w-inset*2,Font::Large);
-        wrap(area.x+inset,area.y+(touch?59:48),verification?"Compare the camera face with a saved Face ID.":"Detect liveness without identity matching. Passive liveness stays on; actions are optional.",muted,area.w-inset*2,2,touch?Font::Body:Font::Small);
-        int y=area.y+(verification?(touch?103:88):(touch?98:83));
-        if(verification){toggle(area.x+inset,y,area.w-inset*2,prefix+"silent","Passive liveness check",enabled,touch?Font::Large:Font::Body);y+=touch?53:41;}
-        toggle(area.x+inset,y,area.w-inset*2,prefix+"enabled","Action-guided challenge",enabled,touch?Font::Large:Font::Body);y+=touch?51:39;
-        bool selected=false;
+        wrap(area.x+inset,area.y+title_top,verification?verify_title:"Liveness Detection",ink,area.w-inset*2,2,Font::Large);
+        int y=area.y+options_top;
+        if(verification){
+            y+=title_wrap+verification_title_gap;
+            toggle(area.x+inset,y,area.w-inset*2,prefix+"silent","Passive liveness check",enabled,touch?Font::Large:Font::Body);
+            y+=passive_step;
+        } else {
+            text(area.x+inset,y+(touch?23:18),chinese?u8"静默活体":"Passive liveness",
+                ink,area.w-2*inset,touch?Font::Large:Font::Body);
+            wrap(area.x+inset,y+(touch?43:37),chinese?u8"始终开启，无需指定动作即可检测是否为真人。"
+                :"Always on. Checks for a live person without requiring an action.",muted,area.w-2*inset,2,
+                touch?Font::Body:Font::Small);
+            y+=standalone_passive_step;
+        }
+        toggle(area.x+inset,y,area.w-inset*2,prefix+"enabled","Action-guided challenge",enabled,touch?Font::Large:Font::Body);
+        y+=toggle_step;
         if(actions){
-            if(touch){text(area.x+inset,y+16,"Select actions (run left to right)",ink,area.w-inset*2,Font::Caption);y+=26;}
             const char* labels[]={"Blink","Mouth","Shake","Nod"};
             const int gap=touch?6:2,w=(area.w-inset*2-gap*3)/4;
             for(int i=0;i<4;++i){
                 const auto key=prefix+std::to_string(i);const bool checked=values_[key]=="1";
-                selected|=checked;
                 button({area.x+inset+i*(w+gap),y,w,touch?42:30},
                     std::string(checked?"[x] ":"[ ] ")+labels[i],"toggle:"+key,checked?2:0,enabled,Font::Caption);
             }
-            y+=touch?51:35;
+            y+=choice_step;
         }
-        scene_.box({area.x+inset,y,area.w-inset*2,touch?48:36},tint,10);
-        const bool empty=actions&&!selected;
-        wrap(area.x+inset+10,y+(touch?18:14),empty?"Choose at least one action.":actions?"Follow the selected actions in the order shown.":verification&&values_[prefix+"silent"]!="1"?"Identity comparison only; liveness is off.":"Face the camera; no action is required.",empty?danger:muted,area.w-inset*2-20,2,touch?Font::Body:Font::Small);
-        return y+(touch?59:45);
+        if (!actions || empty) {
+            scene_.box({area.x+inset,y,area.w-inset*2,touch?48:36},tint,10);
+            const char* hint = empty ? "Choose at least one action."
+                : verification && values_[prefix+"silent"]!="1" ? "Identity comparison only; liveness is off."
+                : "Face the camera; no action is required.";
+            wrap(area.x+inset+10,y+(touch?18:14),hint,empty?danger:muted,area.w-inset*2-20,2,touch?Font::Body:Font::Small);
+            y+=hint_step;
+        }
+        return y;
     };
-    int y=options(verify,true);
-    const int inset = touch ? 18 : 14;
+    int y=options(verify,true,verify_actions,verify_empty);
     const auto source_font = touch ? Font::Caption : Font::Small;
-    text(verify.x+inset,y+18,"Saved Face IDs",ink,verify.w-2*inset,source_font);
-    y += touch ? 30 : 28;
-    text(verify.x+inset,y+(touch?18:16),s.failed ? errorPresentation(s).summary : s.captured_faces.empty() ? "No faces enrolled yet." :
-        "Swipe to browse; tap to verify; press and hold to delete",s.failed ? danger : muted,verify.w-2*inset,touch?Font::Body:Font::Small);
-    y += touch ? 28 : 24;
+    const int help_y = y + (touch ? 18 : 16);
+    if (!s.failed && has_references)
+        wrap(verify.x+inset,help_y,reference_guide,muted,verify.w-2*inset,2,reference_font);
+    else
+        text(verify.x+inset,help_y,s.failed ? errorPresentation(s).summary : "No faces enrolled yet.",
+            s.failed ? danger : muted,verify.w-2*inset,reference_font);
+    y += reference_help_step;
     recognition_reference_area_={verify.x+14,y,strip_width,strip_height};
     reference_scroll_=std::clamp(reference_scroll_,0,reference_max_scroll_);
     const auto card_clip=scene_.clip;scene_.clip=scene_.clip.intersect(recognition_reference_area_);
@@ -358,7 +400,7 @@ void DemoUi::recognition(const ViewState& s, Rect b) {
         const auto& row=s.captured_faces[i];const Rect portrait{tile.x+12,tile.y+5,56,56};
         if(row.photo)picture(portrait,row.photo.get(),nullptr,false,{});
         else {scene_.box(portrait,tint,16);scene_.dot(portrait.x+32,portrait.y+22,20,accent);scene_.box({portrait.x+16,portrait.y+36,32,23},accent,10);}
-        text(tile.x+4,tile.y+80,row.id,ink,72,Font::Small,true);
+        text(tile.x+4,tile.y+80,row.id,ink,72,Font::Tiny,true);
     }
     scene_.clip=card_clip;
     y += strip_height;
@@ -368,12 +410,12 @@ void DemoUi::recognition(const ViewState& s, Rect b) {
         button({verify.x+(touch?70:66),y,touch?48:44,pager_height},">","recognition-next",0,enabled&&reference_scroll_<reference_max_scroll_,source_font);
         y += pager_height;
     }
-    y += 6;
-    const int gap = 16, w = (verify.w - 2 * inset - gap) / 2, h = touch ? 40 : 30;
-    button({verify.x+inset,y,w,h},albumLabel(),"browse:reference-photo",enrollment_button,enabled,Font::Caption);
-    button({verify.x+inset+w+gap,y,w,h},chineseLabels() ? u8"相机录入" : "Use Camera","recognition-capture",enrollment_button,enabled,Font::Caption);
-    y=options(live,false);
-    button({live.x+(touch?18:14),y+(touch?6:4),live.w-(touch?36:28),touch?48:40},"Start liveness detection","recognition-liveness",1,enabled,touch?Font::Large:Font::Body);
+    y += enrollment_gap;
+    const int gap = 16, w = (verify.w - 2 * inset - gap) / 2;
+    button({verify.x+inset,y,w,enrollment_height},albumLabel(),"browse:reference-photo",enrollment_button,enabled,Font::LargeBold);
+    button({verify.x+inset+w+gap,y,w,enrollment_height},chinese ? u8"相机录入" : "Use Camera","recognition-capture",enrollment_button,enabled,Font::LargeBold);
+    y=options(live,false,live_actions,live_empty);
+    button({live.x+inset,y+start_gap,live.w-2*inset,start_height},"Start liveness detection","recognition-liveness",1,enabled,touch?Font::Large:Font::Body);
     if (recognition_result_) {
         const auto& result = *recognition_result_;
         const int result_top = top + cards_height + result_gap;
@@ -666,8 +708,15 @@ void DemoUi::desktopCamera(const ViewState& s, Rect b) {
     button({b.w-440,12,146,36},"Switch camera","next",0,content_enabled_ && s.fixed_camera_device.empty());
     button({b.w-282,12,124,36},"Settings","feature-settings",0,content_enabled_ && page_!="capture" && page_!="enrollment");
     button({b.w-146,12,130,36},camera_menu_?"Close menu":"Camera options","camera-menu",0,s.ready && !s.importing);
-    const Rect preview{16,64,b.w-344,b.h-138}, side{b.w-312,64,296,b.h-138};
-    scene_.box(preview,dark,8);card(side);
+    const Rect stage{16,64,b.w-344,b.h-138}, side{b.w-312,64,296,b.h-138};
+    const bool live = s.frame && s.connected;
+    const bool photo = !s.busy && s.image_first;
+    const bool portrait = s.settings.camera_rotation % 180 != 0;
+    const int frame_width = photo ? s.image_first->width : live ? s.frame->width : portrait ? 3 : 4;
+    const int frame_height = photo ? s.image_first->height : live ? s.frame->height : portrait ? 4 : 3;
+    const Rect preview = fitImage({stage.x+10,stage.y+10,stage.w-20,stage.h-20},frame_width,frame_height);
+    card(stage);card(side);
+    scene_.box(preview,dark,8);
     static const std::vector<Box> no_boxes;
     if(!s.busy && s.image_first)picture(preview,s.image_first.get(),nullptr,false,s.boxes);
     else if(s.frame && s.connected)picture(preview,nullptr,s.frame.get(),s.settings.mirror,
@@ -683,7 +732,8 @@ void DemoUi::desktopCamera(const ViewState& s, Rect b) {
     const int x=side.x+16,w=side.w-32;
     const auto panel_y=[&](int offset){return side.y+int(offset*std::min(1.0,side.h/462.0));};
     text(x,panel_y(30),s.image_first?"Photo result":s.mode=='P'?"Search paused":demoPage(page_)->title,ink,w,Font::Large);
-    text(x,panel_y(64),"Preview: "+number(s.fps)+" FPS",muted,w);
+    const std::string dimensions = live ? std::to_string(s.frame->width)+" × "+std::to_string(s.frame->height)+" · " : "";
+    text(x,panel_y(64),"Preview: "+dimensions+number(s.fps)+" FPS",muted,w);
     text(x,panel_y(94),"Analysis: "+number(s.analysis_fps)+" FPS / "+number(s.milliseconds)+" ms",muted,w,Font::Small);
     text(x,panel_y(126),page_=="detection"?"Faces: "+std::to_string(s.liveBoxes().size()):"Library: "+std::to_string(s.count),accent,w);
     wrap(x,panel_y(168),s.failed?errorPresentation(s).summary:page_=="camera" && s.count==0?"Your library is empty. Enroll a face or import features from Face library.":friendly(s.status),s.failed?danger:accent,w,side.h<440?3:5,Font::Body);
@@ -1111,16 +1161,29 @@ void DemoUi::settings(const ViewState& s, Rect b) {
     } else {
         text(x, y + 12, sdk_advanced_ ? "Advanced video settings" : "Camera resolution", ink, w);
         const bool embedded = embeddedDisplay();
-        const std::string default_size = embedded ? "640 x 360" : "640 x 480";
-        wrap(x, y + 35, sdk_advanced_ ? "Video formats and exact dimensions depend on the Linux camera driver." : embedded ? "Changes save automatically. UI rotation turns the camera and face overlays together." : "Changes save automatically. Camera rotation keeps the desktop UI upright.", muted, w, 2, Font::Small);
+        const auto& sizes = cameraPresets(embedded);
+        const char* tiers[] = {"Low ", "Medium ", "High "};
+        const char* guidance = chineseLabels() ? u8"根据你的业务场景，配置合适的摄像头支持的分辨率。"
+                                              : "Choose a camera-supported resolution that suits your use case.";
+        wrap(x, y + 35, sdk_advanced_ ? "Video formats and exact dimensions depend on the Linux camera driver."
+             : embedded ? "Changes save automatically. UI rotation turns the camera and face overlays together." : guidance,
+             muted, w, 2, Font::Small);
         const int preset = (w - 16) / 3;
+        for (int i = 0; i < 3; ++i) {
+            const auto width = std::to_string(sizes[i].width), height = std::to_string(sizes[i].height);
+            const auto label = (embedded ? (i == 0 && !sdk_advanced_ ? "Default " : "") : tiers[i])
+                + width + " x " + height;
+            const bool selected = !sdk_advanced_ && (embedded || s.settings.hasCameraResolutionOverride())
+                && values_["setting:camera_width"] == width && values_["setting:camera_height"] == height;
+            button({x + i * (preset + 8), y + 70, preset, sdk_advanced_ ? 30 : 38}, label,
+                "resolution:" + std::to_string(i), selected ? 2 : 0, !s.busy);
+        }
         if (sdk_advanced_) {
-            for (int i = 0; i < 3; ++i) button({x + i * (preset + 8), y + 70, preset, 30}, i == 0 ? default_size : i == 1 ? "1280 x 720" : "1920 x 1080", "resolution:" + std::to_string(i), 0, !s.busy);
             const int third = (w - 24) / 3; f("camera_width", "Width (even)", x, y + 112, third); f("camera_height", "Height (even)", x + third + 12, y + 112, third); f("camera_fps", "FPS (1..60)", x + third * 2 + 24, y + 112, third);
             t("camera_mjpeg", "Prefer MJPEG format", y + 180);
         } else {
-            const char* widths[]={"640","1280","1920"};const std::string heights[]={embedded?"360":"480","720","1080"};
-            for(int i=0;i<3;++i)button({x+i*(preset+8),y+70,preset,38},i==0?"Default "+default_size:i==1?"1280 x 720":"1920 x 1080","resolution:"+std::to_string(i),values_["setting:camera_width"]==widths[i] && values_["setting:camera_height"]==heights[i]?2:0,!s.busy);
+            if (!embedded)
+                wrap(x, y + 120, "Defaults: High for live face search, Low for other camera features.", muted, w, 2, Font::Small);
             t("mirror", "Mirror preview and face overlays", y + 142);
             text(x, y + 214, embedded ? "UI rotation" : "Camera rotation", ink, 108, Font::Small);
             rotationButtons({x + 120, y + 194, w - 120, 30}, values_[embedded ? "setting:ui_rotation" : "setting:camera_rotation"], !s.busy && !settings_pending_, embedded ? "ui-rotation:" : "camera-rotation:");
@@ -1551,7 +1614,12 @@ void DemoUi::handle(const std::string& action, const ViewState& state) {
         const bool multi = action == "search-multi"; values_["setting:search_multi"] = multi ? "1" : "0"; values_["setting:search_liveness"] = multi ? "0" : "1"; return;
     }
     if (action.rfind("resolution:", 0) == 0) {
-        const int index = std::stoi(action.substr(11)); const char* widths[] = {"640", "1280", "1920"}; const char* heights[] = {embeddedDisplay() ? "360" : "480", "720", "1080"}; values_["setting:camera_width"] = widths[index]; values_["setting:camera_height"] = heights[index]; handle("settings-apply", state); return;
+        const bool embedded = embeddedDisplay();
+        const auto size = cameraPresets(embedded).at(std::stoi(action.substr(11)));
+        values_["setting:camera_width"] = std::to_string(size.width);
+        values_["setting:camera_height"] = std::to_string(size.height);
+        if (!embedded) values_["setting:camera_resolution_override"] = "1";
+        handle("settings-apply", state); return;
     }
     if (action.rfind("camera-rotation:", 0) == 0) {
         if (state.busy || settings_pending_) return;

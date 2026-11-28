@@ -28,7 +28,7 @@ public final class FaceLivenessActivity extends CameraFlowActivity {
         switchCameraButton.setOnClickListener(view -> switchCamera());
         try {
             config = FaceLivenessConfig.builder().actions(RecognitionFlowContract.actions(getIntent()))
-                    .allowMultipleFaces(true).build();
+                    .allowMultipleFaces(false).build();
         } catch (IllegalArgumentException error) {
             completeError(getString(R.string.recognition_invalid_options));
             return;

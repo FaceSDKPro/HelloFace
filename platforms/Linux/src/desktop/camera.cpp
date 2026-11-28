@@ -245,6 +245,7 @@ void Camera::openStream(const std::string& device, int width, int height, int fp
             if (request(fd_, VIDIOC_S_FMT, &format) != 0) continue;
             const auto negotiated_format = multiplanar ? format.fmt.pix_mp.pixelformat : format.fmt.pix.pixelformat;
             if (negotiated_format != wanted) continue;
+            // V4L2 may adjust the requested size. Use the returned dimensions for buffers and frames.
             width_ = multiplanar ? format.fmt.pix_mp.width : format.fmt.pix.width;
             height_ = multiplanar ? format.fmt.pix_mp.height : format.fmt.pix.height;
             format_ = wanted;

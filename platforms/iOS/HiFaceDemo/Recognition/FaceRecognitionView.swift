@@ -26,12 +26,10 @@ struct FaceRecognitionView: View {
         ScrollViewReader { scroll in
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                recognitionCard {
-                    Text(DemoL10n.text("1:1 人脸验证")).font(.headline)
-                    Text(DemoL10n.text("选择已录入的人脸，与当前相机人脸进行比对")).font(.footnote).foregroundStyle(DemoTheme.contentSecondaryText)
+                recognitionCard(bottomPadding: 6) {
+                    Text(DemoL10n.text("1:1人脸验证+活体检测")).font(.headline).padding(.bottom, 7)
                     RecognitionOptionsEditor(options: $verification, standalone: false)
-                    Text(DemoL10n.text("已录入的人脸")).font(.subheadline.bold())
-                    Text(DemoL10n.text(references.isEmpty ? "暂无已录入的人脸。" : "左右滑动，点击头像开始 1:1 验证，长按删除"))
+                    Text(DemoL10n.text(references.isEmpty ? "暂无已录入的人脸。" : "点击头像开始验证，长按删除（左右滑动列表）"))
                         .font(.caption).foregroundStyle(DemoTheme.contentSecondaryText)
                     if !references.isEmpty { referenceList }
                     HStack(spacing: 16) {
@@ -45,7 +43,7 @@ struct FaceRecognitionView: View {
                             Text(DemoL10n.text("相机录入")).frame(maxWidth: .infinity, minHeight: 42).contentShape(Rectangle())
                         }
                     }
-                    .buttonStyle(.plain).font(.subheadline.bold()).foregroundStyle(DemoTheme.homeBackground)
+                    .buttonStyle(.plain).font(.headline.bold()).foregroundStyle(DemoTheme.homeBackground)
                     if let referenceError {
                         Text(DemoL10n.text("读取参考人脸失败")).font(.footnote.bold()).foregroundStyle(.red)
                         Text(referenceError).font(.footnote).foregroundStyle(.red)
@@ -55,7 +53,6 @@ struct FaceRecognitionView: View {
                 }
                 recognitionCard {
                     Text(DemoL10n.text("独立活体检测")).font(.headline)
-                    Text(DemoL10n.text("不比对身份。静默活体始终开启，可叠加动作挑战。")).font(.footnote).foregroundStyle(DemoTheme.contentSecondaryText)
                     RecognitionOptionsEditor(options: $liveness, standalone: true)
                     Button {
                         startRecognition(liveness)
@@ -172,7 +169,7 @@ struct FaceRecognitionView: View {
                     } label: {
                         VStack(spacing: 8) {
                             FacePhotoThumbnail(faceID: faceID, library: .reference, diameter: 64, circular: true)
-                            Text(faceID).font(.caption).lineLimit(2).multilineTextAlignment(.center)
+                            Text(faceID).font(.caption2).lineLimit(2).multilineTextAlignment(.center)
                         }
                         .frame(width: 80).padding(.vertical, 2).contentShape(Rectangle())
                     }
@@ -252,9 +249,9 @@ struct FaceRecognitionView: View {
         }
     }
 
-    private func recognitionCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    private func recognitionCard<Content: View>(bottomPadding: CGFloat = 14, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 11, content: content)
-            .frame(maxWidth: .infinity, alignment: .leading).padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading).padding([.top, .horizontal], 14).padding(.bottom, bottomPadding)
             .foregroundStyle(DemoTheme.contentText)
             .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.black.opacity(0.08)).allowsHitTesting(false))
@@ -312,14 +309,23 @@ private struct RecognitionOptionsEditor: View {
     @Binding var options: RecognitionOptions
     let standalone: Bool
     private let titles = ["眨眼", "张嘴", "摇头", "点头"]
+
+    private var passiveLivenessLabel: some View {
+        VStack(alignment: .leading, spacing: 3.3) {
+            Text(DemoL10n.text("静默活体")).font(.subheadline.bold())
+            Text(DemoL10n.text(standalone
+                ? "始终开启，无需指定动作即可检测是否为真人。" : "检测是否为真人，无需指定动作"))
+                .font(.caption).foregroundStyle(DemoTheme.contentSecondaryText)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 11) {
-            if !standalone {
+            if standalone {
+                passiveLivenessLabel
+            } else {
                 Toggle(isOn: $options.silent) {
-                    VStack(alignment: .leading, spacing: 3.3) {
-                        Text(DemoL10n.text("静默活体")).font(.subheadline.bold())
-                        Text(DemoL10n.text("检测是否为真人，无需指定动作")).font(.caption).foregroundStyle(DemoTheme.contentSecondaryText)
-                    }
+                    passiveLivenessLabel
                 }
             }
             Toggle(isOn: $options.enabled) {
@@ -329,8 +335,9 @@ private struct RecognitionOptionsEditor: View {
                 }
             }
             if options.enabled {
-                Text(DemoL10n.text(options.valid ? "至少选择一个动作，按下方顺序执行" : "请至少勾选一个动作"))
-                    .font(.caption).foregroundStyle(options.valid ? DemoTheme.contentSecondaryText : .red)
+                if !options.valid {
+                    Text(DemoL10n.text("请至少勾选一个动作")).font(.caption).foregroundStyle(.red)
+                }
                 HStack(spacing: 6) {
                     ForEach(titles.indices, id: \.self) { index in
                         Button { options.selected[index].toggle() } label: {
@@ -347,12 +354,13 @@ private struct RecognitionOptionsEditor: View {
                         .accessibilityAddTraits(options.selected[index] ? .isSelected : [])
                     }
                 }
+            } else {
+                Text(DemoL10n.text(standalone || options.silent
+                    ? "正对镜头即可，无需做指定动作。" : "仅进行 1:1 人脸比对，不进行活体检测。"))
+                    .font(.caption).foregroundStyle(DemoTheme.contentSecondaryText).padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(DemoTheme.contentAccent.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
             }
-            Text(DemoL10n.text(options.enabled ? "按勾选顺序完成动作，再正对镜头完成检测。" : standalone || options.silent
-                ? "正对镜头即可，无需做指定动作。" : "仅进行 1:1 人脸比对，不进行活体检测。"))
-                .font(.caption).foregroundStyle(DemoTheme.contentSecondaryText).padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(DemoTheme.contentAccent.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
         }
     }
 }

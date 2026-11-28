@@ -10,8 +10,8 @@
 #include <cmath>
 #include <condition_variable>
 #include <cstring>
-#include <limits>
 #include <mutex>
+#include <utility>
 
 namespace hiface_demo {
 using Microsoft::WRL::ComPtr;
@@ -188,7 +188,8 @@ Camera::Camera(unsigned device_index, const std::wstring& symbolic_link, unsigne
     checkHr(reader->SetStreamSelection(MF_SOURCE_READER_FIRST_VIDEO_STREAM, TRUE), "Enable video stream");
 
     ComPtr<IMFMediaType> selected;
-    uint64_t best = std::numeric_limits<uint64_t>::max();
+    std::pair<bool, uint64_t> best{};
+    const uint64_t preferred_area = uint64_t(preferred_width) * preferred_height;
     for (DWORD i = 0;; ++i) {
         ComPtr<IMFMediaType> type;
         const auto status = reader->GetNativeMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, i, &type);
@@ -199,18 +200,16 @@ Camera::Camera(unsigned device_index, const std::wstring& symbolic_link, unsigne
             || FAILED(type->GetGUID(MF_MT_SUBTYPE, &subtype)) || !width || !height
             || (width & 1) || (height & 1) || std::max(width, height) > HIFACE_MAX_CAMERA_FRAME_LONG_SIDE
             || std::min(width, height) > HIFACE_MAX_CAMERA_FRAME_SHORT_SIDE) continue;
-        // Keep analysis/preview modest. Prefer native NV12, then YUY2/MJPEG at
-        // the closest advertised resolution to 640x480.
-        // 保持适中的分析与预览尺寸；优先原生 NV12，再选最接近 640x480 的已声明 YUY2/MJPEG 规格。
         if (subtype != MFVideoFormat_NV12 && subtype != MFVideoFormat_YUY2 && subtype != MFVideoFormat_MJPG) continue;
+        // An exact size wins. Otherwise the score weighs pixel-count distance, subtype, and distance from 30 FPS.
         const uint64_t area = uint64_t(width) * height;
-        const uint64_t preferred_area = uint64_t(preferred_width) * preferred_height;
         uint64_t score = (area > preferred_area ? area - preferred_area : preferred_area - area) * 100;
         score += subtype == MFVideoFormat_NV12 ? 0 : (subtype == MFVideoFormat_YUY2 ? 10 : 20);
         UINT32 numerator = 0, denominator = 0;
         if (SUCCEEDED(MFGetAttributeRatio(type.Get(), MF_MT_FRAME_RATE, &numerator, &denominator)) && denominator)
             score += static_cast<uint64_t>(std::abs(double(numerator) / denominator - 30));
-        if (score < best) { best = score; selected = type; }
+        const auto rank = std::make_pair(width != preferred_width || height != preferred_height, score);
+        if (!selected || rank < best) { best = rank; selected = type; }
     }
     if (!selected) throw std::runtime_error("Camera has no supported NV12/YUY2/MJPEG mode within 1080p");
     checkHr(reader->SetCurrentMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, nullptr, selected.Get()), "Select capture mode");

@@ -9,12 +9,12 @@ Requires HarmonyOS API 20 or later and an ARM64 device. In a DevEco Studio ArkTS
 ```json5
 {
   "dependencies": {
-    "hiface": "file:../libs/hiface-0.8.16.har"
+    "hiface": "file:../libs/hiface-0.8.17.har"
   }
 }
 ```
 
-Run `ohpm install` from the project root; if this version is available in your registry, use `ohpm install hiface@0.8.16` instead of the file dependency, or set `"hiface": "0.8.16"` in the dependency list. Replace the entry page `pages/Index.ets` with the following and run the signed app on a device. Tap **Run HiFace**. The blank image should show `1201` (`IMAGE_NO_FACE`).
+Run `ohpm install` from the project root; if this version is available in your registry, use `ohpm install hiface@0.8.17` instead of the file dependency, or set `"hiface": "0.8.17"` in the dependency list. Replace the entry page `pages/Index.ets` with the following and run the signed app on a device. Tap **Run HiFace**. The blank image should show `1201` (`IMAGE_NO_FACE`).
 
 ```typescript
 import { common } from '@kit.AbilityKit';
