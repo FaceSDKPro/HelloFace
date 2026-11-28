@@ -202,11 +202,7 @@ void saveEntries(Database& db, const std::vector<GalleryEntry>& rows, size_t off
 void saveEntry(Database& db, const GalleryEntry& row, bool overwrite) { saveEntries(db, {row}, 0, 1, overwrite); }
 
 std::vector<GalleryEntry> readFeatureFile(const std::string& path) {
-    std::ifstream file(path, std::ios::binary | std::ios::ate);
-    require(file.is_open(), "Cannot open feature JSON: " + path);
-    const auto length = file.tellg(); require(length > 0 && length <= 64 * 1024 * 1024, "Feature JSON must be 1 byte..64 MiB");
-    std::string contents(static_cast<size_t>(length), '\0'); file.seekg(0);
-    require(bool(file.read(contents.data(), contents.size())), "Cannot read feature JSON");
+    const auto contents = readInputFile(path.c_str(), "feature JSON");
     JsonReader json(contents);
     int64_t version = -1, expected_count = -1; std::string format, space; bool found_entries = false;
     std::vector<GalleryEntry> entries;

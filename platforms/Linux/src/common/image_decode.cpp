@@ -6,10 +6,6 @@
 #include <cctype>
 #include <cstdlib>
 #include <string_view>
-#include <cerrno>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <cmath>
 
 namespace {
@@ -32,35 +28,8 @@ void* boundedImageRealloc(void* ptr, size_t size) {
 
 namespace hiface_linux_demo {
 namespace {
-constexpr size_t kMaxPhotoBytes = 64u * 1024 * 1024;
 constexpr uint64_t kMaxPhotoPixels = 64u * 1024 * 1024;
 constexpr int kMaxCaptureSide = HIFACE_MAX_IMAGE_DIMENSION;
-
-std::vector<uint8_t> readPhotoFile(const char* path) {
-    require(path && *path, "Missing photo path");
-    struct File {
-        int fd;
-        ~File() { if (fd >= 0) ::close(fd); }
-    } file{::open(path, O_RDONLY | O_CLOEXEC | O_NONBLOCK)};
-    require(file.fd >= 0, "Cannot open photo");
-    struct stat info{};
-    require(::fstat(file.fd, &info) == 0 && S_ISREG(info.st_mode), "Photo must be a regular file");
-    require(info.st_size > 0 && uint64_t(info.st_size) <= kMaxPhotoBytes,
-            "Photo file must be between 1 byte and 64 MiB");
-    std::vector<uint8_t> bytes(static_cast<size_t>(info.st_size));
-    size_t offset = 0;
-    while (offset < bytes.size()) {
-        const auto n = ::read(file.fd, bytes.data() + offset, bytes.size() - offset);
-        if (n < 0 && errno == EINTR) continue;
-        require(n > 0, "Cannot read complete photo");
-        offset += static_cast<size_t>(n);
-    }
-    uint8_t extra;
-    ssize_t n;
-    do { n = ::read(file.fd, &extra, 1); } while (n < 0 && errno == EINTR);
-    require(n == 0, "Photo changed or could not be read");
-    return bytes;
-}
 
 std::string_view ppmToken(std::string_view& input) {
     while (!input.empty()) {
@@ -199,7 +168,7 @@ int jpegOrientation(std::string_view image) {
 }
 
 Image decodePhotoBytes(const uint8_t* data, size_t size, PhotoMode mode) {
-    require(data && size >= 2 && size <= kMaxPhotoBytes, "Invalid photo byte count");
+    require(data && size >= 2 && size <= maxInputFileBytes, "Invalid photo byte count");
     const std::string_view bytes(reinterpret_cast<const char*>(data), size);
     if (bytes.substr(0, 2) == "P6") return decodePpm(bytes);
     if (data[0] == 0xff && data[1] == 0xd8) {
@@ -211,42 +180,50 @@ Image decodePhotoBytes(const uint8_t* data, size_t size, PhotoMode mode) {
     int sw = 0, sh = 0;
     const bool search = mode == PhotoMode::Search;
     const auto pixels = decodeRaster(data, size, search ? STBI_MAX_DIMENSIONS : kMaxCaptureSide, sw, sh);
-    if (!search) return cropEven(pixels.get(), sw, sh);
     const int orientation = jpegOrientation(bytes), ow = orientation >= 5 ? sh : sw, oh = orientation >= 5 ? sw : sh;
+    if (orientation == 1 && std::max(sw, sh) <= kMaxCaptureSide) return cropEven(pixels.get(), sw, sh);
     const double scale = std::min(1.0, double(HIFACE_MAX_IMAGE_DIMENSION) / std::max(ow, oh));
     const int scaled_width = int(std::floor(ow * scale)), scaled_height = int(std::floor(oh * scale));
     const int width = scaled_width & ~1, height = scaled_height & ~1;
     require(width >= 2 && height >= 2, "Photo is too small after resizing");
     Image image{width, height, std::vector<uint8_t>(size_t(width) * height * 4)};
-    auto sample = [&](int x, int y, int c) -> uint8_t {
+    auto orientedPixel = [&](int x, int y) {
         int sx = x, sy = y;
         switch (orientation) {
             case 2: sx = sw-1-x; break; case 3: sx = sw-1-x; sy = sh-1-y; break; case 4: sy = sh-1-y; break;
             case 5: sx = y; sy = x; break; case 6: sx = y; sy = sh-1-x; break;
             case 7: sx = sw-1-y; sy = sh-1-x; break; case 8: sx = sw-1-y; sy = x; break;
         }
-        return pixels.get()[(size_t(sy) * sw + sx) * 4 + c];
+        return pixels.get() + (size_t(sy) * sw + sx) * 4;
     };
     for (int y = 0; y < height; ++y) for (int x = 0; x < width; ++x) {
         auto* dst = image.rgba.data() + (size_t(y) * width + x) * 4;
-        if (scale == 1) { for (int c = 0; c < 4; ++c) dst[c] = sample(x, y, c); continue; }
+        if (scale == 1) { std::memcpy(dst, orientedPixel(x, y), 4); continue; }
         const double fx = std::clamp((x + .5) * ow / scaled_width - .5, 0.0, double(ow-1));
         const double fy = std::clamp((y + .5) * oh / scaled_height - .5, 0.0, double(oh-1));
         const int x0 = int(fx), y0 = int(fy), x1 = std::min(x0+1, ow-1), y1 = std::min(y0+1, oh-1);
         const double dx = fx-x0, dy = fy-y0;
-        for (int c = 0; c < 4; ++c) dst[c] = uint8_t(std::lround((1-dy) * ((1-dx)*sample(x0,y0,c) + dx*sample(x1,y0,c)) + dy*((1-dx)*sample(x0,y1,c)+dx*sample(x1,y1,c))));
+        const auto* top_left = orientedPixel(x0, y0);
+        const auto* top_right = orientedPixel(x1, y0);
+        const auto* bottom_left = orientedPixel(x0, y1);
+        const auto* bottom_right = orientedPixel(x1, y1);
+        for (int c = 0; c < 4; ++c) {
+            const double top = (1 - dx) * top_left[c] + dx * top_right[c];
+            const double bottom = (1 - dx) * bottom_left[c] + dx * bottom_right[c];
+            dst[c] = uint8_t(std::lround((1 - dy) * top + dy * bottom));
+        }
     }
     return image;
 }
 
 Image readImage(const char* path) {
-    const auto bytes = readPhotoFile(path);
-    return decodePhotoBytes(bytes.data(), bytes.size(), PhotoMode::Capture);
+    const auto bytes = readInputFile(path, "photo");
+    return decodePhotoBytes(reinterpret_cast<const uint8_t*>(bytes.data()), bytes.size(), PhotoMode::Capture);
 }
 
 Image readSearchImage(const char* path) {
-    const auto bytes = readPhotoFile(path);
-    return decodePhotoBytes(bytes.data(), bytes.size(), PhotoMode::Search);
+    const auto bytes = readInputFile(path, "photo");
+    return decodePhotoBytes(reinterpret_cast<const uint8_t*>(bytes.data()), bytes.size(), PhotoMode::Search);
 }
 
 }

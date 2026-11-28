@@ -10,8 +10,10 @@
 #include <cmath>
 #include <condition_variable>
 #include <cstring>
+#include <memory>
 #include <mutex>
 #include <utility>
+
 
 namespace hiface_demo {
 using Microsoft::WRL::ComPtr;
@@ -25,7 +27,7 @@ struct CaptureState {
     std::condition_variable changed;
     bool running = false;
     HRESULT failure = S_OK;
-    bool format_changed = false;
+    ComPtr<IMFMediaType> pending_format;
     ComPtr<IMFSample> latest;
     std::chrono::steady_clock::time_point captured_at;
     ComPtr<IMFSourceReader> reader;
@@ -47,28 +49,37 @@ public:
     STDMETHODIMP OnReadSample(HRESULT status, DWORD, DWORD flags, LONGLONG, IMFSample* sample) override {
         ComPtr<IMFSourceReader> reader;
         {
-            std::lock_guard<std::mutex> lock(state_->mutex);
+            std::unique_lock<std::mutex> lock(state_->mutex);
             if (!state_->running) return S_OK;
-            if (FAILED(status) || (flags & (MF_SOURCE_READERF_ERROR | MF_SOURCE_READERF_ENDOFSTREAM))) {
-                state_->failure = FAILED(status) ? status : MF_E_INVALIDMEDIATYPE;
+            reader = state_->reader;
+            if (SUCCEEDED(status) && (flags & (MF_SOURCE_READERF_ERROR | MF_SOURCE_READERF_ENDOFSTREAM)))
+                status = MF_E_INVALIDMEDIATYPE;
+            if (SUCCEEDED(status) && (flags & (MF_SOURCE_READERF_CURRENTMEDIATYPECHANGED
+                                              | MF_SOURCE_READERF_NATIVEMEDIATYPECHANGED))) {
+                // Fetch this format before requesting another sample. A change can arrive without a sample.
+                state_->latest.Reset();
+                lock.unlock();
+                ComPtr<IMFMediaType> format;
+                status = reader->GetCurrentMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, &format);
+                lock.lock();
+                if (!state_->running) return S_OK;
+                state_->pending_format = std::move(format);
+            }
+            if (FAILED(status)) {
+                state_->failure = status;
                 state_->running = false; state_->changed.notify_all(); return S_OK;
             }
-            if (flags & (MF_SOURCE_READERF_CURRENTMEDIATYPECHANGED | MF_SOURCE_READERF_NATIVEMEDIATYPECHANGED))
-                state_->format_changed = true;
             if (sample) {
                 state_->latest = sample; state_->captured_at = std::chrono::steady_clock::now();
                 ++state_->captured;
+                state_->changed.notify_one();
             } // keep only latest / 仅保留最新帧。
-            reader = state_->reader;
-            state_->changed.notify_one();
         }
-        if (reader) {
-            const auto next = reader->ReadSample(MF_SOURCE_READER_FIRST_VIDEO_STREAM, 0,
-                nullptr, nullptr, nullptr, nullptr);
-            if (FAILED(next)) {
-                std::lock_guard<std::mutex> lock(state_->mutex);
-                if (state_->running) { state_->failure = next; state_->running = false; state_->changed.notify_all(); }
-            }
+        const auto next = reader->ReadSample(MF_SOURCE_READER_FIRST_VIDEO_STREAM, 0,
+            nullptr, nullptr, nullptr, nullptr);
+        if (FAILED(next)) {
+            std::lock_guard<std::mutex> lock(state_->mutex);
+            if (state_->running) { state_->failure = next; state_->running = false; state_->changed.notify_all(); }
         }
         return S_OK;
     }
@@ -81,11 +92,31 @@ private:
 struct Devices {
     IMFActivate** values = nullptr;
     UINT32 count = 0;
+    void enumerate() {
+        ComPtr<IMFAttributes> attributes;
+        checkHr(MFCreateAttributes(&attributes, 1), "Create camera attributes");
+        checkHr(attributes->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
+            MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID), "Select video capture");
+        checkHr(MFEnumDeviceSources(attributes.Get(), &values, &count), "Enumerate cameras");
+    }
     ~Devices() {
         for (UINT32 i = 0; i < count; ++i) values[i]->Release();
         CoTaskMemFree(values);
     }
 };
+bool supportedDimensions(UINT32 width, UINT32 height) {
+    return width && height && !(width & 1) && !(height & 1)
+        && std::max(width, height) <= HIFACE_MAX_CAMERA_FRAME_LONG_SIDE
+        && std::min(width, height) <= HIFACE_MAX_CAMERA_FRAME_SHORT_SIDE;
+}
+HRESULT readDeviceAttribute(IMFActivate* device, REFGUID key, std::wstring& text) {
+    wchar_t* raw = nullptr;
+    UINT32 length = 0;
+    const auto result = device->GetAllocatedString(key, &raw, &length);
+    const std::unique_ptr<wchar_t, decltype(&CoTaskMemFree)> owner(raw, CoTaskMemFree);
+    if (SUCCEEDED(result)) text.assign(owner.get(), length);
+    return result;
+}
 }
 struct Camera::Impl {
     Foundation foundation;
@@ -99,9 +130,7 @@ struct Camera::Impl {
         UINT32 new_width = 0, new_height = 0; GUID subtype{};
         checkHr(output->GetGUID(MF_MT_SUBTYPE, &subtype), "Read negotiated pixel format");
         checkHr(MFGetAttributeSize(output, MF_MT_FRAME_SIZE, &new_width, &new_height), "Read negotiated dimensions");
-        if (subtype != MFVideoFormat_NV12 || !new_width || !new_height || (new_width & 1) || (new_height & 1)
-            || std::max(new_width, new_height) > HIFACE_MAX_CAMERA_FRAME_LONG_SIDE
-            || std::min(new_width, new_height) > HIFACE_MAX_CAMERA_FRAME_SHORT_SIDE)
+        if (subtype != MFVideoFormat_NV12 || !supportedDimensions(new_width, new_height))
             throw std::runtime_error("Camera changed to an unsupported pixel format or size");
         width = static_cast<int>(new_width); height = static_cast<int>(new_height);
         UINT32 new_pitch = new_width;
@@ -138,39 +167,32 @@ struct Camera::Impl {
 };
 std::vector<CameraDevice> Camera::devices() {
     Foundation foundation;
-    ComPtr<IMFAttributes> attributes;
-    checkHr(MFCreateAttributes(&attributes, 1), "Create camera attributes");
-    checkHr(attributes->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
-        MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID), "Select video capture");
     Devices devices;
-    checkHr(MFEnumDeviceSources(attributes.Get(), &devices.values, &devices.count), "Enumerate cameras");
+    devices.enumerate();
     std::vector<CameraDevice> result;
+    result.reserve(devices.count);
     for (UINT32 i = 0; i < devices.count; ++i) {
-        auto attribute = [&](REFGUID key) {
-            wchar_t* raw = nullptr; UINT32 length = 0;
-            checkHr(devices.values[i]->GetAllocatedString(key, &raw, &length), "Read camera name");
-            std::wstring text(raw, length); CoTaskMemFree(raw); return text;
-        };
-        result.push_back({attribute(MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME),
-            attribute(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK)});
+        auto* activation = devices.values[i];
+        CameraDevice device;
+        checkHr(readDeviceAttribute(activation, MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME, device.name), "Read camera name");
+        checkHr(readDeviceAttribute(activation, MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK,
+            device.symbolic_link), "Read camera device ID");
+        result.push_back(std::move(device));
     }
     return result;
 }
-Camera::Camera(unsigned device_index, const std::wstring& symbolic_link, unsigned preferred_width, unsigned preferred_height) : impl_(std::make_unique<Impl>()) {
-    ComPtr<IMFAttributes> attributes;
-    checkHr(MFCreateAttributes(&attributes, 1), "Create camera attributes");
-    checkHr(attributes->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
-        MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID), "Select video capture");
+Camera::Camera(unsigned device_index, const std::wstring& symbolic_link, unsigned preferred_width, unsigned preferred_height,
+    unsigned preferred_fps) : impl_(std::make_unique<Impl>()) {
     Devices devices;
-    checkHr(MFEnumDeviceSources(attributes.Get(), &devices.values, &devices.count), "Enumerate cameras");
+    devices.enumerate();
     if (!symbolic_link.empty()) {
         device_index = devices.count;
+        std::wstring link;
         for (UINT32 i = 0; i < devices.count; ++i) {
-            wchar_t* raw = nullptr; UINT32 length = 0;
-            if (SUCCEEDED(devices.values[i]->GetAllocatedString(
-                MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK, &raw, &length))) {
-                const bool match = symbolic_link == std::wstring(raw, length); CoTaskMemFree(raw);
-                if (match) { device_index = i; break; }
+            if (SUCCEEDED(readDeviceAttribute(devices.values[i], MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK,
+                    link)) && link == symbolic_link) {
+                device_index = i;
+                break;
             }
         }
     }
@@ -178,6 +200,7 @@ Camera::Camera(unsigned device_index, const std::wstring& symbolic_link, unsigne
     checkHr(devices.values[device_index]->ActivateObject(IID_PPV_ARGS(&impl_->source)), "Open camera");
     ComPtr<ReaderCallback> callback;
     callback.Attach(new ReaderCallback(impl_->state));
+    ComPtr<IMFAttributes> attributes;
     checkHr(MFCreateAttributes(&attributes, 3), "Create reader attributes");
     checkHr(attributes->SetUnknown(MF_SOURCE_READER_ASYNC_CALLBACK, callback.Get()), "Set camera callback");
     checkHr(attributes->SetUINT32(MF_SOURCE_READER_ENABLE_ADVANCED_VIDEO_PROCESSING, TRUE), "Enable NV12 video conversion");
@@ -189,6 +212,8 @@ Camera::Camera(unsigned device_index, const std::wstring& symbolic_link, unsigne
 
     ComPtr<IMFMediaType> selected;
     std::pair<bool, uint64_t> best{};
+    UINT32 selected_width = 0, selected_height = 0;
+    GUID selected_subtype{};
     const uint64_t preferred_area = uint64_t(preferred_width) * preferred_height;
     for (DWORD i = 0;; ++i) {
         ComPtr<IMFMediaType> type;
@@ -197,30 +222,34 @@ Camera::Camera(unsigned device_index, const std::wstring& symbolic_link, unsigne
         checkHr(status, "Enumerate camera formats");
         UINT32 width = 0, height = 0; GUID subtype{};
         if (FAILED(MFGetAttributeSize(type.Get(), MF_MT_FRAME_SIZE, &width, &height))
-            || FAILED(type->GetGUID(MF_MT_SUBTYPE, &subtype)) || !width || !height
-            || (width & 1) || (height & 1) || std::max(width, height) > HIFACE_MAX_CAMERA_FRAME_LONG_SIDE
-            || std::min(width, height) > HIFACE_MAX_CAMERA_FRAME_SHORT_SIDE) continue;
+            || FAILED(type->GetGUID(MF_MT_SUBTYPE, &subtype)) || !supportedDimensions(width, height)) continue;
         if (subtype != MFVideoFormat_NV12 && subtype != MFVideoFormat_YUY2 && subtype != MFVideoFormat_MJPG) continue;
-        // An exact size wins. Otherwise the score weighs pixel-count distance, subtype, and distance from 30 FPS.
+        // An exact size wins. Otherwise the score weighs pixel-count distance, subtype, and distance from the requested frame rate.
         const uint64_t area = uint64_t(width) * height;
         uint64_t score = (area > preferred_area ? area - preferred_area : preferred_area - area) * 100;
         score += subtype == MFVideoFormat_NV12 ? 0 : (subtype == MFVideoFormat_YUY2 ? 10 : 20);
         UINT32 numerator = 0, denominator = 0;
         if (SUCCEEDED(MFGetAttributeRatio(type.Get(), MF_MT_FRAME_RATE, &numerator, &denominator)) && denominator)
-            score += static_cast<uint64_t>(std::abs(double(numerator) / denominator - 30));
+            score += static_cast<uint64_t>(std::abs(double(numerator) / denominator - preferred_fps));
         const auto rank = std::make_pair(width != preferred_width || height != preferred_height, score);
-        if (!selected || rank < best) { best = rank; selected = type; }
+        if (!selected || rank < best) {
+            best = rank;
+            selected = std::move(type);
+            selected_width = width;
+            selected_height = height;
+            selected_subtype = subtype;
+        }
     }
     if (!selected) throw std::runtime_error("Camera has no supported NV12/YUY2/MJPEG mode within 1080p");
     checkHr(reader->SetCurrentMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, nullptr, selected.Get()), "Select capture mode");
-    UINT32 width = 0, height = 0;
-    checkHr(MFGetAttributeSize(selected.Get(), MF_MT_FRAME_SIZE, &width, &height), "Read capture size");
     ComPtr<IMFMediaType> output;
-    checkHr(MFCreateMediaType(&output), "Create NV12 output type");
-    checkHr(output->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video), "Set video type");
-    checkHr(output->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_NV12), "Set NV12 format");
-    checkHr(MFSetAttributeSize(output.Get(), MF_MT_FRAME_SIZE, width, height), "Set NV12 dimensions");
-    checkHr(reader->SetCurrentMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, nullptr, output.Get()), "Negotiate NV12 camera output");
+    if (selected_subtype != MFVideoFormat_NV12) {
+        checkHr(MFCreateMediaType(&output), "Create NV12 output type");
+        checkHr(output->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video), "Set video type");
+        checkHr(output->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_NV12), "Set NV12 format");
+        checkHr(MFSetAttributeSize(output.Get(), MF_MT_FRAME_SIZE, selected_width, selected_height), "Set NV12 dimensions");
+        checkHr(reader->SetCurrentMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, nullptr, output.Get()), "Negotiate NV12 camera output");
+    }
     checkHr(reader->GetCurrentMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, &output), "Read negotiated camera format");
     impl_->readFormat(output.Get(), selected.Get());
     writeLog("Camera NV12 " + std::to_string(impl_->width) + "x" + std::to_string(impl_->height)
@@ -240,10 +269,9 @@ uint64_t Camera::capturedFrames() const {
     std::lock_guard<std::mutex> lock(impl_->state->mutex); return impl_->state->captured;
 }
 bool Camera::next(CameraFrame& frame, std::chrono::milliseconds timeout,
-    std::chrono::steady_clock::time_point* captured_at) {
+    std::chrono::steady_clock::time_point* captured_at, [[maybe_unused]] int zoom_percent) {
     ComPtr<IMFSample> sample;
-    ComPtr<IMFSourceReader> reader;
-    bool format_changed = false;
+    ComPtr<IMFMediaType> format;
     {
         std::unique_lock<std::mutex> lock(impl_->state->mutex);
         impl_->state->changed.wait_for(lock, timeout, [&] {
@@ -253,14 +281,9 @@ bool Camera::next(CameraFrame& frame, std::chrono::milliseconds timeout,
         if (!impl_->state->latest) return false;
         sample = std::move(impl_->state->latest);
         if (captured_at) *captured_at = impl_->state->captured_at;
-        format_changed = impl_->state->format_changed; impl_->state->format_changed = false;
-        reader = impl_->state->reader;
+        format = std::move(impl_->state->pending_format);
     }
-    if (format_changed) {
-        ComPtr<IMFMediaType> output;
-        checkHr(reader->GetCurrentMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, &output), "Refresh camera format");
-        impl_->readFormat(output.Get());
-    }
+    if (format) impl_->readFormat(format.Get());
     frame.width = impl_->width; frame.height = impl_->height;
     frame.matrix = impl_->matrix; frame.range = impl_->range;
     frame.nv12.resize(static_cast<size_t>(frame.width) * frame.height * 3 / 2);

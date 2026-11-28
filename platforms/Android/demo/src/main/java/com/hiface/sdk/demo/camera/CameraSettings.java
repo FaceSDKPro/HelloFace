@@ -5,15 +5,18 @@ import com.hiface.sdk.demo.HiFaceDemoApplication;
 import com.tencent.mmkv.MMKV;
 
 /**
- * Demo camera preferences store only the resolution preset and overlay mirror correction, outside SDK
- * inference configuration.
+ * Demo device-capture and overlay preferences, outside SDK inference configuration.
  *
- * Demo 的相机偏好；仅保存分辨率档位和叠加层镜像校正，不属于 SDK 推理配置。
+ * Demo 的相机采集与叠加层偏好，不属于 SDK 推理配置。
  */
 final class CameraSettings {
+    static final float[] ZOOM_PRESETS = {0.8f, 1f, 2f, 3f};
+    private static final float DEFAULT_ZOOM_RATIO = 1f;
     private static final String LEGACY_HIGH_RESOLUTION = "camera:high_resolution";
     private static final String RESOLUTION_TIER = "camera:resolution_tier";
     private static final String MIRROR_COORDINATES = "camera:mirror_coordinates";
+    private static final String ZOOM_RATIO = "camera:zoom_ratio";
+    private static final String PREFER_BACK_CAMERA = "camera:prefer_back_camera";
 
     // An unset tier lets live search use High and the other camera features use Low.
     @Nullable final CameraResolutions.Tier resolution;
@@ -52,5 +55,39 @@ final class CameraSettings {
 
     static void setMirrorCoordinates(boolean enabled) {
         HiFaceDemoApplication.getMMKV().encode(MIRROR_COORDINATES, enabled);
+    }
+
+    static int zoomPresetIndex() {
+        float ratio = HiFaceDemoApplication.getMMKV().decodeFloat(ZOOM_RATIO, DEFAULT_ZOOM_RATIO);
+        return nearestZoomPresetIndex(ratio);
+    }
+
+    static int nearestZoomPresetIndex(float ratio) {
+        if (!(ratio > 0f) || Float.isInfinite(ratio)) {
+            ratio = DEFAULT_ZOOM_RATIO;
+        }
+        // Existing installs may have a value from the old continuous slider.
+        for (int i = 1; i < ZOOM_PRESETS.length; i++) {
+            if (ratio < (ZOOM_PRESETS[i - 1] + ZOOM_PRESETS[i]) / 2f) {
+                return i - 1;
+            }
+        }
+        return ZOOM_PRESETS.length - 1;
+    }
+
+    static float zoomRatio() {
+        return ZOOM_PRESETS[zoomPresetIndex()];
+    }
+
+    static void setZoomPreset(int position) {
+        HiFaceDemoApplication.getMMKV().encode(ZOOM_RATIO, ZOOM_PRESETS[position]);
+    }
+
+    static boolean prefersBackCamera() {
+        return HiFaceDemoApplication.getMMKV().decodeBool(PREFER_BACK_CAMERA, false);
+    }
+
+    static void setPrefersBackCamera(boolean back) {
+        HiFaceDemoApplication.getMMKV().encode(PREFER_BACK_CAMERA, back);
     }
 }

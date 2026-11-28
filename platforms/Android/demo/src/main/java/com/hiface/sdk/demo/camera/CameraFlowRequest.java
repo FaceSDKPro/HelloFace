@@ -3,12 +3,7 @@ package com.hiface.sdk.demo.camera;
 import com.hiface.sdk.common.FaceRequest;
 import java.util.Objects;
 
-/**
- * Ownership of one camera request. The main thread mutates state; the analysis thread only reads
- * whether frames may be submitted.
- *
- * 单次相机请求的所有权。状态在主线程修改，分析线程只读取 active。
- */
+/** Main-thread ownership of one camera request. */
 public final class CameraFlowRequest {
     /**
      * The Demo supports API 23 and does not depend on java.util.function.Supplier, introduced in API 24.
@@ -20,15 +15,16 @@ public final class CameraFlowRequest {
         FaceRequest start();
     }
 
-    // The SDK may call back before start() returns its handle. STARTING admits frames in that interval.
+    // Reserve ownership so the SDK can complete synchronously before returning a handle.
     private static final FaceRequest STARTING = () -> {
     };
-    private volatile FaceRequest request;
+    private FaceRequest request;
 
     boolean isActive() {
         return request != null;
     }
 
+    /** Return true when the caller can start feeding this request's frames. */
     boolean start(Starter starter) {
         if (isActive()) {
             return false;
@@ -39,10 +35,10 @@ public final class CameraFlowRequest {
             // A synchronous completion may already have started a retry with its own handle.
             if (request == STARTING) {
                 request = next;
-            } else {
-                next.cancel();
+                return true;
             }
-            return true;
+            next.cancel();
+            return false;
         } catch (RuntimeException | Error error) {
             if (request == STARTING) {
                 request = null;

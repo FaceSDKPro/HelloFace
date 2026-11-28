@@ -35,11 +35,11 @@ HiFaceFrameResultV1 frameResult(HiFaceFaceV1* faces, uint32_t capacity) {
     return result;
 }
 void validateImage(const Image& image) {
-    if (image.width < 2 || image.height < 2 || (image.width & 1) || (image.height & 1)
+    if (image.width < 2 || image.height < 2
         || image.width > static_cast<int>(HIFACE_MAX_IMAGE_DIMENSION)
         || image.height > static_cast<int>(HIFACE_MAX_IMAGE_DIMENSION)
         || image.rgba.size() != static_cast<size_t>(image.width) * image.height * 4)
-        throw std::runtime_error("Expected an even-sized, tightly packed RGBA image, at most 4096x4096");
+        throw std::runtime_error("Expected a tightly packed RGBA image with dimensions from 2 to 4096");
 }
 }
 // Configure CPU, open the gallery and load only detection capabilities.
@@ -67,7 +67,7 @@ Client::Client(const std::filesystem::path& database) {
         try {
             check(hiface_session_create_v1(&config, &session_), "create session");
             if (database.has_parent_path()) std::filesystem::create_directories(database.parent_path());
-            check(hiface_search_open_v1(path.c_str(), &database_), "open face database");
+            check(hiface_search_open_v1(reinterpret_cast<const char*>(path.c_str()), &database_), "open face database");
             load(HIFACE_MODEL_DETECTOR);
             break;
         } catch (const Error& error) {
@@ -137,6 +137,8 @@ HiFaceFlowConfigV1 flowConfig(const FlowOptions& options, const Feature* referen
 }
 void Client::startSearch() {
     if (!search_enabled_ || search_paused_ || flow_active_) return;
+    // 直到模型、Core 搜索均启动成功才按搜索模式处理下一帧。
+    search_enabled_ = false;
     load(HIFACE_MODEL_FEATURE);
     if (search_.liveness) {
         load(HIFACE_MODEL_SILENT_LIVENESS_S);
@@ -148,6 +150,7 @@ void Client::startSearch() {
     config.threshold = search_.threshold; config.interval_ms = search_.interval_ms; config.timeout_ms = search_.timeout_ms;
     config.group = search_.group.c_str(); config.tag = search_.tag.c_str();
     check(hiface_session_search_start_v1(session_, &config), "start camera search");
+    search_enabled_ = true;
 }
 void Client::configureSearch(const SearchOptions& options) {
     if (!std::isfinite(options.threshold) || options.threshold < .75f || options.threshold > .85f
@@ -157,10 +160,21 @@ void Client::configureSearch(const SearchOptions& options) {
         || options.group.find('\0') != std::string::npos || options.tag.find('\0') != std::string::npos)
         throw std::runtime_error("Search: threshold .75-.85, max faces 1-5, interval 0-3000 ms, timeout 1000-3000 ms; M:N disables liveness");
     if (flow_active_) throw std::runtime_error("Cancel the active camera flow before changing search settings");
-    if (options.liveness) { load(HIFACE_MODEL_SILENT_LIVENESS_S); load(HIFACE_MODEL_SILENT_LIVENESS_M); }
+    auto next = options;
+    if (!search_enabled_ || search_paused_) {
+        search_ = std::move(next);
+        return;
+    }
     check(hiface_session_search_stop_v1(session_), "stop search");
-    const auto previous = search_; search_ = options;
-    try { startSearch(); } catch (...) { search_ = previous; startSearch(); throw; }
+    std::swap(search_, next);
+    try {
+        startSearch();
+    } catch (...) {
+        search_ = std::move(next);
+        search_enabled_ = true;
+        startSearch();
+        throw;
+    }
 }
 void Client::setLiveness(bool enabled) {
     if (enabled == search_.liveness) return;
@@ -179,17 +193,21 @@ void Client::pauseSearch(bool paused) {
         startSearch();
     } catch (...) {
         search_paused_ = true;
+        search_enabled_ = true;
         throw;
     }
 }
 void Client::useSearch(bool enabled) {
-    if (flow_active_) cancelFlow();
+    if (flow_active_) stopFlow();
     check(hiface_session_search_stop_v1(session_), "switch camera mode");
     search_enabled_ = enabled; startSearch();
 }
-void Client::configureDetection(uint32_t max_faces, bool detailed) {
+void Client::prepareDetection(uint32_t max_faces, bool detailed) {
     if (max_faces < 1 || max_faces > HIFACE_MAX_FACES) throw std::runtime_error("Detection supports 1-10 faces");
     if (detailed) load(HIFACE_MODEL_LANDMARKS);
+}
+void Client::configureDetection(uint32_t max_faces, bool detailed) {
+    prepareDetection(max_faces, detailed);
     detection_max_ = max_faces; detailed_ = detailed;
 }
 void Client::beginFlow(const FlowOptions& options) {
@@ -226,14 +244,22 @@ void Client::cancelFlow() {
     stopFlow(); startSearch();
 }
 namespace {
-void copyFace(FrameUpdate& update, const HiFaceFaceV1& face) {
-    HiFaceSearchCameraFaceV1 box{};
-    box.x = face.x; box.y = face.y; box.width = face.width; box.height = face.height; box.confidence = face.confidence;
-    for (size_t j = 0; j < HIFACE_MAX_LANDMARKS; ++j) { box.landmarks[j * 2] = face.landmarks[j].x; box.landmarks[j * 2 + 1] = face.landmarks[j].y; }
-    update.faces.push_back(box);
-    DetailedFace detail; detail.face = face; detail.face.mesh = nullptr;
-    if (face.mesh_valid && face.mesh) detail.mesh.assign(face.mesh, face.mesh + face.mesh_count);
-    update.details.push_back(std::move(detail));
+void copyFaces(FrameUpdate& update, const HiFaceFrameResultV1& result) {
+    update.faces.reserve(result.count);
+    update.details.reserve(result.count);
+    for (uint32_t i = 0; i < result.count; ++i) {
+        const auto& face = result.faces[i];
+        auto& box = update.faces.emplace_back();
+        box.x = face.x; box.y = face.y; box.width = face.width; box.height = face.height; box.confidence = face.confidence;
+        for (size_t j = 0; j < HIFACE_MAX_LANDMARKS; ++j) {
+            box.landmarks[j * 2] = face.landmarks[j].x;
+            box.landmarks[j * 2 + 1] = face.landmarks[j].y;
+        }
+        auto& detail = update.details.emplace_back();
+        detail.face = face;
+        detail.face.mesh = nullptr;
+        if (face.mesh_valid && face.mesh) detail.mesh.assign(face.mesh, face.mesh + face.mesh_count);
+    }
 }
 
 // 在流程停止前复制整帧；可选预览失败时仍返回原业务结果。
@@ -261,16 +287,15 @@ void Client::completeFlow(FrameUpdate& update, const std::function<bool()>& curr
     const auto status = hiface_session_face_flow_copy_result_with_envelope_v1(
         session_, &completed.metadata, feature.data(), feature.size(),
         completed.preview.rgba.data(), completed.preview.rgba.size(), envelope.data(), envelope.size());
-    if (status != HIFACE_STATUS_OK) {
-        stopFlow();
-        startSearch();
-        check(status, "copy flow result");
-    }
-    if (envelope[0] != '\0') completed.resultEnvelope.emplace(envelope.data());
     const auto mode = flow_mode_;
-    if (mode != HIFACE_FLOW_GUIDED_CAPTURE && (!current || current())) completed.frame = copyFlowFrame(session_);
+    if (status == HIFACE_STATUS_OK && mode != HIFACE_FLOW_GUIDED_CAPTURE && (!current || current()))
+        completed.frame = copyFlowFrame(session_);
     stopFlow();
-    if (current && !current()) { startSearch(); update.flow_active = false; update.cancelled = true; return; }
+    startSearch();
+    check(status, "copy flow result");
+    update.flow_active = false;
+    if (current && !current()) { update.cancelled = true; return; }
+    if (envelope[0] != '\0') completed.resultEnvelope.emplace(envelope.data());
     const auto flags = completed.metadata.flags;
     if (!(flags & HIFACE_FLOW_RESULT_HAS_PREVIEW)) completed.preview = {};
     if (flags & HIFACE_FLOW_RESULT_HAS_FEATURE) {
@@ -283,8 +308,7 @@ void Client::completeFlow(FrameUpdate& update, const std::function<bool()>& curr
         || ((mode == HIFACE_FLOW_ACTION_LIVENESS || mode == HIFACE_FLOW_FACE_AUTHENTICATION) && compared && !(flags & HIFACE_FLOW_RESULT_HAS_LIVENESS)))
         throw std::runtime_error("Core flow result is missing required data");
     update.matched = completed.metadata.outcome == HIFACE_FLOW_OUTCOME_PASSED;
-    update.result = std::move(completed); update.flow_active = false;
-    startSearch();
+    update.result = std::move(completed);
 }
 FrameUpdate Client::process(const CameraFrame& input, const std::function<bool()>& current) {
     const auto frame = input.view();
@@ -295,14 +319,14 @@ FrameUpdate Client::process(const CameraFrame& input, const std::function<bool()
         }
         // Detection and guided/action flows share the Core camera pipeline.
         // 检测与采集/动作流程复用 Core 相机管线；返回前拷贝借用的 mesh 数据。
-        std::vector<HiFaceFaceV1> faces(detection_max_);
+        std::array<HiFaceFaceV1, HIFACE_MAX_FACES> faces{};
         auto result = frameResult(faces.data(), detection_max_);
         HiFaceDetectionRequestV1 request{sizeof(request), HIFACE_C_API_VERSION_V1, detection_max_, detailed_ ? 1u : 0u};
         HiFaceFlowEventV1 event{}; event.struct_size = sizeof(event);
         const auto status = hiface_session_process_camera_yuv420_v1(session_, &frame, &request, nowMilliseconds(), &result, &event);
         if (status == HIFACE_STATUS_FRAME_SKIPPED) { update.skipped = true; return update; }
         check(status, "process camera frame");
-        for (uint32_t i = 0; i < result.count; ++i) copyFace(update, faces[i]);
+        copyFaces(update, result);
         update.event = event;
         if (event.kind == HIFACE_FLOW_EVENT_ERROR) { cancelFlow(); check(event.flow_status, "camera flow"); }
         if (event.kind == HIFACE_FLOW_EVENT_RESULT_AVAILABLE) {
@@ -347,13 +371,13 @@ std::vector<HiFaceFaceV1> Client::detect(const Image& image) {
 }
 FrameUpdate Client::detectDetailed(const Image& image, uint32_t max_faces, bool detailed) {
     validateImage(image);
-    configureDetection(max_faces, detailed);
-    std::vector<HiFaceFaceV1> faces(max_faces);
+    prepareDetection(max_faces, detailed);
+    std::array<HiFaceFaceV1, HIFACE_MAX_FACES> faces{};
     auto result = frameResult(faces.data(), max_faces);
     HiFaceDetectionRequestV1 request{sizeof(request), HIFACE_C_API_VERSION_V1, max_faces, detailed ? 1u : 0u};
     check(hiface_session_process_rgba_v1(session_, image.rgba.data(), image.rgba.size(), image.width, image.height, &request, &result), "detect image");
     FrameUpdate update;
-    for (uint32_t i = 0; i < result.count; ++i) copyFace(update, faces[i]);
+    copyFaces(update, result);
     return update;
 }
 CaptureResult Client::captureWithPreview(const Image& image) {
@@ -375,9 +399,9 @@ Feature Client::capture(const Image& image) {
 }
 std::vector<ImageFaceCapture> Client::captureFaces(const Image& image, uint32_t maximum, bool previews) {
     validateImage(image);
-    load(HIFACE_MODEL_FEATURE);
     if (maximum < 1 || maximum > HIFACE_MAX_FACES)
         throw std::invalid_argument("Image capture supports 1-10 faces");
+    load(HIFACE_MODEL_FEATURE);
     std::vector<HiFaceFaceV1> faces(maximum);
     std::vector<HiFaceStatus> statuses(maximum);
     std::vector<float> features(maximum * HIFACE_FACE_FEATURE_DIMENSION);

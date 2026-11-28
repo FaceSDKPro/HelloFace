@@ -45,7 +45,7 @@ enum Control {
     ImportImages, PickSearchImage, SearchImageAgain, GoGallery, SearchGuide, SaveEnrollment, ReleaseMemory, People, Status = kStatusControl, Metrics, Primary,
     SearchResults, SearchCaption, CopySearch, Back = kBackControl, Parameters = kParametersControl, HomePrevious = kHomePreviousControl, HomeNext = kHomeNextControl,
     QueryId = 920, LookupPerson, ClearQuery, GalleryMenu, ConfirmReplacement, ResetSearch, CancelSettings, ImportSynthetic, SaveReference, ReferenceChoice, ShowFlowResult,
-    DetectionBoxes,
+    DetectionBoxes, CameraZoom, CameraZoomLabel, CameraZoomReset, DefaultDevice, DefaultDeviceLabel,
     RecognitionSilent = 4900, RecognitionVerifyActions, RecognitionVerifyBlink, RecognitionVerifyMouth,
     RecognitionVerifyShake, RecognitionVerifyNod, RecognitionLiveActions, RecognitionLiveBlink, RecognitionLiveMouth,
     RecognitionLiveShake, RecognitionLiveNod, RecognitionStart, RecognitionAlbum, RecognitionAdd, RecognitionScroll, RecognitionPageScroll,
@@ -115,6 +115,7 @@ struct Ui {
     // Command IDs for returning after a successful gallery or 1:1 reference write. Zero means no return requested.
     uint64_t return_after_save = 0, return_after_reference = 0;
     unsigned initial_camera = 0;
+    std::string default_camera_link;
     uint64_t rendered_gallery = UINT64_MAX;
     uint32_t rendered_offset = UINT32_MAX;
     std::vector<Person> rendered_people;
@@ -272,10 +273,13 @@ Settings readSettings(Ui& ui) {
     }
     return settings;
 }
+void refreshDevices(Ui& ui, bool prefer_default = false);
 // Validate/persist the draft before enqueueing. The queue advances the view epoch
 // only on successful admission, so invalid edits cannot silently stop analysis.
 // 先校验参数再入队，成功入队才推进代次，避免错误输入静默停止当前分析。
 void submit(Ui& ui, Action action, std::vector<std::filesystem::path> files = {}) {
+    if (action == Action::OpenCamera && selection(ui.app.window, Device) < 0)
+        throw std::runtime_error("Connect a camera and allow desktop camera access in Windows Settings, then refresh");
     const bool independent = action == Action::Cancel || action == Action::CloseCamera || action == Action::Pause
         || action == Action::SetImageReference || action == Action::NextPage || action == Action::ReleaseMemory
         || action == Action::ExportPreview || action == Action::ExportFeature;
@@ -284,7 +288,7 @@ void submit(Ui& ui, Action action, std::vector<std::filesystem::path> files = {}
         ui.parameter_notice = L"搜索已暂停；修改后的参数仍需点击应用修改。";
     if (action == Action::Apply || action == Action::OpenCamera)
         saveCameraPreferences(demoDataDirectory() / L"camera-settings.txt", {settings.width, settings.height,
-            settings.rotation, settings.mirror, selection(ui.app.window, Resolution) >= 0});
+            settings.rotation, settings.mirror, selection(ui.app.window, Resolution) >= 0, settings.zoom_percent, ui.default_camera_link});
     ui.pending_command = ui.app.enqueue({action, std::move(settings), std::move(files), 0});
     if (action == Action::SearchPhoto || action == Action::SearchPhotoAgain)
         ui.search_request_generation = ui.app.generation;
@@ -307,17 +311,27 @@ bool confirmReferenceDeletion(Ui& ui, int index) {
         submitReferenceDeletion(ui, id);
     return true;
 }
-void refreshDevices(Ui& ui) {
+std::wstring selectedCameraLink(const Ui& ui) {
     const auto index = selection(ui.app.window, Device);
-    const auto old = index >= 0 && static_cast<size_t>(index) < ui.app.cameras.size() ? ui.app.cameras[static_cast<size_t>(index)].symbolic_link : std::wstring();
-    ui.app.cameras = Camera::devices(); const auto box = child(ui.app.window, Device);
-    SendMessageW(box, CB_RESETCONTENT, 0, 0);
+    return index >= 0 && static_cast<size_t>(index) < ui.app.cameras.size()
+        ? ui.app.cameras[static_cast<size_t>(index)].symbolic_link : std::wstring();
+}
+void showDeviceChoices(Ui& ui, const std::wstring& old, [[maybe_unused]] bool prefer_default) {
+    const auto window = ui.app.window;
+    send(window, Device, CB_RESETCONTENT, 0, 0);
     size_t selected = ui.app.cameras.empty() ? 0 : std::min(static_cast<size_t>(ui.initial_camera), ui.app.cameras.size() - 1);
     for (size_t i = 0; i < ui.app.cameras.size(); ++i) {
-        SendMessageW(box, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(ui.app.cameras[i].name.c_str()));
+        const auto& camera = ui.app.cameras[i];
+        auto name = camera.name;
+        send(window, Device, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(name.c_str()));
         if (ui.app.cameras[i].symbolic_link == old) selected = i;
     }
-    if (!ui.app.cameras.empty()) SendMessageW(box, CB_SETCURSEL, selected, 0);
+    if (!ui.app.cameras.empty()) send(window, Device, CB_SETCURSEL, selected, 0);
+}
+void refreshDevices(Ui& ui, bool prefer_default) {
+    const auto old = selectedCameraLink(ui);
+    ui.app.cameras = Camera::devices();
+    showDeviceChoices(ui, old, prefer_default);
     writeLog("Enumerated cameras=" + std::to_string(ui.app.cameras.size()));
 }
 std::optional<Person> selectedPerson(Ui& ui) {
@@ -605,7 +619,7 @@ void layout(Ui& ui) {
         return;
     }
     ToolbarLayout toolbar(32,width-24,86);
-    auto tool=[&](int id,int w){const auto area=toolbar.place(w);move(id,area.left,area.top,area.width(),id==Device||id==ReferenceChoice||id==Resolution||id==Rotation?280:34);ShowWindow(child(window,id),SW_SHOW);};
+    auto tool=[&](int id,int w){const auto area=toolbar.place(w);move(id,area.left,area.top,area.width(),id==Device||id==DefaultDevice||id==ReferenceChoice||id==Resolution||id==Rotation?280:34);ShowWindow(child(window,id),SW_SHOW);};
     const bool camera=usesCamera(ui.page)&&!ui.album_reference&&!(capture&&ui.capture_preview);
     if(camera){
         tool(Device,width<1100?180:224);tool(RefreshDevices,48);
@@ -1397,9 +1411,12 @@ void create(Ui& ui) {
     tabStop(RecognitionAlbum);
     tabStop(RecognitionAdd);
     for (int id = RecognitionLiveActions; id <= RecognitionStart; ++id) tabStop(id);
-    const int tab_order[] = {Enroll, GoGallery, ReferenceChoice, QueryId, LookupPerson, ClearQuery, GalleryMenu, Parameters, Device, RefreshDevices, Open, Close, Resolution, Rotation, Mirror, Apply, ParameterPane, Primary, SearchImageAgain, Cancel, SearchResults, People, Logs, Help, HomeVersion};
+    const int tab_order[] = {Enroll, GoGallery, ReferenceChoice, QueryId, LookupPerson, ClearQuery, GalleryMenu,
+        Parameters, Device, RefreshDevices, Open, Close, Resolution, Rotation, Mirror,
+        Apply, ParameterPane, Primary, SearchImageAgain, Cancel, SearchResults, People, Logs, Help, HomeVersion};
     for (const int id : tab_order) tabStop(id);
     const auto preferences = loadCameraPreferences(demoDataDirectory() / L"camera-settings.txt");
+    ui.default_camera_link = preferences.default_camera_link;
     send(window, Resolution, CB_SETCURSEL,
         preferences.resolution_overridden ? cameraPresetIndex(preferences.width, preferences.height) : -1, 0);
     send(window, Rotation, CB_SETCURSEL, preferences.rotation / 90, 0); checkBox(window, Mirror, preferences.mirror);
@@ -1409,7 +1426,7 @@ void create(Ui& ui) {
     ui.drafts[static_cast<size_t>(Page::Detection)].max_faces=L"10";
     SetTimer(window,kSearchDisplayTimer,100,nullptr);
     ui.creating = false; layout(ui);
-    try { refreshDevices(ui); } catch (const std::exception& error) { writeLog(error.what()); setText(window, Status, widen(demoErrorMessage(std::current_exception()))); }
+    try { refreshDevices(ui, true); } catch (const std::exception& error) { writeLog(error.what()); setText(window, Status, widen(demoErrorMessage(std::current_exception()))); }
     ui.app.start();
 }
 bool prepareRecognitionDraft(Ui& ui,bool verification){
@@ -1586,9 +1603,9 @@ void action(Ui& ui, int id, int notification) {
         case Actions: if (notification == CBN_SELCHANGE) {layout(ui);update(ui);} break;
         case RefreshDevices: refreshDevices(ui); update(ui); break;
         case Open:
-            if (selection(window, Device) < 0) throw std::runtime_error("Connect a camera and allow desktop camera access in Windows Settings, then refresh");
             submit(ui, Action::OpenCamera); break;
-        case Close: submit(ui, Action::CloseCamera); break;
+        case Close:
+            submit(ui, Action::CloseCamera); break;
         case Apply: submit(ui, Action::Apply); break;
         case Logs:
             if (reinterpret_cast<INT_PTR>(ShellExecuteW(window, L"open", logDirectory().c_str(), nullptr, nullptr, SW_SHOWNORMAL)) <= 32) throw std::runtime_error("Cannot open log directory");
@@ -2020,8 +2037,8 @@ LRESULT CALLBACK windowProcedure(HWND window, UINT message, WPARAM wparam, LPARA
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     try {
         ComApartment com(true); initializeLog("demo");
-        INITCOMMONCONTROLSEX common{sizeof(common), ICC_LISTVIEW_CLASSES | ICC_STANDARD_CLASSES}; InitCommonControlsEx(&common);
-        Ui ui; ui.app.database = demoDataDirectory() / L"hiface-search.db";
+        INITCOMMONCONTROLSEX common{sizeof(common), ICC_LISTVIEW_CLASSES | ICC_STANDARD_CLASSES | ICC_BAR_CLASSES}; InitCommonControlsEx(&common);
+        Ui ui; ui.app.database = FacePhotoStore::databasePath(FacePhotoStore::Library::Search);
         int argc = 0; wchar_t** argv = CommandLineToArgvW(GetCommandLineW(), &argc);
         if (!argv) throw std::runtime_error("Cannot parse command line");
         struct Arguments { wchar_t** values; ~Arguments() { LocalFree(values); } } arguments{argv};

@@ -3,7 +3,6 @@ package com.hiface.sdk.demo.liveness;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Toast;
 import androidx.annotation.NonNull;
 import com.hiface.sdk.common.HiFaceError;
 import com.hiface.sdk.demo.R;
@@ -25,7 +24,7 @@ public final class FaceLivenessActivity extends CameraFlowActivity {
         super.onCreate(state);
         View switchCameraButton = findViewById(R.id.switchCameraButton);
         switchCameraButton.setVisibility(View.VISIBLE);
-        switchCameraButton.setOnClickListener(view -> switchCamera());
+        switchCameraButton.setOnClickListener(view -> cameraPreview.switchCamera());
         try {
             config = FaceLivenessConfig.builder().actions(RecognitionFlowContract.actions(getIntent()))
                     .allowMultipleFaces(false).build();
@@ -79,16 +78,5 @@ public final class FaceLivenessActivity extends CameraFlowActivity {
     private void complete(Intent data) {
         setResult(RESULT_OK, data);
         finish();
-    }
-
-    private void switchCamera() {
-        cameraPreview.pauseAnalysis();
-        boolean switched = cameraPreview.switchCamera();
-        if (isCameraFlowRunning()) {
-            cameraPreview.resumeAnalysis();
-        }
-        if (!switched) {
-            Toast.makeText(getApplicationContext(), R.string.camera_switch_unavailable, Toast.LENGTH_SHORT).show();
-        }
     }
 }

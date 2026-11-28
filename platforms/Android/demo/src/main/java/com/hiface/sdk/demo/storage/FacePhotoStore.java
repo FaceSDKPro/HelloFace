@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Pattern;
 
 /** Demo-owned confirmed face photos, in internal no-backup storage. No shared URI or disk history. */
 public final class FacePhotoStore {
@@ -20,6 +21,8 @@ public final class FacePhotoStore {
         void onLoaded(@Nullable Bitmap bitmap);
     }
 
+    private static final Handler MAIN = new Handler(Looper.getMainLooper());
+    private static final Pattern NUMERIC_ID = Pattern.compile("[0-9]+");
     private static final Object LOCK = new Object();
     private static final ExecutorService IO = Executors.newSingleThreadExecutor(
             r -> new Thread(r, "HiFaceDemo-Photos"));
@@ -37,7 +40,7 @@ public final class FacePhotoStore {
         if (id == null || id.isEmpty() || id.indexOf('\0') >= 0) {
             throw new IllegalArgumentException("Invalid Face ID");
         }
-        if (id.matches("[0-9]+")) {
+        if (NUMERIC_ID.matcher(id).matches()) {
             return id;
         }
         StringBuilder out = new StringBuilder("~");
@@ -150,14 +153,13 @@ public final class FacePhotoStore {
 
     public Request loadAsync(Context context, String id, Callback completion) {
         Context app = context.getApplicationContext();
-        Handler main = new Handler(Looper.getMainLooper());
         Request request = new Request(completion);
         IO.execute(() -> {
             if (!request.active()) {
                 return;
             }
             Bitmap image = load(app, id);
-            if (!main.post(() -> request.deliver(image)) && image != null) {
+            if (!MAIN.post(() -> request.deliver(image)) && image != null) {
                 image.recycle();
             }
         });

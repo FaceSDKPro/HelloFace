@@ -181,9 +181,6 @@ Image readImage(const std::filesystem::path& path, bool fit_to_sdk_limit) {
     }
     checkHr(source->GetSize(&width, &height), "Read oriented dimensions");
     if (width > HIFACE_MAX_IMAGE_DIMENSION || height > HIFACE_MAX_IMAGE_DIMENSION) {
-        // Image search preserves original face scale within 4096px, matching Android.
-        // WIC scales only oversized inputs, then even-size cropping removes at most 1px.
-        // 与 Android 一致，图片搜索在 4096px 内保留原始人脸尺度；WIC 仅缩放超限输入，偶数裁剪最多去掉 1px。
         const auto longest = std::max(width, height);
         const UINT scaled_width = static_cast<UINT>(uint64_t{width} * HIFACE_MAX_IMAGE_DIMENSION / longest);
         const UINT scaled_height = static_cast<UINT>(uint64_t{height} * HIFACE_MAX_IMAGE_DIMENSION / longest);
@@ -193,17 +190,12 @@ Image readImage(const std::filesystem::path& path, bool fit_to_sdk_limit) {
         checkHr(scaler->Initialize(source.Get(), scaled_width, scaled_height, WICBitmapInterpolationModeFant), "Scale oversized image");
         source = scaler; width = scaled_width; height = scaled_height;
     }
-    // Preserve face scale: discard at most the final row/column to satisfy the
-    // existing even-size RGBA detection contract, rather than stretching pixels.
-    // 保留人脸尺度；为满足现有 RGBA 偶数尺寸契约，最多丢弃末行或末列，不拉伸像素。
-    width &= ~1u; height &= ~1u;
     Image image{static_cast<int>(width), static_cast<int>(height), std::vector<uint8_t>(size_t(width) * height * 4)};
     ComPtr<IWICFormatConverter> converter;
     checkHr(factory->CreateFormatConverter(&converter), "Create RGBA converter");
     checkHr(converter->Initialize(source.Get(), GUID_WICPixelFormat32bppRGBA, WICBitmapDitherTypeNone,
         nullptr, 0, WICBitmapPaletteTypeCustom), "Convert image to RGBA");
-    const WICRect rect{0, 0, static_cast<INT>(width), static_cast<INT>(height)};
-    checkHr(converter->CopyPixels(&rect, width * 4, static_cast<UINT>(image.rgba.size()), image.rgba.data()), "Read RGBA pixels");
+    checkHr(converter->CopyPixels(nullptr, width * 4, static_cast<UINT>(image.rgba.size()), image.rgba.data()), "Read RGBA pixels");
     return image;
 }
 void writeImage(const std::filesystem::path& path, const Image& image) {
@@ -236,9 +228,7 @@ void testWindowsImageDecoder() {
     struct Cleanup { std::filesystem::path path;
         ~Cleanup() { std::error_code ignored; std::filesystem::remove_all(path, ignored); }
     } cleanup{directory};
-    // An independent 3x3, bottom-up BGR24 BMP with padded rows. The decoded
-    // top-left must be red, second row green; odd final row/column are cropped.
-    // 独立的 3x3 自底向上 BGR24 BMP，含行填充；解码后左上角应为红色、第二行为绿色，奇数末行或末列被裁掉。
+    // Independent bottom-up BGR24 fixture with padded red, green and blue rows.
     std::vector<uint8_t> bitmap(54 + 12 * 3, 0);
     auto u32 = [&](size_t offset, uint32_t value) {
         for (int i = 0; i < 4; ++i) bitmap[offset + i] = static_cast<uint8_t>(value >> (8 * i));
@@ -254,9 +244,10 @@ void testWindowsImageDecoder() {
             throw std::runtime_error("Cannot create image decoder fixture");
     }
     const auto image = readImage(path);
-    if (image.width != 2 || image.height != 2 || image.rgba.size() != 16
+    if (image.width != 3 || image.height != 3 || image.rgba.size() != 36
         || image.rgba[0] != 255 || image.rgba[1] != 0 || image.rgba[2] != 0 || image.rgba[3] != 255
-        || image.rgba[8] != 0 || image.rgba[9] != 255 || image.rgba[10] != 0)
+        || image.rgba[12] != 0 || image.rgba[13] != 255 || image.rgba[14] != 0
+        || image.rgba[32] != 0 || image.rgba[33] != 0 || image.rgba[34] != 255 || image.rgba[35] != 255)
         throw std::runtime_error("WIC orientation, padding or channel conversion regression");
     const auto png = directory / L"对齐图.png"; writeImage(png, image);
     const auto roundtrip = readImage(png);
@@ -266,7 +257,7 @@ void testWindowsImageDecoder() {
     bool rejected = false; try { readImage(large_path); } catch (const std::runtime_error&) { rejected = true; }
     if (!rejected) throw std::runtime_error("Ordinary image input must retain its existing size limit");
     const auto scaled = readImage(large_path, true);
-    if (scaled.width != 4096 || scaled.height != 10) throw std::runtime_error("Image search scaling must preserve aspect ratio then crop odd edges");
+    if (scaled.width != 4096 || scaled.height != 11) throw std::runtime_error("Image search scaling changed the expected dimensions");
     const auto preserved = readImage(png, true);
     if (preserved.rgba != image.rgba) throw std::runtime_error("Image search must preserve in-limit image resolution and pixels");
 }

@@ -248,7 +248,7 @@ export struct FaceSearchLibraryDemo {
   }
 
   /** 清空旧列表并读取前 100 条。 */
-  private loadFirstPage(): void {
+  private async loadFirstPage(): Promise<void> {
     if (this.database === undefined) return;
     const token: number = ++this.taskToken;
     this.lookupMode = false;
@@ -256,7 +256,7 @@ export struct FaceSearchLibraryDemo {
     this.nextOffset = 0;
     this.canLoadMore = false;
     this.entries = [];
-    this.loadPage(0, token);
+    await this.loadPage(0, token);
   }
 
   /** 每页重新统计总数并按原始页长推进偏移；按 ID 合并，避免跨连接更新产生重复卡片。 */
@@ -385,12 +385,17 @@ export struct FaceSearchLibraryDemo {
     if (this.importTask !== undefined) return this.importTask;
     if (!this.active || this.database === undefined || this.busy) return Promise.resolve();
     const token: number = this.lifecycleToken;
-    const operation: Promise<void> = this.runImport(images, this.database).catch((error: Error): void => {
+    const operation = this.runImport(images, this.database).catch(async (error: Error): Promise<void> => {
       this.importer = undefined;
       if (!this.active || token !== this.lifecycleToken) return;
       this.busy = false;
       this.stoppingImport = false;
       this.exitAfterImport = false;
+      if (this.importSaved > 0) {
+        this.faceId = '';
+        await this.loadFirstPage();
+        if (!this.active || token !== this.lifecycleToken) return;
+      }
       this.failed = true;
       this.stateText = DemoL10n.text("导入未完成，已保存 {0} 条：{1}", [String(this.importSaved), String(error.message)]);
       this.showToast(this.stateText);
@@ -430,13 +435,7 @@ export struct FaceSearchLibraryDemo {
     if (!this.isTaskActive(token)) return;
     this.busy = false;
     this.stoppingImport = false;
-    if (result.isFailure()) {
-      this.failed = true;
-      this.stateText = DemoL10n.text("导入未完成，已保存 {0} 条：{1}", [String(this.importSaved), String(DemoErrorUi.describe(result.requireError()))]);
-      this.exitAfterImport = false;
-      this.showToast(this.stateText);
-      return;
-    }
+    if (result.isFailure()) throw new Error(DemoErrorUi.describe(result.requireError()));
     const summary: FaceSearchImportSummary = result.requireValue();
     const message: string = DemoL10n.text("{0}：已保存 {1} 条，失败 {2} 条", [String(summary.stopped ? DemoL10n.text("已停止") : DemoL10n.text("导入完成")), String(summary.imported), String(summary.failed)]);
     if (this.exitAfterImport) {

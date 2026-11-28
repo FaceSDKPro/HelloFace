@@ -57,7 +57,7 @@ void App::run() {
         std::string reference_store_error;
         auto load_references = [&] {
             try {
-                if(!references)references=std::make_unique<CapturedReferences>(demoDataDirectory()/L"captured-faces.db");
+                if (!references) references = std::make_unique<CapturedReferences>(FacePhotoStore::databasePath(FacePhotoStore::Library::Reference));
                 state.reference_ids=references->ids();reference_store_error.clear();
             } catch(const std::exception&) {
                 references.reset();state.reference_ids.clear();reference_store_error=demoErrorMessage(std::current_exception());
@@ -99,17 +99,21 @@ void App::run() {
         auto refresh = [&](bool append = false, bool preserve_loaded = false) {
             const auto loaded = preserve_loaded ? state.people.size() : 0;
             state.total = gallery.count();
-            state.search_population = gallery.count(state.settings.search.group, state.settings.search.tag);
+            const auto& search = state.settings.search;
+            state.search_population = search.group.empty() && search.tag.empty() ? state.total : gallery.count(search.group, search.tag);
             if (state.settings.page == Page::Gallery) {
-                if (append) listing.append(gallery);
-                else listing.reset(gallery, state.settings.query_id, state.settings.filter_group, state.settings.filter_tag);
-                while (listing.more && listing.people.size() < loaded) listing.append(gallery);
-                state.people = listing.people; state.filtered = listing.filtered;
-                state.face_photos.clear();
-                // Keep only the loaded page's small thumbnails; no full image history in UI snapshots.
-                for (const auto& person : state.people) {
-                    if (auto photo = FacePhotoStore::load(person.id)) state.face_photos.emplace(person.id, bgraImage(*photo));
+                auto load_photo = [&](const std::string& id) {
+                    if (auto photo = FacePhotoStore::load(id)) state.face_photos[id] = bgraImage(*photo);
+                    else state.face_photos.erase(id);
+                };
+                if (append) listing.append(gallery, load_photo);
+                else {
+                    listing.reset(gallery, state.settings.query_id, state.settings.filter_group, state.settings.filter_tag);
+                    while (listing.more && listing.people.size() < loaded) listing.append(gallery);
+                    state.face_photos.clear();
+                    for (const auto& person : listing.people) load_photo(person.id);
                 }
+                state.people = listing.people; state.filtered = listing.filtered;
                 state.offset = listing.next; state.gallery_more = listing.more;
             } else {
                 listing = {}; state.people.clear(); state.filtered = state.total; state.offset = 0; state.gallery_more = false;
@@ -179,7 +183,19 @@ void App::run() {
         SearchPreviewPower search_power;
         std::string notice;
         uint64_t analyzed = 0, previous_captured = 0;
+        const auto update_frame_rates = [&] {
+            const auto seconds = std::chrono::duration<double>(last_frame - metric_time).count();
+            if (seconds < 1) return;
+            const auto captured = camera->capturedFrames();
+            state.capture_fps = (captured - previous_captured) / seconds;
+            state.analysis_fps = analyzed / seconds;
+            previous_captured = captured;
+            analyzed = 0;
+            metric_time = last_frame;
+        };
+        CameraFrame frame; // The worker owns this buffer and the SDK borrows it synchronously.
         while (!stopping_) {
+            if (!camera) frame = {};
             std::optional<Command> command;
             {
                 std::unique_lock<std::mutex> lock(mutex_);
@@ -194,6 +210,11 @@ void App::run() {
                 next_search_preview = next_search_analysis = std::chrono::steady_clock::now();
                 state.busy = true; state.importing = command->action == Action::ImportJson || command->action == Action::ImportImages;
                 state.error = false; publish(state);
+                size_t imported = 0;
+                auto imported_person = [&](const std::string& id) {
+                    FacePhotoStore::remove(id);
+                    ++imported;
+                };
                 try {
                     const auto& task = *command;
                     // Page generation cancels old tasks; comparison slots also have independent
@@ -226,7 +247,8 @@ void App::run() {
                             state.captured.reset(); state.image_a.reset(); state.preview.reset();
                         }
                         camera.reset(); state.camera_open = false;
-                        camera = std::make_unique<Camera>(task.settings.camera_index, task.settings.camera_link, task.settings.width, task.settings.height);
+                        camera = std::make_unique<Camera>(task.settings.camera_index, task.settings.camera_link,
+                            task.settings.width, task.settings.height, task.settings.page == Page::Search ? SearchPreviewPower::active_preview_fps : 30);
                         if (!current()) { camera.reset(); return; }
                         state.camera_open = true; previous_captured = analyzed = 0;
                         metric_time = last_frame = std::chrono::steady_clock::now();
@@ -418,7 +440,7 @@ void App::run() {
                         case Action::DeleteReference: {
                             const auto id = normalizeMetadata(task.settings.id);
                             const bool removed = reference_store().remove(id);
-                            FacePhotoStore::remove(id, FacePhotoStore::Library::Reference);
+                            if (removed) FacePhotoStore::remove(id, FacePhotoStore::Library::Reference);
                             if (state.reference_id == id) {
                                 if (sdk) sdk->cancelFlow();
                                 camera.reset(); reference.clear();
@@ -470,7 +492,8 @@ void App::run() {
                             state.update.message = state.people.empty() ? (state.total == 0 ? u8"人脸库为空，请先录入人员" : u8"未找到该 Face ID 或筛选结果为空") : u8"人脸库已加载，滚动到底部自动读取更多"; break;
                         case Action::DeletePerson: {
                             const auto removed = gallery.remove(task.settings.id);
-                            FacePhotoStore::remove(task.settings.id); refresh(false,true);
+                            if (removed) FacePhotoStore::remove(task.settings.id);
+                            refresh(false,true);
                             state.update.message = removed ? u8"人员已删除" : u8"该 ID 不存在"; break;
                         }
                         case Action::UpdatePerson:
@@ -481,13 +504,13 @@ void App::run() {
                                     state.update.message = u8"导入 " + std::to_string(value.processed) + "/" + std::to_string(value.total) + u8" | 已保存=" + std::to_string(value.saved) + u8" | 失败=" + std::to_string(value.failed); publish(state);
                                 }
                                 return current();
-                            }, [](const std::string& id) { FacePhotoStore::remove(id); });
+                            }, imported_person);
                             refresh(); state.update.message = std::string(progress.stopped ? u8"已停止导入" : u8"导入完成") + u8" | 保存=" + std::to_string(progress.saved) + u8" | 失败=" + std::to_string(progress.failed); break;
                         }
                         case Action::ExportJson:
                             state.update.message = u8"已导出 " + std::to_string(exportDataset(gallery, task.files.at(0), task.settings.filter_group, task.settings.filter_tag)) + u8" 条原始 HF1"; break;
                         case Action::ImportImages: {
-                            size_t saved = 0, failed = 0;
+                            size_t failed = 0;
                             auto& engine = ensure();
                             for (size_t i = 0; i < task.files.size() && current(); ++i) {
                                 try {
@@ -495,11 +518,16 @@ void App::run() {
                                     if (!current()) break;
                                     const auto id = task.files[i].stem().u8string();
                                     gallery.save({{id, task.settings.group, task.settings.tag, encodeFeature(feature), 0}}, true);
-                                    FacePhotoStore::remove(id); ++saved;
-                                } catch (const std::exception& error) { ++failed; writeLog(error.what()); }
-                                state.update.message = u8"图片导入 " + std::to_string(i + 1) + "/" + std::to_string(task.files.size()) + u8" | 保存=" + std::to_string(saved) + u8" | 失败=" + std::to_string(failed); publish(state);
+                                    imported_person(id);
+                                } catch (const SdkError& error) {
+                                    if (error.status != HIFACE_STATUS_IMAGE_NO_FACE && error.status != HIFACE_STATUS_IMAGE_FACE_TOO_SMALL &&
+                                        error.status != HIFACE_STATUS_INVALID_ARGUMENT && error.status != HIFACE_STATUS_UNSUPPORTED_FORMAT) throw;
+                                    ++failed; writeLog(error.what());
+                                } catch (const std::bad_alloc&) { throw; }
+                                catch (const std::exception& error) { ++failed; writeLog(error.what()); }
+                                state.update.message = u8"图片导入 " + std::to_string(i + 1) + "/" + std::to_string(task.files.size()) + u8" | 保存=" + std::to_string(imported) + u8" | 失败=" + std::to_string(failed); publish(state);
                             }
-                            refresh(); state.update.message = std::string(current() ? u8"图片导入完成" : u8"已停止图片导入") + u8" | 保存=" + std::to_string(saved) + u8" | 失败=" + std::to_string(failed); break;
+                            refresh(); state.update.message = std::string(current() ? u8"图片导入完成" : u8"已停止图片导入") + u8" | 保存=" + std::to_string(imported) + u8" | 失败=" + std::to_string(failed); break;
                         }
                         case Action::ReleaseMemory:
                             gallery.releaseMemory(); if (sdk) sdk->releaseMemory();
@@ -514,6 +542,10 @@ void App::run() {
                     // 已取消的旧文件/SDK 请求失败，不覆盖新请求的界面状态。
                     if (!stopping_ && command->generation == generation) {
                         state.error = true; state.update.message = demoErrorMessage(std::current_exception());
+                        if (imported) {
+                            state.update.message += u8" | 已保存=" + std::to_string(imported);
+                            try { refresh(); } catch (const std::exception& refresh_error) { writeLog(refresh_error.what()); }
+                        }
                         notice = state.update.message; notice_until = std::chrono::steady_clock::now() + std::chrono::seconds(8);
                     }
                 }
@@ -524,8 +556,12 @@ void App::run() {
             search_power.expire(std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count());
             if (was_idle && !search_power.idle()) next_search_preview = next_search_analysis = std::chrono::steady_clock::now();
-            if (state.settings.page == Page::Search) {
-                const auto deadline = std::min(next_search_preview, next_search_analysis);
+            const bool searching = state.settings.page == Page::Search;
+            const bool preview_only = state.paused || state.settings.page == Page::CameraSettings || state.pending_enrollment
+                || state.pending_reference || ((isCapturePage(state.settings.page) || guidedRecognition(state.settings.page)) && !state.flow_active);
+            if (preview_only) search_power.reset();
+            if (searching) {
+                const auto deadline = preview_only ? next_search_preview : std::min(next_search_preview, next_search_analysis);
                 std::unique_lock<std::mutex> lock(mutex_);
                 if (std::chrono::steady_clock::now() < deadline) {
                     changed_.wait_until(lock, deadline, [&] { return stopping_ || !commands_.empty(); });
@@ -535,35 +571,29 @@ void App::run() {
             // Paused/pending-capture pages still preview, but do not run face analysis.
             // 暂停或等待确认时继续预览，不分析人脸；搜索的活跃/待机阶段均限流。
             try {
-                CameraFrame frame;
                 std::chrono::steady_clock::time_point captured_at;
-                if (!camera->next(frame, std::chrono::milliseconds(100), &captured_at)) {
+                if (!camera->next(frame, std::chrono::milliseconds(100), &captured_at, state.settings.zoom_percent)) {
                     if (std::chrono::steady_clock::now() - last_frame > std::chrono::seconds(15)) throw std::runtime_error("Camera produced no frames for 15 seconds; check privacy settings and connection");
                     continue;
                 }
                 last_frame = captured_at; frame.rotation_degrees = state.settings.rotation;
-                if (state.settings.page == Page::CameraSettings || state.pending_enrollment || state.pending_reference
-                    || ((isCapturePage(state.settings.page) || guidedRecognition(state.settings.page)) && !state.flow_active) || state.paused) {
-                    search_power.reset();
-                    state.preview = std::make_shared<Image>(frame.displayBgra(state.settings.mirror));
-                    state.update.faces.clear(); state.update.details.clear();
-                    state.analysis_fps = state.inference_ms = 0;
-                    const auto seconds = std::chrono::duration<double>(last_frame - metric_time).count();
-                    if (seconds >= 1) {
-                        const auto captured = camera->capturedFrames(); state.capture_fps = (captured - previous_captured) / seconds;
-                        previous_captured = captured; metric_time = last_frame;
-                    }
-                    publish(state); continue;
-                }
                 const auto begin = std::chrono::steady_clock::now();
-                const bool searching = state.settings.page == Page::Search;
                 const bool preview_due = !searching || begin >= next_search_preview;
-                const bool analysis_due = !searching || begin >= next_search_analysis;
+                const bool analysis_due = !preview_only && (!searching || begin >= next_search_analysis);
                 if (!preview_due && !analysis_due) continue;
+                const auto captured_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    captured_at.time_since_epoch()).count();
                 if (preview_due) {
                     state.preview = std::make_shared<Image>(frame.displayBgra(state.settings.mirror));
-                    state.preview_at_ms = std::chrono::duration_cast<std::chrono::milliseconds>(captured_at.time_since_epoch()).count();
+                    state.preview_at_ms = captured_ms;
                     next_search_preview = begin + std::chrono::milliseconds(search_power.previewInterval());
+                }
+                if (preview_only) {
+                    state.update.faces.clear(); state.update.details.clear();
+                    state.analysis_fps = state.inference_ms = 0;
+                    analyzed = 0;
+                    update_frame_rates();
+                    publish(state); continue;
                 }
                 if (!analysis_due) { publish(state); continue; }
                 next_search_analysis = begin + std::chrono::milliseconds(search_power.analysisInterval());
@@ -574,17 +604,18 @@ void App::run() {
                 auto update = sdk->process(frame, [&] { return !stopping_ && frame_generation == generation; });
                 if (stopping_ || frame_generation != generation) continue;
                 if (update.skipped) { if (preview_due) publish(state); continue; }
-                state.analysis_at_ms = std::chrono::duration_cast<std::chrono::milliseconds>(captured_at.time_since_epoch()).count();
+                state.analysis_at_ms = captured_ms;
                 if (searching) {
                     const auto detected_at = std::chrono::duration_cast<std::chrono::milliseconds>(
                         std::chrono::steady_clock::now().time_since_epoch()).count();
                     const bool previous_idle = search_power.idle();
                     search_power.observeFrame(state.analysis_at_ms, detected_at, !update.faces.empty());
-                    next_search_analysis = begin + std::chrono::milliseconds(search_power.analysisInterval());
                     // Apply the new cadence on this result, including unmatched/rejected faces.
                     // 本帧即切换节奏，未匹配或活体拒绝的人脸同样唤醒。
-                    if (previous_idle != search_power.idle())
+                    if (previous_idle != search_power.idle()) {
+                        next_search_analysis = begin + std::chrono::milliseconds(search_power.analysisInterval());
                         next_search_preview = begin + std::chrono::milliseconds(search_power.previewInterval());
+                    }
                 } else search_power.reset();
                 state.inference_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - begin).count();
                 state.flow_active = sdk->flowActive(); ++analyzed;
@@ -629,12 +660,7 @@ void App::run() {
                 if (!state.flow_active && state.settings.page != Page::Search && last_frame < notice_until) update.message = notice;
                 else state.error = false;
                 state.update = std::move(update);
-                const auto seconds = std::chrono::duration<double>(last_frame - metric_time).count();
-                if (seconds >= 1) {
-                    const auto captured = camera->capturedFrames();
-                    state.capture_fps = (captured - previous_captured) / seconds; state.analysis_fps = analyzed / seconds;
-                    previous_captured = captured; analyzed = 0; metric_time = last_frame;
-                }
+                update_frame_rates();
                 publish(state);
             } catch (const std::exception& error) {
                 search_power.reset();

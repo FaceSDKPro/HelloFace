@@ -1,4 +1,5 @@
 #pragma once
+#include "sdk_helpers.h"
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
@@ -6,14 +7,42 @@
 #include <fcntl.h>
 #include <string>
 #include <system_error>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <vector>
 #if defined(__linux__)
 #include <sys/syscall.h>
 #endif
 namespace hiface_linux_demo {
-// Shared file I/O has no SDK dependency, so startup/settings UI can remain usable.
-// 公共文件读写不依赖 SDK，启动失败时设置与错误页面仍可工作。
+inline constexpr size_t maxInputFileBytes = 64u * 1024 * 1024;
+
+// Open before inspecting the type so even a named pipe with no writer returns promptly.
+inline std::string readInputFile(const char* path, const std::string& kind) {
+    require(path && *path, "Missing " + kind + " path");
+    struct File {
+        int fd;
+        ~File() { if (fd >= 0) ::close(fd); }
+    } file{::open(path, O_RDONLY | O_CLOEXEC | O_NONBLOCK)};
+    require(file.fd >= 0, "Cannot open " + kind);
+    struct stat info{};
+    require(::fstat(file.fd, &info) == 0 && S_ISREG(info.st_mode), "Expected a regular file for " + kind);
+    require(info.st_size > 0 && uint64_t(info.st_size) <= maxInputFileBytes,
+            "Expected 1 byte to 64 MiB for " + kind);
+    std::string bytes(static_cast<size_t>(info.st_size), '\0');
+    size_t offset = 0;
+    while (offset < bytes.size()) {
+        const auto n = ::read(file.fd, bytes.data() + offset, bytes.size() - offset);
+        if (n < 0 && errno == EINTR) continue;
+        if (n <= 0) throw DemoError{"Cannot read complete " + kind};
+        offset += static_cast<size_t>(n);
+    }
+    char extra;
+    ssize_t n;
+    do { n = ::read(file.fd, &extra, 1); } while (n < 0 && errno == EINTR);
+    require(n == 0, "File changed or could not be read: " + kind);
+    return bytes;
+}
+
 inline void atomicWrite(const std::string& path, const std::string& contents, bool replace = true) {
     if (path.find('\0') != std::string::npos)
         throw std::filesystem::filesystem_error("Invalid file path", std::make_error_code(std::errc::invalid_argument));

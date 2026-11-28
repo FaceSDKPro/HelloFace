@@ -36,16 +36,20 @@ import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.core.ResolutionInfo;
 import androidx.camera.core.UseCaseGroup;
+import androidx.camera.core.ViewPort;
+import androidx.camera.core.ZoomState;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.camera.view.transform.CoordinateTransform;
 import androidx.camera.view.transform.ImageProxyTransformFactory;
 import androidx.camera.view.transform.OutputTransform;
 import androidx.core.content.ContextCompat;
+import androidx.core.math.MathUtils;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.Observer;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.hiface.sdk.demo.BuildConfig;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.frame.Yuv420Frame;
 import com.hiface.sdk.frame.YuvColorMatrix;
@@ -54,6 +58,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -83,15 +88,11 @@ public final class CameraPreviewFragment extends Fragment {
     // input.
     private boolean started, cameraRequested, analysisPaused, permissionPending, providerLoading;
     private boolean overlayEnabled;
-    // Zero preserves the device default; search uses 15 FPS active and 10 FPS idle preview.
-    // SDK analysis independently drops to 5 FPS while idle.
-    // 0 表示沿用设备默认；搜索页活跃 15 FPS，待机预览 10 FPS、分析独立降至 5 FPS。
-    private volatile int targetSessionFrameRate;
-    private volatile int targetAnalysisFrameRate;
-    private PreviewView.ScaleType scaleType = PreviewView.ScaleType.FIT_CENTER;
-    // A main-thread decision read by the analysis executor before delivering a frame to the SDK.
-    private volatile boolean deliverFrames;
-    private volatile FrameListener frameListener;
+    // Zero leaves the capture rate at the CameraX default.
+    private int targetSessionFrameRate;
+    private FrameListener frameListener;
+    // The analyzer reads this snapshot of the main thread's frame delivery decision.
+    private volatile FrameListener activeFrameListener;
     private Runnable cameraReadyListener;
     // Object identity identifies this binding; unbinding invalidates its old camera callbacks, analysis
     // tasks, and timeouts.
@@ -130,51 +131,28 @@ public final class CameraPreviewFragment extends Fragment {
         return (CameraPreviewFragment) fragment;
     }
 
-    /**
-     * Detection and search use FIT_CENTER; overlays share CameraX crop, rotation, and
-     * mirror transforms.
-     *
-     * 检测与搜索使用 FIT_CENTER；Overlay 共用 CameraX 裁剪、旋转和镜像映射。
-     */
+    /** Enable CameraX viewport mapping for overlays before registering the frame listener. */
     @MainThread
-    public void configureOverlayPreview(PreviewView.ScaleType scaleType) {
+    public void enableOverlayPreview() {
         overlayEnabled = true;
-        this.scaleType = Objects.requireNonNull(scaleType);
         if (previewView != null) {
             previewView.setImplementationMode(PreviewView.ImplementationMode.COMPATIBLE);
-            previewView.setScaleType(scaleType);
-        }
-        if (binding != null) {
-            unbind();
-            bindIfReady();
         }
     }
 
-    /**
-     * Update camera and analysis target rates without rebuilding use cases; analyzer timestamp checks
-     * cover unsupported hardware rates.
-     *
-     * 更新相机与分析的目标帧率，不重建用例；硬件不支持时由 Analyzer 时间戳门禁兜底。
-     */
+    /** Request a capture rate without rebinding. The SDK controls search analysis cadence. */
     @MainThread
-    public void configureSessionFrameRate(int framesPerSecond) {
-        configureSessionFrameRates(framesPerSecond, framesPerSecond);
-    }
-
-    /** Set preview/capture and SDK analysis ceilings independently. / 分别设置预览采集与 SDK 分析上限。 */
-    @MainThread
-    public void configureSessionFrameRates(int previewFramesPerSecond, int analysisFramesPerSecond) {
-        if (analysisFramesPerSecond <= 0 || analysisFramesPerSecond > previewFramesPerSecond) {
-            throw new IllegalArgumentException("Frame rates must be positive; analysis cannot exceed preview");
+    public void setPreviewFrameRate(int fps) {
+        if (fps <= 0) {
+            throw new IllegalArgumentException("Frame rate must be positive");
         }
-        targetAnalysisFrameRate = analysisFramesPerSecond;
-        if (targetSessionFrameRate == previewFramesPerSecond) {
+        if (targetSessionFrameRate == fps) {
             return;
         }
-        targetSessionFrameRate = previewFramesPerSecond;
+        targetSessionFrameRate = fps;
         Binding current = binding;
         if (current != null) {
-            current.updateFrameRate(previewFramesPerSecond);
+            current.updateFrameRate(fps);
         }
     }
 
@@ -183,8 +161,11 @@ public final class CameraPreviewFragment extends Fragment {
     public Matrix analysisToPreview(int width, int height) {
         Binding current = binding;
         FrameMapping source = current == null ? null : current.mapping;
-        OutputTransform target = previewView == null ? null : previewView.getOutputTransform();
-        if (source == null || target == null || source.width != width || source.height != height) {
+        if (source == null || previewView == null || source.width != width || source.height != height) {
+            return null;
+        }
+        OutputTransform target = previewView.getOutputTransform();
+        if (target == null) {
             return null;
         }
         Matrix matrix = new Matrix();
@@ -202,16 +183,16 @@ public final class CameraPreviewFragment extends Fragment {
 
     @MainThread
     public boolean switchCamera() {
-        if (binding == null || selectedCamera == null) {
-            return false;
+        int facing = binding == null ? CameraSelector.LENS_FACING_UNKNOWN : lensFacing(selectedCamera);
+        CameraInfo next = null;
+        if (facing == CameraSelector.LENS_FACING_FRONT || facing == CameraSelector.LENS_FACING_BACK) {
+            next = findCamera(provider.getAvailableCameraInfos(), facing == CameraSelector.LENS_FACING_FRONT
+                    ? CameraSelector.LENS_FACING_BACK : CameraSelector.LENS_FACING_FRONT);
         }
-        int facing = lensFacing(selectedCamera);
-        if (facing != CameraSelector.LENS_FACING_FRONT && facing != CameraSelector.LENS_FACING_BACK) {
-            return false;
-        }
-        CameraInfo next = findCamera(facing == CameraSelector.LENS_FACING_FRONT
-                ? CameraSelector.LENS_FACING_BACK : CameraSelector.LENS_FACING_FRONT);
         if (next == null) {
+            if (isAdded()) {
+                Toast.makeText(requireContext(), R.string.camera_switch_unavailable, Toast.LENGTH_SHORT).show();
+            }
             return false;
         }
         unbind();
@@ -246,21 +227,20 @@ public final class CameraPreviewFragment extends Fragment {
      */
     @MainThread
     public void setFrameListener(@NonNull FrameListener listener) {
-        frameListener = Objects.requireNonNull(listener);
-        analysisPaused = false;
-        startCamera();
+        setFrameListener(listener, true);
     }
 
     @MainThread
-    public void startCamera() {
-        Objects.requireNonNull(frameListener, "Set frame listener before starting camera");
+    void setFrameListener(@NonNull FrameListener listener, boolean analysisEnabled) {
+        frameListener = Objects.requireNonNull(listener);
+        activeFrameListener = null;
+        analysisPaused = !analysisEnabled;
         cameraRequested = true;
         updateFrameDelivery();
         bindIfReady();
     }
 
-    @MainThread
-    public void stopCamera() {
+    private void stopCamera() {
         cameraRequested = false;
         updateFrameDelivery();
         unbind();
@@ -285,7 +265,18 @@ public final class CameraPreviewFragment extends Fragment {
     }
 
     private void updateFrameDelivery() {
-        deliverFrames = started && cameraRequested && !analysisPaused && frameListener != null;
+        FrameListener registered = frameListener;
+        if (!started || !cameraRequested || analysisPaused || registered == null) {
+            activeFrameListener = null;
+        } else if (activeFrameListener == null) {
+            // A new identity rejects queued frames that reach the delivery check after pause and resume.
+            activeFrameListener = new FrameListener() {
+                @Override
+                public void onFrame(@NonNull Yuv420Frame frame) {
+                    registered.onFrame(frame);
+                }
+            };
+        }
     }
 
     @Override
@@ -295,7 +286,7 @@ public final class CameraPreviewFragment extends Fragment {
         previewView = view.findViewById(R.id.previewView);
         previewView.setImplementationMode(overlayEnabled
                 ? PreviewView.ImplementationMode.COMPATIBLE : PreviewView.ImplementationMode.PERFORMANCE);
-        previewView.setScaleType(scaleType);
+        previewView.setScaleType(PreviewView.ScaleType.FIT_CENTER);
         // Wait for actual layout events instead of repeatedly posting tasks to wait for ViewPort.
         // 等待真实布局事件，不循环 post 等待 ViewPort。
         previewView.addOnLayoutChangeListener(previewLayoutListener);
@@ -409,14 +400,22 @@ public final class CameraPreviewFragment extends Fragment {
             loadProvider();
             return;
         }
-        if (previewView.getWidth() == 0 || previewView.getHeight() == 0
-                || (overlayEnabled && previewView.getViewPort() == null)) {
+        if (previewView.getWidth() == 0 || previewView.getHeight() == 0) {
+            return;
+        }
+        ViewPort viewport = overlayEnabled ? previewView.getViewPort() : null;
+        if (overlayEnabled && viewport == null) {
             return;
         }
         Binding next = null;
         try {
             if (selectedCamera == null) {
                 selectedCamera = chooseCamera();
+                if (selectedCamera == null) {
+                    Log.w(TAG, "No available camera");
+                    fail(R.string.camera_start_failed);
+                    return;
+                }
             }
             if (analysisSizes == null) {
                 analysisSizes = CameraResolutions.analysisCandidates(selectedCamera,
@@ -429,14 +428,11 @@ public final class CameraPreviewFragment extends Fragment {
             binding = next;
             next.preview.setSurfaceProvider(previewView.getSurfaceProvider());
             UseCaseGroup.Builder group = new UseCaseGroup.Builder().addUseCase(next.preview).addUseCase(next.analysis);
-            if (overlayEnabled) {
-                group.setViewPort(previewView.getViewPort());
+            if (viewport != null) {
+                group.setViewPort(viewport);
             }
             next.camera = provider.bindToLifecycle(getViewLifecycleOwner(), selectedCamera.getCameraSelector(),
                     group.build());
-            // Apply an advertised rate on initial binding and lens switches too, not only during 15/5 FPS
-            // transitions.
-            // 初次绑定/切镜头也下发实际支持的档位，不能只在 15/5 FPS 切换时更新。
             if (targetSessionFrameRate > 0) {
                 next.updateFrameRate(targetSessionFrameRate);
             }
@@ -445,6 +441,7 @@ public final class CameraPreviewFragment extends Fragment {
             ResolutionInfo analysisInfo = next.analysis.getResolutionInfo();
             Log.i(TAG, "Camera bound; actualPreview=" + (previewInfo == null ? "pending" : previewInfo.getResolution())
                     + "; actualAnalysis=" + (analysisInfo == null ? "pending" : analysisInfo.getResolution())
+                    + "; lensFacing=" + lensFacing(next.camera.getCameraInfo())
                     + "; mirrorCoordinates=" + settings.mirrorCoordinates);
             watchStartup(next);
         } catch (RuntimeException error) {
@@ -485,6 +482,7 @@ public final class CameraPreviewFragment extends Fragment {
         current.post(() -> handleFailure(current, retry));
     }
 
+
     private static boolean isResolutionError(CameraState.StateError error) {
         return error != null && (error.getCode() == CameraState.ERROR_STREAM_CONFIG
                 || error.getCode() == CameraState.ERROR_OTHER_RECOVERABLE_ERROR);
@@ -509,12 +507,10 @@ public final class CameraPreviewFragment extends Fragment {
         if (binding != current || !started) {
             return;
         }
-        unbind();
         if (retry && resolutionIndex + 1 < analysisSizes.size()) {
+            unbind();
             resolutionIndex++;
-            if (resolutionIndex == 1) {
-                showToast(R.string.camera_resolution_downgrade);
-            }
+            showToast(R.string.camera_resolution_downgrade);
             main.post(this::bindIfReady);
         } else {
             fail(R.string.camera_start_failed);
@@ -526,23 +522,24 @@ public final class CameraPreviewFragment extends Fragment {
         resolutionIndex = 0;
     }
 
+    @Nullable
     private CameraInfo chooseCamera() {
-        CameraInfo camera = findCamera(CameraSelector.LENS_FACING_FRONT);
+        int preferred = CameraSelector.LENS_FACING_FRONT;
+        List<CameraInfo> cameras = provider.getAvailableCameraInfos();
+        CameraInfo camera = findCamera(cameras, preferred);
         if (camera == null) {
-            camera = findCamera(CameraSelector.LENS_FACING_BACK);
+            int alternate = preferred == CameraSelector.LENS_FACING_FRONT
+                    ? CameraSelector.LENS_FACING_BACK : CameraSelector.LENS_FACING_FRONT;
+            camera = findCamera(cameras, alternate);
         }
-        if (camera == null) {
-            camera = provider.getAvailableCameraInfos().get(0);
-        }
-        return camera;
+        return camera == null && !cameras.isEmpty() ? cameras.get(0) : camera;
     }
 
-    private CameraInfo findCamera(int facing) {
-        if (provider != null) {
-            for (CameraInfo camera : provider.getAvailableCameraInfos()) {
-                if (lensFacing(camera) == facing) {
-                    return camera;
-                }
+    @Nullable
+    private static CameraInfo findCamera(List<CameraInfo> cameras, int facing) {
+        for (CameraInfo camera : cameras) {
+            if (lensFacing(camera) == facing) {
+                return camera;
             }
         }
         return null;
@@ -598,12 +595,9 @@ public final class CameraPreviewFragment extends Fragment {
         final boolean mirrored = isFrontCamera();
         Camera camera;
         boolean opened;
-        private boolean released;
         // The first valid analysis frame marks camera readiness, even while SDK delivery is paused.
         volatile boolean hasFrame;
         volatile FrameMapping mapping;
-        // Camera timestamp used to throttle SDK input. MIN_VALUE means the rate limiter has no prior sample.
-        volatile long lastDeliveredTimestampNanos = Long.MIN_VALUE;
 
         /**
          * Synchronize with unbinding so analysis cannot enqueue callbacks for an old View after the main queue
@@ -612,13 +606,12 @@ public final class CameraPreviewFragment extends Fragment {
          * 与解绑互斥，防止分析线程在清空主队列后才投递旧 View 的回调。
          */
         synchronized void post(Runnable action) {
-            if (!released) {
+            if (binding == this) {
                 main.postAtTime(action, this, SystemClock.uptimeMillis());
             }
         }
 
         synchronized void releaseCallbacks() {
-            released = true;
             main.removeCallbacksAndMessages(this);
         }
 
@@ -639,39 +632,21 @@ public final class CameraPreviewFragment extends Fragment {
             analysis.setAnalyzer(analysisExecutor, this::analyze);
         }
 
-        /**
-         * Update only the current session's AE request; analyze() timestamp checks cover unavailable hardware
-         * ranges.
-         *
-         * 只更新已有会话的 AE 请求；没有合适硬件档位时由 analyze() 的时间戳门禁兜底。
-         */
+        /** Update capture without rebinding the camera. */
         void updateFrameRate(int framesPerSecond) {
-            lastDeliveredTimestampNanos = Long.MIN_VALUE;
-            if (camera == null) {
-                return;
-            }
             try {
-                requestFrameRate(framesPerSecond);
+                Range<Integer> range = selectFrameRateRange(camera.getCameraInfo(), framesPerSecond);
+                if (range == null) {
+                    Log.w(TAG, "No usable AE range for " + framesPerSecond + " fps");
+                    return;
+                }
+                Log.i(TAG, "Camera frame-rate request=" + framesPerSecond + " fps; supported AE range=" + range);
+                CaptureRequestOptions options = new CaptureRequestOptions.Builder()
+                        .setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, range).build();
+                Camera2CameraControl.from(camera.getCameraControl()).addCaptureRequestOptions(options);
             } catch (RuntimeException error) {
-                // AE changes are a best-effort power optimization; unsupported settings must not interrupt preview or
-                // trigger resolution fallback.
-                // AE 调整是尽力而为的省电策略；厂商不支持时不能打断预览或触发分辨率回退。
-                Log.w(TAG, "Unable to apply AE frame rate; throttling Analyzer only", error);
+                Log.w(TAG, "Unable to apply AE frame rate", error);
             }
-        }
-
-        private void requestFrameRate(int framesPerSecond) {
-            Range<Integer> range = selectFrameRateRange(camera.getCameraInfo(), framesPerSecond);
-            if (range == null) {
-                Log.w(TAG, "Camera has no usable AE frame-rate range for " + framesPerSecond
-                        + " fps; keeping preview continuous and throttling Analyzer only");
-                return;
-            }
-            Log.i(TAG, "Camera frame-rate request=" + framesPerSecond + " fps; supported AE range=" + range);
-            CaptureRequestOptions options = new CaptureRequestOptions.Builder()
-                    .setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, range)
-                    .build();
-            Camera2CameraControl.from(camera.getCameraControl()).addCaptureRequestOptions(options);
         }
 
         void analyze(ImageProxy image) {
@@ -679,52 +654,41 @@ public final class CameraPreviewFragment extends Fragment {
                 if (binding != this) {
                     return;
                 }
-                ImageProxy.PlaneProxy[] planes = null;
-                if (!hasFrame) {
-                    planes = image.getPlanes();
-                    if (planes.length < 3) {
-                        return;
-                    }
+                FrameListener listener = activeFrameListener;
+                boolean firstFrame = !hasFrame;
+                if (listener == null && !firstFrame) {
+                    return;
+                }
+                ImageProxy.PlaneProxy[] planes = image.getPlanes();
+                if (planes.length < 3) {
+                    return;
+                }
+                int width = image.getWidth();
+                int height = image.getHeight();
+                if (firstFrame) {
                     hasFrame = true;
-                    Log.i(TAG, "First analysis frame: " + image.getWidth() + "x" + image.getHeight());
+                    Log.i(TAG, "First analysis frame: " + width + "x" + height);
                     post(() -> {
                         if (binding == this && started && cameraReadyListener != null) {
                             cameraReadyListener.run();
                         }
                     });
                 }
-                FrameListener listener = frameListener;
-                if (!deliverFrames || listener == null) {
+                if (listener == null) {
                     return;
                 }
-                int analysisFrameRate = targetAnalysisFrameRate;
-                if (analysisFrameRate > 0) {
-                    long timestamp = image.getImageInfo().getTimestamp();
-                    long minimumInterval = Math.max(0L,
-                            1_000_000_000L / analysisFrameRate - 2_000_000L);
-                    if (lastDeliveredTimestampNanos != Long.MIN_VALUE
-                            && timestamp >= lastDeliveredTimestampNanos
-                            && timestamp - lastDeliveredTimestampNanos < minimumInterval) {
-                        return;
+                int rotation = image.getImageInfo().getRotationDegrees();
+                if (overlayEnabled) {
+                    Rect crop = image.getCropRect();
+                    if (mapping == null || !mapping.matches(width, height, rotation, crop)) {
+                        mapping = new FrameMapping(width, height, rotation, crop, transforms.getOutputTransform(image));
                     }
-                    lastDeliveredTimestampNanos = timestamp;
-                }
-                // Frames discarded while idle or paused need no PlaneProxy/ByteBuffer wrappers or coordinate mapping.
-                // 待机/暂停丢弃的帧不必创建 PlaneProxy/ByteBuffer 包装或做坐标映射。
-                if (planes == null) {
-                    planes = image.getPlanes();
-                }
-                if (planes.length < 3) {
-                    return;
-                }
-                if (overlayEnabled && (mapping == null || !mapping.matches(image))) {
-                    mapping = new FrameMapping(image, transforms);
                 }
                 Yuv420Frame frame = new Yuv420Frame(planes[0].getBuffer(), planes[1].getBuffer(), planes[2].getBuffer(),
-                        image.getWidth(), image.getHeight(), planes[0].getRowStride(), planes[1].getRowStride(),
+                        width, height, planes[0].getRowStride(), planes[1].getRowStride(),
                         planes[2].getRowStride(), planes[1].getPixelStride(), YuvColorRange.VIDEO, YuvColorMatrix.BT601,
-                        image.getImageInfo().getRotationDegrees(), mirrored);
-                if (deliverFrames && binding == this && frameListener == listener) {
+                        rotation, mirrored);
+                if (binding == this && activeFrameListener == listener) {
                     listener.onFrame(frame);
                 }
             } catch (RuntimeException error) {
@@ -735,12 +699,7 @@ public final class CameraPreviewFragment extends Fragment {
         }
     }
 
-    /**
-     * Request only HAL-advertised values; if 5 FPS is unsupported, choose the lowest available capture
-     * ceiling.
-     *
-     * 只下发 HAL 声明的取值；不支持 5 FPS 时也选择可用的最低采集上限。
-     */
+    /** Select from the AE ranges advertised by the bound camera. */
     @Nullable
     private static Range<Integer> selectFrameRateRange(CameraInfo cameraInfo, int framesPerSecond) {
         List<Range<Integer>> supported = new ArrayList<>(cameraInfo.getSupportedFrameRateRanges());
@@ -764,19 +723,19 @@ public final class CameraPreviewFragment extends Fragment {
         final Rect crop;
         final OutputTransform transform;
 
-        FrameMapping(ImageProxy image, ImageProxyTransformFactory factory) {
-            inputWidth = image.getWidth();
-            inputHeight = image.getHeight();
-            rotation = image.getImageInfo().getRotationDegrees();
+        FrameMapping(int inputWidth, int inputHeight, int rotation, Rect crop, OutputTransform transform) {
+            this.inputWidth = inputWidth;
+            this.inputHeight = inputHeight;
+            this.rotation = rotation;
             width = rotation % 180 == 0 ? inputWidth : inputHeight;
             height = rotation % 180 == 0 ? inputHeight : inputWidth;
-            crop = new Rect(image.getCropRect());
-            transform = factory.getOutputTransform(image);
+            this.crop = new Rect(crop);
+            this.transform = transform;
         }
 
-        boolean matches(ImageProxy image) {
-            return inputWidth == image.getWidth() && inputHeight == image.getHeight()
-                    && rotation == image.getImageInfo().getRotationDegrees() && crop.equals(image.getCropRect());
+        boolean matches(int inputWidth, int inputHeight, int rotation, Rect crop) {
+            return this.inputWidth == inputWidth && this.inputHeight == inputHeight
+                    && this.rotation == rotation && this.crop.equals(crop);
         }
     }
 }

@@ -1,5 +1,5 @@
 import { DemoL10n } from '../ui/DemoL10n';
-import { FacePhotoLibrary, FacePhotoStore, FacePhoto } from '../verification/FacePhotoStore';
+import { FacePhotoStore, FacePhoto } from '../verification/FacePhotoStore';
 import { FaceVerificationFlow } from '../verification/FaceVerificationFlow';
 import { FaceLivenessFlow } from '../liveness/FaceLivenessFlow';
 import { DemoPromptSpeech } from '../ui/DemoPromptSpeech';
@@ -62,7 +62,8 @@ const ACTION_TIMEOUT_MILLIS: number = 3000;
 const CAPTURE_STABLE_COUNTDOWN_MILLIS: number = 700;
 const CAMERA_LOG_DOMAIN: number = 0xFF00;
 const CAMERA_LOG_TAG: string = 'HiFaceCamera';
-const SEARCH_ACTIVE_FPS: number = 15;
+const SEARCH_ACTIVE_FPS: number = 20;
+const SEARCH_ACTIVE_ANALYSIS_FPS: number = 15;
 const SEARCH_IDLE_FPS: number = 10;
 const SEARCH_IDLE_ANALYSIS_FPS: number = 5;
 
@@ -101,7 +102,7 @@ export struct RealtimeCameraDemo {
   @Prop referenceFaceId: string = '';
   private readonly searchScreenPresentation: SearchScreenPresentation = new SearchScreenPresentation();
   private readonly cameraScreenPresentation: CameraScreenPresentation = new CameraScreenPresentation();
-  onReferenceConfirmed: (faceId: string, feature: string) => Promise<boolean> =
+  onReferenceConfirmed: (faceId: string, feature: string, photo?: FacePhoto) => Promise<boolean> =
     async (): Promise<boolean> => false;
   onEnroll: () => void = () => {};
   onSearchConfigChanged: (config: FaceSearchSessionConfig) => void = () => {};
@@ -115,6 +116,7 @@ export struct RealtimeCameraDemo {
   @State private searchResultText: string = '';
   @State private searchMatchCaption: string = '';
   @State private frontCamera: boolean = true;
+  private lastOpenedFrontCamera: boolean | undefined = undefined;
   @State private currentMode: RealtimeMode = RealtimeMode.DETECTION;
   // Owned aligned preview for the staged capture. Release it on replacement or exit.
   @State private capturedFace: image.PixelMap | undefined = undefined;
@@ -200,6 +202,7 @@ export struct RealtimeCameraDemo {
     this.lastSearchError = undefined;
     this.switchingCamera = false;
     this.cameraReady = false;
+    this.lastOpenedFrontCamera = undefined;
     this.flowActive = false;
     this.captureAwaitingConfirmation = false;
     this.pendingReferenceFeature = undefined;
@@ -605,7 +608,10 @@ export struct RealtimeCameraDemo {
         this.cameraReady = state === CameraPreviewState.RUNNING;
         this.cameraFailed = false;
         this.frontCamera = frontCamera;
-        if (this.cameraReady) this.previewAspect = this.cameraController?.getPreviewAspectRatio() ?? 0.75;
+        if (this.cameraReady) {
+          this.lastOpenedFrontCamera = frontCamera;
+          this.previewAspect = this.cameraController?.getPreviewAspectRatio() ?? 0.75;
+        }
         if (this.cameraReady && (this.resultVisible || this.captureAwaitingConfirmation)) {
           this.cameraController?.pauseAnalysis();
         }
@@ -639,17 +645,17 @@ export struct RealtimeCameraDemo {
         this.resetRealtimeState();
       }
     );
-    // 搜索活跃目标 15 FPS，待机预览 10 FPS、分析 5 FPS；硬件可能回退。
+    // Search preview and SDK input have independent frame-rate targets.
     const sessionFps: number = this.isSearchMode() ?
       SEARCH_ACTIVE_FPS :
       (this.currentMode === RealtimeMode.DETECTION ? 30 : 15);
     this.cameraController = new CameraPreviewController(context, callbacks, settings,
       sessionFps, this.isSearchMode());
-    if (this.isSearchMode() && this.searchCameraIdle) {
-      this.cameraController.setSessionFrameRate(SEARCH_IDLE_FPS, SEARCH_IDLE_ANALYSIS_FPS);
+    if (this.isSearchMode()) {
+      this.applySearchFrameRates();
     }
     const surfaceId: string = this.xComponentController.getXComponentSurfaceId();
-    this.cameraController.start(surfaceId, this.frontCamera);
+    this.cameraController.start(surfaceId, this.lastOpenedFrontCamera);
   }
 
   private onSurfaceDestroyed(): void {
@@ -739,6 +745,10 @@ export struct RealtimeCameraDemo {
       if (this.visible && generation === this.flowGeneration &&
         surfaceGeneration === this.cameraSurfaceGeneration) {
         this.resultState = DemoL10n.text("实时推理异常：{0}", [String(error)]);
+        if (this.currentMode === RealtimeMode.DETECTION) {
+          this.failDetection(this.resultState);
+          return;
+        }
         this.guideState = DemoL10n.text("识别失败");
         this.resultVisible = this.isGuidedMode();
         this.resultRetryVisible = false;
@@ -758,8 +768,8 @@ export struct RealtimeCameraDemo {
         hilog.error(CAMERA_LOG_DOMAIN, CAMERA_LOG_TAG,
           'Frame processing failed: code=%{public}d message=%{public}s', error.code, error.message);
         if (this.currentMode === RealtimeMode.DETECTION) {
-          this.cameraFailed = true;
-          this.cameraError = DemoErrorUi.describe(error);
+          this.failDetection(DemoErrorUi.describe(error));
+          return;
         }
         if (this.activeSearchSession === undefined) {
           this.resultState = DemoErrorUi.describe(error);
@@ -775,6 +785,14 @@ export struct RealtimeCameraDemo {
       this.lastDetection = detection;
       this.drawOverlay();
     }
+  }
+
+  private failDetection(message: string): void {
+    this.cameraController?.pauseAnalysis();
+    this.lastDetection = undefined;
+    this.drawOverlay();
+    this.cameraFailed = true;
+    this.cameraError = message;
   }
 
   private updateModeGuidance(mode: RealtimeMode): void {
@@ -1185,10 +1203,8 @@ export struct RealtimeCameraDemo {
     this.libraryBusy = true;
     this.enrollmentError = DemoL10n.text("正在保存 1:1 基准…");
     const photo: FacePhoto | undefined = FacePhotoStore.capture(this.capturedFace);
-    const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
     try {
-      const saved: boolean = await this.onReferenceConfirmed(faceId, feature);
-      if (saved) await FacePhotoStore.save(context, faceId, photo, FacePhotoLibrary.REFERENCE);
+      const saved: boolean = await this.onReferenceConfirmed(faceId, feature, photo);
       if (!this.visible || captureGeneration !== this.captureGeneration) return;
       if (!saved) {
         this.enrollmentError = DemoL10n.text("Face ID 与特征安全保存失败，请重试");
@@ -1471,8 +1487,13 @@ export struct RealtimeCameraDemo {
   private setSearchCameraIdle(idle: boolean): void {
     if (!this.isSearchMode() || this.searchCameraIdle === idle) return;
     this.searchCameraIdle = idle;
+    this.applySearchFrameRates();
+  }
+
+  private applySearchFrameRates(): void {
+    const idle = this.searchCameraIdle;
     this.cameraController?.setSessionFrameRate(
-      idle ? SEARCH_IDLE_FPS : SEARCH_ACTIVE_FPS, idle ? SEARCH_IDLE_ANALYSIS_FPS : SEARCH_ACTIVE_FPS);
+      idle ? SEARCH_IDLE_FPS : SEARCH_ACTIVE_FPS, idle ? SEARCH_IDLE_ANALYSIS_FPS : SEARCH_ACTIVE_ANALYSIS_FPS);
   }
 
   private searchConfig(mode: FaceSearchMode): FaceSearchSessionConfig {

@@ -29,8 +29,12 @@ struct FaceSearchMatch: Sendable {
     let score: Float
 }
 actor FaceSearchDatabase {
-    func count() throws -> UInt64 { 1 }
+    var entryCount: UInt64 = 1
+    private(set) var searches = 0
+    func clear() { entryCount = 0; searches = 0 }
+    func count() throws -> UInt64 { entryCount }
     func search(feature: String) throws -> [FaceSearchMatch] {
+        searches += 1
         guard !feature.isEmpty else {
             throw HiFaceError(code: .processingFailed, message: "Invalid feature")
         }
@@ -57,10 +61,11 @@ actor ImageSearchWork {
     }
 }
 final class HiFaceSDK: Sendable {
+    static let database = FaceSearchDatabase()
     @MainActor static var latest: HiFaceSDK?
     let work = ImageSearchWork()
     @MainActor init() { Self.latest = self }
-    static func openSearchDatabase() throws -> FaceSearchDatabase { FaceSearchDatabase() }
+    static func openSearchDatabase() throws -> FaceSearchDatabase { database }
     func captureFaces(_ image: HiFaceRGBAImage) async -> Result<[FaceImageCapture], HiFaceError> {
         await work.capture(image)
     }
@@ -86,7 +91,8 @@ final class HiFaceSDK: Sendable {
         try await stopRejectsPendingSearch()
         try await pickerFailurePreservesCompletedPhoto()
         try await searchErrorOnlyAffectsOneFace()
-        print("Image search model: 5 cancellation/replacement/preservation/error regressions passed")
+        try await emptyLibraryKeepsDetectionsWithoutSearching()
+        print("Image search model: 6 regressions passed")
     }
 
     @MainActor static func pickerFailureRejectsPendingSearch() async throws {
@@ -149,5 +155,18 @@ final class HiFaceSDK: Sendable {
         try await waitUntil { !model.processing }
         precondition(model.faces.map(\.label) == ["Invalid feature", "MATCH,0.95"])
         precondition(model.faces.map(\.matched) == [false, true])
+    }
+
+    @MainActor static func emptyLibraryKeepsDetectionsWithoutSearching() async throws {
+        await HiFaceSDK.database.clear()
+        let model = ImageSearchModel()
+        let work = HiFaceSDK.latest!.work
+        model.load(HiFaceRGBAImage(name: "group"))
+        try await waitUntil { await work.hasCapture("group") }
+        await work.complete("group", with: [face("A"), face("B")])
+        try await waitUntil { !model.processing }
+        let searches = await HiFaceSDK.database.searches
+        precondition(searches == 0 && model.faces.map(\.matched) == [false, false])
+        precondition(model.status.contains(DemoL10n.text("人脸库为空，请先到人脸库录入")))
     }
 }

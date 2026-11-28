@@ -19,6 +19,8 @@ export struct CameraSettingsDemo {
   @State private mirrorCoordinates: boolean = false;
   @State private loading: boolean = true;
   @State private saveState: string = DemoL10n.text("正在读取设置…");
+  @State private zoomRatio: number = 0;
+  @State private prefersBackCamera: boolean = false;
   private visible: boolean = false;
   private lifecycleGeneration: number = 0;
   private savePending: boolean = false;
@@ -44,6 +46,7 @@ export struct CameraSettingsDemo {
 
       Scroll() {
         Column({ space: 18 }) {
+
           Column({ space: 12 }) {
             Text(DemoL10n.text("分析分辨率"))
               .fontSize(17)
@@ -87,6 +90,7 @@ export struct CameraSettingsDemo {
           .backgroundColor('#FFFFFF')
           .borderRadius(16)
           .width('100%')
+
 
           Text(this.saveState)
             .fontSize(13)
@@ -136,6 +140,8 @@ export struct CameraSettingsDemo {
       }
       this.resolution = settings.resolution;
       this.mirrorCoordinates = settings.mirrorCoordinates;
+      this.zoomRatio = settings.zoomRatio;
+      this.prefersBackCamera = settings.prefersBackCamera;
       this.saveState = DemoL10n.text("已加载 · {0} · 坐标校正{1}", [String(settings.resolutionLabel()), String(settings.mirrorCoordinates ? DemoL10n.text("开") : DemoL10n.text("关"))]);
     } catch (error) {
       if (this.visible && generation === this.lifecycleGeneration) {
@@ -164,12 +170,14 @@ export struct CameraSettingsDemo {
     this.requestSave();
   }
 
+
   private requestSave(): void {
     this.savePending = true;
     this.saveState = DemoL10n.text("正在保存…");
     if (!this.saving) {
       const task: Promise<void> = this.persistPendingSettings();
       this.saveTask = task;
+      CameraDemoSettingsStore.trackSave(task);
       task.then((): void => this.clearSaveTask(task), (error: Error): void => {
         this.saving = false;
         this.clearSaveTask(task);
@@ -201,7 +209,8 @@ export struct CameraSettingsDemo {
     }
     while (this.savePending) {
       this.savePending = false;
-      const settings = new CameraDemoSettings(this.resolution, this.mirrorCoordinates);
+      const settings = new CameraDemoSettings(this.resolution, this.mirrorCoordinates,
+        this.zoomRatio, this.prefersBackCamera);
       try {
         await CameraDemoSettingsStore.save(context, settings);
         if (this.visible) {

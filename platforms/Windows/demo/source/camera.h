@@ -13,7 +13,8 @@ struct CameraDevice { std::wstring name, symbolic_link; };
 class Camera {
 public:
     static std::vector<CameraDevice> devices();
-    explicit Camera(unsigned device_index = 0, const std::wstring& symbolic_link = {}, unsigned width = 640, unsigned height = 480);
+    explicit Camera(unsigned device_index = 0, const std::wstring& symbolic_link = {}, unsigned width = 640,
+        unsigned height = 480, unsigned preferred_fps = 30);
     ~Camera();
     Camera(const Camera&) = delete;
     Camera& operator=(const Camera&) = delete;
@@ -23,7 +24,7 @@ public:
     // The optional timestamp is sample arrival, before buffer copying or inference.
     // 可选时间戳记录样本到达时刻，不包含缓冲复制与推理耗时。
     bool next(CameraFrame& frame, std::chrono::milliseconds timeout,
-        std::chrono::steady_clock::time_point* captured_at = nullptr);
+        std::chrono::steady_clock::time_point* captured_at = nullptr, int zoom_percent = 100);
     uint64_t capturedFrames() const;
 private:
     struct Impl;

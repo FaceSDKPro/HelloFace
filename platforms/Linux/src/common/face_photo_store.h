@@ -34,7 +34,7 @@ public:
             struct Descriptor {
                 int value;
                 ~Descriptor() { if (value >= 0) ::close(value); }
-            } descriptor{::open(target.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC)};
+            } descriptor{::open(target.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)};
             if (descriptor.value < 0) return {};
             struct stat info{};
             const std::string header = "P6\n333 333\n255\n";

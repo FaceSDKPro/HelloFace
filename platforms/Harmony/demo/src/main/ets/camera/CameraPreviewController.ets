@@ -16,6 +16,16 @@ import { CameraPreviewCallbacks, CameraPreviewState } from './CameraPreviewCallb
 const CAMERA_PERMISSION: Permissions = 'ohos.permission.CAMERA';
 const RECEIVER_CAPACITY: number = 3;
 
+export interface CameraZoomRange {
+  min: number;
+  max: number;
+}
+
+export interface CameraZoomRanges extends CameraZoomRange {
+  front: CameraZoomRange | undefined;
+  back: CameraZoomRange | undefined;
+}
+
 /**
  * The camera must produce clear images; for face search, a camera with a wide dynamic range above
  * 105 dB is recommended.
@@ -83,7 +93,12 @@ export class CameraPreviewController {
       this.recordDroppedFrame();
       return;
     }
-    this.startFrameTask();
+    const task: Promise<void> = this.consumeLatestFrame(this.generation);
+    this.frameTask = task;
+    const finish: () => void = (): void => {
+      if (this.frameTask === task) this.frameTask = undefined;
+    };
+    task.then(finish, finish);
   }
 
   constructor(context: common.UIAbilityContext, callbacks: CameraPreviewCallbacks,
@@ -101,14 +116,15 @@ export class CameraPreviewController {
     this.limitDisplayFrameRate = limitDisplayFrameRate;
   }
 
-  async start(surfaceId: string, preferFrontCamera: boolean = true): Promise<void> {
+  async start(surfaceId: string, preferFrontCamera: boolean | undefined = undefined): Promise<void> {
+    let startWithFront: boolean = preferFrontCamera ?? true;
     const token: number = ++this.generation;
     this.active = false;
     // 串行完成上一轮启动/释放，避免 open() 尚未完成就 close()，或旧启动覆盖新资源。
     const task: Promise<void> = CameraPreviewController.lifecycleTask.then(async (): Promise<void> => {
       await this.stopInternal();
       if (token === this.generation) {
-        await this.startInternal(surfaceId, preferFrontCamera, token);
+        await this.startInternal(surfaceId, startWithFront, token);
       }
     });
     CameraPreviewController.lifecycleTask = task.catch(() => {});
@@ -135,7 +151,6 @@ export class CameraPreviewController {
       const manager: camera.CameraManager = camera.getCameraManager(this.context);
       const device: camera.CameraDevice = this.selectCamera(
         manager.getSupportedCameras(), preferFrontCamera);
-      this.cameraDevice = device;
       this.frontCamera = device.cameraPosition === camera.CameraPosition.CAMERA_POSITION_FRONT;
       const capability: camera.CameraOutputCapability =
         manager.getSupportedOutputCapability(device, camera.SceneMode.NORMAL_VIDEO);
@@ -150,9 +165,9 @@ export class CameraPreviewController {
         } catch (error) {
           // 设备单独声明支持某个规格，不代表它支持双输出组合。尝试更小的共享规格前，
           // 必须完整释放本次已经打开的部分资源。
+          if (index === profiles.length - 1) throw new Error(`${error}`);
           await this.stopInternal();
           if (token !== this.generation) return;
-          if (index === profiles.length - 1) throw new Error(`${error}`);
           this.callbacks.onCameraState(CameraPreviewState.TRYING_PROFILE, this.frontCamera, '');
         }
       }
@@ -165,7 +180,7 @@ export class CameraPreviewController {
   }
 
   private async startProfile(manager: camera.CameraManager, device: camera.CameraDevice,
-    analysisProfile: camera.Profile, surfaceId: string, token: number): Promise<void> {
+    profile: camera.Profile, surfaceId: string, token: number): Promise<void> {
     this.cameraDevice = device;
     const attempt: number = ++this.attempt;
     this.startupError = undefined;
@@ -178,13 +193,11 @@ export class CameraPreviewController {
     this.arrivalCallback = (): void => {
       if (token === this.generation && attempt === this.attempt) this.handleArrival();
     };
-    // 两路使用相同比例，避免高清分析 16:9 与可见预览 4:3 的人脸框偏移。
-    const displayProfile: camera.Profile = analysisProfile;
-    const profileLabel: string = `${analysisProfile.size.width}×${analysisProfile.size.height}`;
+    const profileLabel: string = `${profile.size.width}×${profile.size.height}`;
     try {
       const receiverSize: image.Size = {
-        width: analysisProfile.size.width,
-        height: analysisProfile.size.height
+        width: profile.size.width,
+        height: profile.size.height
       };
       const receiver: image.ImageReceiver = image.createImageReceiver(
         receiverSize, image.ImageFormat.JPEG, RECEIVER_CAPACITY);
@@ -203,10 +216,10 @@ export class CameraPreviewController {
         return;
       }
 
-      const displayOutput: camera.PreviewOutput = manager.createPreviewOutput(displayProfile, surfaceId);
+      // Both outputs use the same profile to keep the face overlays aligned.
+      const displayOutput: camera.PreviewOutput = manager.createPreviewOutput(profile, surfaceId);
       this.displayOutput = displayOutput;
-      const analysisOutput: camera.PreviewOutput = manager.createPreviewOutput(
-        analysisProfile, analysisSurfaceId);
+      const analysisOutput: camera.PreviewOutput = manager.createPreviewOutput(profile, analysisSurfaceId);
       this.analysisOutput = analysisOutput;
       displayOutput.on('error', this.previewErrorCallback);
       analysisOutput.on('error', this.previewErrorCallback);
@@ -232,13 +245,7 @@ export class CameraPreviewController {
       if (!this.canContinueStartup(token)) {
         return;
       }
-      if (this.limitDisplayFrameRate) {
-        this.applyOutputFrameRate(displayOutput, this.targetSessionFrameRate);
-      }
-      this.analysisOutputRateLimited = this.applyOutputFrameRate(
-        analysisOutput, this.targetAnalysisFrameRate);
-      // CameraKit 拒绝目标帧率时，在像素复制前保留同频率的应用侧兜底门禁。
-      this.updateApplicationFrameInterval();
+      this.applyFrameRates();
       // PreviewOutput 必须先加入并提交 Session。部分真机会在提交前返回
       // "GetPreviewRotation ... session is nullptr"（7400201）。
       const displayRotation: number = display.getDefaultDisplaySync().rotation;
@@ -246,8 +253,7 @@ export class CameraPreviewController {
       displayOutput.setPreviewRotation(previewRotation, true);
       this.rotationDegrees = analysisOutput.getPreviewRotation(displayRotation);
       this.previewAspect = previewRotation === 90 || previewRotation === 270 ?
-        displayProfile.size.height / displayProfile.size.width :
-        displayProfile.size.width / displayProfile.size.height;
+        profile.size.height / profile.size.width : profile.size.width / profile.size.height;
       await session.start();
       if (!this.canContinueStartup(token)) {
         return;
@@ -294,13 +300,7 @@ export class CameraPreviewController {
     if (this.targetSessionFrameRate === targetFps && this.targetAnalysisFrameRate === analysisFps) return;
     this.targetSessionFrameRate = targetFps;
     this.targetAnalysisFrameRate = analysisFps;
-    if (this.limitDisplayFrameRate && this.displayOutput !== undefined) {
-      this.applyOutputFrameRate(this.displayOutput, targetFps);
-    }
-    this.analysisOutputRateLimited = this.analysisOutput !== undefined &&
-      this.applyOutputFrameRate(this.analysisOutput, analysisFps);
-    this.updateApplicationFrameInterval();
-    this.lastAnalysisFrameAt = -1;
+    this.applyFrameRates();
   }
 
   /** Keep the preview running and discard frames that have yet to reach the SDK. */
@@ -317,11 +317,17 @@ export class CameraPreviewController {
     this.lastFrameAt = systemDateTime.getUptime(systemDateTime.TimeType.STARTUP);
   }
 
-  private updateApplicationFrameInterval(): void {
+  private applyFrameRates(): void {
+    if (this.limitDisplayFrameRate && this.displayOutput !== undefined) {
+      this.applyOutputFrameRate(this.displayOutput, this.targetSessionFrameRate);
+    }
+    this.analysisOutputRateLimited = this.analysisOutput !== undefined &&
+      this.applyOutputFrameRate(this.analysisOutput, this.targetAnalysisFrameRate);
     // 预览与分析分开限频时，即使驱动接受请求，也保留 SDK 输入门禁，防止双输出共享帧率。
     this.applicationFrameInterval = this.analysisOutputRateLimited &&
       this.targetAnalysisFrameRate === this.targetSessionFrameRate ?
       0 : 1000 / this.targetAnalysisFrameRate - 2;
+    this.lastAnalysisFrameAt = -1;
   }
 
   async stop(): Promise<void> {
@@ -340,60 +346,22 @@ export class CameraPreviewController {
     this.pendingFrame = undefined;
     if (this.frameWatchdog >= 0) clearInterval(this.frameWatchdog);
     this.frameWatchdog = -1;
-    const receiver: image.ImageReceiver | undefined = this.receiver;
-    if (receiver !== undefined) {
-      try {
-        receiver.off('imageArrival', this.arrivalCallback);
-      } catch (_) {
-      }
-    }
-    const session: camera.VideoSession | undefined = this.session;
+    try { this.receiver?.off('imageArrival', this.arrivalCallback); } catch (_) {}
     this.unregisterErrorCallbacks();
     this.arrivalCallback = undefined;
     this.inputErrorCallback = undefined;
     this.sessionErrorCallback = undefined;
     this.previewErrorCallback = undefined;
-    if (session !== undefined) {
-      try {
-        await session.stop();
-      } catch (_) {
-      }
-    }
-    const frameTask: Promise<void> | undefined = this.frameTask;
-    if (frameTask !== undefined) {
-      try {
-        await frameTask;
-      } catch (_) {
-      }
-    }
-    const consumerTask: Promise<void> | undefined = this.consumerTask;
-    if (consumerTask !== undefined) {
-      try {
-        await consumerTask;
-      } catch (_) {
-      }
-    }
-    if (session !== undefined) {
-      try {
-        await session.release();
-      } catch (_) {
-      }
-    }
-    await this.releaseOutput(this.displayOutput);
-    await this.releaseOutput(this.analysisOutput);
-    const input: camera.CameraInput | undefined = this.cameraInput;
-    if (input !== undefined) {
-      try {
-        await input.close();
-      } catch (_) {
-      }
-    }
-    if (receiver !== undefined) {
-      try {
-        await receiver.release();
-      } catch (_) {
-      }
-    }
+
+    // A failed CameraKit release must not strand the other resources.
+    try { await this.session?.stop(); } catch (_) {}
+    try { await this.frameTask; } catch (_) {}
+    try { await this.consumerTask; } catch (_) {}
+    try { await this.session?.release(); } catch (_) {}
+    try { await this.displayOutput?.release(); } catch (_) {}
+    try { await this.analysisOutput?.release(); } catch (_) {}
+    try { await this.cameraInput?.close(); } catch (_) {}
+    try { await this.receiver?.release(); } catch (_) {}
     this.session = undefined;
     this.displayOutput = undefined;
     this.analysisOutput = undefined;
@@ -417,32 +385,23 @@ export class CameraPreviewController {
     }
   }
 
+
   private selectCamera(devices: Array<camera.CameraDevice>, preferFront: boolean): camera.CameraDevice {
     if (devices.length === 0) {
       throw new Error(DemoL10n.text("没有可用相机"));
     }
     const preferred: camera.CameraPosition = preferFront ?
       camera.CameraPosition.CAMERA_POSITION_FRONT : camera.CameraPosition.CAMERA_POSITION_BACK;
-    for (const device of devices) {
-      if (device.cameraPosition === preferred) {
-        return device;
-      }
-    }
-    return devices[0];
+    const opposite: camera.CameraPosition = preferFront ?
+      camera.CameraPosition.CAMERA_POSITION_BACK : camera.CameraPosition.CAMERA_POSITION_FRONT;
+    return devices.find((device: camera.CameraDevice): boolean => device.cameraPosition === preferred)
+      ?? devices.find((device: camera.CameraDevice): boolean => device.cameraPosition === opposite)
+      ?? devices[0];
   }
 
-  private startFrameTask(): void {
-    const token: number = this.generation;
-    const task: Promise<void> = this.consumeLatestFrame(token);
-    this.frameTask = task;
-    task.then(() => this.completeFrameTask(task), () => this.completeFrameTask(task));
-  }
-
-  private completeFrameTask(task: Promise<void>): void {
-    if (this.frameTask !== task) {
-      return;
-    }
-    this.frameTask = undefined;
+  private canDeliverFrame(token: number, analysisToken: number): boolean {
+    return this.active && !this.analysisPaused &&
+      token === this.generation && analysisToken === this.analysisGeneration;
   }
 
   private async consumeLatestFrame(token: number): Promise<void> {
@@ -463,10 +422,7 @@ export class CameraPreviewController {
       let copiedAt: number = readFinishedAt;
       let analysisAt: number = -1;
       try {
-        if (token !== this.generation || !this.active || !analysisAllowed ||
-          analysisToken !== this.analysisGeneration) {
-          return;
-        }
+        if (!analysisAllowed || !this.canDeliverFrame(token, analysisToken)) return;
         // 与 CameraX KEEP_ONLY_LATEST 一致：推理忙时仅保留一份最新帧，覆盖中间帧。
         // 推理完成立即消费它，避免丢弃所有到帧后再空等一个相机周期。
         const now: number = systemDateTime.getUptime(systemDateTime.TimeType.STARTUP);
@@ -484,8 +440,7 @@ export class CameraPreviewController {
       }
       this.lastFrameAt = systemDateTime.getUptime(systemDateTime.TimeType.STARTUP);
       // Copy and release both yield to the UI; recheck before advancing the throttle or submitting.
-      if (frame === undefined || token !== this.generation || !this.active ||
-        analysisToken !== this.analysisGeneration) return;
+      if (frame === undefined || !this.canDeliverFrame(token, analysisToken)) return;
       this.lastAnalysisFrameAt = analysisAt;
       if (DEBUG && this.frameTimingSamples < 12) {
         hilog.info(0xFF00, 'HiFaceCamera',
@@ -552,16 +507,6 @@ export class CameraPreviewController {
       this.failCamera(DemoL10n.text("相机分析帧不可用，请重试"));
     } else {
       try { this.callbacks.onFrameError(DemoL10n.text("处理相机分析帧失败：{0}", [String(error)])); } catch (_) {}
-    }
-  }
-
-  private async releaseOutput(output: camera.PreviewOutput | undefined): Promise<void> {
-    if (output === undefined) {
-      return;
-    }
-    try {
-      await output.release();
-    } catch (_) {
     }
   }
 

@@ -53,11 +53,14 @@ constexpr int kRgaBgrx8888 = 0x16 << 8;
 constexpr int kRgaNv12 = 0xa << 8;
 constexpr int kRgaNv21 = 0xe << 8;
 constexpr int kRgaRotate90 = 1 << 0;
+constexpr int kRgaRotate180 = 1 << 1;
 constexpr int kRgaRotate270 = 1 << 2;
 constexpr int kRgaSync = 1 << 19;
 constexpr int kRgaBt601Limited = 1 << 0;
 constexpr int kRgaBt601Full = 2 << 0;
 constexpr int kRgaBt709Limited = 3 << 0;
+
+struct RgaConversionError : DemoError { using DemoError::DemoError; };
 
 class RgaPreview {
 public:
@@ -78,11 +81,14 @@ public:
     RgaPreview& operator=(const RgaPreview&) = delete;
     bool available() const { return library_ != nullptr; }
 
-    void convert(const uint8_t* source, int dma_fd, int source_width, int source_height, int source_stride,
+    void convert(const uint8_t* source, size_t bytes, int dma_fd, int source_width, int source_height, int source_stride,
                  bool nv21, HiFaceYuvRangeV1 range, HiFaceYuvMatrixV1 matrix,
                  int output_width, int output_height, int rotation, CameraFrame& frame) {
         require(library_, "Rockchip RGA preview is unavailable");
-        require(source && source_width >= 2 && source_height >= 2 && source_stride >= source_width,
+        require(source && source_width >= 2 && source_width <= 1920 && source_height >= 2 && source_height <= 1080 &&
+            !(source_width & 1) && !(source_height & 1) &&
+            source_stride >= source_width && bytes >= static_cast<size_t>(source_stride) *
+                (source_height + source_height / 2 - 1) + source_width,
             "Invalid RGA preview source");
         require(output_width >= 2 && output_height >= 2 && output_width <= 1920 && output_height <= 1920,
             "Invalid RGA preview size");
@@ -104,22 +110,26 @@ public:
             ? kRgaBt709Limited : range == HIFACE_YUV_RANGE_FULL ? kRgaBt601Full : kRgaBt601Limited;
         RgaBuffer empty{};
         RgaRect rect{};
-        int status = process_(input, output, empty, rect, rect, rect, rotation | kRgaSync);
+        const int transform = rotation == 90 ? kRgaRotate90 : rotation == 180 ? kRgaRotate180 :
+            rotation == 270 ? kRgaRotate270 : 0;
+        int status = process_(input, output, empty, rect, rect, rect, transform | kRgaSync);
         if (status <= 0 && dma) {
             dma_disabled_ = true;
             const int color_space = input.color_space_mode;
             input = wrap_(const_cast<uint8_t*>(source), source_width, source_height,
                 source_stride, source_height, nv21 ? kRgaNv21 : kRgaNv12);
             input.color_space_mode = color_space;
-            status = process_(input, output, empty, rect, rect, rect, rotation | kRgaSync);
+            status = process_(input, output, empty, rect, rect, rect, transform | kRgaSync);
         }
         if (!source_logged_ && status > 0) {
             std::fprintf(stderr, "[RGA] preview source: %s\n", dma && !dma_disabled_ ? "V4L2 DMA-BUF" : "mapped CPU memory (fallback)");
             source_logged_ = true;
         }
-        const char* detail = error_ ? error_(status) : nullptr;
-        require(status > 0, std::string("Rockchip RGA preview conversion failed") +
-            (detail && *detail ? ": " + std::string(detail) : " (" + std::to_string(status) + ")"));
+        if (status <= 0) {
+            const char* detail = error_ ? error_(status) : nullptr;
+            throw RgaConversionError{std::string("Rockchip RGA preview conversion failed: ") +
+                (detail && *detail ? std::string(detail) : std::to_string(status))};
+        }
     }
 private:
     using Wrap = RgaBuffer (*)(void*, int, int, int, int, int);
@@ -169,7 +179,7 @@ void Camera::close() noexcept {
     }
     buffers_.clear();
     if (fd_ >= 0) ::close(fd_);
-    fd_ = -1; type_ = 0; plane_count_ = 0;
+    fd_ = -1; type_ = 0;
 }
 void Camera::open(const std::string& device, int width, int height, int fps, bool prefer_mjpeg, int rotation) {
     openStream(device, width, height, fps, prefer_mjpeg, false, rotation);
@@ -228,6 +238,8 @@ void Camera::openStream(const std::string& device, int width, int height, int fp
             "Device is not a streaming camera");
         type_ = multiplanar ? V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : V4L2_BUF_TYPE_VIDEO_CAPTURE;
         bool supported = false;
+        const char* negotiation_error = infrared ? "IR camera must support GREY, YUYV, NV12 or NV21 streaming"
+            : "Camera must support YUYV, MJPEG, NV12 or NV21 streaming";
         const std::array<uint32_t, 4> formats = infrared
             ? std::array<uint32_t, 4>{V4L2_PIX_FMT_GREY, V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_NV12, V4L2_PIX_FMT_NV21}
             : std::array<uint32_t, 4>{prefer_mjpeg ? V4L2_PIX_FMT_MJPEG : V4L2_PIX_FMT_YUYV,
@@ -245,14 +257,20 @@ void Camera::openStream(const std::string& device, int width, int height, int fp
             if (request(fd_, VIDIOC_S_FMT, &format) != 0) continue;
             const auto negotiated_format = multiplanar ? format.fmt.pix_mp.pixelformat : format.fmt.pix.pixelformat;
             if (negotiated_format != wanted) continue;
-            // V4L2 may adjust the requested size. Use the returned dimensions for buffers and frames.
-            width_ = multiplanar ? format.fmt.pix_mp.width : format.fmt.pix.width;
-            height_ = multiplanar ? format.fmt.pix_mp.height : format.fmt.pix.height;
-            format_ = wanted;
-            plane_count_ = multiplanar ? format.fmt.pix_mp.num_planes : 1;
-            require(plane_count_ == 1, "Camera format must use one packed buffer plane");
+            const auto negotiated_width = multiplanar ? format.fmt.pix_mp.width : format.fmt.pix.width;
+            const auto negotiated_height = multiplanar ? format.fmt.pix_mp.height : format.fmt.pix.height;
+            const auto planes = multiplanar ? format.fmt.pix_mp.num_planes : 1;
+            // Reject unusable driver results before allocating buffers and try the next pixel format.
+            if (negotiated_width < 2 || negotiated_height < 2 || (negotiated_width & 1) || (negotiated_height & 1)
+                    || negotiated_width > 1920 || negotiated_height > 1080) {
+                negotiation_error = "Camera resolution must be even and within 1920x1080";
+                continue;
+            }
+            if (planes != 1) {
+                negotiation_error = "Camera format must use one packed buffer plane";
+                continue;
+            }
             const auto bytesperline = multiplanar ? format.fmt.pix_mp.plane_fmt[0].bytesperline : format.fmt.pix.bytesperline;
-            stride_ = bytesperline ? bytesperline : width_ * (wanted == V4L2_PIX_FMT_YUYV ? 2 : 1);
             const auto colorspace = multiplanar ? format.fmt.pix_mp.colorspace : format.fmt.pix.colorspace;
             const auto raw_encoding = multiplanar ? format.fmt.pix_mp.ycbcr_enc : format.fmt.pix.ycbcr_enc;
             const auto raw_quantization = multiplanar ? format.fmt.pix_mp.quantization : format.fmt.pix.quantization;
@@ -260,16 +278,19 @@ void Camera::openStream(const std::string& device, int width, int height, int fp
                 ? V4L2_MAP_YCBCR_ENC_DEFAULT(colorspace) : raw_encoding;
             const auto quantization = raw_quantization == V4L2_QUANTIZATION_DEFAULT
                 ? V4L2_MAP_QUANTIZATION_DEFAULT(false, colorspace, encoding) : raw_quantization;
-            require(infrared || wanted == V4L2_PIX_FMT_MJPEG || encoding == V4L2_YCBCR_ENC_601 || encoding == V4L2_YCBCR_ENC_709,
-                "Camera YUV matrix must be BT.601 or BT.709");
+            if (!infrared && wanted != V4L2_PIX_FMT_MJPEG && encoding != V4L2_YCBCR_ENC_601 && encoding != V4L2_YCBCR_ENC_709) {
+                negotiation_error = "Camera YUV matrix must be BT.601 or BT.709";
+                continue;
+            }
+            width_ = negotiated_width;
+            height_ = negotiated_height;
+            format_ = wanted;
+            stride_ = bytesperline ? bytesperline : width_ * (wanted == V4L2_PIX_FMT_YUYV ? 2 : 1);
             range_ = quantization == V4L2_QUANTIZATION_FULL_RANGE ? HIFACE_YUV_RANGE_FULL : HIFACE_YUV_RANGE_VIDEO;
             matrix_ = encoding == V4L2_YCBCR_ENC_709 ? HIFACE_YUV_MATRIX_BT709 : HIFACE_YUV_MATRIX_BT601;
             supported = true; break;
         }
-        require(supported, infrared ? "IR camera must support GREY, YUYV, NV12 or NV21 streaming"
-            : "Camera must support YUYV, MJPEG, NV12 or NV21 streaming");
-        require(width_ >= 2 && height_ >= 2 && !(width_ & 1) && !(height_ & 1)
-            && width_ <= 1920 && height_ <= 1080, "Camera resolution exceeds 1920x1080");
+        require(supported, negotiation_error);
         v4l2_streamparm parameters{}; parameters.type = type_;
         parameters.parm.capture.timeperframe = {1, static_cast<uint32_t>(fps)};
         request(fd_, VIDIOC_S_PARM, &parameters); // Driver may select another rate. / 驱动可能选择其他帧率。
@@ -283,11 +304,11 @@ void Camera::openStream(const std::string& device, int width, int height, int fp
         buffers_.reserve(allocation.count);
         for (uint32_t i = 0; i < allocation.count; ++i) {
             v4l2_buffer buffer{}; buffer.type = allocation.type; buffer.memory = allocation.memory; buffer.index = i;
-            std::array<v4l2_plane, VIDEO_MAX_PLANES> planes{};
-            if (multiplanar) { buffer.m.planes = planes.data(); buffer.length = plane_count_; }
+            v4l2_plane plane{};
+            if (multiplanar) { buffer.m.planes = &plane; buffer.length = 1; }
             cameraCheck(request(fd_, VIDIOC_QUERYBUF, &buffer) == 0, "Query camera buffer");
-            const auto length = multiplanar ? planes[0].length : buffer.length;
-            const auto offset = multiplanar ? planes[0].m.mem_offset : buffer.m.offset;
+            const auto length = multiplanar ? plane.length : buffer.length;
+            const auto offset = multiplanar ? plane.m.mem_offset : buffer.m.offset;
             require(length > 0 && length <= 32 * 1024 * 1024, "Invalid camera buffer length");
             auto* bytes = mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, offset);
             cameraCheck(bytes != MAP_FAILED, "Map camera buffer");
@@ -314,9 +335,11 @@ void Camera::openStream(const std::string& device, int width, int height, int fp
                 (rotation_ == Rotation::counter_clockwise ? " CCW90" : " CW90");
     } catch (...) { close(); throw; }
 }
-bool Camera::read(CameraFrame& frame) { return readFrame(&frame, 0, 0, false); }
-bool Camera::readAnalysis(CameraFrame& frame) { return readFrame(&frame, 0, 0, true); }
-bool Camera::readRaw(RawCameraFrame& frame) { return readFrame(nullptr, 0, 0, true, &frame); }
+bool Camera::read(CameraFrame& frame, int timeout_ms) {
+    return waitForFrame(timeout_ms) && readFrame(&frame, 0, 0, false);
+}
+bool Camera::readAnalysis(CameraFrame& frame) { return waitForFrame(0) && readFrame(&frame, 0, 0, true); }
+bool Camera::readRaw(RawCameraFrame& frame) { return streaming_ && readFrame(nullptr, 0, 0, true, &frame); }
 void Camera::decodeAnalysis(const RawCameraFrame& raw, CameraFrame& frame) {
     convertCameraFrame(raw.bytes.data(), raw.bytes.size(), raw.width, raw.height, raw.stride, raw.format,
         raw.range, raw.matrix, raw.infrared, raw.rotation, frame, false);
@@ -332,29 +355,28 @@ void CameraFrame::expandInfraredRgba() {
     }
 }
 void Camera::decodePreview(const RawCameraFrame& raw, CameraFrame& frame) {
-    // Paired capture must not block frame publication on a CPU color conversion.
-    // Reuse the board's RGA path while retaining the owned raw buffer until synchronous conversion ends.
-    if (!raw.infrared && raw.rotation != 180 &&
-        (raw.format == V4L2_PIX_FMT_NV12 || raw.format == V4L2_PIX_FMT_NV21) && rgaPreview().available()) {
-        require(raw.width >= 2 && raw.height >= 2 && !(raw.width & 1) && !(raw.height & 1) &&
-            raw.stride >= raw.width && raw.bytes.size() >= static_cast<size_t>(raw.stride) * raw.height +
-                static_cast<size_t>(raw.stride) * (raw.height / 2 - 1) + raw.width,
-            "Invalid NV12/NV21 paired preview frame");
+    // Prefer RGA for paired previews. A new capture thread retries hardware after reopening.
+    thread_local bool use_rga = rgaPreview().available();
+    if (use_rga && !raw.infrared && (raw.format == V4L2_PIX_FMT_NV12 || raw.format == V4L2_PIX_FMT_NV21)) {
         const bool swap = raw.rotation == 90 || raw.rotation == 270;
-        const int rotation = raw.rotation == 90 ? kRgaRotate90 : raw.rotation == 270 ? kRgaRotate270 : 0;
-        rgaPreview().convert(raw.bytes.data(), -1, raw.width, raw.height, raw.stride,
-            raw.format == V4L2_PIX_FMT_NV21, raw.range, raw.matrix,
-            swap ? raw.height : raw.width, swap ? raw.width : raw.height, rotation, frame);
-        frame.monotonic_timestamp_ms = raw.monotonic_timestamp_ms;
-        return;
+        try {
+            rgaPreview().convert(raw.bytes.data(), raw.bytes.size(), -1, raw.width, raw.height, raw.stride,
+                raw.format == V4L2_PIX_FMT_NV21, raw.range, raw.matrix,
+                swap ? raw.height : raw.width, swap ? raw.width : raw.height, raw.rotation, frame);
+            frame.monotonic_timestamp_ms = raw.monotonic_timestamp_ms;
+            return;
+        } catch (const RgaConversionError& error) {
+            use_rga = false;
+            std::fprintf(stderr, "[RGA] paired preview using CPU: %s\n", error.message.c_str());
+        }
     }
     convertCameraFrame(raw.bytes.data(), raw.bytes.size(), raw.width, raw.height, raw.stride, raw.format,
         raw.range, raw.matrix, raw.infrared, raw.rotation, frame, true);
     if (raw.infrared) frame.expandInfraredRgba();
     frame.monotonic_timestamp_ms = raw.monotonic_timestamp_ms;
 }
-bool Camera::readPreview(CameraFrame& frame, int output_width, int output_height) {
-    return readFrame(&frame, output_width, output_height, false);
+bool Camera::readPreview(CameraFrame& frame, int output_width, int output_height, int timeout_ms) {
+    return waitForFrame(timeout_ms) && readFrame(&frame, output_width, output_height, false);
 }
 unsigned Camera::waitForFrames(const Camera& rgb, const Camera& ir, int timeout_ms) {
     pollfd streams[] = {{rgb.fd_, POLLIN, 0}, {ir.fd_, POLLIN, 0}};
@@ -382,11 +404,10 @@ bool Camera::requestFrameRate(int fps) {
     return request(fd_, VIDIOC_S_PARM, &parameters) == 0;
 }
 bool Camera::readFrame(CameraFrame* frame, int preview_width, int preview_height, bool analysis_only, RawCameraFrame* raw) {
-    if (raw ? !streaming_ : !waitForFrame(0)) return false;
     const bool multiplanar = type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     v4l2_buffer buffer{}; buffer.type = type_; buffer.memory = V4L2_MEMORY_MMAP;
-    std::array<v4l2_plane, VIDEO_MAX_PLANES> planes{};
-    if (multiplanar) { buffer.m.planes = planes.data(); buffer.length = plane_count_; }
+    v4l2_plane plane{};
+    if (multiplanar) { buffer.m.planes = &plane; buffer.length = 1; }
     if (request(fd_, VIDIOC_DQBUF, &buffer) < 0) {
         if (errno == EAGAIN) return false;
         cameraCheck(false, "Read camera buffer");
@@ -396,8 +417,8 @@ bool Camera::readFrame(CameraFrame* frame, int preview_width, int preview_height
     // 推理可能超过一个相机周期；丢弃排队旧缓冲，分析最新帧，避免累积延迟。
     for (size_t i = 1; i < buffers_.size(); ++i) {
         v4l2_buffer newer{}; newer.type = buffer.type; newer.memory = buffer.memory;
-        std::array<v4l2_plane, VIDEO_MAX_PLANES> newer_planes{};
-        if (multiplanar) { newer.m.planes = newer_planes.data(); newer.length = plane_count_; }
+        v4l2_plane newer_plane{};
+        if (multiplanar) { newer.m.planes = &newer_plane; newer.length = 1; }
         if (request(fd_, VIDIOC_DQBUF, &newer) < 0) {
             if (errno == EAGAIN) break;
             request(fd_, VIDIOC_QBUF, &buffer);
@@ -405,15 +426,15 @@ bool Camera::readFrame(CameraFrame* frame, int preview_width, int preview_height
         }
         cameraCheck(request(fd_, VIDIOC_QBUF, &buffer) == 0, "Return stale camera frame");
         buffer = newer;
-        if (multiplanar) { planes = newer_planes; buffer.m.planes = planes.data(); }
+        if (multiplanar) { plane = newer_plane; buffer.m.planes = &plane; }
     }
     require(buffer.index < buffers_.size(), "Camera returned invalid buffer index");
     if (buffer.flags & V4L2_BUF_FLAG_ERROR) {
         cameraCheck(request(fd_, VIDIOC_QBUF, &buffer) == 0, "Return damaged camera frame");
         return false;
     }
-    const auto bytesused = multiplanar ? planes[0].bytesused : buffer.bytesused;
-    const auto offset = multiplanar ? planes[0].data_offset : 0;
+    const auto bytesused = multiplanar ? plane.bytesused : buffer.bytesused;
+    const auto offset = multiplanar ? plane.data_offset : 0;
     const bool valid_payload = bytesused > offset && bytesused <= buffers_[buffer.index].size;
     if (raw && !valid_payload) {
         cameraCheck(request(fd_, VIDIOC_QBUF, &buffer) == 0, "Return truncated camera frame");
@@ -440,10 +461,8 @@ bool Camera::readFrame(CameraFrame* frame, int preview_width, int preview_height
         } else if (!infrared_ && preview_width > 0 && preview_height > 0) {
             require(format_ == V4L2_PIX_FMT_NV12 || format_ == V4L2_PIX_FMT_NV21,
                 "RGA preview requires an NV12 or NV21 camera stream");
-            const int rotation = rotation_ == Rotation::clockwise ? kRgaRotate90
-                : rotation_ == Rotation::counter_clockwise ? kRgaRotate270 : 0;
-            rgaPreview().convert(pixels, offset ? -1 : buffers_[buffer.index].dma_fd, width_, height_, stride_,
-                format_ == V4L2_PIX_FMT_NV21, range_, matrix_, preview_width, preview_height, rotation, *frame);
+            rgaPreview().convert(pixels, payload, offset ? -1 : buffers_[buffer.index].dma_fd, width_, height_, stride_,
+                format_ == V4L2_PIX_FMT_NV21, range_, matrix_, preview_width, preview_height, static_cast<int>(rotation_), *frame);
         } else {
             convertCameraFrame(pixels, payload, width_, height_, stride_, format_, range_, matrix_,
                 infrared_, static_cast<int>(rotation_), *frame, !analysis_only || format_ == V4L2_PIX_FMT_MJPEG);

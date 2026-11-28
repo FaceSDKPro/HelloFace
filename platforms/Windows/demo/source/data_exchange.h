@@ -13,7 +13,7 @@ public:
     uint32_t next = 0;
     bool more = false;
     void reset(const Gallery& database, const std::string& query, const std::string& group = {}, const std::string& tag = {});
-    void append(const Gallery& database);
+    void append(const Gallery& database, const std::function<void(const std::string&)>& on_row = {});
 private:
     std::string query_, group_, tag_;
     // Face ID to visible-row index, used to update a repeated ID without appending a duplicate.

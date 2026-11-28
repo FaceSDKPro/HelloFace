@@ -6,6 +6,8 @@ const STORE_NAME: string = 'hiface_camera_settings';
 const HIGH_RESOLUTION_KEY: string = 'high_resolution';
 const RESOLUTION_TIER_KEY: string = 'resolution_tier';
 const MIRROR_COORDINATES_KEY: string = 'mirror_coordinates';
+const ZOOM_RATIO_KEY: string = 'zoom_ratio';
+const PREFER_BACK_CAMERA_KEY: string = 'prefer_back_camera';
 
 export enum CameraAnalysisResolution {
   LOW = 'low',
@@ -45,10 +47,15 @@ export class CameraDemoSettings {
   // The settings screen leaves this undefined when no override is saved.
   readonly resolution: CameraAnalysisResolution | undefined;
   readonly mirrorCoordinates: boolean;
+  readonly zoomRatio: number;
+  readonly prefersBackCamera: boolean;
 
-  constructor(resolution: CameraAnalysisResolution | undefined = undefined, mirrorCoordinates: boolean = false) {
+  constructor(resolution: CameraAnalysisResolution | undefined = undefined, mirrorCoordinates: boolean = false,
+    zoomRatio: number = 0, prefersBackCamera: boolean = false) {
     this.resolution = resolution;
     this.mirrorCoordinates = mirrorCoordinates;
+    this.zoomRatio = Number.isFinite(zoomRatio) && zoomRatio > 0 ? zoomRatio : 0;
+    this.prefersBackCamera = prefersBackCamera;
   }
 
   resolutionLabel(): string {
@@ -58,14 +65,22 @@ export class CameraDemoSettings {
 }
 
 /**
- * Persist through app Preferences; always write and flush both fields as one snapshot.
+ * Persist through app Preferences and flush the camera settings as one snapshot.
  *
- * 使用应用 Preferences 持久化；两个字段始终作为同一快照写入并 flush。
+ * 使用应用 Preferences 持久化；相机设置作为同一快照写入并 flush。
  */
 export class CameraDemoSettingsStore {
+  private static pendingSave: Promise<void> = Promise.resolve();
+
+  // The next camera page waits for the settings page's entire save loop.
+  static trackSave(task: Promise<void>): void {
+    CameraDemoSettingsStore.pendingSave = task.catch((): void => {});
+  }
+
   static async load(context: common.UIAbilityContext,
     fallback: CameraAnalysisResolution | undefined = undefined): Promise<CameraDemoSettings> {
     try {
+      await CameraDemoSettingsStore.pendingSave;
       const store: preferences.Preferences = await preferences.getPreferences(context, STORE_NAME);
       const stored = await store.get(RESOLUTION_TIER_KEY, '');
       let resolution = CAMERA_RESOLUTION_PRESETS.find((preset: CameraResolutionPreset): boolean =>
@@ -75,7 +90,10 @@ export class CameraDemoSettingsStore {
         resolution = CameraAnalysisResolution.MEDIUM;
       }
       const mirrorCoordinates = await store.get(MIRROR_COORDINATES_KEY, false);
-      return new CameraDemoSettings(resolution ?? fallback, mirrorCoordinates === true);
+      const zoomRatio = await store.get(ZOOM_RATIO_KEY, 0);
+      const prefersBackCamera = await store.get(PREFER_BACK_CAMERA_KEY, false);
+      return new CameraDemoSettings(resolution ?? fallback, mirrorCoordinates === true,
+        typeof zoomRatio === 'number' ? zoomRatio : 0, prefersBackCamera === true);
     } catch (error) {
       throw new Error(`Unable to load camera settings: ${error}`);
     }
@@ -86,6 +104,8 @@ export class CameraDemoSettingsStore {
       const store: preferences.Preferences = await preferences.getPreferences(context, STORE_NAME);
       await store.put(RESOLUTION_TIER_KEY, settings.resolution ?? '');
       await store.put(MIRROR_COORDINATES_KEY, settings.mirrorCoordinates);
+      await store.put(ZOOM_RATIO_KEY, settings.zoomRatio);
+      await store.put(PREFER_BACK_CAMERA_KEY, settings.prefersBackCamera);
       await store.flush();
     } catch (error) {
       throw new Error(`Unable to save camera settings: ${error}`);

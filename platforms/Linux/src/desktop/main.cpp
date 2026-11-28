@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
                     if (smoke_frames == (smoke_pages_available + 1) * 5) { std::cout << "Desktop smoke test passed: home and all " << (smoke_pages_available - 1) << " feature pages rendered\n"; return 0; }
                 }
             }
-            next_preview += 40; // 25 FPS UI/preview clock, independent from recognition. / UI 与预览时钟为 25 FPS，独立于识别。
+            next_preview += state->mode == 'S' && state->connected ? 1000 / kSearchActivePreviewFps : 40;
             // Wake at the 100 ms idle paint deadline too, avoiding 25 Hz polling rounding it to 120 ms.
             // 同时按待机 100 ms 绘制截止时间唤醒，避免 25 Hz 轮询将它量化成 120 ms。
             if (search_idle) next_preview = std::min(next_preview, next_idle_paint);

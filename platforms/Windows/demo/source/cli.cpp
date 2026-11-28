@@ -74,12 +74,17 @@ int wmain(int argc, wchar_t** argv) {
             } else if (command == L"get") std::cout << gallery.get(utf8(argv[3])).feature << '\n';
             else if (command == L"delete") {
                 const auto id = utf8(argv[3]);
-                std::cout << "deleted=" << gallery.remove(id) << '\n';
-                FacePhotoStore::remove(id);
+                const auto library = FacePhotoStore::libraryForDatabase(argv[2]);
+                const auto deleted = gallery.remove(id);
+                if (deleted && library) FacePhotoStore::remove(id, *library);
+                std::cout << "deleted=" << deleted << '\n';
             }
             else if (command == L"metadata") gallery.updateMetadata(utf8(argv[3]), utf8(argv[4]), utf8(argv[5]));
             else if (command == L"import-json") {
-                const auto result = importDataset(gallery, argv[3], {}, [](const std::string& id) { FacePhotoStore::remove(id); });
+                const auto library = FacePhotoStore::libraryForDatabase(argv[2]);
+                const auto result = importDataset(gallery, argv[3], {}, [&](const std::string& id) {
+                    if (library) FacePhotoStore::remove(id, *library);
+                });
                 std::cout << "processed=" << result.processed << " saved=" << result.saved << " failed=" << result.failed << '\n';
                 if (result.failed) return 1;
             } else std::cout << "exported=" << exportDataset(gallery, argv[3], argc == 6 ? utf8(argv[4]) : "", argc == 6 ? utf8(argv[5]) : "") << '\n';
@@ -114,9 +119,11 @@ int wmain(int argc, wchar_t** argv) {
                 std::cout << "matches=" << matches.size() << '\n';
             } else {
                 Gallery gallery(argv[2]);
-                gallery.save({{utf8(argv[3]), argc == 7 ? utf8(argv[5]) : "", argc == 7 ? utf8(argv[6]) : "", encodeFeature(feature), 0}}, command == L"upsert");
-                FacePhotoStore::remove(utf8(argv[3]));
-                std::cout << "enrolled=" << utf8(argv[3]) << " gallery=" << gallery.count() << '\n';
+                const auto library = FacePhotoStore::libraryForDatabase(argv[2]);
+                const auto id = utf8(argv[3]);
+                gallery.save({{id, argc == 7 ? utf8(argv[5]) : "", argc == 7 ? utf8(argv[6]) : "", encodeFeature(feature), 0}}, command == L"upsert");
+                if (library) FacePhotoStore::remove(id, *library);
+                std::cout << "enrolled=" << id << " gallery=" << gallery.count() << '\n';
             }
         }
         return 0;

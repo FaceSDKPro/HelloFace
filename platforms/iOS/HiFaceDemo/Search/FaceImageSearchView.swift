@@ -63,7 +63,7 @@ private final class ImageSearchModel: ObservableObject {
                         case .success(let capture):
                             crop = capture.alignedFace?.makeCGImage()
                             do {
-                                if let match = try await database.search(feature: capture.feature).first {
+                                if count > 0, let match = try await database.search(feature: capture.feature).first {
                                     label = match.entry.faceID + "," + String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), match.score)
                                     matched = true
                                 } else { label = DemoL10n.text("未匹配") }

@@ -5,6 +5,8 @@ import Foundation
 @main
 struct CameraResolutionPolicyTests {
     static func main() {
+        precondition(CameraFrameRatePolicy.searchPreviewRates == [20, 10])
+        precondition(CameraFrameRatePolicy.searchActive.analysis == 15 && CameraFrameRatePolicy.searchIdle.analysis == 5)
         let limit = CameraFrameSize(width: 1920, height: 1080)
         func option(_ width: Int, _ height: Int, fov: Float = 60) -> CameraFormatOption {
             CameraFormatOption(size: CameraFrameSize(width: width, height: height), fieldOfView: fov)
@@ -42,7 +44,7 @@ struct CameraResolutionPolicyTests {
         }
         func searchSelect(_ formats: [CameraFormatOption]) -> Int? {
             CameraResolutionPolicy.selectIndex(
-                from: formats, tier: .high, sdkLimit: limit, preferredFrameRates: [15, 10]
+                from: formats, tier: .high, sdkLimit: limit, preferredFrameRates: CameraFrameRatePolicy.searchPreviewRates
             )
         }
         let fixed30 = captureOption(1280, 720, minimum: 30, maximum: 30)
@@ -53,7 +55,7 @@ struct CameraResolutionPolicyTests {
         }
         precondition(rate(5, [(5, 30)]) == 5)
         precondition(rate(10, [(5, 30), (10, 10), (15, 15)]) == 10)
-        precondition(rate(15, [(5, 30)]) == 15)
+        precondition(rate(20, [(5, 30)]) == 20)
         precondition(rate(5, [(30, 30), (10, 10), (15, 15)]) == 10)
         precondition(rate(15, [(30, 30), (10, 10), (15, 15)]) == 15)
         precondition(rate(5, [(30, 30)]) == 30)
@@ -71,6 +73,8 @@ struct CameraResolutionPolicyTests {
             CameraFrameRateRange(minimum: 10, maximum: 15)
         ])?.rangeIndex == 1)
         precondition(searchSelect([fixed30]) == 0)
+        precondition(searchSelect([captureOption(1280, 720, minimum: 10, maximum: 15),
+                                   captureOption(1280, 720, minimum: 10, maximum: 20)]) == 1)
         precondition(fixed30.supportsFrameRate(30))
         precondition(!fixed30.supportsFrameRate(15))
         precondition(!fixed30.supportsFrameRate(5))
@@ -101,6 +105,29 @@ struct CameraResolutionPolicyTests {
         precondition(CameraZoomPolicy.deviceFactor(displayMultiplier: 0.5, minimum: 1, maximum: 8) == 1.6)
         precondition(CameraZoomPolicy.displayFactor(deviceFactor: 1.6, displayMultiplier: 0.5) == 0.8)
         precondition(CameraZoomPolicy.deviceFactor(displayMultiplier: 0.5, minimum: 2, maximum: 8) == 2)
+        precondition(CameraZoomPolicy.deviceFactor(
+            displayMultiplier: 0.5, minimum: 1, maximum: 8, requestedDisplayFactor: 2.5
+        ) == 5)
+        precondition(CameraZoomPolicy.deviceFactor(
+            displayMultiplier: 1, minimum: 1, maximum: 2, requestedDisplayFactor: 2.5
+        ) == 2)
+        let lenses = CameraZoomRanges(front: 1...3, back: 0.5...10)
+        precondition(lenses.combined == 0.5...10)
+        precondition(CameraZoomRanges(front: nil, back: 1...1).combined == 1...1)
+        precondition(CameraZoomRanges(front: nil, back: nil).combined == nil)
+        precondition(CameraZoomRanges.supported(7, in: lenses.front!) == 3)
+        precondition(CameraZoomRanges.supported(0.8, in: lenses.back!) == 0.8)
+        #if !HIFACE_PUBLIC_DEMO
+        let zoomSuite = "HiFaceDemo.ZoomTest.\(UUID().uuidString)"
+        let zoomDefaults = UserDefaults(suiteName: zoomSuite)!
+        defer { zoomDefaults.removePersistentDomain(forName: zoomSuite) }
+        precondition(DemoCameraSettings.load(defaults: zoomDefaults).zoomRatio == 0.8)
+        precondition(!DemoCameraSettings.load(defaults: zoomDefaults).prefersBackCamera)
+        zoomDefaults.set(2.5, forKey: DemoCameraSettings.zoomRatioKey)
+        zoomDefaults.set(true, forKey: DemoCameraSettings.prefersBackCameraKey)
+        precondition(DemoCameraSettings.load(defaults: zoomDefaults).zoomRatio == 2.5)
+        precondition(DemoCameraSettings.load(defaults: zoomDefaults).prefersBackCamera)
+        #endif
 
         // Arbitrary formats, orientations, and SDK limits must never select out-of-bounds or odd-sized
         // dimensions.

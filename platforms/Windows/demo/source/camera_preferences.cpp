@@ -1,5 +1,6 @@
 #include "camera_preferences.h"
 #include <fstream>
+#include <iomanip>
 #include <string>
 #include <chrono>
 #include <stdexcept>
@@ -18,15 +19,19 @@ int cameraPresetIndex(unsigned width, unsigned height) {
     return -1;
 }
 namespace {
+constexpr std::size_t max_camera_link = 2048;
 bool valid(const CameraPreferences& p) {
-    return cameraPresetIndex(p.width, p.height) >= 0 && p.rotation >= 0 && p.rotation <= 270 && p.rotation % 90 == 0;
+    return cameraPresetIndex(p.width, p.height) >= 0 && p.rotation >= 0 && p.rotation <= 270 && p.rotation % 90 == 0
+        && p.zoom_percent >= 100 && p.zoom_percent <= 400
+        && p.default_camera_link.size() <= max_camera_link
+        && p.default_camera_link.find_first_of("\r\n\0", 0, 3) == std::string::npos;
 }
 }
 CameraPreferences loadCameraPreferences(const std::filesystem::path& file) {
     std::ifstream input(file, std::ios::binary | std::ios::ate);
     if (!input) return {};
     const auto size = input.tellg();
-    if (size < 0 || size > 128) return {};
+    if (size < 0 || size > static_cast<std::streamoff>(2 * max_camera_link + 128)) return {};
     input.seekg(0);
     std::string header;
     if (!std::getline(input, header)) return {};
@@ -45,8 +50,10 @@ CameraPreferences loadCameraPreferences(const std::filesystem::path& file) {
         p.width = size.width;
         p.height = size.height;
         overridden = preset != 0;
-    } else if (header == "HiFace-camera-v2") {
+    } else if (header == "HiFace-camera-v2" || header == "HiFace-camera-v3" || header == "HiFace-camera-v4") {
         if (!(input >> overridden) || (overridden != 0 && overridden != 1)) return {};
+        if (header != "HiFace-camera-v2" && !(input >> p.zoom_percent)) return {};
+        if (header == "HiFace-camera-v4" && !(input >> std::quoted(p.default_camera_link))) return {};
     } else return {};
     if (!valid(p)) return {};
     input >> std::ws;
@@ -60,8 +67,12 @@ void saveCameraPreferences(const std::filesystem::path& file, const CameraPrefer
     auto temporary = file; temporary += ".tmp-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
     struct Cleanup { std::filesystem::path path; ~Cleanup() { std::error_code ignored; std::filesystem::remove(path, ignored); } } cleanup{temporary};
     std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
-    output << "HiFace-camera-v2\n" << p.width << ' ' << p.height << ' ' << p.rotation << ' ' << p.mirror
-        << ' ' << p.resolution_overridden << '\n';
+    const bool has_device = !p.default_camera_link.empty();
+    output << (has_device ? "HiFace-camera-v4\n" : p.zoom_percent == 100 ? "HiFace-camera-v2\n" : "HiFace-camera-v3\n")
+        << p.width << ' ' << p.height << ' ' << p.rotation << ' ' << p.mirror << ' ' << p.resolution_overridden;
+    if (has_device || p.zoom_percent != 100) output << ' ' << p.zoom_percent;
+    if (has_device) output << ' ' << std::quoted(p.default_camera_link);
+    output << '\n';
     output.close();
     if (!output) throw std::runtime_error("Cannot save camera preferences");
 #ifdef _WIN32

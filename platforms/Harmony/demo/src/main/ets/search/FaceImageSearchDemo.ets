@@ -165,6 +165,7 @@ export struct FaceImageSearchDemo {
       const counted: HiFaceResult<number> = await database.count();
       if (!this.current(token)) return;
       if (counted.isFailure()) { this.status = DemoErrorUi.describe(counted.requireError()); return; }
+      const emptyLibrary: boolean = counted.requireValue() === 0;
       for (let i: number = 0; i < faces.length; i++) {
         if (!this.current(token)) return;
         const face: FaceImageCapture = faces[i];
@@ -178,13 +179,15 @@ export struct FaceImageSearchDemo {
         }
         else {
           const capture = face.capture.requireValue();
-          const found: HiFaceResult<ReadonlyArray<FaceSearchMatch>> = await database.search(
-            capture.feature, FaceSearchConfig.defaultConfig());
-          if (!this.current(token)) return;
-          if (found.isFailure()) label = DemoErrorUi.describe(found.requireError());
-          else if (found.requireValue().length > 0) {
-            const match: FaceSearchMatch = found.requireValue()[0];
-            matched = true; label = `${match.entry.faceId},${match.score.toFixed(2)}`;
+          if (!emptyLibrary) {
+            const found: HiFaceResult<ReadonlyArray<FaceSearchMatch>> = await database.search(
+              capture.feature, FaceSearchConfig.defaultConfig());
+            if (!this.current(token)) return;
+            if (found.isFailure()) label = DemoErrorUi.describe(found.requireError());
+            else if (found.requireValue().length > 0) {
+              const match: FaceSearchMatch = found.requireValue()[0];
+              matched = true; label = `${match.entry.faceId},${match.score.toFixed(2)}`;
+            }
           }
           // 查询完成后才创建缩略图，随后立即交给 results，避免异常时留下无人持有的 PixelMap。
           if (capture.alignedRgba !== undefined) crop = await PixelMapResource.createRgba(
@@ -196,7 +199,7 @@ export struct FaceImageSearchDemo {
       this.faces = results; committed = true;
       this.status = DemoL10n.text("检测到 {0} 个人脸，搜索匹配成功 {1} 个",
         [`${results.length}`, `${results.filter((face: ImageSearchFace): boolean => face.matched).length}`]);
-      if (counted.requireValue() === 0) this.status += '\n' + DemoL10n.text("人脸库为空，请先到人脸库录入");
+      if (emptyLibrary) this.status += '\n' + DemoL10n.text("人脸库为空，请先到人脸库录入");
       this.draw();
     } catch (_) {
       if (this.current(token)) this.status = DemoL10n.text("人脸处理未能完成，请重试");

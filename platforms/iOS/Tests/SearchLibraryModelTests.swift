@@ -28,6 +28,7 @@ actor FaceSearchDatabase {
     private var entries: [FaceSearchEntry]
     private(set) var offsets: [Int] = []
     init(entries: [FaceSearchEntry] = []) { self.entries = entries }
+    func append(_ entry: FaceSearchEntry) { entries.append(entry) }
     func count() throws -> UInt64 { UInt64(entries.count) }
     func recentEntries(offset: Int, limit: Int) throws -> [FaceSearchMetadata] {
         offsets.append(offset)
@@ -77,6 +78,7 @@ struct FaceSearchDemoImportSummary { let imported: Int; let failed: Int; var sto
 struct FaceSearchDemoImportProgress { let processed: Int; let total: Int; let imported: Int; let failed: Int }
 @MainActor enum FaceSearchDemoImporter {
     static var pending: [CheckedContinuation<FaceSearchDemoImportSummary, Error>] = []
+    static var report: (@MainActor @Sendable (FaceSearchDemoImportProgress) -> Void)?
     static var finished = 0
     static var controls: [FaceSearchImportControl] = []
     static func importFeatures(database: FaceSearchDatabase,
@@ -88,7 +90,8 @@ struct FaceSearchDemoImportProgress { let processed: Int; let total: Int; let im
         control: FaceSearchImportControl,
         progress: @escaping @MainActor @Sendable (FaceSearchDemoImportProgress) -> Void) async throws -> FaceSearchDemoImportSummary {
         controls.append(control)
-        defer { finished += 1 }
+        report = progress
+        defer { report = nil; finished += 1 }
         return try await withCheckedThrowingContinuation { pending.append($0) }
     }
 }
@@ -112,9 +115,11 @@ struct FaceSearchDemoImportProgress { let processed: Int; let total: Int; let im
         try await stopWaitsForImportBeforeClosingAndReopening()
         try await requestedStopPublishesSavedCount()
         try await imageImportFailureClosesSDKAndAllowsFeatureImport()
+        try await partialImportFailure(shutdownDuringImport: false)
+        try await partialImportFailure(shutdownDuringImport: true)
         try await paginationUsesTailIdentitiesAndReusesConnection()
         try await stopClearsConfirmations()
-        print("SearchLibraryModelTests passed (7 lifecycle/pagination/import regressions)")
+        print("SearchLibraryModelTests passed (9 lifecycle/pagination/import regressions)")
     }
 
     @MainActor static func paginationUsesTailIdentitiesAndReusesConnection() async throws {
@@ -280,5 +285,29 @@ struct FaceSearchDemoImportProgress { let processed: Int; let total: Int; let im
         try await waitUntil { !model.isImporting }
         assert(!model.hasError && !model.isWorking)
         assert(HiFaceSDK.instances.count == 1, "Feature import needs only the database")
+    }
+
+    @MainActor static func partialImportFailure(shutdownDuringImport: Bool) async throws {
+        let database = FaceSearchDatabase()
+        HiFaceSDK.opener.configure([{ database }, { database }])
+        resetImporter()
+        let model = SearchLibraryModel()
+        defer { model.stop() }
+        model.requestImport(.images)
+        model.confirmImport()
+        try await waitUntil { FaceSearchDemoImporter.pending.count == 1 }
+        if shutdownDuringImport {
+            model.stop()
+            model.refresh()
+        }
+        await database.append(FaceSearchEntry(faceID: "committed"))
+        FaceSearchDemoImporter.report?(.init(processed: 1, total: 2, imported: 1, failed: 0))
+        let error = HiFaceError(code: .databaseError, message: "Second batch failed")
+        FaceSearchDemoImporter.pending[0].resume(throwing: error)
+        try await waitUntil { !model.isWorking && !model.isImporting }
+        let notice = DemoL10n.text("导入未完成，已保存 {0} 条。\n{1}", ["1", error.message])
+        assert(model.importNotice == notice)
+        assert(model.people.map(\.id) == ["committed"])
+        if !shutdownDuringImport { assert(model.hasError) }
     }
 }

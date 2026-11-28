@@ -14,7 +14,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.storage.FacePhotoStore;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /** Only visible references decode private thumbnails; recycled holders cancel pending image work. */
 public final class FaceReferenceAdapter extends RecyclerView.Adapter<FaceReferenceAdapter.Holder> {
@@ -25,8 +27,8 @@ public final class FaceReferenceAdapter extends RecyclerView.Adapter<FaceReferen
     private final List<String> ids = new ArrayList<>();
     private final Selection selection;
     private final Selection deletion;
-    // Track created holders so closing the page can release portraits beyond currently visible rows.
-    private final List<Holder> holders = new ArrayList<>();
+    // Bound holders include cached rows with live portraits. Recycled rows own no resources.
+    private final Set<Holder> boundHolders = new HashSet<>();
     private boolean closed;
 
     public FaceReferenceAdapter(Selection selection, Selection deletion) {
@@ -47,15 +49,17 @@ public final class FaceReferenceAdapter extends RecyclerView.Adapter<FaceReferen
     @NonNull
     @Override
     public Holder onCreateViewHolder(@NonNull ViewGroup parent, int type) {
-        Holder holder = new Holder(
+        return new Holder(
                 LayoutInflater.from(parent.getContext()).inflate(R.layout.item_recognition_reference, parent, false));
-        holders.add(holder);
-        return holder;
     }
 
     @Override
     public void onBindViewHolder(@NonNull Holder holder, int position) {
         holder.clear();
+        if (closed) {
+            return;
+        }
+        boundHolders.add(holder);
         String id = ids.get(position);
         ReferenceGestureGate gesture = new ReferenceGestureGate();
         int touchSlop = ViewConfiguration.get(holder.itemView.getContext()).getScaledTouchSlop();
@@ -85,12 +89,7 @@ public final class FaceReferenceAdapter extends RecyclerView.Adapter<FaceReferen
         holder.photo.setImageTintList(
                 ColorStateList.valueOf(ContextCompat.getColor(holder.photo.getContext(), R.color.content_accent)));
         holder.request = FacePhotoStore.REFERENCE.loadAsync(holder.photo.getContext(), id, image -> {
-            if (closed) {
-                if (image != null) {
-                    image.recycle();
-                }
-                return;
-            }
+            holder.request = null;
             holder.bitmap = image;
             if (image != null) {
                 holder.photo.setPadding(0, 0, 0, 0);
@@ -107,15 +106,16 @@ public final class FaceReferenceAdapter extends RecyclerView.Adapter<FaceReferen
 
     @Override
     public void onViewRecycled(@NonNull Holder holder) {
+        boundHolders.remove(holder);
         holder.clear();
     }
 
     public void close() {
         closed = true;
-        for (Holder holder : holders) {
+        for (Holder holder : boundHolders) {
             holder.clear();
         }
-        holders.clear();
+        boundHolders.clear();
     }
 
     static final class Holder extends RecyclerView.ViewHolder {

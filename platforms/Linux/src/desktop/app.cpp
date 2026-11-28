@@ -142,31 +142,28 @@ std::shared_ptr<const ViewState> DesktopApp::snapshot() {
     }
     if (!capture_state_.active) return state_;
     auto view = std::make_shared<ViewState>(*state_);
-    if (capture_state_.active) {
-        view->connected = capture_state_.ready;
-        const auto now = monotonicMilliseconds();
-        view->camera_stalled = capture_state_.ready && (!capture_state_.frame || !capture_state_.analysis_frame ||
-            now - capture_state_.last_frame_ms > 3000 || now - capture_state_.last_analysis_ms > 3000);
-        view->camera = capture_state_.description;
-        view->frame = capture_state_.frame;
-        view->fps = capture_state_.fps;
-        view->preview_sequence = capture_state_.sequence;
-        if (!capture_state_.ready || !view->overlayFresh(now, capture_state_.last_frame_ms, capture_request_.generation, view->frame.get())) {
-            view->camera_boxes.reset(); view->boxes.clear();
-            if (view->mode == 'S' && !view->failed && !view->busy && view->overlay_frame_ms > 0) {
-                view->analysis_fps = 0;
-                view->status = "Updating...";
-            }
+    view->connected = capture_state_.ready;
+    const auto now = monotonicMilliseconds();
+    view->camera_stalled = capture_state_.stalled(now);
+    view->camera = capture_state_.description;
+    view->frame = capture_state_.frame;
+    view->fps = capture_state_.fps;
+    view->preview_sequence = capture_state_.sequence;
+    if (!capture_state_.ready || !view->overlayFresh(now, capture_state_.last_frame_ms, capture_request_.generation, view->frame.get())) {
+        view->camera_boxes.reset(); view->boxes.clear();
+        if (view->mode == 'S' && !view->failed && !view->busy && view->overlay_frame_ms > 0) {
+            view->analysis_fps = 0;
+            view->status = "Updating...";
         }
-        if (!view->connected || view->camera_stalled) {
-            view->fps = view->analysis_fps = 0;
-            if (view->camera_stalled && !view->failed)
-                view->status = view->mode == 'S' ? "Camera stalled. Reconnect." : "No fresh camera frames. Use Reconnect to retry the current camera.";
-        }
-        if (!capture_state_.error.empty()) {
-            view->failed = true;
-            view->status = capture_state_.error;
-        }
+    }
+    if (!view->connected || view->camera_stalled) {
+        view->fps = view->analysis_fps = 0;
+        if (view->camera_stalled && !view->failed)
+            view->status = view->mode == 'S' ? "Camera stalled. Reconnect." : "No fresh camera frames. Use Reconnect to retry the current camera.";
+    }
+    if (!capture_state_.error.empty()) {
+        view->failed = true;
+        view->status = capture_state_.error;
     }
     return view;
 }
@@ -174,18 +171,20 @@ DesktopApp::CaptureState DesktopApp::captureSnapshot() {
     std::lock_guard<std::mutex> lock(mutex_);
     return capture_state_;
 }
-void DesktopApp::configureCapture(const std::string& device, const DemoSettings& settings, bool open, bool desktop_search) {
+void DesktopApp::configureCapture(const std::string& device, const DemoSettings& settings, bool open, bool search) {
     std::unique_lock<std::mutex> lock(mutex_);
     const uint64_t generation = ++capture_request_.generation;
     capture_request_.open = open;
+    capture_request_.search = search;
     capture_request_.search_idle = false;
     capture_request_.white_light_until = 0;
     capture_request_.device = device;
-    const auto size = settings.cameraSizeForCapture(desktop_search);
+    const auto size = settings.cameraSizeForCapture(search && !embeddedDisplay());
     capture_request_.width = size.width;
     capture_request_.height = size.height;
     capture_request_.rotation = settings.camera_rotation;
-    capture_request_.fps = settings.camera_fps;
+    capture_request_.zoom_percent = settings.camera_zoom_percent;
+    capture_request_.fps = search ? captureFrameRate(settings.camera_fps, false) : settings.camera_fps;
     capture_request_.mjpeg = settings.camera_mjpeg;
     const char* preview_device = std::getenv("HIFACE_PREVIEW_DEVICE");
     capture_request_.preview_device = preview_device ? preview_device : "";
@@ -209,10 +208,13 @@ void DesktopApp::captureLoop() {
     Camera camera, preview_camera;
     CameraFramePool preview_pool, analysis_pool;
     CameraLighting lighting;
-    auto disconnect = [&](std::string_view message) {
-        lighting.setActive(false);
+    auto close_streams = [&] {
         camera.close();
         preview_camera.close();
+    };
+    auto disconnect = [&](std::string_view message) {
+        lighting.setActive(false);
+        close_streams();
         std::lock_guard<std::mutex> lock(mutex_);
         capture_state_.ready = false;
         capture_state_.dual_preview = false;
@@ -224,30 +226,24 @@ void DesktopApp::captureLoop() {
     };
     uint64_t handled = 0;
     bool idle_applied = false;
-    int64_t fps_start = monotonicMilliseconds(), next_synthetic = fps_start, next_analysis_capture = fps_start;
+    int64_t fps_start = monotonicMilliseconds(), next_analysis_capture = fps_start;
     int64_t next_preview_capture = fps_start;
     uint32_t frames = 0;
     while (!stopping_) {
         CaptureRequest request;
-        bool changed = false;
         {
             std::lock_guard<std::mutex> lock(mutex_);
             request = capture_request_;
-            if (capture_request_.generation != handled) {
-                changed = true;
-            }
         }
-        if (changed) {
+        if (request.generation != handled) {
             lighting.setActive(false);
             lighting.bindCamera(request.open && !smoke_ ? request.device : "");
-            camera.close();
-            preview_camera.close();
+            close_streams();
             CaptureState next;
             next.generation = request.generation;
             next.active = request.open;
             next.last_frame_ms = next.last_analysis_ms = monotonicMilliseconds();
             fps_start = next.last_frame_ms;
-            next_synthetic = fps_start;
             next_analysis_capture = fps_start;
             next_preview_capture = fps_start;
             idle_applied = false;
@@ -281,19 +277,14 @@ void DesktopApp::captureLoop() {
                 }
             } catch (const DemoError& error) {
                 next.error = error.message;
-                next.description = "Camera disconnected";
-                camera.close();
-                preview_camera.close();
             } catch (const std::exception& error) {
                 next.error = error.what();
-                next.description = "Camera disconnected";
-                camera.close();
-                preview_camera.close();
             } catch (...) {
                 next.error = "Unexpected camera failure";
+            }
+            if (request.open && !next.ready) {
                 next.description = "Camera disconnected";
-                camera.close();
-                preview_camera.close();
+                close_streams();
             }
             {
                 std::lock_guard<std::mutex> lock(mutex_);
@@ -305,10 +296,11 @@ void DesktopApp::captureLoop() {
             continue;
         }
 
-        bool ready = false;
+        bool ready, dual;
         {
             std::lock_guard<std::mutex> lock(mutex_);
             ready = capture_state_.active && capture_state_.ready;
+            dual = capture_state_.dual_preview;
         }
         if (!ready) {
             const bool light_off = lighting.setActive(false);
@@ -331,18 +323,19 @@ void DesktopApp::captureLoop() {
                     request.search_idle ? "idle" : "active", requested_fps,
                     camera_rate && preview_rate ? "requested" : "unsupported; processing throttled");
                 idle_applied = request.search_idle;
-                fps_start = next_synthetic = next_analysis_capture = next_preview_capture = cadence_now;
+                fps_start = next_analysis_capture = next_preview_capture = cadence_now;
                 frames = 0;
             }
-            const auto preview_interval = request.search_idle ? kSearchIdlePreviewIntervalMs : kPreviewIntervalMs;
+            const auto preview_interval = request.search ? 1000 / captureFrameRate(request.fps, request.search_idle) : kPreviewIntervalMs;
             const auto analysis_interval = request.search_idle ? int64_t(HIFACE_IDLE_FRAME_INTERVAL_MS) : kAnalysisIntervalMs;
             lighting.setActive(!smoke_ && request.white_light_until > cadence_now);
             // Both active and idle capture have deadlines. Sleep until the next
             // due stream instead of polling every millisecond between frames.
             // 活跃和待机采集都有截止时间；等待下一路到期，避免帧间每毫秒轮询。
-            if (cadence_now < std::min(next_preview_capture, next_analysis_capture)) {
+            const auto next_capture = std::min(next_preview_capture, next_analysis_capture);
+            if (cadence_now < next_capture) {
                 std::unique_lock<std::mutex> lock(mutex_);
-                capture_changed_.wait_for(lock, std::chrono::milliseconds(std::min(next_preview_capture, next_analysis_capture) - cadence_now), [&] {
+                capture_changed_.wait_for(lock, std::chrono::milliseconds(next_capture - cadence_now), [&] {
                     return stopping_ || capture_request_.generation != handled || capture_request_.search_idle != idle_applied ||
                         capture_request_.white_light_until != request.white_light_until;
                 });
@@ -351,26 +344,16 @@ void DesktopApp::captureLoop() {
             std::shared_ptr<CameraFrame> frame, analysis_frame;
             const auto now = monotonicMilliseconds();
             if (smoke_) {
-                if (now < next_synthetic) {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(2));
-                    continue;
-                }
-                next_synthetic = next_preview_capture = next_analysis_capture = now + preview_interval;
+                next_preview_capture = next_analysis_capture = now + preview_interval;
                 std::lock_guard<std::mutex> lock(mutex_);
-                frame = capture_state_.frame;
-                analysis_frame = frame;
+                frame = analysis_frame = capture_state_.frame;
             } else {
-                bool dual = false;
-                {
-                    std::lock_guard<std::mutex> lock(mutex_);
-                    dual = capture_state_.dual_preview;
-                }
                 if (dual) {
                     try {
-                        if (now >= next_preview_capture && preview_camera.waitForFrame(10)) {
+                        if (now >= next_preview_capture) {
                             auto candidate = preview_pool.acquire();
                             if (candidate && preview_camera.readPreview(*candidate, request.preview_output_width,
-                                    request.preview_output_height)) {
+                                    request.preview_output_height, 10)) {
                                 frame = std::move(candidate); next_preview_capture = now + preview_interval;
                             }
                         }
@@ -393,7 +376,7 @@ void DesktopApp::captureLoop() {
                     }
                 } else {
                     auto candidate = preview_pool.acquire();
-                    if (!candidate || !camera.waitForFrame(10) || !camera.read(*candidate)) {
+                    if (!candidate || !camera.read(*candidate, 10)) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(2));
                         continue;
                     }
@@ -418,8 +401,9 @@ void DesktopApp::captureLoop() {
                 if (!capture_state_.dual_preview && !capture_state_.frame)
                     capture_state_.frame = capture_state_.analysis_frame;
             }
-            if (captured - fps_start >= 1000) {
-                capture_state_.fps = frames * 1000.0 / std::max<int64_t>(1, captured - fps_start);
+            const auto fps_interval = captured - fps_start;
+            if (fps_interval >= 1000) {
+                capture_state_.fps = frames * 1000.0 / fps_interval;
                 frames = 0;
                 fps_start = captured;
             }
@@ -429,8 +413,7 @@ void DesktopApp::captureLoop() {
             disconnect(error.what());
         }
     }
-    camera.close();
-    preview_camera.close();
+    close_streams();
 }
 void DesktopApp::run(const std::string& models, const std::string& database, std::string device, bool smoke, const std::string& assets) {
     RuntimeInfo runtime;
@@ -530,13 +513,17 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
         int overlay_width = 0, overlay_height = 0;
         int64_t overlay_frame_ms = 0;
         uint64_t overlay_generation = 0;
-        if (device.rfind("/dev/video", 0) == 0) try { next_index = std::stoi(device.substr(10)); } catch (...) {}
+        auto update_next_index = [&] {
+            if (device.rfind("/dev/video", 0) == 0)
+                try { next_index = std::stoi(device.substr(10)); } catch (...) {}
+        };
+        update_next_index();
         auto connect = [&](bool reset_flow = true) {
             search_power.reset(); backlight.update(false, false);
             require(fixed_camera.empty() || device == fixed_camera, "This board uses the fixed camera " + fixed_camera);
             if (reset_flow) workflow.clearPageResults();
-            const bool desktop_search = !embedded && cameraPage(page) && demoPage(page)->camera_mode == 'S';
-            configureCapture(device, workflow.settings(), true, desktop_search);
+            const bool search = cameraPage(page) && demoPage(page)->camera_mode == 'S';
+            configureCapture(device, workflow.settings(), true, search);
             analyzed_sequence = 0;
             overlay_frame_ms = 0;
             analysis_fps_start = next_analysis = monotonicMilliseconds();
@@ -546,9 +533,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
         };
         auto camera_needs_reconnect = [&] {
             const auto capture = captureSnapshot();
-            const auto now = monotonicMilliseconds();
-            return !capture.active || !capture.ready || !capture.frame || !capture.analysis_frame ||
-                now - capture.last_frame_ms > 3000 || now - capture.last_analysis_ms > 3000;
+            return !capture.active || !capture.hasFreshFrames(monotonicMilliseconds());
         };
         auto start_page_camera = [&] {
             const auto* feature=demoPage(page);
@@ -774,11 +759,10 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 !workflow.importing() && !workflow.pendingEnrollment() && !workflow.resultPending();
             if (!recovery_eligible) camera_recovery.reset();
             else {
-                const bool fresh = recovery_capture.ready && recovery_capture.frame && recovery_capture.analysis_frame &&
-                    recovery_now - recovery_capture.last_frame_ms < 3000 && recovery_now - recovery_capture.last_analysis_ms < 3000;
                 // Give a newly opened ISP stream its existing three-second warmup.
-                const bool warming = recovery_capture.ready && !recovery_capture.frame && recovery_now - recovery_capture.last_frame_ms < 3000;
-                if (!warming && camera_recovery.retry(recovery_now, fresh)) {
+                const bool warming = recovery_capture.ready && !recovery_capture.frame
+                    && recovery_now - recovery_capture.last_frame_ms < CaptureState::frame_timeout_ms;
+                if (!warming && camera_recovery.retry(recovery_now, recovery_capture.hasFreshFrames(recovery_now))) {
                     std::fprintf(stderr, "[CameraRecovery] Reopening current camera, attempt=%u\n", camera_recovery.attempt());
                     try {
                         connect(false);
@@ -808,10 +792,8 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
             // A live camera with skipped detections must not keep an old idle decision.
             // 即使相机仍在出帧，连续未完成检测也要撤销旧的待机判断。
             search_power.expire(monotonicMilliseconds());
-            const auto power_capture = captureSnapshot();
-            const bool power_enabled = analyze && workflow.mode() == 'S' && !failed && power_capture.ready &&
-                power_capture.frame && power_capture.analysis_frame && monotonicMilliseconds() - power_capture.last_analysis_ms < 3000 &&
-                monotonicMilliseconds() - power_capture.last_frame_ms < 3000;
+            const bool power_enabled = analyze && workflow.mode() == 'S' && !failed
+                && captureSnapshot().hasFreshFrames(monotonicMilliseconds());
             if (!power_enabled) search_power.reset();
             if (analyze) {
                 const auto latest = captureSnapshot();
@@ -898,8 +880,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 state->rgbir_settings_error = rgbir_settings_error;
                 state->fps = capture.fps; state->analysis_fps = analysis_fps; state->frame = capture.frame;
                 state->preview_sequence = capture.sequence;
-                state->camera_stalled = capture.active && capture.ready && (!capture.frame || !capture.analysis_frame ||
-                    now - capture.last_frame_ms > 3000 || now - capture.last_analysis_ms > 3000);
+                state->camera_stalled = capture.stalled(now);
                 if (cameraPage(page) && state->camera_stalled)
                     state->status = "No fresh camera frames. Use Reconnect to retry the current camera.";
                 if (cameraPage(page)) {

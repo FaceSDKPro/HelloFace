@@ -34,6 +34,7 @@ struct ViewState {
     bool writes_pending = false;
     bool camera_stalled = false, search_idle = false;
     std::string fixed_camera_device;
+    std::vector<CameraDevice> camera_devices;
     HiFaceStatus initialization_status = HIFACE_STATUS_OK;
     int system_error = 0;
     RuntimeInfo runtime;
@@ -109,17 +110,19 @@ public:
 private:
     struct CaptureRequest {
         uint64_t generation = 0;
-        bool open = false, search_idle = false;
+        bool open = false, search = false, search_idle = false;
         // Monotonic deadline in milliseconds for white-light feedback; zero leaves it off.
         int64_t white_light_until = 0;
         std::string device, preview_device;
         // Analysis-stream request, separate preview-stream request, then final display dimensions.
         int width = 640, height = 480, fps = 25, rotation = 0;
+        int zoom_percent = 100;
         int preview_width = 1280, preview_height = 720;
         int preview_output_width = 576, preview_output_height = 1024;
         bool mjpeg = false;
     };
     struct CaptureState {
+        static constexpr int64_t frame_timeout_ms = 3000;
         bool active = false, ready = false, dual_preview = false;
         // Preview and analysis advance independently within a camera configuration generation.
         uint64_t sequence = 0, analysis_sequence = 0, generation = 0;
@@ -127,9 +130,14 @@ private:
         double fps = 0;
         std::string description = "Camera disconnected", error;
         std::shared_ptr<CameraFrame> frame, analysis_frame;
+        bool hasFreshFrames(int64_t now) const {
+            return ready && frame && analysis_frame && now - last_frame_ms < frame_timeout_ms
+                && now - last_analysis_ms < frame_timeout_ms;
+        }
+        bool stalled(int64_t now) const { return active && ready && !hasFreshFrames(now); }
     };
     void captureLoop();
-    void configureCapture(const std::string& device, const DemoSettings& settings, bool open, bool desktop_search = false);
+    void configureCapture(const std::string& device, const DemoSettings& settings, bool open, bool search = false);
     void setCapturePolicy(bool idle, int64_t white_light_until);
     CaptureState captureSnapshot();
     void run(const std::string& models, const std::string& database, std::string device, bool smoke, const std::string& assets);

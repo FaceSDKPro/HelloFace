@@ -60,6 +60,10 @@ struct CameraFrameRateRange: Sendable {
 }
 
 enum CameraFrameRatePolicy {
+    static let searchActive: (preview: Int32, analysis: Int32) = (20, 15)
+    static let searchIdle: (preview: Int32, analysis: Int32) = (10, 5)
+    static let searchPreviewRates = [Double(searchActive.preview), Double(searchIdle.preview)]
+
     struct Selection: Equatable {
         let rangeIndex: Int
         let framesPerSecond: Double
@@ -154,13 +158,14 @@ enum CameraZoomPolicy {
     static func deviceFactor(
         displayMultiplier: CGFloat,
         minimum: CGFloat,
-        maximum: CGFloat
+        maximum: CGFloat,
+        requestedDisplayFactor: CGFloat = preferredDisplayFactor
     ) -> CGFloat {
         guard displayMultiplier.isFinite, displayMultiplier > 0,
               minimum.isFinite, maximum.isFinite, minimum <= maximum else {
             return max(1, minimum)
         }
-        let requested = preferredDisplayFactor / displayMultiplier
+        let requested = requestedDisplayFactor / displayMultiplier
         return min(max(requested, minimum), maximum)
     }
 
@@ -169,14 +174,41 @@ enum CameraZoomPolicy {
     }
 }
 
+struct CameraZoomRanges: Equatable {
+    let front: ClosedRange<Double>?
+    let back: ClosedRange<Double>?
+
+    var combined: ClosedRange<Double>? {
+        guard let front else { return back }
+        guard let back else { return front }
+        return min(front.lowerBound, back.lowerBound)...max(front.upperBound, back.upperBound)
+    }
+
+    static func supported(_ ratio: Double, in range: ClosedRange<Double>) -> Double {
+        min(max(ratio, range.lowerBound), range.upperBound)
+    }
+}
+
 /// Demo device-capture preferences, outside HiFace SDK inference configuration.
 /// Demo 的设备采集偏好；不属于 HiFace SDK 推理配置。
 struct DemoCameraSettings: Sendable {
     static let resolutionKey = "HiFaceDemo.camera.analysisResolution"
     static let mirrorCoordinatesKey = "HiFaceDemo.camera.mirrorCoordinates"
+    static let zoomRatioKey = "HiFaceDemo.camera.zoomRatio"
+    static let prefersBackCameraKey = "HiFaceDemo.camera.prefersBackCamera"
 
     let analysisResolution: CameraAnalysisResolution
     let mirrorsOverlayCoordinates: Bool
+    let zoomRatio: CGFloat
+    let prefersBackCamera: Bool
+
+    private static func prefersBackCamera(defaults: UserDefaults) -> Bool {
+        return false
+    }
+
+    private static func zoomRatio(defaults: UserDefaults) -> CGFloat {
+        return CameraZoomPolicy.preferredDisplayFactor
+    }
 
     static func load(
         defaults: UserDefaults = .standard,
@@ -187,7 +219,9 @@ struct DemoCameraSettings: Sendable {
                 storedValue: defaults.string(forKey: resolutionKey),
                 fallback: defaultAnalysisResolution
             ),
-            mirrorsOverlayCoordinates: defaults.bool(forKey: mirrorCoordinatesKey)
+            mirrorsOverlayCoordinates: defaults.bool(forKey: mirrorCoordinatesKey),
+            zoomRatio: zoomRatio(defaults: defaults),
+            prefersBackCamera: prefersBackCamera(defaults: defaults)
         )
     }
 }

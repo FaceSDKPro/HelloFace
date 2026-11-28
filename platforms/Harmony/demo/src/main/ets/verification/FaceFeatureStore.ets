@@ -30,6 +30,9 @@ const ASSOCIATED_DATA: Uint8Array = new Uint8Array([
  * Demo 的 1:1 验证基准；HF1 不是哈希，持久化必须经过认证加密。
  */
 export class FaceReference {
+  // ArkUI must rebuild the portrait and its tap handler when an existing ID gets a new sample.
+  private static nextRowId: number = 0;
+  readonly rowId: number = ++FaceReference.nextRowId;
   readonly faceId: string;
   readonly feature: string;
 

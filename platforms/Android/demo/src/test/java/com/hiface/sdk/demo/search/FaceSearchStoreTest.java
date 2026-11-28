@@ -17,6 +17,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -29,6 +34,59 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public final class FaceSearchStoreTest {
+    @Test
+    public void separatePagesCannotBothEnrollTheSameNewId() throws Exception {
+        CountDownLatch firstChecking = new CountDownLatch(1);
+        CountDownLatch secondOpened = new CountDownLatch(1);
+        CountDownLatch secondChecking = new CountDownLatch(1);
+        AtomicBoolean exists = new AtomicBoolean();
+        FaceSearchDatabase db = database((method, args) -> {
+            if (method.equals("contains")) {
+                boolean snapshot = exists.get();
+                if (firstChecking.getCount() != 0) {
+                    firstChecking.countDown();
+                    try {
+                        assertTrue(secondOpened.await(5, TimeUnit.SECONDS));
+                        // Without serialization both pages would observe the same empty record.
+                        secondChecking.await(300, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException e) {
+                        throw new AssertionError(e);
+                    }
+                } else {
+                    secondChecking.countDown();
+                }
+                return HiFaceResult.success(snapshot);
+            }
+            if (method.equals("saveFeature")) {
+                exists.set(true);
+                return HiFaceResult.success(true);
+            }
+            throw new AssertionError(method);
+        });
+        ExecutorService firstWorker = Executors.newSingleThreadExecutor();
+        ExecutorService secondWorker = Executors.newSingleThreadExecutor();
+        Queue<Runnable> main = new ConcurrentLinkedQueue<>();
+        List<HiFaceResult<Boolean>> first = new ArrayList<>(), second = new ArrayList<>();
+        try {
+            FaceSearchStore storeA = new FaceSearchStore(firstWorker, dispatcher(main), () -> HiFaceResult.success(db));
+            FaceSearchStore storeB = new FaceSearchStore(secondWorker, dispatcher(main), () -> {
+                secondOpened.countDown();
+                return HiFaceResult.success(db);
+            });
+            storeA.save("same", "A", "", false, first::add);
+            assertTrue(firstChecking.await(5, TimeUnit.SECONDS));
+            storeB.save("same", "B", "", false, second::add);
+            firstWorker.submit(() -> {}).get(5, TimeUnit.SECONDS);
+            secondWorker.submit(() -> {}).get(5, TimeUnit.SECONDS);
+            drain(main);
+            assertTrue(first.get(0).isSuccess());
+            assertEquals(HiFaceErrorCode.ALREADY_EXISTS, second.get(0).requireError().getCode());
+        } finally {
+            firstWorker.shutdownNow();
+            secondWorker.shutdownNow();
+        }
+    }
+
     @Test
     public void cancellingQueuedWorkImmediatelyReleasesCallbacksAndInputs() {
         QueuedExecutor worker = new QueuedExecutor();

@@ -238,9 +238,11 @@ public final class FaceRecognitionActivity extends AppCompatActivity {
                 .setMessage(getString(R.string.search_ui_delete_message, faceId))
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(R.string.search_ui_delete_confirm, (dialog, which) -> {
-                    referenceStore.remove(faceId);
-                    FacePhotoStore.execute(() -> FacePhotoStore.REFERENCE.remove(getApplicationContext(), faceId));
-                    refreshReferences(true);
+                    FacePhotoStore.execute(() -> {
+                        referenceStore.remove(faceId);
+                        FacePhotoStore.REFERENCE.remove(getApplicationContext(), faceId);
+                        runOnUiThread(() -> refreshReferences(true));
+                    });
                 })
                 .show();
     }

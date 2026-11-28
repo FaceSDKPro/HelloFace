@@ -110,6 +110,7 @@ public:
     HiFaceSessionHandle nativeHandle() const { return session_; }
     uint64_t count() const;
 private:
+    void prepareDetection(uint32_t max_faces, bool detailed);
     void load(HiFaceModelIdV1 id);
     void startSearch();
     HiFaceSessionHandle session_ = nullptr;

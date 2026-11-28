@@ -563,7 +563,7 @@ void FaceWorkflow::exportGallery(const std::string& path, const std::string& gro
 }
 void FaceWorkflow::startImport(const std::string& path, bool images, const std::string& group) {
     require(!importing_, "An import is already running"); stop();
-    import_entries_.clear(); import_images_.clear(); import_saved = import_failed = import_processed = 0;
+    import_entries_.clear(); import_images_.clear(); import_total = import_saved = import_failed = import_processed = 0;
     importing_images_ = images; import_group_ = group;
     if (images) {
         loadModels(session_, "", false);
@@ -584,7 +584,11 @@ void FaceWorkflow::stepImport() {
                 const auto& file = import_images_[import_processed];
                 const auto text = encodeFeature(captureEnrollmentPhoto(session_, readImage(file.c_str())));
                 row = {file.stem().string(), text.data(), import_group_, ""}; captured = true;
-            } catch (const DemoError&) { ++import_failed; }
+            } catch (const DemoError& error) {
+                if (error.sdk_status_known && error.status != HIFACE_STATUS_IMAGE_NO_FACE &&
+                    error.status != HIFACE_STATUS_IMAGE_FACE_TOO_SMALL) throw;
+                ++import_failed;
+            }
             if (captured) { saveEntry(database_, row, true); FacePhotoStore(data_directory_).remove(row.id); ++import_saved; }
             ++import_processed;
         } else {
@@ -597,7 +601,8 @@ void FaceWorkflow::stepImport() {
         status = "Import " + std::to_string(import_processed) + "/" + std::to_string(import_total) + " | saved " + std::to_string(import_saved) + " | failed " + std::to_string(import_failed);
         if (import_processed == import_total) { importing_ = false; import_entries_.clear(); import_images_.clear(); status = "Completed: " + status; }
     } catch (...) {
-        importing_ = false; import_entries_.clear(); import_images_.clear(); recount();
+        // Each completed batch already refreshed the count. Preserve the original failure.
+        importing_ = false; import_entries_.clear(); import_images_.clear();
         status = "Import failed; previous batches saved: " + std::to_string(import_saved); throw;
     }
 }

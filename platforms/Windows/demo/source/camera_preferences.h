@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <filesystem>
+#include <string>
 namespace hiface_demo {
 struct CameraSize { unsigned width, height; };
 inline constexpr std::array<CameraSize, 3> camera_presets{{{640, 480}, {1280, 960}, {1440, 1080}}};
@@ -18,6 +19,8 @@ struct CameraPreferences {
     bool mirror = false;
     // Width and height can contain the last feature default. Only a user selection applies across pages.
     bool resolution_overridden = false;
+    int zoom_percent = 100;
+    std::string default_camera_link = {};
 };
 CameraPreferences loadCameraPreferences(const std::filesystem::path& file);
 void saveCameraPreferences(const std::filesystem::path& file, const CameraPreferences& value);

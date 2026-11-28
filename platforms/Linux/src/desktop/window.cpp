@@ -613,7 +613,7 @@ std::vector<Command> DesktopWindow::events(const ViewState& state) {
                     else if(still)ui.ui.click(point.first,point.second,state);
                     ui.reference_press_pending=false;
                 }
-                ui.ui.releasePointer();
+                ui.ui.releasePointer(&state);
             }
             if (event.type == KeyPress) ui.key(event.xkey, state);
             if (event.type == ButtonPress) {

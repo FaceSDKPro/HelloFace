@@ -15,6 +15,7 @@ struct Settings {
     bool detailed = true, mirror = false;
     bool parameters_valid = true; // Invalid saved drafts may navigate, but must not start a fallback flow. / 无效草稿允许进页，但不自动启动回退参数的流程。
     int rotation = 0;
+    int zoom_percent = 100;
     std::wstring camera_link;
     // id/group/tag are edit drafts; filter_group/filter_tag/query_id select management rows.
     std::string id = "person-001", group, tag, filter_group, filter_tag, query_id, reference_id;

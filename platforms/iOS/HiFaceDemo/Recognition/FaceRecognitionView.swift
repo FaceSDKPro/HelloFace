@@ -9,6 +9,7 @@ struct FaceRecognitionView: View {
     @State private var verification = RecognitionOptions()
     @State private var liveness = RecognitionOptions()
     @State private var references: [String] = []
+    @State private var photoRevision = 0
     @State private var referenceError: String?
     // A request snapshots the options and reference ID for the next camera destination.
     @State private var request: RecognitionRequest?
@@ -168,7 +169,8 @@ struct FaceRecognitionView: View {
                         startRecognition(verification, faceID: faceID)
                     } label: {
                         VStack(spacing: 8) {
-                            FacePhotoThumbnail(faceID: faceID, library: .reference, diameter: 64, circular: true)
+                            FacePhotoThumbnail(faceID: faceID, library: .reference, revision: photoRevision,
+                                               diameter: 64, circular: true)
                             Text(faceID).font(.caption2).lineLimit(2).multilineTextAlignment(.center)
                         }
                         .frame(width: 80).padding(.vertical, 2).contentShape(Rectangle())
@@ -198,6 +200,7 @@ struct FaceRecognitionView: View {
         #endif
         do {
             references = try DemoFaceStore.faceIDs()
+            photoRevision &+= 1
             referenceError = nil
         } catch {
             referenceError = error.localizedDescription

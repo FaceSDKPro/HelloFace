@@ -27,7 +27,7 @@ public:
     void key(Key key, const std::string& text, bool shift, const ViewState& state);
     void scroll(int steps, int x, int y, const ViewState& state);
     void drag(int x, int y, const ViewState& state);
-    void releasePointer() { library_drag_active_ = reference_drag_active_ = false; }
+    void releasePointer(const ViewState* state = nullptr);
     void pointer(int x, int y) { pointer_x_ = x; pointer_y_ = y; }
     void paste(const std::string& text, const std::string& field);
     std::string selectedText() const;
@@ -145,10 +145,14 @@ private:
     int reference_offset_ = 0;
     bool result_dialog_ = false, replacement_declined_ = false;
     bool sdk_advanced_ = false;
+    bool camera_device_list_open_ = false;
     int search_settings_scroll_ = 0, search_settings_max_scroll_ = 0;
     Rect search_settings_area_;
     Rect feature_settings_area_;
     int feature_settings_scroll_ = 0, feature_settings_max_scroll_ = 0;
+    [[maybe_unused]] Rect camera_zoom_track_{};
+    [[maybe_unused]] bool camera_zoom_drag_ = false;
+    void moveCameraZoom(int x);
     std::string search_reveal_field_;
     bool library_menu_ = false;
     bool soft_keyboard_enabled_ = false, soft_keyboard_open_ = false;

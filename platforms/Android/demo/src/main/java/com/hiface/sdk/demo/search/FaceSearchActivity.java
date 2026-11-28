@@ -6,11 +6,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.view.PreviewView;
 import com.hiface.sdk.HiFaceSdk;
 import com.hiface.sdk.common.HiFaceError;
 import com.hiface.sdk.demo.R;
@@ -31,9 +29,8 @@ import com.hiface.sdk.search.FaceSearchSessionConfig;
  * 搜索接入示例：启动搜索会话、送入相机帧，再按页面生命周期暂停和释放。
  */
 public final class FaceSearchActivity extends AppCompatActivity {
-    // Keep SDK, camera, and search resources scoped to this screen.
-    // SDK、相机和搜索资源均由当前页面管理。
-    private HiFaceSdk hiFaceSdk;
+    private static final int ACTIVE_PREVIEW_FPS = 20;
+    private static final int IDLE_PREVIEW_FPS = 10;
     private CameraPreviewFragment camera;
     private FaceSearchOverlayView overlay;
     private FaceSearchStatusUi statusUi;
@@ -46,16 +43,9 @@ public final class FaceSearchActivity extends AppCompatActivity {
     private boolean searchDisplayApplied;
     private boolean searchFacePresent;
     private float previousWindowBrightness;
-    private float appliedSearchBrightness = Float.NaN;
     private final Handler displayHandler = new Handler(Looper.getMainLooper());
-    // Enter idle only if no face is still present at the deadline, preventing late tasks from overriding
-    // active state.
-    // 到期后仍无人脸才进入待机，避免迟到任务覆盖活跃状态。
-    private final Runnable enterSearchCameraIdle = () -> {
-        if (searchDisplayApplied && !searchFacePresent) {
-            enterSearchIdleMode();
-        }
-    };
+    // Main-thread face and lifecycle callbacks cancel the timer on detection or stop.
+    private final Runnable enterSearchCameraIdle = () -> setSearchIdle(true);
 
     @Override
     protected void onCreate(Bundle state) {
@@ -72,10 +62,7 @@ public final class FaceSearchActivity extends AppCompatActivity {
     private void bindViews() {
         camera = CameraPreviewFragment.require(getSupportFragmentManager(), R.id.searchCamera);
         camera.useSearchResolutionByDefault();
-        // Start at 15 FPS; idle preview uses 10 FPS while SDK analysis remains at 5 FPS.
-        // 初始 15 FPS；待机预览 10 FPS，SDK 分析独立降至 5 FPS。
-        camera.configureSessionFrameRate(15);
-        camera.configureOverlayPreview(PreviewView.ScaleType.FIT_CENTER);
+        camera.enableOverlayPreview();
         overlay = findViewById(R.id.searchOverlay);
         statusUi = new FaceSearchStatusUi(findViewById(android.R.id.content));
         overlay.setOnResultChanged(() -> statusUi.renderResult(overlay.resultText(),
@@ -91,11 +78,7 @@ public final class FaceSearchActivity extends AppCompatActivity {
                 startActivity(new Intent(this, FaceSearchLibraryActivity.class)));
         findViewById(R.id.searchSettings).setOnClickListener(v -> showSettings());
         findViewById(R.id.searchRetry).setOnClickListener(v -> resumeSearch());
-        findViewById(R.id.searchSwitch).setOnClickListener(v -> {
-            if (!camera.switchCamera()) {
-                Toast.makeText(this, R.string.camera_switch_unavailable, Toast.LENGTH_SHORT).show();
-            }
-        });
+        findViewById(R.id.searchSwitch).setOnClickListener(v -> camera.switchCamera());
     }
 
     /**
@@ -106,11 +89,11 @@ public final class FaceSearchActivity extends AppCompatActivity {
      */
     private void startSearch() {
         // 当前页面持有搜索 SDK；普通暂停可复用，页面销毁时自动关闭。
-        hiFaceSdk = HiFaceSdk.builder(this).lifecycleOwner(this).build();
+        HiFaceSdk hiFaceSdk = HiFaceSdk.builder(this).lifecycleOwner(this).build();
 
         // Continuously submit analysis frames; the SDK drops them during preparation or backpressure.
         // 持续送入相机分析帧，准备和背压期间由 SDK 丢帧。
-        camera.setFrameListener(frame -> hiFaceSdk.processFrame(frame));
+        camera.setFrameListener(hiFaceSdk::processFrame);
 
         faceSearchSession = hiFaceSdk.search().startCameraSearch(config, new FaceSearchListener() {
             /**
@@ -243,8 +226,13 @@ public final class FaceSearchActivity extends AppCompatActivity {
      */
     @Override
     protected void onStart() {
+        // Configure capture before the fragment binds or resumes its camera in super.onStart().
+        previousWindowBrightness = getWindow().getAttributes().screenBrightness;
+        searchDisplayApplied = true;
+        searchFacePresent = false;
+        setSearchIdle(false);
+        scheduleNoFaceIdle();
         super.onStart();
-        applySearchDisplayPolicy();
         resumeSearch();
     }
 
@@ -256,7 +244,9 @@ public final class FaceSearchActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         pauseSearch();
-        restoreSearchDisplayPolicy();
+        searchDisplayApplied = false;
+        displayHandler.removeCallbacks(enterSearchCameraIdle);
+        setSearchBrightness(previousWindowBrightness);
         super.onStop();
     }
 
@@ -268,15 +258,11 @@ public final class FaceSearchActivity extends AppCompatActivity {
      */
     @Override
     protected void onDestroy() {
-        // Idempotent cleanup also restores the window policy.
-        // 幂等清理，兜底恢复窗口策略。
-        restoreSearchDisplayPolicy();
         if (settingsDialog != null) {
             settingsDialog.dismiss();
         }
         super.onDestroy();
     }
-
 
     /**
      * Change policy only when a face appears or disappears, avoiding window-property writes on every
@@ -291,89 +277,28 @@ public final class FaceSearchActivity extends AppCompatActivity {
         searchFacePresent = hasFace;
         if (hasFace) {
             displayHandler.removeCallbacks(enterSearchCameraIdle);
-            enterSearchActiveMode();
+            setSearchIdle(false);
         } else {
             scheduleNoFaceIdle();
         }
     }
 
     private void scheduleNoFaceIdle() {
-        displayHandler.removeCallbacks(enterSearchCameraIdle);
-        // Enter idle only after ten continuous seconds without a face.
-        // 连续无人脸十秒后才进入待机。
         displayHandler.postDelayed(enterSearchCameraIdle, 10_000L);
     }
 
-    /**
-     * Dim the backlight and request a lower frame rate while idle; HAL determines actual capture, and
-     * analysis throttling remains active.
-     *
-     * 待机降低背光并请求低帧率；实际采集取决于 HAL，分析门禁仍保留。
-     */
-    private void enterSearchIdleMode() {
-        setSearchBrightness(.10f);
-        camera.configureSessionFrameRates(10, 5);
-    }
-
-    /**
-     * Restore brightness and frame rate dynamically without recreating camera or search resources.
-     *
-     * 动态恢复亮度和帧率，不重建相机或搜索资源。
-     */
-    private void enterSearchActiveMode() {
-        setSearchBrightness(.90f);
-        camera.configureSessionFrameRate(15);
+    private void setSearchIdle(boolean idle) {
+        setSearchBrightness(idle ? .10f : .90f);
+        camera.setPreviewFrameRate(idle ? IDLE_PREVIEW_FPS : ACTIVE_PREVIEW_FPS);
     }
 
     private void setSearchBrightness(float brightness) {
-        if (Float.compare(appliedSearchBrightness, brightness) == 0) {
-            return;
-        }
         Window window = getWindow();
         WindowManager.LayoutParams attributes = window.getAttributes();
-        attributes.screenBrightness = brightness;
-        window.setAttributes(attributes);
-        appliedSearchBrightness = brightness;
-    }
-
-    /**
-     * Save this window's original brightness; use 90% during active search and 10% while idle without
-     * faces.
-     *
-     * 保存本窗口原亮度；搜索活跃时使用 90% 背光，无人脸待机时降为 10%。
-     */
-    private void applySearchDisplayPolicy() {
-        if (searchDisplayApplied) {
-            return;
+        if (attributes.screenBrightness != brightness) {
+            attributes.screenBrightness = brightness;
+            window.setAttributes(attributes);
         }
-        Window window = getWindow();
-        WindowManager.LayoutParams attributes = window.getAttributes();
-        previousWindowBrightness = attributes.screenBrightness;
-        searchFacePresent = false;
-        appliedSearchBrightness = Float.NaN;
-        enterSearchActiveMode();
-        searchDisplayApplied = true;
-        scheduleNoFaceIdle();
-    }
-
-    /**
-     * Stop brightness/frame-rate policies and restore brightness; -1 follows the system, and the keep-
-     * awake flag belongs to this screen's window.
-     *
-     * 停止亮度/帧率策略并恢复原亮度；-1 表示跟随系统亮度，常亮标志属于搜索页窗口。
-     */
-    private void restoreSearchDisplayPolicy() {
-        if (!searchDisplayApplied) {
-            return;
-        }
-        displayHandler.removeCallbacks(enterSearchCameraIdle);
-        Window window = getWindow();
-        WindowManager.LayoutParams attributes = window.getAttributes();
-        attributes.screenBrightness = previousWindowBrightness;
-        window.setAttributes(attributes);
-        searchFacePresent = false;
-        appliedSearchBrightness = Float.NaN;
-        searchDisplayApplied = false;
     }
 
     /**

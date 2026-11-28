@@ -61,6 +61,11 @@
     <string name="camera_settings_mirror">Mirror camera coordinates</string>
     <string name="camera_settings_mirror_hint">Enable if face boxes and landmarks are mirrored relative to the preview.</string>
     <string name="camera_settings_saved_hint">Settings are saved automatically and apply when you reopen a camera page.</string>
+    <string name="camera_default_lens">Default camera</string>
+    <string name="camera_default_front">Front</string>
+    <string name="camera_default_back">Rear</string>
+    <string name="camera_zoom_title">Zoom ratio</string>
+    <string name="camera_zoom_ratio">%1$.1f×</string>
     <string name="capture_face_guide">Look straight at the camera</string>
     <string name="enroll_confirm_title">Use this face photo?</string>
     <string name="enroll_confirm_helper">Confirm the face is clear and unobstructed</string>

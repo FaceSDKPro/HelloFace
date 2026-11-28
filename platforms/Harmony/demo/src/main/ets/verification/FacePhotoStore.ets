@@ -2,6 +2,7 @@ import { common } from '@kit.AbilityKit';
 import { fileIo } from '@kit.CoreFileKit';
 import { image } from '@kit.ImageKit';
 import { util } from '@kit.ArkTS';
+import { PixelMapResource } from '../ui/PixelMapResource';
 
 /** An owned copy of the confirmation crop; never borrows a page's PixelMap across await. */
 export class FacePhoto {
@@ -59,6 +60,7 @@ export class FacePhotoStore {
 
   static save(context: common.UIAbilityContext, id: string, photo: FacePhoto | undefined,
     library: FacePhotoLibrary = FacePhotoLibrary.SEARCH): Promise<void> {
+    if (photo === undefined) return FacePhotoStore.remove(context, id, library);
     return FacePhotoStore.enqueue<void>(async (): Promise<void> => {
       let path: string = '';
       let temporary: string = '';
@@ -68,7 +70,6 @@ export class FacePhotoStore {
       let jpeg: ArrayBuffer | undefined = undefined;
       try {
         path = await FacePhotoStore.path(context, id, library, true);
-        if (photo === undefined) throw new Error('No confirmed crop');
         pixels = await image.createPixelMap(photo.rgba, { size: { width: photo.width, height: photo.height },
           srcPixelFormat: image.PixelMapFormat.RGBA_8888, pixelFormat: image.PixelMapFormat.RGBA_8888, editable: false });
         packer = image.createImagePacker();
@@ -78,7 +79,7 @@ export class FacePhotoStore {
         file = await fileIo.open(temporary, fileIo.OpenMode.CREATE | fileIo.OpenMode.WRITE_ONLY | fileIo.OpenMode.TRUNC);
         let offset: number = 0;
         while (offset < jpeg.byteLength) {
-          const written: number = await fileIo.write(file.fd, jpeg.slice(offset));
+          const written: number = await fileIo.write(file.fd, offset === 0 ? jpeg : jpeg.slice(offset));
           if (written <= 0) throw new Error('Photo write failed');
           offset += written;
         }
@@ -94,7 +95,7 @@ export class FacePhotoStore {
         if (packer !== undefined) { try { await packer.release(); } catch (_) {} }
         if (pixels !== undefined) { try { await pixels.release(); } catch (_) {} }
         if (jpeg !== undefined) new Uint8Array(jpeg).fill(0);
-        if (photo !== undefined) new Uint8Array(photo.rgba).fill(0);
+        new Uint8Array(photo.rgba).fill(0);
       }
     });
   }
@@ -143,17 +144,17 @@ export struct FacePhotoThumbnail {
     this.visible = false; ++this.generation;
     const previous: image.PixelMap | undefined = this.photo;
     this.photo = undefined;
-    if (previous !== undefined) previous.release().catch((): void => {});
+    PixelMapResource.release(previous);
   }
   private async reload(): Promise<void> {
     if (!this.visible) return;
     const token: number = ++this.generation;
     const old: image.PixelMap | undefined = this.photo;
     this.photo = undefined;
-    if (old !== undefined) await old.release();
+    PixelMapResource.release(old);
     const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
     const loaded: image.PixelMap | undefined = await FacePhotoStore.thumbnail(context, this.faceId, this.library);
-    if (!this.visible || token !== this.generation) { if (loaded !== undefined) await loaded.release(); return; }
+    if (!this.visible || token !== this.generation) { await PixelMapResource.release(loaded); return; }
     this.photo = loaded;
   }
   build() {

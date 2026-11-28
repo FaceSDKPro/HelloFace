@@ -61,6 +61,11 @@
     <string name="camera_settings_mirror">相机坐标镜像</string>
     <string name="camera_settings_mirror_hint">人脸框、关键点与预览左右相反时开启。</string>
     <string name="camera_settings_saved_hint">设置自动保存，重新进入相机页面后生效。</string>
+    <string name="camera_default_lens">默认摄像头</string>
+    <string name="camera_default_front">前置</string>
+    <string name="camera_default_back">后置</string>
+    <string name="camera_zoom_title">变焦倍率</string>
+    <string name="camera_zoom_ratio">%1$.1f×</string>
     <string name="capture_face_guide">平视正对摄像头</string>
     <string name="enroll_confirm_title">确认这张人脸照片？</string>
     <string name="enroll_confirm_helper">确认为清晰无遮挡正脸</string>

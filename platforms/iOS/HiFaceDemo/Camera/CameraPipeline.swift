@@ -16,7 +16,6 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     private struct PendingDetection {
         let result: FaceDetectionResult
         let previewMirrored: Bool
-        let overlayMirrored: Bool
         let generation: Int
     }
 
@@ -27,11 +26,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     private let sdk: HiFaceSDK
     private let detectionConfiguration: FaceDetectionConfiguration
     private let settings: DemoCameraSettings
-    private let deliversDetectionResults: Bool
-    // The active rate is this screen's ceiling; search independently lowers preview and SDK analysis.
-    // 活跃帧率是该页面上限；搜索页分别降低预览和 SDK 分析频率。
-    private let sessionFramesPerSecond: Int32
-    private let minimumSessionFramesPerSecond: Int32
+    private let mode: CameraDemoMode
     // Session configuration and device changes run here. SDK frame submission uses frameQueue.
     private let sessionQueue = DispatchQueue(
         label: "com.hiface.demo.camera.session",
@@ -44,7 +39,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     )
     // Protect cross-queue control flags and pending deliveries; configure AVFoundation on sessionQueue.
     private let controlLock = NSLock()
-    private var position: AVCaptureDevice.Position = .front
+    private var position: AVCaptureDevice.Position
     private var configured = false
     // Requested session state. analysisEnabled separately gates SDK delivery while preview can continue.
     private var wantsRunning = false
@@ -67,9 +62,8 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     // sessionQueue.
     // 受 controlLock 保护；先更新应用侧门禁，再由 sessionQueue 串行修改 AVCaptureDevice。
     private var targetSessionFramesPerSecond: Int32
-    private var targetAnalysisFramesPerSecond: Int32
     // Throttle SDK submission on frameQueue even if the device delivers preview frames faster.
-    private var applicationFrameIntervalSeconds: Double = 0
+    private var applicationFrameIntervalSeconds: Double
     // Timestamp of the last SDK submission, in sample-buffer seconds on frameQueue.
     private var lastAcceptedFrameSeconds: Double?
 
@@ -77,7 +71,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     // 主 actor 回调。
 
     var onDetection: (@MainActor @Sendable (FaceDetectionResult, Bool, Bool) -> Void)?
-    var onError: (@MainActor @Sendable (String) -> Void)?
+    var onError: (@MainActor @Sendable (_ message: String, _ needsCameraSettings: Bool) -> Void)?
     var onMirroringChanged: (@MainActor @Sendable (Bool, Bool) -> Void)?
     var onAnalysisResolutionChanged: (@MainActor @Sendable (Int, Int, Bool) -> Void)?
     var onZoomFactorChanged: (@MainActor @Sendable (CGFloat, Bool) -> Void)?
@@ -98,20 +92,15 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         sdk: HiFaceSDK,
         detectionConfiguration: FaceDetectionConfiguration = .default,
         settings: DemoCameraSettings = .load(),
-        sessionFramesPerSecond: Int32 = 30,
-        minimumSessionFramesPerSecond: Int32? = nil,
-        deliversDetectionResults: Bool = true
+        mode: CameraDemoMode
     ) {
-        let minimumFramesPerSecond = minimumSessionFramesPerSecond ?? sessionFramesPerSecond
-        precondition(minimumFramesPerSecond > 0 && minimumFramesPerSecond <= sessionFramesPerSecond)
         self.sdk = sdk
         self.detectionConfiguration = detectionConfiguration
         self.settings = settings
-        self.deliversDetectionResults = deliversDetectionResults
-        self.sessionFramesPerSecond = sessionFramesPerSecond
-        self.minimumSessionFramesPerSecond = minimumFramesPerSecond
-        targetSessionFramesPerSecond = sessionFramesPerSecond
-        targetAnalysisFramesPerSecond = sessionFramesPerSecond
+        position = settings.prefersBackCamera ? .back : .front
+        self.mode = mode
+        targetSessionFramesPerSecond = mode == .search ? CameraFrameRatePolicy.searchActive.preview : 30
+        applicationFrameIntervalSeconds = Self.frameInterval(for: mode == .search ? CameraFrameRatePolicy.searchActive.analysis : 30)
         super.init()
         NotificationCenter.default.addObserver(
             self,
@@ -243,25 +232,21 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     /// Update analysis throttling immediately and request device rate asynchronously; actual preview rate
     /// depends on hardware.
     /// 立即更新分析门禁，异步请求设备帧率；实际预览帧率取决于硬件支持。
-    func setSessionFrameRate(_ framesPerSecond: Int32, analysisFramesPerSecond: Int32? = nil) {
-        precondition(framesPerSecond >= minimumSessionFramesPerSecond
-            && framesPerSecond <= sessionFramesPerSecond)
-        let analysisRate = analysisFramesPerSecond ?? framesPerSecond
-        precondition(analysisRate > 0 && analysisRate <= framesPerSecond)
+    func setSearchIdle(_ idle: Bool) {
+        guard mode == .search else { return }
+        let rates = idle ? CameraFrameRatePolicy.searchIdle : CameraFrameRatePolicy.searchActive
         let changed = withControlLock { () -> Bool in
-            guard targetSessionFramesPerSecond != framesPerSecond
-                || targetAnalysisFramesPerSecond != analysisRate else { return false }
-            targetSessionFramesPerSecond = framesPerSecond
-            targetAnalysisFramesPerSecond = analysisRate
-            applicationFrameIntervalSeconds = Self.frameInterval(for: analysisRate)
+            guard targetSessionFramesPerSecond != rates.preview else { return false }
+            targetSessionFramesPerSecond = rates.preview
+            applicationFrameIntervalSeconds = Self.frameInterval(for: rates.analysis)
             lastAcceptedFrameSeconds = nil
             return true
         }
         guard changed else { return }
         sessionQueue.async { [weak self] in
             guard let self,
-                  withControlLock({ targetSessionFramesPerSecond == framesPerSecond }) else { return }
-            applyDeviceFrameRate(framesPerSecond)
+                  withControlLock({ targetSessionFramesPerSecond == rates.preview }) else { return }
+            applyDeviceFrameRate(rates.preview)
         }
     }
 
@@ -327,10 +312,11 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         captureSession.inputs.forEach(captureSession.removeInput)
         captureSession.outputs.forEach(captureSession.removeOutput)
         let currentPosition = withControlLock { position }
-        guard installInput(position: currentPosition) else {
+        guard let actualPosition = installInput(preferredPosition: currentPosition) else {
             reportError(DemoL10n.text("无法打开所选相机"), generation: generation)
             return false
         }
+        withControlLock { position = actualPosition }
         guard applyResolutionFormat() else {
             reportError(DemoL10n.text("当前相机不支持可用的分析分辨率"), generation: generation)
             return false
@@ -355,46 +341,26 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         return true
     }
 
-    private func installInput(position: AVCaptureDevice.Position) -> Bool {
-        guard let device = preferredDevice(position: position),
-              let input = try? AVCaptureDeviceInput(device: device),
-              captureSession.canAddInput(input) else {
-            return false
+    private func installInput(preferredPosition: AVCaptureDevice.Position) -> AVCaptureDevice.Position? {
+        let alternate: AVCaptureDevice.Position = preferredPosition == .front ? .back : .front
+        for candidate in [preferredPosition, alternate] {
+            guard let device = Self.preferredDevice(position: candidate),
+                  let input = try? AVCaptureDeviceInput(device: device),
+                  captureSession.canAddInput(input) else {
+                continue
+            }
+            captureSession.addInput(input)
+            return candidate
         }
-        captureSession.addInput(input)
-        return true
+        return nil
     }
 
     private func applyResolutionFormat() -> Bool {
-        guard let device = (captureSession.inputs.first as? AVCaptureDeviceInput)?.device else {
+        guard let device = (captureSession.inputs.first as? AVCaptureDeviceInput)?.device,
+              let format = Self.captureFormat(from: Self.captureFormats(for: device), tier: settings.analysisResolution,
+                  frameRates: mode == .search ? CameraFrameRatePolicy.searchPreviewRates : [30]) else {
             return false
         }
-        // Dimensions and NV12 are SDK input requirements; 15/5 FPS are analysis targets and must not exclude
-        // fixed-rate Mac cameras.
-        // 尺寸与 NV12 是 SDK 输入约束；15/5 FPS 是分析目标，不能排除固定帧率的 Mac 摄像头。
-        let formats = device.formats.filter { format in
-            let pixelFormat = CMFormatDescriptionGetMediaSubType(format.formatDescription)
-            return (pixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
-                    || pixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)
-                && !format.unsupportedCaptureOutputClasses.contains { $0 == AVCaptureVideoDataOutput.self }
-        }
-        let options = formats.map { format in
-            let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
-            return CameraFormatOption(
-                size: CameraFrameSize(width: Int(dimensions.width), height: Int(dimensions.height)),
-                fieldOfView: format.videoFieldOfView,
-                frameRateRanges: Self.frameRateRanges(for: format)
-            )
-        }
-        guard let index = CameraResolutionPolicy.selectIndex(
-            from: options,
-            tier: settings.analysisResolution,
-            sdkLimit: CameraFrameSize(
-                width: HiFaceCameraFrame.maximumLongSidePixels,
-                height: HiFaceCameraFrame.maximumShortSidePixels
-            ),
-            preferredFrameRates: [Double(sessionFramesPerSecond), Double(minimumSessionFramesPerSecond)]
-        ) else { return false }
         do {
             try device.lockForConfiguration()
         } catch {
@@ -404,7 +370,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         // Setting activeFormat puts iOS into inputPriority automatically, preventing a quality preset from
         // overriding the selected format.
         // iOS 在设置 activeFormat 后自动进入 inputPriority，避免质量 preset 再覆盖所选格式。
-        device.activeFormat = formats[index]
+        device.activeFormat = format
         let targetFramesPerSecond = withControlLock { targetSessionFramesPerSecond }
         // Lower hardware capture where possible even without exact target support; never assign durations outside the
         // format's advertised range.
@@ -412,23 +378,13 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         if let duration = Self.frameDuration(for: device.activeFormat, target: targetFramesPerSecond) {
             Self.setFrameDuration(duration, on: device)
         }
-        withControlLock {
-            applicationFrameIntervalSeconds = Self.frameInterval(for: targetAnalysisFramesPerSecond)
-            lastAcceptedFrameSeconds = nil
-        }
-        let displayMultiplier: CGFloat
-        if #available(iOS 18.0, *) {
-            displayMultiplier = max(device.displayVideoZoomFactorMultiplier, .leastNonzeroMagnitude)
-        } else {
-            // iOS 15-17 has no system display-zoom conversion; use the wide camera's actual 1.0x instead of
-            // risking an unsupported 0.8.
-            // iOS 15–17 没有系统显示倍率换算，使用普通广角的真实 1.0x，不能冒险写入 0.8。
-            displayMultiplier = 1
-        }
+        withControlLock { lastAcceptedFrameSeconds = nil }
+        let displayMultiplier = Self.displayZoomMultiplier(for: device)
         let requestedZoom = CameraZoomPolicy.deviceFactor(
             displayMultiplier: displayMultiplier,
             minimum: device.minAvailableVideoZoomFactor,
-            maximum: device.maxAvailableVideoZoomFactor
+            maximum: device.maxAvailableVideoZoomFactor,
+            requestedDisplayFactor: settings.zoomRatio
         )
         device.videoZoomFactor = requestedZoom
         let actualDisplayZoom = CameraZoomPolicy.displayFactor(
@@ -437,9 +393,10 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         )
         reportZoomFactor(
             actualDisplayZoom,
-            constrained: abs(actualDisplayZoom - CameraZoomPolicy.preferredDisplayFactor) > 0.01
+            constrained: abs(actualDisplayZoom - settings.zoomRatio) > 0.01
         )
-        let actual = options[index].size
+        let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+        let actual = CameraFrameSize(width: Int(dimensions.width), height: Int(dimensions.height))
         let preferred = settings.analysisResolution.preferredSize
         withControlLock {
             resolutionAdjusted = actual.longSide != preferred.longSide || actual.shortSide != preferred.shortSide
@@ -447,6 +404,43 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
             reportedFrameHeight = 0
         }
         return true
+    }
+
+    private struct CaptureFormats {
+        var formats: [AVCaptureDevice.Format] = []
+        var options: [CameraFormatOption] = []
+    }
+
+    private static func captureFormats(for device: AVCaptureDevice) -> CaptureFormats {
+        var candidates = CaptureFormats()
+        // Evaluate NV12 capabilities once per camera for both regular and search settings.
+        for format in device.formats {
+            let pixelFormat = CMFormatDescriptionGetMediaSubType(format.formatDescription)
+            guard (pixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+                   || pixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange),
+                  !format.unsupportedCaptureOutputClasses.contains(where: { $0 == AVCaptureVideoDataOutput.self })
+            else { continue }
+            let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+            candidates.formats.append(format)
+            candidates.options.append(CameraFormatOption(
+                size: CameraFrameSize(width: Int(dimensions.width), height: Int(dimensions.height)),
+                fieldOfView: format.videoFieldOfView,
+                frameRateRanges: Self.frameRateRanges(for: format)
+            ))
+        }
+        return candidates
+    }
+
+    private static func captureFormat(from candidates: CaptureFormats, tier: CameraAnalysisResolution,
+                                      frameRates: [Double]) -> AVCaptureDevice.Format? {
+        let index = CameraResolutionPolicy.selectIndex(
+            from: candidates.options,
+            tier: tier,
+            sdkLimit: CameraFrameSize(width: HiFaceCameraFrame.maximumLongSidePixels,
+                                      height: HiFaceCameraFrame.maximumShortSidePixels),
+            preferredFrameRates: frameRates
+        )
+        return index.map { candidates.formats[$0] }
     }
 
     /// Request frame rate for the current format without rebuilding the session; app throttling still
@@ -459,10 +453,6 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         do {
             try device.lockForConfiguration()
             defer { device.unlockForConfiguration() }
-            // Writing manual durations while automatic frame rate is enabled throws an Objective-C exception;
-            // Swift catch cannot handle it.
-            // 系统启用自动帧率时手工写时长会抛 Objective-C 异常，不能依赖 Swift catch。
-            if #available(iOS 18.0, *), device.isAutoVideoFrameRateEnabled { return }
             Self.setFrameDuration(duration, on: device)
         } catch {
             // Lock contention or system policy may reject changes; captureOutput still drops frames early at the
@@ -495,32 +485,22 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
             reportMirroring(generation: generation)
             return true
         }
-        guard let device = preferredDevice(position: target),
+        guard let device = Self.preferredDevice(position: target),
               let replacement = try? AVCaptureDeviceInput(device: device) else {
             reportCurrentNotice(DemoL10n.text("当前设备没有可切换的摄像头"))
             return true
         }
-        let previousInputs = captureSession.inputs
+        let previous = captureSession.inputs.first
         captureSession.beginConfiguration()
-        previousInputs.forEach(captureSession.removeInput)
+        if let previous { captureSession.removeInput(previous) }
         // Use the new camera's supported format first, then reselect by user preset after adding it; never
         // reuse the old camera's resolution.
         // 新镜头先使用自身支持的格式，加入后重新按用户档位选择，不能沿用旧镜头的分辨率。
         if captureSession.canSetSessionPreset(.inputPriority) {
             captureSession.sessionPreset = .inputPriority
         }
-        var installed = false
-        var restored = true
-        if captureSession.canAddInput(replacement) {
-            captureSession.addInput(replacement)
-            installed = applyResolutionFormat()
-            if !installed {
-                captureSession.removeInput(replacement)
-                restored = restore(inputs: previousInputs)
-            }
-        } else {
-            restored = restore(inputs: previousInputs)
-        }
+        let installed = installConfiguredInput(replacement)
+        let restored = installed || installConfiguredInput(previous)
         configureOutputConnections()
         captureSession.commitConfiguration()
         guard installed else {
@@ -535,26 +515,20 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         withControlLock {
             position = target
             pendingDetection = nil
-            reportedFrameWidth = 0
-            reportedFrameHeight = 0
         }
         reportMirroring(generation: withControlLock { lifecycleGeneration })
         return true
     }
 
-    private func restore(inputs: [AVCaptureInput]) -> Bool {
-        var allRestored = true
-        for input in inputs {
-            if captureSession.canAddInput(input) {
-                captureSession.addInput(input)
-            } else {
-                allRestored = false
-            }
-        }
-        return allRestored && applyResolutionFormat()
+    private func installConfiguredInput(_ input: AVCaptureInput?) -> Bool {
+        guard let input, captureSession.canAddInput(input) else { return false }
+        captureSession.addInput(input)
+        if applyResolutionFormat() { return true }
+        captureSession.removeInput(input)
+        return false
     }
 
-    private func preferredDevice(position: AVCaptureDevice.Position) -> AVCaptureDevice? {
+    private static func preferredDevice(position: AVCaptureDevice.Position) -> AVCaptureDevice? {
         // iOS 18 can convert virtual ultrawide internal zoomFactor to system-display 0.8x. Older systems and
         // front cameras use ordinary wide cameras with a safe minimum of 1.0x.
         // iOS 18 可把虚拟超广角镜头的内部 zoomFactor 换算成系统 UI 使用的 0.8x。
@@ -570,6 +544,15 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         }
         return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position)
     }
+
+    private static func displayZoomMultiplier(for device: AVCaptureDevice) -> CGFloat {
+        if #available(iOS 18.0, *) {
+            let multiplier = device.displayVideoZoomFactorMultiplier
+            if multiplier.isFinite && multiplier > 0 { return multiplier }
+        }
+        return 1
+    }
+
 
     // MARK: - Frame delivery
     // 帧交付。
@@ -592,7 +575,8 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
             }
         }
         #endif
-        guard let generation = withControlLock({ () -> Int? in
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer),
+              let (generation, previewMirrored) = withControlLock({ () -> (Int, Bool)? in
             guard wantsRunning, analysisEnabled, !inputTransitioning, !sessionUnavailable else { return nil }
             if applicationFrameIntervalSeconds > 0, timestamp.isFinite,
                let previous = lastAcceptedFrameSeconds,
@@ -601,31 +585,23 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
                 return nil
             }
             if timestamp.isFinite { lastAcceptedFrameSeconds = timestamp }
-            return frameGeneration
+            return (frameGeneration, position == .front)
         }) else { return }
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         do {
-            let mirroring = withControlLock { () -> (preview: Bool, overlay: Bool) in
-                let preview = position == .front
-                return (preview, preview != settings.mirrorsOverlayCoordinates)
-            }
             let frame = try HiFaceCameraFrame(
                 pixelBuffer: pixelBuffer,
                 rotation: .degrees0,
-                isMirrored: mirroring.preview
+                isMirrored: previewMirrored
             )
-            reportResolutionIfNeeded(width: frame.width, height: frame.height, generation: generation)
+            guard acceptFrame(width: frame.width, height: frame.height, generation: generation) else { return }
             switch sdk.processFrame(frame, configuration: detectionConfiguration) {
             case .success(let result):
                 lastReportedError = nil
-                // Search already has a complete onFrame callback; avoid a separate detection result that updates the
-                // main thread and SwiftUI twice.
-                // 搜索已有完整 onFrame 回调；不再另发检测结果使主线程和 SwiftUI 更新两遍。
-                guard deliversDetectionResults else { return }
+                // Only the detection screen draws this result. The other screens receive SDK flow callbacks.
+                guard mode == .detection else { return }
                 enqueueDetection(
                     result,
-                    previewMirrored: mirroring.preview,
-                    overlayMirrored: mirroring.overlay,
+                    previewMirrored: previewMirrored,
                     generation: generation
                 )
             case .failure(let error) where error.code == .notReady || error.code == .busy
@@ -637,9 +613,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
                 // 同一个瞬时错误升级成会话故障。无活动流程时也与 Android 一样只丢弃该帧。
                 break
             case .failure(let error):
-                guard lastReportedError != error.code else { return }
-                lastReportedError = error.code
-                reportFrameError(DemoErrorPresentation.message(for: error), generation: generation)
+                throw error
             }
         } catch let error as HiFaceError {
             guard lastReportedError != error.code else { return }
@@ -653,7 +627,6 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     private func enqueueDetection(
         _ result: FaceDetectionResult,
         previewMirrored: Bool,
-        overlayMirrored: Bool,
         generation: Int
     ) {
         let shouldSchedule = withControlLock { () -> Bool in
@@ -661,7 +634,6 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
             pendingDetection = PendingDetection(
                 result: result,
                 previewMirrored: previewMirrored,
-                overlayMirrored: overlayMirrored,
                 generation: generation
             )
             guard !detectionDeliveryScheduled else { return false }
@@ -676,43 +648,43 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     private func deliverLatestDetection() {
         let pending = withControlLock { () -> PendingDetection? in
             detectionDeliveryScheduled = false
-            guard wantsRunning, analysisEnabled,
-                  let pendingDetection,
-                  pendingDetection.generation == frameGeneration else {
-                self.pendingDetection = nil
-                return nil
-            }
-            self.pendingDetection = nil
-            return pendingDetection
+            let latest = pendingDetection
+            pendingDetection = nil
+            guard wantsRunning, analysisEnabled, latest?.generation == frameGeneration else { return nil }
+            return latest
         }
         guard let pending else { return }
-        onDetection?(pending.result, pending.previewMirrored, pending.overlayMirrored)
+        onDetection?(pending.result, pending.previewMirrored,
+                     pending.previewMirrored != settings.mirrorsOverlayCoordinates)
     }
 
     // MARK: - Callback delivery
     // 回调交付。
 
-    private func reportResolutionIfNeeded(width: Int, height: Int, generation: Int) {
-        let fallback = withControlLock { () -> Bool? in
-            guard wantsRunning, analysisEnabled, frameGeneration == generation,
-                  reportedFrameWidth != width || reportedFrameHeight != height else { return nil }
+    // The generation can change while the camera buffer is being wrapped.
+    private func acceptFrame(width: Int, height: Int, generation: Int) -> Bool {
+        let (current, fallback) = withControlLock { () -> (Bool, Bool?) in
+            guard wantsRunning, analysisEnabled, frameGeneration == generation else { return (false, nil) }
+            guard reportedFrameWidth != width || reportedFrameHeight != height else { return (true, nil) }
             reportedFrameWidth = width
             reportedFrameHeight = height
-            return resolutionAdjusted
+            return (true, resolutionAdjusted)
         }
-        guard let fallback else { return }
-        Task { @MainActor [weak self] in
-            guard let self,
-                  withControlLock({ wantsRunning && frameGeneration == generation }) else { return }
-            onAnalysisResolutionChanged?(width, height, fallback)
+        if let fallback {
+            Task { @MainActor [weak self] in
+                guard let self,
+                      withControlLock({ wantsRunning && frameGeneration == generation }) else { return }
+                onAnalysisResolutionChanged?(width, height, fallback)
+            }
         }
+        return current
     }
 
     private func reportFrameError(_ message: String, generation: Int) {
         Task { @MainActor [weak self] in
             guard let self,
                   withControlLock({ wantsRunning && frameGeneration == generation }) else { return }
-            onError?(message)
+            onError?(message, false)
         }
     }
 
@@ -821,11 +793,12 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     }
 
     private static func setFrameDuration(_ duration: CMTime, on device: AVCaptureDevice) {
+        // Manual durations raise an Objective-C exception while automatic frame rate is enabled.
+        if #available(iOS 18.0, *), device.isAutoVideoFrameRateEnabled { return }
         if CMTimeCompare(device.activeVideoMinFrameDuration, duration) == 0,
            CMTimeCompare(device.activeVideoMaxFrameDuration, duration) == 0 { return }
-        // Expand the allowed interval before tightening the other endpoint, maintaining min <= max during 15/5
-        // FPS changes.
-        // 先扩展允许区间再收紧另一端，15/5 FPS 切换过程中也保持 min <= max。
+        // Expand the allowed interval first so min <= max throughout the rate change.
+        // 先扩展允许区间再收紧另一端，切换帧率时也保持 min <= max。
         if CMTimeCompare(duration, device.activeVideoMinFrameDuration) >= 0 {
             device.activeVideoMaxFrameDuration = duration
             device.activeVideoMinFrameDuration = duration
@@ -848,7 +821,7 @@ final class CameraPipeline: NSObject, AVCaptureVideoDataOutputSampleBufferDelega
     private func reportError(_ message: String, generation: Int) {
         Task { @MainActor [weak self] in
             guard let self, isCurrentLifecycle(generation) else { return }
-            onError?(message)
+            onError?(message, AVCaptureDevice.authorizationStatus(for: .video) == .denied)
         }
     }
 

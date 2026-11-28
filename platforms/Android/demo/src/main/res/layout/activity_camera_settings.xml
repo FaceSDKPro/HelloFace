@@ -43,6 +43,57 @@
             android:padding="20dp">
 
             <LinearLayout
+                android:id="@+id/cameraDefaultLensSettings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/bg_camera_settings_card"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/camera_default_lens"
+                    android:textColor="@color/content_text"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/cameraDefaultLens"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal">
+
+                    <androidx.appcompat.widget.AppCompatRadioButton
+                        android:id="@+id/cameraDefaultFront"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/camera_default_front"
+                        android:textColor="@color/content_text"
+                        android:textSize="15sp"
+                        app:buttonTint="@color/content_accent" />
+
+                    <androidx.appcompat.widget.AppCompatRadioButton
+                        android:id="@+id/cameraDefaultBack"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/camera_default_back"
+                        android:textColor="@color/content_text"
+                        android:textSize="15sp"
+                        app:buttonTint="@color/content_accent" />
+
+                </RadioGroup>
+
+            </LinearLayout>
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_camera_settings_card"
@@ -150,6 +201,35 @@
                     android:textColor="@color/content_text_secondary"
                     android:textSize="14sp" />
 
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/cameraZoomSettings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_camera_settings_card"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:labelFor="@id/cameraZoomPreset"
+                    android:text="@string/camera_zoom_title"
+                    android:textColor="@color/content_text"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <androidx.appcompat.widget.AppCompatSpinner
+                    android:id="@+id/cameraZoomPreset"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:minHeight="48dp"
+                    android:saveEnabled="false"
+                    android:spinnerMode="dropdown" />
             </LinearLayout>
 
             <TextView

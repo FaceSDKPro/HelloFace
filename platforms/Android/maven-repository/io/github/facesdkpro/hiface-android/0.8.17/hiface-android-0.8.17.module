@@ -42,11 +42,11 @@
         {
           "name": "hiface-android-0.8.17.aar",
           "url": "hiface-android-0.8.17.aar",
-          "size": 10633351,
-          "sha512": "b7395cf9f3d1e6f7810e2f03e42fe7717113e89b119aec8dce086fa7889cbe1c897fb97991f0fc775245d9699377bf1e7c0a7ccc33ca1834be5c620957672eca",
-          "sha256": "4d2f12f744bf4d1c89b6ec6873fb0df3eba30e081414b9e3a80c16387ffa5717",
-          "sha1": "2f030d2448b6cde969506e1da9133c6465e98172",
-          "md5": "b1a5023f75889a61123bdb53989d3a69"
+          "size": 10635286,
+          "sha512": "6609d533e70b4637c977e5e85f3ba6524b347203c58402343a337c3c60af52960fd8f02183f2cdc1b3f4c547884ad0c98f64e10cccddb19dec2f08e2824db323",
+          "sha256": "4b884c3f2cf0620adf9891c86d753aa3f16940c82d0b76740c7bf763ebe8b65e",
+          "sha1": "bff373c9bd29819c717ac112f140745880c6fe4c",
+          "md5": "b2d90623faf76f06421bf76fb6dc920a"
         }
       ]
     },
@@ -78,11 +78,11 @@
         {
           "name": "hiface-android-0.8.17.aar",
           "url": "hiface-android-0.8.17.aar",
-          "size": 10633351,
-          "sha512": "b7395cf9f3d1e6f7810e2f03e42fe7717113e89b119aec8dce086fa7889cbe1c897fb97991f0fc775245d9699377bf1e7c0a7ccc33ca1834be5c620957672eca",
-          "sha256": "4d2f12f744bf4d1c89b6ec6873fb0df3eba30e081414b9e3a80c16387ffa5717",
-          "sha1": "2f030d2448b6cde969506e1da9133c6465e98172",
-          "md5": "b1a5023f75889a61123bdb53989d3a69"
+          "size": 10635286,
+          "sha512": "6609d533e70b4637c977e5e85f3ba6524b347203c58402343a337c3c60af52960fd8f02183f2cdc1b3f4c547884ad0c98f64e10cccddb19dec2f08e2824db323",
+          "sha256": "4b884c3f2cf0620adf9891c86d753aa3f16940c82d0b76740c7bf763ebe8b65e",
+          "sha1": "bff373c9bd29819c717ac112f140745880c6fe4c",
+          "md5": "b2d90623faf76f06421bf76fb6dc920a"
         }
       ]
     }

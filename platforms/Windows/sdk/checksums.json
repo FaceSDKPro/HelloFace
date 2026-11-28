@@ -5,7 +5,7 @@
     "LICENSE": "d29e016e7677af48d5fa94efc45191ec6888f6cdbdc34e98b123b79666ad2133",
     "README.md": "c88e51beff1676875e76f7e22ecc995d7f857c3005d6544f596b4b304b8c4a49",
     "README.zh-CN.md": "b708969be13aff621ccb93e203b513e973733a2dd98d69ad3b9798f542c04411",
-    "bin/hiface.dll": "3a87c5bf33a480c04216347a3734fda64c37c386264565aa6a1770ec911c2e50",
+    "bin/hiface.dll": "7df00f043370088bff7ce3b9f33ef52c6f04937105b55b5bf2e46baaac4f320d",
     "bin/libc++.dll": "b97586e466fbcbd3f801448802038a4f7550fc7e0381cd873b486cd59fdd2305",
     "bin/libomp.dll": "caa72f2795fd6bf82a137969ce417f8d43e8e88483b13c2e474069616e546bab",
     "bin/libunwind.dll": "0d86a6dfb5a20082b4d74c43a8ce36a30eb2748e4e779c336d174a876ef569c6",
@@ -24,7 +24,7 @@
     "licenses/mingw-w64/COPYING.MinGW-w64.txt": "f38e6194bd3bfa1b654f118e5acefe0aead437bbe669eee43957ccc65a7127f1",
     "licenses/mingw-w64/COPYING.winpthreads.txt": "63263614cdd29f2f93cba85e992f041b31f9fc7b4033692f31269489a8a1b177",
     "licenses/mingw-w64/COPYING.winstorecompat.txt": "fa7368d1f93d890c173177475d8ec7aff265a7d08f1f364d66f74d138978ce36",
-    "sdk-metadata.json": "ca42efab03b3cc16976d38b4fbd817aa8e84c9e6df39abb54ad082cd55bbbec3",
+    "sdk-metadata.json": "8e4780bbfbe93f0a129cce8ae93675c75d7ff4ee88f6a5784a8ba8bd9d3049dc",
     "share/hiface/exports.txt": "b0c56f0ea5950645b12e2d1c3744d27d458066a04536a6231b20d6f5cdcd6e64",
     "share/hiface/licenses/MbedTLS-3.6.7-LICENSE": "9b405ef4c89342f5eae1dd828882f931747f71001cfba7d114801039b52ad09b"
   }

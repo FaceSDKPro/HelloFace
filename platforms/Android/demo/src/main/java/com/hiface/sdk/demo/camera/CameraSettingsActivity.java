@@ -1,18 +1,23 @@
 package com.hiface.sdk.demo.camera;
 
 import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.Spinner;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
+import com.hiface.sdk.demo.BuildConfig;
 import com.hiface.sdk.demo.R;
 import com.hiface.sdk.demo.ui.DemoWindowInsets;
 
 /**
- * Two device settings shared by all Demo camera screens; changes save automatically.
+ * Device settings shared by Demo camera screens; changes save automatically.
  *
- * 所有 Demo 相机页面共用的两项设备设置，修改后自动保存。
+ * Demo 相机页面共用的设备设置，修改后自动保存。
  */
 public final class CameraSettingsActivity extends AppCompatActivity {
     private static final int[] RESOLUTION_IDS = {
@@ -53,4 +58,5 @@ public final class CameraSettingsActivity extends AppCompatActivity {
         });
         mirror.setOnCheckedChangeListener((button, checked) -> CameraSettings.setMirrorCoordinates(checked));
     }
+
 }

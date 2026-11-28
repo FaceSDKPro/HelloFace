@@ -3,7 +3,7 @@ import { DemoErrorUi } from '../ui/DemoErrorUi';
 import { DemoPageHeader } from '../ui/DemoPageHeader';
 import { PixelMapResource } from '../ui/PixelMapResource';
 import { RecognitionOptionsPanel } from '../recognition/RecognitionOptionsPanel';
-import { FacePhotoLibrary, FacePhotoStore, FacePhotoThumbnail } from '../verification/FacePhotoStore';
+import { FacePhoto, FacePhotoLibrary, FacePhotoStore, FacePhotoThumbnail } from '../verification/FacePhotoStore';
 import { FaceReference, FaceFeatureStore } from '../verification/FaceFeatureStore';
 import { DemoTheme } from '../ui/DemoTheme';
 import { FacePhotoPicker } from '../comparison/FacePhotoPicker';
@@ -326,7 +326,7 @@ struct Index {
   }
 
   /** 1:1 基准与搜索库分开保存；只返回落盘结果，由仍然可见的相机页决定导航。 */
-  private async saveReference(faceId: string, feature: string): Promise<boolean> {
+  private async saveReference(faceId: string, feature: string, photo?: FacePhoto): Promise<boolean> {
     if (this.savingReference) return false;
     this.savingReference = true;
     const token: number = this.referenceStoreToken;
@@ -334,8 +334,10 @@ struct Index {
       const context: common.UIAbilityContext =
         this.getUIContext().getHostContext() as common.UIAbilityContext;
       const saved: FaceReference[] = await this.featureStore.save(context, faceId, feature);
-      if (token !== this.referenceStoreToken) return false;
-      this.references = saved;
+      // Queue the matching crop before the new row can request its thumbnail.
+      const writingPhoto = FacePhotoStore.save(context, faceId, photo, FacePhotoLibrary.REFERENCE);
+      if (token === this.referenceStoreToken) this.references = saved;
+      await writingPhoto;
       return true;
     } catch (_) {
       return false;
@@ -360,7 +362,8 @@ struct Index {
           RealtimeCameraDemo({
             sdk: this.sdk, cameraLifecycle: this.cameraLifecycle, initialMode: RealtimeMode.CAPTURE,
             albumCandidate: this.albumCandidate,
-            onReferenceConfirmed: (id: string, feature: string): Promise<boolean> => this.saveReference(id, feature),
+            onReferenceConfirmed: (id: string, feature: string, photo?: FacePhoto): Promise<boolean> =>
+              this.saveReference(id, feature, photo),
             onPickAnother: (): void => { this.closeAlbumConfirmation(); this.pickReferencePhoto(); },
             onExit: (message?: string): void => this.closeAlbumConfirmation(message)
           })
@@ -383,8 +386,8 @@ struct Index {
             onRecognitionResult: (message: string, outcome: RecognitionOutcome,
               frameJpeg?: ArrayBuffer): void => this.receiveRecognitionResult(key, message, outcome, frameJpeg),
             referenceFaceId: this.selectedFaceId, initialSearchConfig: this.searchConfig,
-            onReferenceConfirmed: (faceId: string, feature: string): Promise<boolean> =>
-              this.saveReference(faceId, feature),
+            onReferenceConfirmed: (id: string, feature: string, photo?: FacePhoto): Promise<boolean> =>
+              this.saveReference(id, feature, photo),
             onSearchConfigChanged: (config: FaceSearchSessionConfig): void => { this.searchConfig = config; },
             onExit: (): void => this.goBack(),
             onOpenLibrary: (): void => this.navigate(DemoPage.SEARCH_LIBRARY),
@@ -474,13 +477,15 @@ struct Index {
 
   private confirmDeleteReference(faceId: string): void {
     const token: number = this.referenceStoreToken;
+    const page: number = this.cameraPageKey;
     this.getUIContext().showAlertDialog({
       title: DemoL10n.text('删除这条人脸？'),
       message: DemoL10n.text('Face ID：{0}\n\n删除后需重新录入。', [faceId]),
       primaryButton: {
         value: DemoL10n.text('删除'), fontColor: DemoTheme.contentError,
         action: (): void => {
-          if (token === this.referenceStoreToken && this.activePage === DemoPage.RECOGNITION) {
+          if (token === this.referenceStoreToken && page === this.cameraPageKey &&
+            this.activePage === DemoPage.RECOGNITION) {
             this.deleteReference(faceId);
           }
         }
@@ -490,11 +495,13 @@ struct Index {
   }
 
   private async deleteReference(faceId: string): Promise<void> {
-    const token: number = ++this.referenceStoreToken;
+    const token: number = this.referenceStoreToken;
+    const page: number = this.cameraPageKey;
     try {
       const context: common.UIAbilityContext =
         this.getUIContext().getHostContext() as common.UIAbilityContext;
       const remaining: FaceReference[] = await this.featureStore.remove(context, faceId);
+      if (token === this.referenceStoreToken) this.references = remaining;
       // The encrypted feature snapshot is authoritative. A stale thumbnail must not
       // make a completed identity deletion look as though it failed.
       // 加密特征快照是权威数据；旧头像清理失败不能把已完成的身份删除显示成失败。
@@ -503,12 +510,11 @@ struct Index {
       } catch (_) {
         // The photo is only Demo presentation data and is no longer reachable.
       }
-      if (token === this.referenceStoreToken && this.activePage === DemoPage.RECOGNITION) {
-        this.references = remaining;
+      if (token === this.referenceStoreToken && page === this.cameraPageKey && this.activePage === DemoPage.RECOGNITION) {
         this.showToast(DemoL10n.text('已删除 {0}', [faceId]));
       }
     } catch (error) {
-      if (token === this.referenceStoreToken && this.activePage === DemoPage.RECOGNITION) {
+      if (token === this.referenceStoreToken && page === this.cameraPageKey && this.activePage === DemoPage.RECOGNITION) {
         this.showToast(DemoL10n.text('删除失败：{0}', [String(error)]));
       }
     }
@@ -577,7 +583,7 @@ struct Index {
                       .onAction((): void => this.confirmDeleteReference(entry.faceId)),
                     TapGesture().onAction((): void => this.startRecognition(entry))))
                     .accessibilityText(DemoL10n.text('验证 {0}，长按删除', [entry.faceId]))
-                }, (entry: FaceReference): string => entry.faceId)
+                }, (entry: FaceReference): string => String(entry.rowId))
               }.listDirection(Axis.Horizontal).width('100%').height(116)
                 .scrollBarWidth(1)
             }

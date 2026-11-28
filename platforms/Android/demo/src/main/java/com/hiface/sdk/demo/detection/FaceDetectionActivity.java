@@ -4,7 +4,6 @@ import android.os.Bundle;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.camera.view.PreviewView;
 import com.hiface.sdk.HiFaceSdk;
 import com.hiface.sdk.common.HiFaceResult;
 import com.hiface.sdk.demo.R;
@@ -41,10 +40,10 @@ public final class FaceDetectionActivity extends CameraBrightnessActivity {
 
         cameraPreview = CameraPreviewFragment.require(
                 getSupportFragmentManager(), R.id.cameraPreview);
-        cameraPreview.configureOverlayPreview(PreviewView.ScaleType.FIT_CENTER);
+        cameraPreview.enableOverlayPreview();
         detectionOverlay = findViewById(R.id.detectionOverlay);
         findViewById(R.id.backButton).setOnClickListener(view -> finish());
-        findViewById(R.id.switchCameraButton).setOnClickListener(view -> switchCamera());
+        findViewById(R.id.switchCameraButton).setOnClickListener(view -> cameraPreview.switchCamera());
         // Bind this screen's SDK to its lifecycle; destruction stops detection and releases resources.
         // 页面直接创建 SDK 并绑定生命周期；页面销毁时自动停止检测和释放资源。
         HiFaceSdk sdk = HiFaceSdk.builder(this).lifecycleOwner(this).build();
@@ -148,14 +147,5 @@ public final class FaceDetectionActivity extends CameraBrightnessActivity {
     protected void onDestroy() {
         clearOverlayUpdates();
         super.onDestroy();
-    }
-
-    private void switchCamera() {
-        if (!cameraPreview.switchCamera()) {
-            Toast.makeText(
-                    getApplicationContext(),
-                    R.string.camera_switch_unavailable,
-                    Toast.LENGTH_SHORT).show();
-        }
     }
 }

@@ -1629,6 +1629,46 @@
       "value": "目标倍率"
     },
     {
+      "name": "demo_56c36db2c989",
+      "value": "默认摄像头"
+    },
+    {
+      "name": "demo_588829eb7251",
+      "value": "前置"
+    },
+    {
+      "name": "demo_acd23e57a461",
+      "value": "后置"
+    },
+    {
+      "name": "demo_493ce4ff58de",
+      "value": "变焦倍率"
+    },
+    {
+      "name": "demo_2ee6cba0dfbd",
+      "value": "无法读取镜头变焦范围"
+    },
+    {
+      "name": "demo_6e783e36fc67",
+      "value": "读取镜头变焦范围"
+    },
+    {
+      "name": "demo_643f0d301956",
+      "value": "正在读取镜头变焦范围…"
+    },
+    {
+      "name": "demo_edcfa23b68d8",
+      "value": "恢复默认倍率"
+    },
+    {
+      "name": "demo_1dc01d90dad9",
+      "value": "固定倍率 {0}"
+    },
+    {
+      "name": "demo_dc4c90261aa2",
+      "value": "前摄 {0} · 后摄 {1}"
+    },
+    {
       "name": "demo_d5cd81f04e02",
       "value": "最相似"
     },

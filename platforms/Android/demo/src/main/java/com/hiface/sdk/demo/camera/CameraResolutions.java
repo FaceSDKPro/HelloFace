@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.os.Build;
 import android.util.Size;
 import androidx.camera.camera2.interop.Camera2CameraInfo;
 import androidx.camera.core.CameraInfo;
@@ -20,7 +21,7 @@ import java.util.List;
  * Target VGA for preview. The selected tier controls the separate analysis stream.
  */
 final class CameraResolutions {
-    private static final int MAX_TIER_CANDIDATES = 3;
+    private static final Size SVGA = new Size(800, 600);
 
     enum Tier {
         LOW(640, 480), MEDIUM(1280, 960), HIGH(1440, 1080);
@@ -51,9 +52,16 @@ final class CameraResolutions {
 
     @SuppressLint("UnsafeOptInUsageError")
     static List<Size> analysisCandidates(CameraInfo camera, Tier tier) {
-        StreamConfigurationMap map = Camera2CameraInfo.from(camera)
-                .getCameraCharacteristic(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-        Size[] supported = map == null ? null : map.getOutputSizes(ImageFormat.YUV_420_888);
+        Camera2CameraInfo camera2 = Camera2CameraInfo.from(camera);
+        StreamConfigurationMap map = camera2.getCameraCharacteristic(
+                CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+        boolean external = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+                && Integer.valueOf(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_EXTERNAL)
+                        .equals(camera2.getCameraCharacteristic(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL));
+        return analysisCandidates(map == null ? null : map.getOutputSizes(ImageFormat.YUV_420_888), tier, external);
+    }
+
+    static List<Size> analysisCandidates(Size[] supported, Tier tier, boolean external) {
         Size standard = Tier.LOW.size;
         List<Size> sizes = new ArrayList<>();
         if (supported != null) {
@@ -61,7 +69,7 @@ final class CameraResolutions {
                 if (Math.max(size.getWidth(), size.getHeight()) <= Yuv420Frame.MAX_LONG_SIDE_PIXELS
                         && Math.min(size.getWidth(), size.getHeight()) <= Yuv420Frame.MAX_SHORT_SIDE_PIXELS
                         && (size.getWidth() & 1) == 0 && (size.getHeight() & 1) == 0
-                        && size.getWidth() > 0 && size.getHeight() > 0 && !sizes.contains(size)) {
+                        && size.getWidth() > 0 && size.getHeight() > 0) {
                     sizes.add(size);
                 }
             }
@@ -72,23 +80,28 @@ final class CameraResolutions {
         }
         Comparator<Size> nearestStandard = (a, b) -> Double.compare(score(a, standard), score(b, standard));
         Size standardFallback = sizes.contains(standard) ? standard : Collections.min(sizes, nearestStandard);
-        List<Size> candidates = new ArrayList<>();
-        // Bound retries above VGA, then fall back to the size closest to VGA.
-        if (tier != Tier.LOW) {
-            Collections.sort(sizes, (a, b) -> {
-                int byTier = Double.compare(score(a, tier.size), score(b, tier.size));
-                return byTier != 0 ? byTier : nearestStandard.compare(a, b);
-            });
-            for (Size size : sizes) {
-                if (pixels(size) > pixels(standard) && pixels(size) <= pixels(tier.size)
-                        && !size.equals(standardFallback)) {
-                    candidates.add(size);
-                    if (candidates.size() == MAX_TIER_CANDIDATES) break;
-                }
+        if (tier == Tier.LOW) {
+            return Collections.singletonList(standardFallback);
+        }
+        Comparator<Size> nearestTier = (a, b) -> {
+            int byTier = Double.compare(score(a, tier.size), score(b, tier.size));
+            return byTier != 0 ? byTier : nearestStandard.compare(a, b);
+        };
+        Size preferred = null;
+        for (Size size : sizes) {
+            if (pixels(size) > pixels(standard) && pixels(size) <= pixels(tier.size)
+                    && !size.equals(standardFallback)
+                    && (preferred == null || nearestTier.compare(size, preferred) < 0)) {
+                preferred = size;
             }
         }
-        candidates.add(standardFallback);
-        return candidates;
+        if (preferred == null) {
+            return Collections.singletonList(standardFallback);
+        }
+        // The tested external RK3562 camera streams SVGA when its advertised 1280x720 pair fails.
+        Size fallback = external && pixels(preferred) > pixels(SVGA) && sizes.contains(SVGA)
+                ? SVGA : standardFallback;
+        return Arrays.asList(preferred, fallback);
     }
 
     private static double score(Size size, Size target) {

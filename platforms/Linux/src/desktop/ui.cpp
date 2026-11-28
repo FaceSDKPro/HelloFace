@@ -14,6 +14,8 @@ constexpr uint32_t background = 0xf5f5f7, surface = 0xffffff, ink = 0x242029, mu
 constexpr uint32_t accent = 0x077a63, tint = 0xe6f4ef, danger = 0xb33d37, dark = 0x172233;
 constexpr uint32_t technology_green = 0x00f5a0;
 constexpr int enrollment_button = 6;
+constexpr int reference_tile_width = 80;
+constexpr int reference_tile_step = reference_tile_width + 8;
 namespace home_colors {
     // X11 draws opaque RGB: composite Android's white overlays over the same teal.
     constexpr uint32_t background = 0x023f42, text = 0xffffff;
@@ -309,7 +311,7 @@ void DemoUi::recognition(const ViewState& s, Rect b) {
     const int start_gap = touch ? 6 : 4, start_height = touch ? 48 : 40;
     const int strip_height = has_references ? 96 : 0;
     const int strip_width = card_width - 28;
-    reference_max_scroll_ = std::max(0, int(s.captured_faces.size()) * 88 - strip_width);
+    reference_max_scroll_ = std::max(0, int(s.captured_faces.size()) * reference_tile_step - strip_width);
     const int pager_height = reference_max_scroll_ > 0 ? (touch ? 32 : 24) : 0;
     auto options_height = [&](bool verification, bool actions, bool empty) {
         return options_top + (verification ? title_wrap + verification_title_gap + passive_step : standalone_passive_step) + toggle_step
@@ -393,8 +395,11 @@ void DemoUi::recognition(const ViewState& s, Rect b) {
     recognition_reference_area_={verify.x+14,y,strip_width,strip_height};
     reference_scroll_=std::clamp(reference_scroll_,0,reference_max_scroll_);
     const auto card_clip=scene_.clip;scene_.clip=scene_.clip.intersect(recognition_reference_area_);
-    for(size_t i=0;i<s.captured_faces.size();++i){
-        const Rect tile{recognition_reference_area_.x+int(i)*88-reference_scroll_,y,80,94};
+    const int first_tile = reference_scroll_ / reference_tile_step;
+    for (int i = first_tile; i < int(s.captured_faces.size()); ++i) {
+        const int left = i * reference_tile_step - reference_scroll_;
+        if (left >= strip_width) break;
+        const Rect tile{recognition_reference_area_.x + left, y, reference_tile_width, 94};
         if(tile.intersect(scene_.clip).w==0)continue;
         button(tile,"","recognition-verify:"+std::to_string(i),0,enabled,Font::Small);
         const auto& row=s.captured_faces[i];const Rect portrait{tile.x+12,tile.y+5,56,56};
@@ -1034,6 +1039,7 @@ void DemoUi::references(const ViewState& s, Rect b) {
 }
 void DemoUi::resetDraft(const DemoSettings& settings) { for (const auto& f : settingsFields(settings)) values_["setting:" + f.key] = f.value; invalid_field_.clear(); }
 bool DemoUi::settingVisible(const std::string& key) const {
+    if (key == "camera_default_device") return false;
     if (page_ == "camera-settings") return key=="ui_rotation"?embeddedDisplay():sdkSetting(key);
     // The RGB/IR dialog can change the shared display angle. Camera and search
     // drafts are saved separately and must never be applied by this action.
@@ -1129,7 +1135,9 @@ void DemoUi::settings(const ViewState& s, Rect b) {
     const std::string tab = page_ == "camera-settings" ? "camera" : settings_tab_;
     if (tab == "search") { searchSettings(s,b); return; }
     const Rect r{b.x, b.y, b.w, b.h - 62};card(r);
-    feature_settings_area_=r;feature_settings_max_scroll_=std::max(0,320-r.h);
+    int content_height = 320;
+    feature_settings_area_ = r;
+    feature_settings_max_scroll_ = std::max(0, content_height - r.h);
     feature_settings_scroll_=std::clamp(feature_settings_scroll_,0,feature_settings_max_scroll_);
     const auto old_clip=scene_.clip;scene_.clip=old_clip.intersect(r);
     const int x=r.x+20,y=r.y+22-feature_settings_scroll_,w=r.w-40,half=(w-20)/2;
@@ -1188,11 +1196,12 @@ void DemoUi::settings(const ViewState& s, Rect b) {
             text(x, y + 214, embedded ? "UI rotation" : "Camera rotation", ink, 108, Font::Small);
             rotationButtons({x + 120, y + 194, w - 120, 30}, values_[embedded ? "setting:ui_rotation" : "setting:camera_rotation"], !s.busy && !settings_pending_, embedded ? "ui-rotation:" : "camera-rotation:");
         }
-        button({x,y+258,220,32},sdk_advanced_ ? "Back to SDK settings" : "Advanced video settings","sdk-advanced",0,!s.busy);
+        int advanced_y = y + 258;
+        button({x,advanced_y,220,32},sdk_advanced_ ? "Back to SDK settings" : "Advanced video settings","sdk-advanced",0,!s.busy);
     }
     scene_.clip=old_clip;
     if(feature_settings_max_scroll_) {
-        const int thumb=std::max(24,r.h*r.h/320);
+        const int thumb=std::clamp(r.h*(r.h-8)/content_height, 1, std::max(1,r.h-8));
         scene_.box({r.x+r.w-7,r.y+4+(r.h-8-thumb)*feature_settings_scroll_/feature_settings_max_scroll_,3,thumb},0x9ba8b0,2);
     }
     button({b.x, b.y + b.h - 44, 170, 38}, settings_pending_ ? "Saving..." : tab == "camera" ? "Apply typed values" : "Apply settings", "settings-apply", 1, content_enabled_ && !settings_pending_ && (tab != "camera" || settingsDirty(s)));
@@ -1319,6 +1328,10 @@ void DemoUi::drag(int x, int y, const ViewState& state) {
     const int steps=(library_drag_y_-y)/48;
     if (steps) { scroll(steps,library_area_.x+8,library_area_.y+8,state);library_drag_y_-=steps*48; }
 }
+void DemoUi::releasePointer([[maybe_unused]] const ViewState* state) {
+    library_drag_active_ = reference_drag_active_ = false;
+}
+
 void DemoUi::loadMoreGallery(const ViewState& state) {
     if (!state.gallery_has_more || state.busy || state.importing || library_more_pending_ || !state.gallery_query_id.empty() || metadata_dialog_ || confirming_ || browsing_) return;
     library_more_pending_=true;library_attempt_=state.gallery_attempt;
@@ -1433,8 +1446,10 @@ void DemoUi::readDirectory() {
     for (std::filesystem::directory_iterator it(browser_directory_, error), end; !error && it != end; it.increment(error)) {
         auto extension = it->path().extension().string(); std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return std::tolower(c); });
         std::error_code status;
-        if (it->is_directory(status) || browser_target_ == "exchange-path" && extension == ".json" || browser_target_ != "exchange-path" && browser_target_ != "image-folder"
-            && (extension == ".jpg" || extension == ".jpeg" || extension == ".png" || extension == ".bmp" || extension == ".ppm")) browser_entries_.push_back(*it);
+        const bool selectable = browser_target_ == "exchange-path" ? extension == ".json" :
+            browser_target_ != "image-folder" && (extension == ".jpg" || extension == ".jpeg" ||
+            extension == ".png" || extension == ".bmp" || extension == ".ppm");
+        if (it->is_directory(status) || (selectable && it->is_regular_file(status))) browser_entries_.push_back(*it);
     }
     if (error) { browser_entries_.clear(); browser_error_ = "Cannot read folder: " + error.message(); }
     std::sort(browser_entries_.begin(), browser_entries_.end(), [](const auto& a, const auto& b) { std::error_code ea, eb; const bool ad = a.is_directory(ea), bd = b.is_directory(eb); return ad != bd ? ad : a.path().filename().string() < b.path().filename().string(); });
@@ -1641,7 +1656,9 @@ void DemoUi::handle(const std::string& action, const ViewState& state) {
         const auto comma = sequence.find_last_of(','); sequence = action == "actions-clear" || comma == std::string::npos ? "" : sequence.substr(0, comma); return;
     }
     if (action == "settings-defaults") {
-        for (const auto& f : settingsFields(DemoSettings{})) if (settingVisible(f.key)) values_["setting:" + f.key] = f.value;
+        for (const auto& f : settingsFields(DemoSettings{}))
+            if (settingVisible(f.key) && (f.key != "camera_default_device" || state.fixed_camera_device.empty()))
+                values_["setting:" + f.key] = f.value;
         if (page_ == "camera-settings" && settingsDirty(state)) handle("settings-apply", state);
         return;
     }
@@ -1804,8 +1821,9 @@ void DemoUi::key(Key key_value, const std::string& value, bool shift, const View
         if((key_value==Key::Left||key_value==Key::Right)&&!state.captured_faces.empty()&&keyboard_focus_.rfind("recognition-verify:",0)==0){
             int index=std::stoi(keyboard_focus_.substr(19));index=std::clamp(index+(key_value==Key::Left?-1:1),0,int(state.captured_faces.size())-1);
             keyboard_focus_="recognition-verify:"+std::to_string(index);
-            if(index*96<reference_scroll_)reference_scroll_=index*96;
-            else if(index*96+88>reference_scroll_+recognition_reference_area_.w)reference_scroll_=index*96+88-recognition_reference_area_.w;
+            const int left = index * reference_tile_step;
+            const int visible_margin = std::max(0, recognition_reference_area_.w - reference_tile_width);
+            reference_scroll_ = std::clamp(reference_scroll_, left - visible_margin, left);
             reference_scroll_=std::clamp(reference_scroll_,0,reference_max_scroll_);return;
         }
     }

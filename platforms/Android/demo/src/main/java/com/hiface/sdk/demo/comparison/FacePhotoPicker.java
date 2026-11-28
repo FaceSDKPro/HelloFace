@@ -19,6 +19,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.exifinterface.media.ExifInterface;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
@@ -129,7 +130,7 @@ public final class FacePhotoPicker implements AutoCloseable {
             @NonNull Uri uri,
             @NonNull Callback callback) {
         try {
-            Bitmap bitmap = decode(uri);
+            Bitmap bitmap = decode(resolver, uri, maximumDimension);
             if (!mainHandler.post(() -> deliver(callback, bitmap, null))) {
                 recycle(bitmap);
             }
@@ -162,10 +163,10 @@ public final class FacePhotoPicker implements AutoCloseable {
      * 解码方向正确的软件 Bitmap，并限制尺寸和像素格式；不做无用途的 JPEG 再编码。
      */
     @NonNull
-    private Bitmap decode(@NonNull Uri uri) throws IOException {
+    static Bitmap decode(@NonNull ContentResolver resolver, @NonNull Uri uri, int maximumDimension) throws IOException {
         Bitmap decoded = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
                 ? Api28Impl.decode(resolver, uri, maximumDimension)
-                : decodeWithBitmapFactory(uri);
+                : decodeWithBitmapFactory(resolver, uri, maximumDimension);
         if (decoded == null) {
             throw new IOException("Unsupported or damaged image");
         }
@@ -181,16 +182,12 @@ public final class FacePhotoPicker implements AutoCloseable {
         }
     }
 
-    /**
-     * On API 23–27, use BitmapFactory and read the media-library orientation field.
-     *
-     * API 23–27 使用 BitmapFactory，并读取媒体库方向字段。
-     */
     @Nullable
-    private Bitmap decodeWithBitmapFactory(@NonNull Uri uri) throws IOException {
+    private static Bitmap decodeWithBitmapFactory(ContentResolver resolver, Uri uri, int maximumDimension)
+            throws IOException {
         BitmapFactory.Options bounds = new BitmapFactory.Options();
         bounds.inJustDecodeBounds = true;
-        try (InputStream input = open(uri)) {
+        try (InputStream input = open(resolver, uri)) {
             BitmapFactory.decodeStream(input, null, bounds);
         }
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
@@ -201,14 +198,27 @@ public final class FacePhotoPicker implements AutoCloseable {
         options.inPreferredConfig = Bitmap.Config.ARGB_8888;
         options.inSampleSize = sampleSize(bounds.outWidth, bounds.outHeight, maximumDimension);
         Bitmap bitmap;
-        try (InputStream input = open(uri)) {
+        try (InputStream input = open(resolver, uri)) {
             bitmap = BitmapFactory.decodeStream(input, null, options);
         }
-        return rotate(bitmap, queryOrientation(uri));
+        if (bitmap == null) {
+            return null;
+        }
+        Bitmap oriented = null;
+        try {
+            Matrix matrix = orientationMatrix(resolver, uri);
+            oriented = matrix.isIdentity() ? bitmap
+                    : Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+            return oriented;
+        } finally {
+            if (oriented != bitmap) {
+                recycle(bitmap);
+            }
+        }
     }
 
     @NonNull
-    private InputStream open(@NonNull Uri uri) throws IOException {
+    private static InputStream open(ContentResolver resolver, Uri uri) throws IOException {
         InputStream input = resolver.openInputStream(uri);
         if (input == null) {
             throw new IOException("Unable to open selected image");
@@ -216,7 +226,26 @@ public final class FacePhotoPicker implements AutoCloseable {
         return input;
     }
 
-    private int queryOrientation(@NonNull Uri uri) {
+    private static Matrix orientationMatrix(ContentResolver resolver, Uri uri) {
+        Matrix matrix = new Matrix();
+        try (InputStream input = open(resolver, uri)) {
+            ExifInterface exif = new ExifInterface(input);
+            int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
+            if (orientation >= ExifInterface.ORIENTATION_NORMAL && orientation <= ExifInterface.ORIENTATION_ROTATE_270) {
+                if (exif.isFlipped()) {
+                    matrix.setScale(-1f, 1f);
+                }
+                matrix.postRotate(exif.getRotationDegrees());
+                return matrix;
+            }
+        } catch (IOException | RuntimeException ignored) {
+            // Images without readable EXIF may still have an orientation supplied by MediaStore.
+        }
+        matrix.setRotate(queryOrientation(resolver, uri));
+        return matrix;
+    }
+
+    private static int queryOrientation(ContentResolver resolver, Uri uri) {
         String column = MediaStore.Images.ImageColumns.ORIENTATION;
         try (Cursor cursor = resolver.query(uri, new String[]{column}, null, null, null)) {
             if (cursor == null || !cursor.moveToFirst()) {
@@ -226,25 +255,6 @@ public final class FacePhotoPicker implements AutoCloseable {
             return columnIndex >= 0 ? cursor.getInt(columnIndex) : 0;
         } catch (RuntimeException ignored) {
             return 0;
-        }
-    }
-
-    @Nullable
-    private static Bitmap rotate(@Nullable Bitmap source, int degrees) {
-        if (source == null || degrees % 360 == 0) {
-            return source;
-        }
-        Matrix matrix = new Matrix();
-        matrix.postRotate(degrees);
-        Bitmap rotated = null;
-        try {
-            rotated = Bitmap.createBitmap(
-                    source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
-            return rotated;
-        } finally {
-            if (rotated != source) {
-                recycle(source);
-            }
         }
     }
 

@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.22.1)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     project(HiFaceWindowsDemo LANGUAGES C CXX RC)
+    # Standalone consumers also need CFG on the integration library and both executables.
+    set(hiface_optimized "$<CONFIG:Release,RelWithDebInfo,MinSizeRel>")
+    if(MSVC)
+        add_compile_options("$<$<AND:${hiface_optimized},$<COMPILE_LANGUAGE:C,CXX>>:/guard:cf>")
+        add_link_options("$<${hiface_optimized}:/guard:cf>")
+    elseif(MINGW AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_compile_options("$<$<AND:${hiface_optimized},$<COMPILE_LANGUAGE:C,CXX>>:-mguard=cf>")
+        add_link_options("$<${hiface_optimized}:LINKER:--guard-cf>")
+    endif()
     # Consume the installed public C ABI; release packaging independently pins
     # 接入已安装的公开 C ABI，发布打包流程单独固定 SDK 二进制清单。
     # the reviewed SDK binary catalog instead of a private development tag.

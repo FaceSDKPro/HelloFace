@@ -162,7 +162,7 @@ struct CameraDemoView: View {
             isVisible = true
             if mode == .search {
                 searchScreenPresentation.onIdleStateChanged = { [weak model] idle in
-                    model?.setSearchCameraIdle(idle)
+                    model?.pipeline.setSearchIdle(idle)
                 }
             }
             activateCameraPage(for: scenePhase)

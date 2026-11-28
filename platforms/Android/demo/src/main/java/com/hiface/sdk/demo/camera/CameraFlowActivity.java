@@ -18,7 +18,6 @@ public abstract class CameraFlowActivity extends CameraBrightnessActivity {
     protected CameraPreviewFragment cameraPreview;
     protected FaceCaptureOverlayView captureOverlay;
     protected HiFaceSdk hiFaceSdk;
-    // Owns the one-shot request and exposes its active flag to the camera analysis thread.
     private final CameraFlowRequest flow = new CameraFlowRequest();
     private DemoPromptSpeech promptSpeech;
     private String currentSpeechPrompt;
@@ -41,11 +40,7 @@ public abstract class CameraFlowActivity extends CameraBrightnessActivity {
             return;
         }
         hiFaceSdk = HiFaceSdk.builder(this).lifecycleOwner(this).build();
-        cameraPreview.setFrameListener(frame -> {
-            if (flow.isActive()) {
-                hiFaceSdk.processFrame(frame);
-            }
-        });
+        cameraPreview.setFrameListener(hiFaceSdk::processFrame, false);
     }
 
     /** Called when the camera is ready or the user retries. */
@@ -72,11 +67,12 @@ public abstract class CameraFlowActivity extends CameraBrightnessActivity {
             return;
         }
         try {
-            flow.start(() -> {
-                cameraPreview.resumeAnalysis();
+            if (flow.start(() -> {
                 captureOverlay.resetCountdown();
                 return starter.start();
-            });
+            })) {
+                cameraPreview.resumeAnalysis();
+            }
         } catch (RuntimeException | Error error) {
             if (!flow.isActive()) {
                 stopCameraFlow();
@@ -95,10 +91,10 @@ public abstract class CameraFlowActivity extends CameraBrightnessActivity {
     }
 
     protected final boolean finishCameraFlow(boolean finishSpeech) {
+        cameraPreview.pauseAnalysis();
         if (!flow.finish()) {
             return false;
         }
-        cameraPreview.pauseAnalysis();
         captureOverlay.finishCountdown();
         if (finishSpeech && resumed && !isFinishing() && promptSpeech != null) {
             promptSpeech.finish();
@@ -108,11 +104,10 @@ public abstract class CameraFlowActivity extends CameraBrightnessActivity {
         return true;
     }
 
-    // Clear request ownership before pausing frames so a late terminal callback cannot finish twice.
     private void stopCameraFlow() {
+        cameraPreview.pauseAnalysis();
         flow.cancel();
         clearSpeechPrompt();
-        cameraPreview.pauseAnalysis();
         captureOverlay.resetCountdown();
     }
 

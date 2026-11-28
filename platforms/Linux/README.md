@@ -66,7 +66,7 @@ On Ubuntu, desktop runtime tools can be installed with `sudo apt install libx11-
 No Qt, OpenCV or compiler is required to run prebuilt programs. Launch in a graphical desktop terminal;
 headless systems can use self-tests and the CLI. Camera support is V4L2 single-plane or multiplanar MMAP with
 YUYV/MJPEG/NV12/NV21 (packed in one buffer plane),
-requesting 640×480 at 25 FPS on ordinary desktops, or 1440×1080 at 25 FPS for live face search. Embedded displays default to 640×360. The driver negotiates the actual parameters.
+requesting 640×480 at 25 FPS on ordinary desktops, or 1440×1080 at 20 FPS for live face search. Embedded displays default to 640×360. The driver negotiates the actual parameters.
 Advanced FPS requests retain the selected value from 1 to 60; search idle never requests a higher rate than the
 configured value. Preview and recognition retain their own processing caps, regardless of camera capture FPS.
 Set `HIFACE_CAMERA_ROTATE=left` (aliases: `ccw`, `90ccw`) to turn a landscape sensor frame into
@@ -128,7 +128,7 @@ Search enrollment stages a preview and ID/group/tag. An existing ID requires a s
 Face Recognition starts with action challenges enabled for verification and standalone liveness, with Blink and Nod Head selected. You can turn them off or change the checked actions, which run in the order shown on this page. Verification also has an independent passive-liveness switch, enabled by default. The standalone camera settings retain optional random and custom sequences. Action instructions stay above the circle until the step changes. Camera flows started from Face Recognition return their result to that page.
 1:N search can use silent liveness; M:N omits it. Spoof rejection takes priority over a matching ID/score.
 
-The full-screen search page captures and previews the newest frame at 25 FPS. Recognition consumes only the newest
+The full-screen search page requests up to 20 FPS for capture and preview, capped by the configured camera FPS. Recognition consumes only the newest
 available frame on a separate worker and is capped at 8 FPS, so slow inference does not stall preview. The overlay
 reports actual Preview FPS, Recognition FPS and last inference time separately.
 The absence countdown uses capture timestamps, matching the Windows desktop policy. Stale results, SDK-skipped

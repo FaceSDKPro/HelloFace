@@ -44,7 +44,7 @@ Database::Database(const std::filesystem::path& path) {
     const auto text = path.u8string();
     if (text.find('\0') != std::string::npos) throw std::invalid_argument("Database path contains NUL");
     if (path.has_parent_path()) std::filesystem::create_directories(path.parent_path());
-    check(hiface_search_open_v1(text.c_str(), &database_), "open gallery");
+    check(hiface_search_open_v1(reinterpret_cast<const char*>(text.c_str()), &database_), "open gallery");
 }
 Database::~Database() { hiface_search_close_v1(database_); }
 uint64_t Database::count(const std::string& group, const std::string& tag) const {

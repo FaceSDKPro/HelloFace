@@ -3,6 +3,9 @@
 #include <string>
 #include <vector>
 namespace hiface_linux_demo {
+struct CameraDevice {
+    std::string id, name, path;
+};
 struct CameraFrame {
     int width = 0, height = 0;
     std::vector<uint8_t> rgba, i420;
@@ -57,7 +60,7 @@ public:
     void openRgbIr(const std::string& device, RgbIrCameraRole role, int rotation);
     static void verifyDistinct(const Camera& rgb, const Camera& ir);
     void close() noexcept;
-    bool read(CameraFrame& frame);
+    bool read(CameraFrame& frame, int timeout_ms = 0);
     bool readAnalysis(CameraFrame& frame);
     // Copy out of MMAP storage before requeueing the driver buffer for the next capture.
     bool readRaw(RawCameraFrame& frame);
@@ -67,15 +70,14 @@ public:
     // Convert a native NV12/NV21 frame directly into the final X11 BGRX
     // preview size with Rockchip RGA. Recognition uses readAnalysis().
     // 使用 Rockchip RGA 将原生 NV12/NV21 帧直接转换成最终 X11 BGRX 预览尺寸；识别仍使用 readAnalysis()。
-    bool readPreview(CameraFrame& frame, int output_width, int output_height);
+    bool readPreview(CameraFrame& frame, int output_width, int output_height, int timeout_ms = 0);
     const std::string& description() const { return description_; }
     bool ready() const { return streaming_; }
-    bool waitForFrame(int timeout_ms);
     bool requestFrameRate(int fps); // Best effort, without restarting the stream.
 private:
     enum class Rotation { none = 0, clockwise = 90, half = 180, counter_clockwise = 270 };
     struct Buffer { void* data; size_t size; int dma_fd = -1; };
-    int fd_ = -1, width_ = 0, height_ = 0, stride_ = 0, type_ = 0, plane_count_ = 0;
+    int fd_ = -1, width_ = 0, height_ = 0, stride_ = 0, type_ = 0;
     uint32_t format_ = 0;
     bool streaming_ = false, infrared_ = false;
     Rotation rotation_ = Rotation::none;
@@ -85,6 +87,7 @@ private:
     std::string description_;
     void openStream(const std::string& device, int width, int height, int fps, bool prefer_mjpeg, bool infrared,
                     int rotation = -1);
+    bool waitForFrame(int timeout_ms);
     bool readFrame(CameraFrame* frame, int preview_width, int preview_height, bool analysis_only,
                    RawCameraFrame* raw = nullptr);
 };

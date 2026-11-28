@@ -304,6 +304,21 @@ final class ModelResourceTests: XCTestCase {
 
 final class CameraSwitchTests: XCTestCase {
     @MainActor
+    func testCameraReadyAfterSettingsRestartsDetection() {
+        let model = CameraDemoModel(mode: .detection)
+        model.start()
+        defer { model.stop() }
+        model.pipeline.onError?("Denied", true)
+        XCTAssertTrue(model.needsCameraSettings)
+        XCTAssertEqual(model.phase, .failed)
+        model.suspend()
+        model.start()
+        model.pipeline.onStarted?()
+        XCTAssertFalse(model.needsCameraSettings)
+        XCTAssertEqual(model.phase, .running)
+    }
+
+    @MainActor
     func testChangingSearchSettingsWhileSuspendedKeepsCameraStopped() {
         let model = CameraDemoModel(mode: .search)
         model.start()

@@ -43,6 +43,7 @@
         android:layout_marginTop="12dp"
         android:layout_marginEnd="12dp"
         android:contentDescription="@string/switch_camera"
+        app:tint="@android:color/white"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 

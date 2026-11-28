@@ -83,6 +83,8 @@ std::vector<FormField> settingsFields(const DemoSettings& s) {
         {"camera_width", "Camera width (even, 2..1920)", std::to_string(s.camera_width)},
         {"camera_height", "Camera height (even, 2..1080)", std::to_string(s.camera_height)},
         {"camera_fps", "Requested camera FPS (1..60)", std::to_string(s.camera_fps)},
+        {"camera_zoom_percent", "Digital zoom percentage (100..400)", std::to_string(s.camera_zoom_percent)},
+        {"camera_default_device", "Default camera device ID", s.camera_default_device},
         {"camera_mjpeg", "Prefer MJPEG (0 = YUYV, 1 = MJPEG)", boolean(s.camera_mjpeg)},
         {"mirror", "Mirror preview only (0/1)", boolean(s.mirror)},
         {"camera_rotation", "Clockwise camera rotation (0/90/180/270)", std::to_string(s.camera_rotation)},
@@ -127,6 +129,10 @@ DemoSettings parseSettings(const std::vector<FormField>& fields) {
     if (!embeddedDisplay() && values.count("camera_resolution_override"))
         s.camera_resolution_overridden = integer("camera_resolution_override", 0, 1) != 0;
     s.camera_fps = integer("camera_fps", 1, 60); s.camera_mjpeg = integer("camera_mjpeg", 0, 1); s.mirror = integer("mirror", 0, 1);
+    if (values.count("camera_zoom_percent"))
+        s.camera_zoom_percent = integer("camera_zoom_percent", 100, 400);
+    s.camera_default_device = values["camera_default_device"];
+    require(s.camera_default_device.find('\0') == std::string::npos, "Invalid setting: camera_default_device");
     s.ui_rotation = integer("ui_rotation", 0, 270);
     require(s.ui_rotation % 90 == 0, "ui_rotation must be 0, 90, 180 or 270");
     if(!embeddedDisplay())s.ui_rotation=0;
@@ -183,7 +189,11 @@ void saveSettings(const std::string& file, const DemoSettings& settings) {
     const auto fields = settingsFields(settings);
     parseSettings(fields);
     std::ostringstream output;
-    for (const auto& field : fields) output << field.key << ' ' << std::quoted(field.value) << '\n';
+    for (const auto& field : fields) {
+        if (field.key == "camera_zoom_percent" && settings.camera_zoom_percent == 100) continue;
+        if (field.key == "camera_default_device" && field.value.empty()) continue;
+        output << field.key << ' ' << std::quoted(field.value) << '\n';
+    }
     atomicWrite(file, output.str());
 }
 }

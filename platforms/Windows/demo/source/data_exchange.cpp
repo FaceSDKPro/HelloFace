@@ -27,7 +27,7 @@ void GalleryListing::reset(const Gallery& database, const std::string& query, co
     }
     *this = std::move(fresh);
 }
-void GalleryListing::append(const Gallery& database) {
+void GalleryListing::append(const Gallery& database, const std::function<void(const std::string&)>& on_row) {
     if (!more || !query_.empty()) return;
     auto batch = database.list(next, 100, group_, tag_);
     // Read before mutating the cursor so a failed append can be retried.
@@ -37,14 +37,15 @@ void GalleryListing::append(const Gallery& database) {
         // Keep an ID index across pages: repeatedly scanning all loaded rows is
         // quadratic for large libraries. Overlapping pages still update one row.
         // 跨页维护 ID 索引，避免大库反复扫描；重叠分页仍只更新已有一行。
-        const auto found = positions_.find(person.id);
+        const auto id = person.id;
+        const auto found = positions_.find(id);
         if (found != positions_.end()) people[found->second] = std::move(person);
         else {
-            const auto id = person.id;
             people.push_back(std::move(person));
             try { positions_.emplace(id, people.size() - 1); }
             catch (...) { people.pop_back(); throw; }
         }
+        if (on_row) on_row(id);
     }
     next += static_cast<uint32_t>(batch.size()); filtered = count;
     more = !batch.empty() && next < filtered;
@@ -220,6 +221,10 @@ ImportProgress importDataset(Gallery& database, const std::filesystem::path& fil
             auto decoded = decodeFeature(person.feature); std::fill(decoded.begin(), decoded.end(), 0);
             batch.push_back(std::move(person));
         } catch (const std::bad_alloc&) { throw; }
+        catch (const SdkError& error) {
+            if (error.status != HIFACE_STATUS_INVALID_ARGUMENT) throw;
+            ++progress.failed;
+        }
         catch (const std::exception&) { ++progress.failed; }
         ++progress.processed;
         if (batch.size() == HIFACE_SEARCH_MAX_BATCH_ENTRIES) commit();

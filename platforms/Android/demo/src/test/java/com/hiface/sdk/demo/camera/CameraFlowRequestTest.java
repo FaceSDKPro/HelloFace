@@ -10,7 +10,7 @@ import static org.junit.Assert.fail;
 
 public final class CameraFlowRequestTest {
     @Test
-    public void idleDoesNotForwardFramesOrFinish() {
+    public void idleHasNoRequestToFinish() {
         CameraFlowRequest flow = new CameraFlowRequest();
         assertFalse(flow.isActive());
         assertFalse(flow.finish());
@@ -19,7 +19,7 @@ public final class CameraFlowRequestTest {
     }
 
     @Test
-    public void startEnablesFrameDeliveryBeforeCreatingRequest() {
+    public void startReservesOwnershipBeforeReturningTheHandle() {
         CameraFlowRequest flow = new CameraFlowRequest();
         assertTrue(flow.start(() -> {
             assertTrue(flow.isActive());
@@ -56,7 +56,7 @@ public final class CameraFlowRequestTest {
     }
 
     @Test
-    public void backgroundCancellationClosesFrameGateBeforeCancellingSdk() {
+    public void cancellationClearsOwnershipBeforeCancellingSdk() {
         CameraFlowRequest flow = new CameraFlowRequest();
         AtomicInteger cancellations = new AtomicInteger();
         flow.start(() -> () -> {
@@ -97,14 +97,14 @@ public final class CameraFlowRequestTest {
     private static void assertSynchronousEndReleasesHandle(boolean complete) {
         CameraFlowRequest flow = new CameraFlowRequest();
         AtomicInteger cancellations = new AtomicInteger();
-        flow.start(() -> {
+        assertFalse(flow.start(() -> {
             if (complete) {
                 assertTrue(flow.finish());
             } else {
                 flow.cancel();
             }
             return cancellations::incrementAndGet;
-        });
+        }));
         assertFalse(flow.isActive());
         flow.cancel();
         assertEquals(1, cancellations.get());
@@ -131,11 +131,11 @@ public final class CameraFlowRequestTest {
     public void synchronousRetryKeepsTheNewHandleWhenTheOldStartReturns() {
         CameraFlowRequest flow = new CameraFlowRequest();
         AtomicInteger old = new AtomicInteger(), retry = new AtomicInteger();
-        flow.start(() -> {
+        assertFalse(flow.start(() -> {
             flow.finish();
-            flow.start(() -> retry::incrementAndGet);
+            assertTrue(flow.start(() -> retry::incrementAndGet));
             return old::incrementAndGet;
-        });
+        }));
         assertEquals(1, old.get());
         flow.cancel();
         assertEquals(1, retry.get());

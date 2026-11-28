@@ -1,5 +1,4 @@
 import Foundation
-import AVFoundation
 import HiFace
 import SwiftUI
 
@@ -129,24 +128,13 @@ final class CameraDemoModel: ObservableObject {
             sdk: sdk,
             detectionConfiguration: detectionConfiguration,
             settings: cameraSettings,
-            // Search uses 15 FPS active and 10 FPS idle preview, with 5 FPS idle SDK analysis.
-            // 搜索活跃 15 FPS、待机预览 10 FPS，待机 SDK 分析保持 5 FPS。
-            sessionFramesPerSecond: mode == .search ? 15 : 30,
-            minimumSessionFramesPerSecond: mode == .search ? 10 : nil,
-            deliversDetectionResults: mode != .search
+            mode: mode
         )
         pipeline.onDetection = { [weak self] result, previewMirrored, overlayMirrored in
             guard let self, self.started else { return }
             detection = result
-            self.previewMirrored = previewMirrored
-            self.overlayMirrored = overlayMirrored
-            if self.mode == .detection {
-                phase = .running
-                status = result.faces.isEmpty
-                    ? DemoL10n.text("未检测到人脸")
-                    : DemoL10n.text("检测到 {0} 张人脸", [String(describing: result.faces.count)])
-                detail = result.faces.first.map(Self.detectionDetail)
-            }
+            if self.previewMirrored != previewMirrored { self.previewMirrored = previewMirrored }
+            if self.overlayMirrored != overlayMirrored { self.overlayMirrored = overlayMirrored }
         }
         pipeline.onMirroringChanged = { [weak self] previewMirrored, overlayMirrored in
             guard let self, self.started else { return }
@@ -170,7 +158,9 @@ final class CameraDemoModel: ObservableObject {
         pipeline.onCameraAvailabilityChanged = { [weak self] available, message in
             self?.handleCameraAvailability(available: available, message: message)
         }
-        pipeline.onError = { [weak self] message in self?.handleCameraError(message) }
+        pipeline.onError = { [weak self] message, needsSettings in
+            self?.handleCameraError(message, needsSettings: needsSettings)
+        }
         pipeline.onStarted = { [weak self] in self?.cameraDidStart() }
         #if DEBUG
         pipeline.onTestFrame = { [weak self] timestamp in self?.cameraTestFrameTimestamp = timestamp }
@@ -189,16 +179,9 @@ final class CameraDemoModel: ObservableObject {
         suspended = false
         cameraReady = false
         if mode == .capture { enrollmentCompleted = false }
-        // Resume after camera access is granted in Settings; reread references after enrollment.
-        // 从系统设置允许相机访问后恢复；从录入页返回时重新读取参考身份。
-        if needsCameraSettings, AVCaptureDevice.authorizationStatus(for: .video) == .authorized {
-            needsCameraSettings = false
-            phase = .preparing
-        }
         if mode == .verification, phase == .needsReference || phase == .selectingReference {
             phase = .preparing
         }
-        if mode == .capture, !enrollsInSearchLibrary { refreshReferenceFaces() }
         // Retain completed previews and reference selection across permission prompts, backgrounding, and
         // temporary navigation away.
         // 权限弹窗、切后台或临时离开页面后，保留已完成的预览和参考身份选择。
@@ -209,6 +192,10 @@ final class CameraDemoModel: ObservableObject {
     private func cameraDidStart() {
         guard started, !suspended, !isSwitchingCamera else { return }
         cameraReady = true
+        if needsCameraSettings {
+            needsCameraSettings = false
+            phase = .preparing
+        }
         if phase.needsCameraFlow {
             if mode == .search, let searchSession {
                 searchSession.resume()
@@ -273,14 +260,6 @@ final class CameraDemoModel: ObservableObject {
         request = nil
     }
 
-    /// Request 10 FPS preview and 5 FPS SDK analysis after ten continuous no-face seconds; hardware falls back within supported ranges
-    /// while SDK input keeps target throttling.
-    /// 连续无人脸 10 秒后请求 10 FPS 预览、5 FPS 分析；会话按支持范围回退，SDK 输入独立限流。
-    func setSearchCameraIdle(_ idle: Bool) {
-        guard mode == .search else { return }
-        pipeline.setSessionFrameRate(idle ? 10 : 15, analysisFramesPerSecond: idle ? 5 : 15)
-    }
-
     deinit {
         enrollmentTask?.cancel()
         actionCountdownTask?.cancel()
@@ -321,7 +300,6 @@ final class CameraDemoModel: ObservableObject {
             FacePhotoStore.saveLater(image: alignedFace, faceID: faceID, library: .reference)
             clearPendingCapture()
             enrollmentFaceID = faceID
-            refreshReferenceFaces()
             status = DemoL10n.text("已保存 1:1 参考人脸")
             detail = DemoL10n.text("Face ID：{0}；同名录入会更新原样本", [String(describing: faceID)])
             return true
@@ -828,10 +806,10 @@ final class CameraDemoModel: ObservableObject {
         detail = DemoErrorPresentation.isAccessError(error.code) ? message : "\(message) (\(error.code.rawValue))"
     }
 
-    private func handleCameraError(_ message: String) {
+    private func handleCameraError(_ message: String, needsSettings: Bool) {
         guard started else { return }
         cameraReady = false
-        needsCameraSettings = AVCaptureDevice.authorizationStatus(for: .video) == .denied
+        needsCameraSettings = needsSettings
         cancelGuidedRequest()
         searchSession?.pause()
         pipeline.pauseAnalysis()
@@ -953,21 +931,6 @@ final class CameraDemoModel: ObservableObject {
         }
     }
 
-    // MARK: - Detection presentation
-    // 检测展示。
-
-    private static func detectionDetail(_ face: DetectedFace) -> String {
-        var values = [String(format: DemoL10n.text("置信度 %.1f%%"), face.confidence * 100)]
-        if let pose = face.headPose {
-            values.append(String(
-                format: "Pitch %.1f° · Yaw %.1f° · Roll %.1f°",
-                pose.pitch,
-                pose.yaw,
-                pose.roll
-            ))
-        }
-        return values.joined(separator: " · ")
-    }
 }
 
 enum ReferencePhotoError: LocalizedError {

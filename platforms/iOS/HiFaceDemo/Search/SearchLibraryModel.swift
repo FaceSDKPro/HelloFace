@@ -35,7 +35,6 @@ final class SearchLibraryModel: ObservableObject {
     @Published private(set) var pendingImport: FaceSearchDemoImportKind?
     @Published private(set) var isImporting = false
     @Published private(set) var isStoppingImport = false
-    @Published private(set) var importSaved = 0
     @Published private(set) var importNotice: String?
 
     private static let loadSize = 100
@@ -177,7 +176,6 @@ final class SearchLibraryModel: ObservableObject {
         importControl = control
         isImporting = true
         isStoppingImport = false
-        importSaved = 0
         importNotice = nil
         operationTask = Task { [weak self] in
             guard let self else { return }
@@ -194,13 +192,18 @@ final class SearchLibraryModel: ObservableObject {
                     }
                 }
             }
+            var openedDatabase: FaceSearchDatabase?
+            var saved = 0
+            let message: String
+            let failed: Bool
             do {
                 let progress: @MainActor @Sendable (FaceSearchDemoImportProgress) -> Void = { [weak self] value in
+                    saved = value.imported
                     guard let self, isCurrent(generation) else { return }
-                    importSaved = value.imported
                     status = DemoL10n.text("{0}：已处理 {1} / {2}，已保存 {3} 条", [String(describing: isStoppingImport ? DemoL10n.text("正在停止") : kind.title), String(describing: value.processed), String(describing: value.total), String(describing: value.imported)])
                 }
                 let database = try await database()
+                openedDatabase = database
                 let summary: FaceSearchDemoImportSummary
                 switch kind {
                 case .features:
@@ -220,21 +223,28 @@ final class SearchLibraryModel: ObservableObject {
                         progress: progress
                     )
                 }
-                let message = DemoL10n.text("{0}：已保存 {1} 条，失败 {2} 条", [String(describing: summary.stopped ? DemoL10n.text("已停止") : DemoL10n.text("导入完成")), String(describing: summary.imported), String(describing: summary.failed)])
-                importNotice = message
-                guard isCurrent(generation) else { return }
-                let snapshot = try await Self.firstPage(database: database)
-                guard isCurrent(generation) else { return }
-                query = ""
-                apply(snapshot)
-                status = message
-                finish(generation)
+                message = DemoL10n.text("{0}：已保存 {1} 条，失败 {2} 条", [summary.stopped ? DemoL10n.text("已停止") : DemoL10n.text("导入完成"), String(summary.imported), String(summary.failed)])
+                failed = false
             } catch is CancellationError {
                 finish(generation)
+                return
             } catch {
-                if isCurrent(generation) {
-                    importNotice = DemoL10n.text("导入未完成，已保存 {0} 条。\n{1}", [String(describing: importSaved), String(describing: DemoErrorPresentation.message(for: error))])
+                message = DemoL10n.text("导入未完成，已保存 {0} 条。\n{1}", [String(saved), DemoErrorPresentation.message(for: error)])
+                failed = true
+            }
+            importNotice = message
+            guard isCurrent(generation) else { return }
+            do {
+                if let openedDatabase, !failed || saved > 0 {
+                    let snapshot = try await Self.firstPage(database: openedDatabase)
+                    guard isCurrent(generation) else { return }
+                    query = ""
+                    apply(snapshot)
                 }
+                status = message
+                hasError = failed
+                finish(generation)
+            } catch {
                 finish(error, generation: generation)
             }
         }

@@ -308,6 +308,7 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
         Bitmap bitmap;
         List<ResultFace> faces = new ArrayList<>();
         int selected = -1;
+        final RectF destination = new RectF();
         final TextPaint paint = new TextPaint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
 
         PhotoView() {
@@ -340,26 +341,27 @@ public final class FaceImageSearchActivity extends AppCompatActivity {
             float y = (getHeight() - bitmap.getHeight() * scale) / 2;
             paint.setStyle(Paint.Style.FILL);
             paint.setColor(Color.WHITE);
-            canvas.drawBitmap(bitmap, null,
-                    new RectF(x, y, x + bitmap.getWidth() * scale, y + bitmap.getHeight() * scale), paint);
+            destination.set(x, y, x + bitmap.getWidth() * scale, y + bitmap.getHeight() * scale);
+            canvas.drawBitmap(bitmap, null, destination, paint);
             for (int i = 0; i < faces.size(); i++) {
                 ResultFace result = faces.get(i);
                 RectF source = result.bounds;
-                RectF box = new RectF(x + source.left * scale, y + source.top * scale,
+                destination.set(x + source.left * scale, y + source.top * scale,
                         x + source.right * scale, y + source.bottom * scale);
                 paint.setColor(result.matched ? Color.rgb(32, 185, 70) : Color.rgb(207, 126, 20));
                 paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeWidth(dp(i == selected ? 4 : 2));
-                canvas.drawRect(box, paint);
+                canvas.drawRect(destination, paint);
                 paint.setStyle(Paint.Style.FILL);
                 paint.setTextSize(dp(10));
-                float maxLabelWidth = Math.min(getWidth() - dp(12), Math.max(box.width(), dp(96)));
+                float maxLabelWidth = Math.min(getWidth() - dp(12), Math.max(destination.width(), dp(96)));
                 String label = TextUtils.ellipsize(result.label, paint, maxLabelWidth, TextUtils.TruncateAt.END)
                         .toString();
-                float labelX = Math.max(dp(4), Math.min(box.left, getWidth() - paint.measureText(label) - dp(8)));
-                float labelY = Math.max(dp(16), box.top);
+                float labelWidth = paint.measureText(label);
+                float labelX = Math.max(dp(4), Math.min(destination.left, getWidth() - labelWidth - dp(8)));
+                float labelY = Math.max(dp(16), destination.top);
                 paint.setColor(0xCC111111);
-                canvas.drawRect(labelX, labelY - dp(16), labelX + paint.measureText(label) + dp(8), labelY, paint);
+                canvas.drawRect(labelX, labelY - dp(16), labelX + labelWidth + dp(8), labelY, paint);
                 paint.setColor(Color.WHITE);
                 canvas.drawText(label, labelX + dp(4), labelY - dp(4), paint);
             }

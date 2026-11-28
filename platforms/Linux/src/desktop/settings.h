@@ -34,6 +34,8 @@ struct DemoSettings {
     int ui_rotation = 0, camera_rotation = initialCameraRotation();
     bool camera_mjpeg = false, mirror = false;
     bool camera_resolution_overridden = false;
+    int camera_zoom_percent = 100;
+    std::string camera_default_device;
     CameraSize cameraSize() const { return {camera_width, camera_height}; }
     bool hasCameraResolutionOverride() const {
         // Keep custom dimensions and distinguish selected Low from an unset desktop preference.

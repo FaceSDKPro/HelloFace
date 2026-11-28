@@ -2,11 +2,25 @@
 #include "win_util.h"
 #include <aclapi.h>
 #include <sddl.h>
-#include <shlobj.h>
 #include <algorithm>
 
 namespace hiface_demo {
+std::filesystem::path FacePhotoStore::databasePath(Library library) {
+    return demoDataDirectory() / (library == Library::Search ? L"hiface-search.db" : L"captured-faces.db");
+}
+std::optional<FacePhotoStore::Library> FacePhotoStore::libraryForDatabase(const std::filesystem::path& database) {
+    for (auto library : {Library::Search, Library::Reference}) {
+        std::error_code error;
+        if (std::filesystem::equivalent(database, databasePath(library), error)) return library;
+    }
+    return std::nullopt;
+}
 namespace {
+void checkDirectory(const std::filesystem::path& path) {
+    const auto flags = GetFileAttributesW(path.c_str());
+    if (flags == INVALID_FILE_ATTRIBUTES || !(flags & FILE_ATTRIBUTE_DIRECTORY) || (flags & FILE_ATTRIBUTE_REPARSE_POINT))
+        throw std::runtime_error("Unavailable or unsafe photo directory");
+}
 // Own the protected DACL granting crop-directory access to the current user and SYSTEM.
 struct Security {
     PSECURITY_DESCRIPTOR descriptor = nullptr;
@@ -31,9 +45,7 @@ struct Security {
     void directory(const std::filesystem::path& path) {
         if (!CreateDirectoryW(path.c_str(), &attributes) && GetLastError() != ERROR_ALREADY_EXISTS)
             throw std::runtime_error("Cannot create private photo directory");
-        const auto flags = GetFileAttributesW(path.c_str());
-        if (flags == INVALID_FILE_ATTRIBUTES || !(flags & FILE_ATTRIBUTE_DIRECTORY) || flags & FILE_ATTRIBUTE_REPARSE_POINT)
-            throw std::runtime_error("Unsafe photo directory");
+        checkDirectory(path);
         BOOL present = FALSE, defaulted = FALSE; PACL dacl = nullptr;
         if (!GetSecurityDescriptorDacl(descriptor, &present, &dacl, &defaulted) || !present ||
             SetNamedSecurityInfoW(const_cast<wchar_t*>(path.c_str()), SE_FILE_OBJECT,
@@ -41,25 +53,31 @@ struct Security {
             throw std::runtime_error("Cannot restrict photo directory");
     }
 };
-std::filesystem::path file(const std::string& id, FacePhotoStore::Library library, bool create, Security* security = nullptr) {
+std::filesystem::path file(const std::string& id, FacePhotoStore::Library library, Security* security = nullptr) {
     if (id.empty() || id.find('\0') != std::string::npos) throw std::runtime_error("Invalid Face ID");
-    PWSTR raw = nullptr;
-    checkHr(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &raw), "Find private photo directory");
-    std::filesystem::path root(raw); CoTaskMemFree(raw);
     // Extended paths support long SDK IDs; components stay below filesystem name limits.
-    root = std::filesystem::path(L"\\\\?\\" + root.wstring());
-    root /= L"HiFaceDemo";
-    if (create) security->directory(root);
-    root /= L"face-photos-v1";
-    if (create) security->directory(root);
-    root /= library == FacePhotoStore::Library::Reference ? L"reference" : L"search";
-    if (create) security->directory(root);
+    auto root = demoDataDirectory().lexically_normal();
+    const auto name = root.make_preferred().wstring();
+    if (name.compare(0, 4, L"\\\\?\\") != 0)
+        root = name.compare(0, 2, L"\\\\") == 0 ? L"\\\\?\\UNC\\" + name.substr(2) : L"\\\\?\\" + name;
+    if (security && !GetEnvironmentVariableW(L"HIFACE_DATA_DIR", nullptr, 0)) security->directory(root);
+    else {
+        if (security) std::filesystem::create_directories(root);
+        checkDirectory(root);
+    }
+    auto descend = [&](const std::filesystem::path& component) {
+        root /= component;
+        if (security) security->directory(root);
+        else checkDirectory(root);
+    };
+    descend(L"face-photos-v1");
+    descend(library == FacePhotoStore::Library::Reference ? L"reference" : L"search");
     std::string key = id;
     if (!std::all_of(id.begin(), id.end(), [](unsigned char c) { return c >= '0' && c <= '9'; })) {
         const char* hex = "0123456789abcdef"; key = "~";
         for (unsigned char c : id) { key += hex[c >> 4]; key += hex[c & 15]; }
     }
-    while (key.size() > 120) { root /= widen(key.substr(0, 120)); key.erase(0, 120); if (create) security->directory(root); }
+    while (key.size() > 120) { descend(widen(key.substr(0, 120))); key.erase(0, 120); }
     return root / widen(key + ".png");
 }
 }
@@ -67,7 +85,7 @@ bool FacePhotoStore::save(const std::string& id, const Image* image, Library lib
     std::filesystem::path temporary;
     try {
         Security security;
-        const auto target = file(id, library, true, &security);
+        const auto target = file(id, library, &security);
         if (!image || image->width < 1 || image->height < 1 || image->width > 720 || image->height > 720)
             throw std::runtime_error("No confirmed crop");
         GUID guid{}; checkHr(CoCreateGuid(&guid), "Create photo transaction");
@@ -87,7 +105,7 @@ bool FacePhotoStore::save(const std::string& id, const Image* image, Library lib
 }
 std::shared_ptr<const Image> FacePhotoStore::load(const std::string& id, Library library) noexcept {
     try {
-        const auto path = file(id, library, false);
+        const auto path = file(id, library);
         const auto flags = GetFileAttributesW(path.c_str());
         if (flags == INVALID_FILE_ATTRIBUTES || flags & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY)
                 || std::filesystem::file_size(path) > 1024 * 1024) return {};
@@ -103,6 +121,6 @@ std::shared_ptr<const Image> FacePhotoStore::load(const std::string& id, Library
     } catch (...) { return {}; }
 }
 void FacePhotoStore::remove(const std::string& id, Library library) noexcept {
-    try { DeleteFileW(file(id, library, false).c_str()); } catch (...) {}
+    try { DeleteFileW(file(id, library).c_str()); } catch (...) {}
 }
 }

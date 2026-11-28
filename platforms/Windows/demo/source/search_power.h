@@ -11,7 +11,8 @@ inline bool searchOverlayFresh(int64_t now, int64_t preview, int64_t analysis) {
 class SearchPreviewPower {
 public:
     static constexpr int64_t freshness_ms = 3000;
-    int64_t previewInterval() const { return idle_ ? 100 : 40; }
+    static constexpr int active_preview_fps = 20;
+    int64_t previewInterval() const { return idle_ ? 100 : 1000 / active_preview_fps; }
     int64_t analysisInterval() const { return idle_ ? 200 : 125; }
     // Refresh even when the SDK skips frames: a stalled detector cannot prove absence.
     // SDK 连续跳帧时也检查时效；检测停滞不能证明持续无人脸。

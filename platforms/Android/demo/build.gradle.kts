@@ -121,6 +121,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.fragment)
+    implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.material)
 
